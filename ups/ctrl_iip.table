@@ -1,0 +1,5 @@
+setupRequired(ctrl_events)
+setupRequired(log)
+
+envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
+envPrepend(PATH, ${PRODUCT_DIR}/bin)

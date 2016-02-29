@@ -1,0 +1,7 @@
+.sconsign.dblite
+config.log
+.sconf_temp
+*.pyc
+*.cfgc
+tests/.tests
+version.py
