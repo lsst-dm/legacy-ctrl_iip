@@ -1,0 +1,28 @@
+
+# The Message Broker address is made up of port, Vhost path, and user/passwd like this:
+# amqp://F1:F1@141.142.208.191:5672/%2fbunny
+#
+# In  order for this to work, a vhost named /bunny must be created on the
+# RabbitMQ server. In addition, the user name/passwd pairs must also be
+# configured and permissions added for /bunny in the RabbitMQ Mnesia database.
+#
+# Everything up until the '@' sign is handled by the Forwarder class, leaving
+# the hostname or IP, plus the vhost like this:
+
+NAME: F1
+BROKER_ADDR: 141.142.208.191:5672/%2fbunny
+CONSUME_QUEUE: F1_consume
+PUBLISH_QUEUE: forwarder_publish
+
+# valid apps - rsync, ftp, gridftp, scp -- should have a default value set...
+XFER_APP: scp
+
+XFER_FILE: 16.7meg
+
+# Unique identifiers
+NAME: F1
+PASSWD: F1
+FQN: F1_FORWARDER
+HOSTNAME: lsst-wf-base01.ncsa.illinois.edu
+IP_ADDR: 141.142.238.161
+

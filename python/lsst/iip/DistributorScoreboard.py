@@ -1,0 +1,115 @@
+## STATE Column: { STANDBY, PENDING_XFER, MAKING_XFER, XFER_COMPLETE }
+## STATUS Column: { HEALTHY, UNHEALTHY, UNKNOWN }
+
+import logging
+import redis
+import time
+import sys
+from Scoreboard import Scoreboard
+
+LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
+              '-35s %(lineno) -5d: %(message)s')
+LOGGER = logging.getLogger(__name__)
+
+class DistributorScoreboard(Scoreboard):
+    DISTRIBUTOR_ROWS = 'distributor_rows'
+    ROUTING_KEY = 'ROUTING_KEY'
+    DIST_SCOREBOARD_DB = 4 
+    PUBLISH_QUEUE = 'distributor_publish'
+
+    def __init__(self, ddict):
+        LOGGER.info('Setting up DistributorDcoreboard')
+        self.connect()
+        self._redis.flushdb()
+
+        distributors = ddict.keys()
+        for distributor in distributors:
+            fields = ddict[distributor]
+            name = fields['NAME']
+            ip_addr = fields['IP_ADDR']
+            target_dir = fields['TARGET_DIR']
+            xfer_login = name + "@" + ip_addr + ":" + target_dir
+            routing_key = fields['CONSUME_QUEUE']
+            publish_queue = "distributor_publish"
+
+            for field in fields:
+                self._redis.hset(distributor, field, fields[field])
+                self._redis.hset(distributor, 'XFER_LOGIN', xfer_login)
+                self._redis.hset(distributor, 'STATUS', 'HEALTHY')
+                self._redis.hset(distributor, 'ROUTING_KEY', routing_key)
+                self._redis.hset(distributor, 'MATE', 'NONE')
+  
+
+            self._redis.lpush(self.DISTRIBUTOR_ROWS, distributor)
+        
+        #self.persist_snapshot(self._redis)
+
+
+    def connect(self):
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DIST_SCOREBOARD_DB)
+        self._redis = redis.Redis(connection_pool=pool)
+
+    
+    def print_all(self):
+        all_distributors = self.return_distributors_list()
+        for distributor in all_distributors:
+            print distributor
+            print self._redis.hgetall(distributor)
+        print "--------Finished In get_all--------"
+        #return self._redis.hgetall(all_distributors)
+
+
+    def return_distributors_list(self):
+        all_distributors = self._redis.lrange(self.DISTRIBUTOR_ROWS, 0, -1)
+        return all_distributors
+
+
+    def get_healthy_distributors_list(self): 
+        healthy_distributors = []
+        distributors = self._redis.lrange(self.DISTRIBUTOR_ROWS, 0, -1)
+        for distributor in distributors:
+            if self._redis.hget(distributor, 'STATUS') == 'HEALTHY':
+                healthy_distributors.append(distributor)
+
+        return healthy_distributors
+
+
+    def set_distributor_params(self, distributor, params):
+        """The distributor paramater must be the fully
+           qualified name, such as DISTRIBUTOR_2
+
+        """
+        for kee in params.keys():
+            self._redis.hset(distributor, kee, params[kee])
+
+
+    def set_value_for_multiple_distributors(self, distributors, kee, val):
+        for distributor in distributors:
+            self._redis.hset(distributor, kee, val)
+
+
+    def set_params_for_multiple_distributors(self, distributors, params):
+        for distributor in distributors:
+            kees = params.keys()
+            for kee in kees:
+                self._redis.hset(distributor, kee, params[kee])
+
+
+    def get_value_for_distributor(self, distributor, kee):
+        return self._redis.hget(distributor, kee)
+
+
+    def set_distributor_state(self, distributor, state):
+        self._redis.hset(distributor,'STATE', state)
+
+
+    def set_distributor_status(self, distributor, status):
+        self._redis.hset(distributor,'STATUS', status)
+
+
+    def get_routing_key(self, distributor):
+        return self._redis.hget(distributor,'ROUTING_KEY')
+
+
+
+

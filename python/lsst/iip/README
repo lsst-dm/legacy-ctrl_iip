@@ -1,0 +1,10 @@
+This is a prototype branch for Level One. While most of the 
+components in this directory will be part of the eventual
+Level One repo, they are not in final form.
+
+This set of files is being used for investigation and testing 
+of the intended message topology. Timing is critical to this
+project and this code provides a means of the lillisecond impact
+of differing approaches.
+
+-jpy
