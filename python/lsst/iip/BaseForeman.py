@@ -139,7 +139,7 @@ class BaseForeman:
         LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
         LOGGER.info('DMCS callback message body is: %s', str(msg_dict))
 
-        handler = self._msg_actions.get(msg_dict['MSG_TYPE'])
+        handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
 
@@ -239,7 +239,7 @@ class BaseForeman:
     def process_dmcs_readout(self, params):
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        date = os.command('date +\"%Y-%m-%d %H:%M:%S.%5N\"')
+        date = os.system('date +\"%Y-%m-%d %H:%M:%S.%5N\"')
         self.JOB_SCBD.set_value_for_job(job_number, READOUT_SENT, date) 
         distributors = pairs.values()
         forwarders = pairs.keys()
