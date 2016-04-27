@@ -10,6 +10,15 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
+"""This file is a throwaway file used to temporarily
+   generate messages as if it were the DMCS. The actual
+   DMCS component with have policy built into it and
+   handle aborts, catastrophies, and general 'job'
+   bookkeeping. Again, this is just something to
+   generate command messages.
+
+"""
+
 class DMCS_sim:
   DMCS_CONSUME = "dmcs_consume"
 
@@ -70,6 +79,11 @@ class DMCS_sim:
         LOGGER.info('Sending STANDBY message %s', params)
         self._publisher.publish_message("dmcs_publish", yaml.dump(params))
       elif x == 7:  # Send Go msg
+        params = {}
+        params['MSG_TYPE'] = 'READOUT'
+        params['JOB_NUM'] = self._job_num
+        LOGGER.info('Sending READOUT message %s', params)
+        self._publisher.publish_message("dmcs_publish", yaml.dump(params))
         pass
       elif x == 8:  # Send Abort msg
         pass
@@ -146,7 +160,7 @@ class DMCS_sim:
     4 - \n\
     5 - Send Job,\n\
     6 - Send Standby,\n\
-    7 - Send Go,\n\
+    7 - Send READOUT,\n\
     8 - Abort(Not yet implemented),\n\
     10 - Choose Xfer File,\n\
     20 - Set XFER App to SSH,\n\
@@ -165,6 +179,9 @@ def main():
     dmcs.run()
   except KeyboardInterrupt:
     pass
+
+  print ""
+  print "DMCS_sim Done."
 
 
 
