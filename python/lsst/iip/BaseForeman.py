@@ -4,6 +4,7 @@ import pika
 import redis
 import yaml
 import sys
+import os
 import time
 import thread
 from const import *
@@ -310,6 +311,7 @@ class BaseForeman:
 
     def process_ncsa_insufficient_resources(self, params):
         forwarders = params[FORWARDERS_LIST]
+        job_number = params[JOB_NUM]
         for forwarder in forwarders:
             self.FWD_SCBD.set_forwarder_state(forwarder, IDLE)
             msg_params = {}

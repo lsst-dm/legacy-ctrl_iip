@@ -68,7 +68,9 @@ class DistributorScoreboard(Scoreboard):
         healthy_distributors = []
         distributors = self._redis.lrange(self.DISTRIBUTOR_ROWS, 0, -1)
         for distributor in distributors:
+            print "Checking health"
             if self._redis.hget(distributor, 'STATUS') == 'HEALTHY':
+                print "Found a healthy distributor"
                 healthy_distributors.append(distributor)
 
         return healthy_distributors
