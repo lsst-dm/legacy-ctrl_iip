@@ -146,6 +146,7 @@ class Distributor:
 def main():
     logging.basicConfig(filename='logs/distributor.log', level=logging.INFO, format=LOG_FORMAT)
     dist = Distributor()
+    print "Starting Distributor event loop..."
     try:
         while 1:
             pass
