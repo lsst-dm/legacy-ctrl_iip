@@ -322,7 +322,7 @@ class BaseForeman:
             msg_params[AVAILABLE_FORWARDERS] = params[AVAILABLE_FORWARDERS]
             self._publisher.publish_message("dmcs_consume", yaml.dump(msg_params))
             # delete job
-            self.JOB_SCBD.delete_job(job_number)
+            self.JOB_SCBD.delete_job(params[JOB_NUM])
             return False
 
 
