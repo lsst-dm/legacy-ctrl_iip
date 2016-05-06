@@ -171,7 +171,7 @@ class DMCS_sim:
 
 
 def main():
-    logging.basicConfig(filename='logs/dmcs_sim.log', level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/dmcs_sim.log', level=logging.DEBUG, format=LOG_FORMAT)
     dmcs = DMCS_sim()
     try:
         dmcs.run()

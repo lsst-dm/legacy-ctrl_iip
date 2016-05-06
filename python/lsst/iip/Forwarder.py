@@ -99,7 +99,7 @@ class Forwarder:
     def process_foreman_readout(self, params):
         job_number = params[JOB_NUM]
         source_dir = self._home_dir + self._xfer_file
-        cmd = ' \"ssh -r -i ../../../chocstraw.pem ' + str(source_dir) + ' ' + str(self._xfer_login) + str(params[TARGET_DIR]) + '\"'
+        cmd = ' \"scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ":" + str(params[TARGET_DIR]) + '\"'
         command = './xfer.sh ' + str(job_number) + cmd
         LOGGER.info('%s readout message action; command run in os is: %s ',self._name, command)
         os.system(command)
@@ -129,7 +129,7 @@ class Forwarder:
 
 
 def main():
-    logging.basicConfig(filename='logs/forwarder.log', level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/forwarder.log', level=logging.DEBUG, format=LOG_FORMAT)
     fwd = Forwarder()
     try:
         while 1:

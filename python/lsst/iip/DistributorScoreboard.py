@@ -28,7 +28,7 @@ class DistributorScoreboard(Scoreboard):
             name = fields['NAME']
             ip_addr = fields['IP_ADDR']
             target_dir = fields['TARGET_DIR']
-            xfer_login = name + "@" + ip_addr + ":" + target_dir
+            xfer_login = name + "@" + ip_addr 
             routing_key = fields['CONSUME_QUEUE']
             publish_queue = "distributor_publish"
 
@@ -114,4 +114,30 @@ class DistributorScoreboard(Scoreboard):
 
 
 
+def main():
+    logging.basicConfig(filename='logs/DistributorScoreboard.log', level=logging.DEBUG, format=LOG_FORMAT)
+
+    f = open('ForemanCfg.yaml')
+
+    #cfg data map...
+    cdm = yaml.safe_load(f)
+    ddict = cdm['ROOT']['XFER_COMPONENTS']['DISTRIBUTORS']
+
+    dist = DistributorScoreboard(ddict)
+
+    dist.print_all()
+
+    """
+    try:
+        while 1:
+            pass
+    except KeyboardInterrupt:
+        pass
+    """
+
+    print ""
+    print "DistributorScoreboard Done."
+
+
+if __name__ == "__main__": main()
 

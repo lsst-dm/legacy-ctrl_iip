@@ -213,7 +213,7 @@ class BaseForeman:
             msg_params[JOB_NUM] = job_num
             routing_key = self.DIST_SCBD.get_value_for_distributor(distributor, ROUTING_KEY)
             self.DIST_SCBD.set_distributor_state(distributor, 'STANDBY')
-            LOGGER.info('**** Current distributor is: %s', distributor)
+            LOGGER.debug('**** Current distributor is: %s', distributor)
             LOGGER.info('DMCS Standby: Sending standby message to routing_key %s', routing_key) 
             self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 
@@ -245,12 +245,13 @@ class BaseForeman:
         distributors = pairs.values()
         forwarders = pairs.keys()
 
+        #XXX - Add mate value into msg for distributors, for debug purposes
         for distributor in distributors:
-          print "Distributor is %s" % distributor
           msg_params = {}
           msg_params[MSG_TYPE] = READOUT
           msg_params[JOB_NUM] = job_number
           routing_key = self.DIST_SCBD.get_routing_key(distributor)
+          self.DIST_SCBD.set_distributor_state(distributor, READOUT)
           self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 
         for forwarder in forwarders:
@@ -364,6 +365,7 @@ class BaseForeman:
         LOGGER.info('Checking NCSA Resources')
         pairs = {}
         healthy_distributors = self.DIST_SCBD.get_healthy_distributors_list()
+        LOGGER.debug('Healthy dist list returned is %s', healthy_distributors)
 
         if len(healthy_distributors) >= len(healthy_forwarders):
             # Just pair 'em up...
@@ -394,7 +396,7 @@ class BaseForeman:
 
 
 def main():
-    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.DEBUG, format=LOG_FORMAT)
     b_fm = BaseForeman()
     try:
         while 1:

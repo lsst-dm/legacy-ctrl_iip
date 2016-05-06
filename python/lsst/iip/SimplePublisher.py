@@ -7,7 +7,6 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
-#connection = pika.BlockingConnection(pika.URLParameters('amqp://DMCS:DMCS@141.142.208.191:5672/%2fbunny'))
 
 class SimplePublisher:
 
@@ -20,8 +19,6 @@ class SimplePublisher:
     self._message_number = 0
     self._stopping = False
     self._url = amqp_url
-    #self._queue = self.QUEUE
-    #self._routing_key = self.ROUTING_KEY
     self._closing = False
 
     try:
@@ -46,7 +43,6 @@ class SimplePublisher:
          LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
          sys.exit(105)
 
-    LOGGER.info ("Sending msg to %s", route_key)
-    self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=msg)
+    LOGGER.debug ("Sending msg to %s", route_key)
 
 
