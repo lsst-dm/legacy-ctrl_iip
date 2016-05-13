@@ -4,6 +4,7 @@ import sys
 import time
 import logging
 import os
+import subprocess
 import thread
 from const import *
 from Consumer import Consumer
@@ -97,12 +98,41 @@ class Forwarder:
 
 
     def process_foreman_readout(self, params):
+        """There are two approaches for this method below.
+           The first calls a shell script outside the Forwarder
+           process in order to xfer the file.
+          
+           The second approach implements the timing actions for the call within
+           the Forwarder process, and calls scp directly. The second approach is 
+           written so that the timing results can be easily published as a message.
+
+           Two files are transferred each time READOUT is called...the actual data file,
+           and a small sentinel file. Instead of scp'ing each file, the directory where these two
+           files reside is used as the 'transfer file' and is moved with the recursive
+           '-r' switch.
+
         job_number = params[JOB_NUM]
         source_dir = self._home_dir + self._xfer_file
-        cmd = ' \"scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ":" + str(params[TARGET_DIR]) + '\"'
-        command = './xfer.sh ' + str(job_number) + cmd
+        cmd = ' scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ":" + str(params[TARGET_DIR])
         LOGGER.info('%s readout message action; command run in os is: %s ',self._name, command)
-        os.system(command)
+        os.system(cmd)
+        """
+
+        job_number = params[JOB_NUM]
+        source_dir = self._home_dir + self._xfer_file
+        cmd = ' scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
+        datetime = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
+        proc = subprocess.check_output(cmd, shell=True)
+        LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetimei, command)
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'XFER_COMPLETE'
+        msg_params['COMPONENT'] = 'FORWARDER'
+        msg_params['JOB_NUM'] = params[JOB_NUM]
+        msg_params[NAME] = self._name
+        msg_params['EVENT_TIME'] = datetime
+        msg_params['SOURCE_DIR'] = source_dir
+        msg_params['COMMAND'] = cmd
+        self._publisher.publish_message('event_log', yaml.dump(msg_params))
 
 
     def process_foreman_set_xfer_app(self, params):

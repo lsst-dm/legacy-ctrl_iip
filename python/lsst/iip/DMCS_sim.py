@@ -25,7 +25,7 @@ class DMCS_sim:
         self._job_num = 0
         self._raft_num = 7
         self._options = self.get_options_string()
-        self._broker_url = 'amqp://DMCS:DMCS@141.142.208.191:5672/%2fbunny'
+        self._broker_url = 'amqp://DMCS:DMCS@141.142.238.160:5672/%2fbunny'
 
         LOGGER.info('Setting up consumer on %s for %s', self._broker_url, self.DMCS_CONSUME)
         #self._connection = pika.BlockingConnection(pika.URLParameters('amqp://DMCS:DMCS@141.142.208.191:5672/%2fbunny'))
