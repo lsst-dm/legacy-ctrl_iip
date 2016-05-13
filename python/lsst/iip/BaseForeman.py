@@ -396,7 +396,7 @@ class BaseForeman:
 
 
 def main():
-    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.DEBUG, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     b_fm = BaseForeman()
     try:
         while 1:

@@ -23,7 +23,7 @@ class DMCS_sim:
 
     def __init__(self):
         self._job_num = 0
-        self._raft_num = 7
+        self._raft_num = 1
         self._options = self.get_options_string()
         self._broker_url = 'amqp://DMCS:DMCS@141.142.238.160:5672/%2fbunny'
 
@@ -171,7 +171,7 @@ class DMCS_sim:
 
 
 def main():
-    logging.basicConfig(filename='logs/dmcs_sim.log', level=logging.DEBUG, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/dmcs_sim.log', level=logging.INFO, format=LOG_FORMAT)
     dmcs = DMCS_sim()
     try:
         dmcs.run()

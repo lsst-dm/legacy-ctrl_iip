@@ -123,7 +123,7 @@ class Forwarder:
         cmd = ' scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
         datetime = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
         proc = subprocess.check_output(cmd, shell=True)
-        LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetimei, command)
+        LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetime, command)
         msg_params = {}
         msg_params[MSG_TYPE] = 'XFER_COMPLETE'
         msg_params['COMPONENT'] = 'FORWARDER'
@@ -159,7 +159,7 @@ class Forwarder:
 
 
 def main():
-    logging.basicConfig(filename='logs/forwarder.log', level=logging.DEBUG, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/forwarder.log', level=logging.INFO, format=LOG_FORMAT)
     fwd = Forwarder()
     try:
         while 1:
