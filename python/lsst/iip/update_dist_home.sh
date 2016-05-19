@@ -6,5 +6,7 @@ cp SimplePublisher.py ~/
 cp xfer.sh ~/
 cp const.py ~/
 cp ./scripts/check_sentinel.sh ~/xfer_dir
+#
+
 
 
