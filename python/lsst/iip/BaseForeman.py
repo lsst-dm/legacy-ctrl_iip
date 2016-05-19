@@ -38,8 +38,8 @@ class BaseForeman:
         self._name = 'FM'      # rabbit user & passwd
         self._passwd = 'FM'   
         self._broker_url = 'amqp_url'
-        self._xfer_app = 'rsync'
-        self._xfer_file = 'small.fits'
+        self._xfer_app = 'ssh'
+        self._xfer_file = '16.7meg'
  
         cdm = self.intake_yaml_file()
         try:
@@ -67,6 +67,7 @@ class BaseForeman:
 
 
         self._broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._broker_addr)
+        LOGGER.info('Building _broker_url. Result is %s', self._broker_url)
         self.setup_publishers()
         self.setup_consumers()
         #self.setup_federated_exchange()
@@ -138,7 +139,7 @@ class BaseForeman:
         msg_dict = yaml.load(body) 
         LOGGER.info('In DMCS message callback')
         LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
-        LOGGER.info('DMCS callback message body is: %s', str(msg_dict))
+        LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -162,6 +163,7 @@ class BaseForeman:
         needed_workers = int(params[RAFT_NUM])
         job_num = str(params[JOB_NUM])
         self.JOB_SCBD.add_job(job_num, needed_workers, self._xfer_app, self._xfer_file)
+        LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
         # run forwarder health check
         healthy_forwarders = self.FWD_SCBD.return_healthy_forwarders_list()
@@ -176,13 +178,19 @@ class BaseForeman:
             self._publisher.publish_message("dmcs_consume", yaml.dump(params))
             # delete job and leave Forwarders in Idle state
             self.JOB_SCBD.delete_job(job_num)
+            LOGGER.info('Reporting to DMCS that there are insufficient healthy forwarders')
             return False
         else:
-            for forwarder in healthy_forwarders:
-                self.FWD_SCBD.set_forwarder_status(forwarder, NCSA_RESOURCES)
+            LOGGER.info('Sufficient forwarders have been found. Checking NCSA')
+            forwarder_candidate_list = []
+            for i in range (0, needed_workers):
+                forwarder_candidate_list.append(healthy_forwarders[i])
+                self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES)
                 # Call this method for testing...
                 # There should be a message sent to NCSA here asking for available resources
-                return self.check_ncsa_resources(job_num, needed_workers, healthy_forwarders)
+            LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
+            LOGGER.info(forwarder_candidate_list)
+            return self.check_ncsa_resources(job_num, needed_workers, healthy_forwarders)
 
 
     def process_dmcs_standby(self, params):
@@ -203,6 +211,8 @@ class BaseForeman:
             msg_params[XFER_APP] = self._xfer_app
             msg_params[XFER_FILE] = self._xfer_file
             routing_key = self.FWD_SCBD.get_value_for_forwarder(forwarder, ROUTING_KEY)
+            LOGGER.info('Using routing key %s for forwarder %s message. Msg is %s',
+                         routing_key, forwarder, msg_params)
             self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 
         distributors = pairs.values()
@@ -215,6 +225,8 @@ class BaseForeman:
             self.DIST_SCBD.set_distributor_state(distributor, 'STANDBY')
             LOGGER.debug('**** Current distributor is: %s', distributor)
             LOGGER.info('DMCS Standby: Sending standby message to routing_key %s', routing_key) 
+            LOGGER.info('Using routing key %s for distributor %s message. Msg is %s',
+                         routing_key, distributor, msg_params)
             self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 
 
@@ -378,10 +390,15 @@ class BaseForeman:
             params[MSG_TYPE] = PAIRING
             params[JOB_NUM] = job_number
             params[PAIRS] = pairs
+            LOGGER.info('NCSA found adequate number of distributors')
+            LOGGER.info('Pairings returned by NCSA:')
+            LOGGER.info(pairs)
             self._publisher.publish_message("ncsa_publish", yaml.dump(params))
             return True
 
         else:
+            LOGGER.info('NCSA reports insufficient resources...found only %s distributors', 
+                         str(len(healthy_distributors))) 
             params = {}
             params[MSG_TYPE] = INSUFFICIENT_NCSA_RESOURCES
             params[JOB_NUM] = job_number

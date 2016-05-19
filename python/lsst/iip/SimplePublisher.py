@@ -44,5 +44,5 @@ class SimplePublisher:
          sys.exit(105)
 
     LOGGER.debug ("Sending msg to %s", route_key)
-
+    self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=msg)
 

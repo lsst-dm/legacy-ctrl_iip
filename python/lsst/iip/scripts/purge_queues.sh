@@ -28,3 +28,6 @@ rabbitmqctl -p /bunny purge_queue forwarder_publish
 rabbitmqctl -p /bunny purge_queue dmcs_consume
 rabbitmqctl -p /bunny purge_queue dmcs_publish
 rabbitmqctl -p /bunny purge_queue ncsa_publish
+
+rabbitmqctl -p /bunny purge_queue reports
+
