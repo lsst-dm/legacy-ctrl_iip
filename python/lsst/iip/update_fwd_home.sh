@@ -3,7 +3,7 @@
 cp Forwarder.py ~/
 cp Consumer.py ~/
 cp SimplePublisher.py ~/
-cp xfer.sh ~/
+#cp xfer.sh ~/
 cp const.py ~/
 
 #
