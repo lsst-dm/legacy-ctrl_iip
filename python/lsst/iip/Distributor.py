@@ -4,6 +4,7 @@ import sys
 import time
 import logging
 import os
+import subprocess
 from const import *
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -24,6 +25,8 @@ class Distributor:
     """
 
     def __init__(self):
+        LOGGER.info('+++++++++++++------++++++++++++')
+        LOGGER.info("Initializing Distributor object")
         f = open('DistributorCfg.yaml')
 
         # data map
@@ -106,13 +109,17 @@ class Distributor:
         self._job_num = params[JOB_NUM]
         LOGGER.info('Processing standby action for %s with the following setting: mate-%s ', self._name, self._pairmate)
         command = 'rm ' + self._target_dir + '*.test'
-        result = os.system(command)
+        result = subprocess.check_output(command, shell=True)
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'DISTRIBUTOR_STDBY_ACK'
+        msg_params['COMMENT1'] = "Result from running rm command: %s" % result
+        self._publisher.publish_message('reports', yaml.dump(msg_params))
 
 
     def process_foreman_readout(self, params):
         job_number = params[JOB_NUM]
         command = self._target_dir + "check_sentinel.sh"
-        result = os.system(command)
+        result = subprocess.check_output(command, shell=Trus)
         # xfer complete
         xfer_time = ""
         filename = self._target_dir + "rcv_logg"
@@ -124,6 +131,7 @@ class Distributor:
         msg[NAME] = self._name
         msg[JOB_NUM] = job_number
         msg['FINISH_TIME'] = xfer_time
+        msg['COMMENT1'] = "Result from xfer command is: %s" % result
         self._publisher.publish_message("reports", yaml.dump(msg))
 
 

@@ -21,6 +21,8 @@ class Forwarder:
     """
 
     def __init__(self):
+        LOGGER.info('+++++++++++++------++++++++++++')
+        LOGGER.info("Initializing Forwarder")
         self._registered = False
         f = open('ForwarderCfg.yaml')
         #cfg data map...
@@ -95,6 +97,9 @@ class Forwarder:
         self._xfer_app = params[XFER_APP]
         self._xfer_file = params[XFER_FILE]
         LOGGER.info('Processing standby action for %s with the following settings: mate-%s   xfer_login-%s   xfer_app-%s   xfer_file-%s', self._name, self._pairmate, self._xfer_login, self._xfer_app, self._xfer_file)
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'FORWARDER_STDBY_ACK'
+        self._publisher.publish_message("reports", yaml.dump(msg_params))
 
 
     def process_foreman_readout(self, params):
@@ -111,11 +116,6 @@ class Forwarder:
            files reside is used as the 'transfer file' and is moved with the recursive
            '-r' switch.
 
-        job_number = params[JOB_NUM]
-        source_dir = self._home_dir + self._xfer_file
-        cmd = ' scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ":" + str(params[TARGET_DIR])
-        LOGGER.info('%s readout message action; command run in os is: %s ',self._name, command)
-        os.system(cmd)
         """
 
         job_number = params[JOB_NUM]
@@ -125,6 +125,8 @@ class Forwarder:
         proc = subprocess.check_output(cmd, shell=True)
         LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetime, command)
         msg_params = {}
+        msg_params['COMMENT1'] = "File Transfer Time start time"
+        msg_params['COMMENT2'] = "Result from start xfer command is %s" % proc
         msg_params[MSG_TYPE] = 'XFER_COMPLETE'
         msg_params['COMPONENT'] = 'FORWARDER'
         msg_params['JOB_NUM'] = params[JOB_NUM]
@@ -132,7 +134,7 @@ class Forwarder:
         msg_params['EVENT_TIME'] = datetime
         msg_params['SOURCE_DIR'] = source_dir
         msg_params['COMMAND'] = cmd
-        self._publisher.publish_message('event_log', yaml.dump(msg_params))
+        self._publisher.publish_message('reports', yaml.dump(msg_params))
 
 
     def process_foreman_set_xfer_app(self, params):
