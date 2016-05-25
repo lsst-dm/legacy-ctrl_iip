@@ -16,6 +16,7 @@ class Setup:
 
         channel.queue_declare(queue='F1_consume')
         channel.queue_declare(queue='F2_consume')
+        channel.queue_declare(queue='F3_consume')
         channel.queue_declare(queue='F4_consume')
         channel.queue_declare(queue='F5_consume')
         channel.queue_declare(queue='F6_consume')
@@ -27,6 +28,7 @@ class Setup:
 
         channel.queue_declare(queue='D1_consume')
         channel.queue_declare(queue='D2_consume')
+        channel.queue_declare(queue='D3_consume')
         channel.queue_declare(queue='D4_consume')
         channel.queue_declare(queue='D5_consume')
         channel.queue_declare(queue='D6_consume')

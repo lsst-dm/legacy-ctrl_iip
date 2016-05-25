@@ -119,13 +119,20 @@ class Forwarder:
         """
 
         job_number = params[JOB_NUM]
-        source_dir = self._home_dir + self._xfer_file
-        cmd = ' scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
+        #source_dir = self._home_dir + self._xfer_file
+        source_dir = self._home_dir + "xfer_dir"
+        #cmd = ' scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
+        #cmd = ' scp ' + str(source_dir) + '* ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
+        
+        # Command assembly efforts commented out above saved for time being. Not for production of course
+        cmd = ' scp ' + str(source_dir) + '* ' + str(self._xfer_login) + ':'
+
+        #remove datetime line below for production
         datetime = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
         proc = subprocess.check_output(cmd, shell=True)
-        LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetime, command)
+        LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetime, cmd)
         msg_params = {}
-        msg_params['COMMENT1'] = "File Transfer Time start time"
+        msg_params['COMMENT1'] = "File Transfer Time start time: %s"
         msg_params['COMMENT2'] = "Result from start xfer command is %s" % proc
         msg_params[MSG_TYPE] = 'XFER_COMPLETE'
         msg_params['COMPONENT'] = 'FORWARDER'

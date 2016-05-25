@@ -1,6 +1,6 @@
 
 while true; do
-  if [ -a ./sentinel.test ]
+  if [ -f ./sentinel.test ]
     then
       date +"%Y-%m-%d %H:%M:%S.%5N" >> rcv_logg.test
       echo "-----------------------" >> rcv_logg.test
