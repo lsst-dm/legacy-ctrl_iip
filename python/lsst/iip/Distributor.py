@@ -49,15 +49,15 @@ class Distributor:
             sys.exit(99)
 
 
-            self._home_dir = "/home/" + self._name + "/"
-            self._broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._broker_addr)
+        self._home_dir = "/home/" + self._name + "/"
+        self._broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._broker_addr)
 
-            self._msg_actions = { CHECK_HEALTH: self.process_foreman_check_health,
-                                  STANDBY: self.process_foreman_standby,
-                                  READOUT: self.process_foreman_readout }
+        self._msg_actions = { CHECK_HEALTH: self.process_foreman_check_health,
+                              STANDBY: self.process_foreman_standby,
+                              READOUT: self.process_foreman_readout }
 
-            self.setup_publishers()
-            self.setup_consumers()
+        self.setup_publishers()
+        self.setup_consumers()
 
     def setup_consumers(self):
         LOGGER.info('Distributor %s setting up consumer on %s', self._name, self.broker_url)
