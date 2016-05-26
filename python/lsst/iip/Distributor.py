@@ -5,6 +5,7 @@ import time
 import logging
 import os
 import subprocess
+import thread
 from const import *
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -60,17 +61,16 @@ class Distributor:
         self.setup_consumers()
 
     def setup_consumers(self):
-        LOGGER.info('Distributor %s setting up consumer on %s', self._name, self.broker_url)
+        LOGGER.info('Distributor %s setting up consumer on %s', self._name, self._broker_url)
         LOGGER.info('Starting new thread on consumer method')
-        threadname = self._consume_queue
+        threadname = "thread-" + self._consume_queue
 
         self._consumer = Consumer(self._broker_url, self._consume_queue)
         try:
             thread.start_new_thread(self.run_consumer, (threadname, 2,) )
             LOGGER.info('Started distributor consumer thread %s', threadname)
-        except e:
-            Logger.critical('Cannot start Distributor consumer thread, exiting...')
-            LOGGER.critical(e)
+        except:
+            LOGGER.critical('Cannot start Distributor consumer thread, exiting...')
             sys.exit(107)
 
 
@@ -108,7 +108,7 @@ class Distributor:
         self._pairmate = params[MATE]
         self._job_num = params[JOB_NUM]
         LOGGER.info('Processing standby action for %s with the following setting: mate-%s ', self._name, self._pairmate)
-        command = 'rm ' + self._target_dir + '*.test'
+        command = 'rm -f ' + self._target_dir + '*.test'
         result = subprocess.check_output(command, shell=True)
         msg_params = {}
         msg_params[MSG_TYPE] = 'DISTRIBUTOR_STDBY_ACK'
@@ -117,21 +117,28 @@ class Distributor:
 
 
     def process_foreman_readout(self, params):
+        LOGGER.info('At Top of Distributor readout')
         job_number = params[JOB_NUM]
         command = self._target_dir + "check_sentinel.sh"
-        result = subprocess.check_output(command, shell=Trus)
+        result = subprocess.check_output(command, shell=True)
+        LOGGER.info('check_sentinel test is complete')
         # xfer complete
-        xfer_time = ""
-        filename = self._target_dir + "rcv_logg"
-        f = open(filename, 'r')
-        for line in f:
-            xfer_time = xfer_time + line + "\n"
+        #xfer_time = ""
+
+        command = "cat " + self._target_dir + "rcv_logg.test"
+        cat_result = subprocess.check_output(command, shell=True)
+
+        #filename = self._target_dir + "rcv_logg.test"
+        #f = open(filename, 'r')
+        #for line in f:
+        #    xfer_time = xfer_time + line + "\n"
         msg = {}
         msg[MSG_TYPE] = 'XFER_TIME'
         msg[NAME] = self._name
         msg[JOB_NUM] = job_number
         msg['FINISH_TIME'] = xfer_time
         msg['COMMENT1'] = "Result from xfer command is: %s" % result
+        msg['COMMENT2'] = "cat_result is -->  %s" % cat_result
         self._publisher.publish_message("reports", yaml.dump(msg))
 
 

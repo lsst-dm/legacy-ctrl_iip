@@ -125,7 +125,7 @@ class Forwarder:
         #cmd = ' scp ' + str(source_dir) + '* ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
         
         # Command assembly efforts commented out above saved for time being. Not for production of course
-        cmd = ' scp ' + str(source_dir) + '* ' + str(self._xfer_login) + ':'
+        cmd = ' scp -r ' + str(source_dir) + ' ' + str(self._xfer_login) + ':'
 
         #remove datetime line below for production
         datetime = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
