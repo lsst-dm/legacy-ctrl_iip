@@ -125,20 +125,22 @@ class Forwarder:
         #cmd = ' scp ' + str(source_dir) + '* ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
         
         # Command assembly efforts commented out above saved for time being. Not for production of course
+        datetime1 = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
         cmd = ' scp -r ' + str(source_dir) + ' ' + str(self._xfer_login) + ':'
 
         #remove datetime line below for production
-        datetime = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
+        datetime2 = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
         proc = subprocess.check_output(cmd, shell=True)
-        LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetime, cmd)
+        LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetime1, cmd)
+        LOGGER.info('File xfer command completed (returned) at %s', datetime2)
         msg_params = {}
-        msg_params['COMMENT1'] = "File Transfer Time start time: %s"
+        msg_params['COMMENT1'] = "File Transfer Time start time: %s" % datetime1
         msg_params['COMMENT2'] = "Result from start xfer command is %s" % proc
         msg_params[MSG_TYPE] = 'XFER_COMPLETE'
         msg_params['COMPONENT'] = 'FORWARDER'
         msg_params['JOB_NUM'] = params[JOB_NUM]
         msg_params[NAME] = self._name
-        msg_params['EVENT_TIME'] = datetime
+        msg_params['EVENT_TIME'] = "Transfer completion time = %s" % datetime2
         msg_params['SOURCE_DIR'] = source_dir
         msg_params['COMMAND'] = cmd
         self._publisher.publish_message('reports', yaml.dump(msg_params))

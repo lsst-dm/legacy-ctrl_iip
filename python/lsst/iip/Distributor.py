@@ -119,8 +119,8 @@ class Distributor:
     def process_foreman_readout(self, params):
         LOGGER.info('At Top of Distributor readout')
         job_number = params[JOB_NUM]
-        command = self._target_dir + "check_sentinel.sh"
-        result = subprocess.check_output(command, shell=True)
+        cmd = self._target_dir + "check_sentinel.sh"
+        result = subprocess.check_output(cmd, shell=True)
         LOGGER.info('check_sentinel test is complete')
         # xfer complete
         #xfer_time = ""
@@ -136,9 +136,10 @@ class Distributor:
         msg[MSG_TYPE] = 'XFER_TIME'
         msg[NAME] = self._name
         msg[JOB_NUM] = job_number
-        msg['FINISH_TIME'] = xfer_time
+        msg['COMPONENT'] = "DISTRIBUTOR"
         msg['COMMENT1'] = "Result from xfer command is: %s" % result
         msg['COMMENT2'] = "cat_result is -->  %s" % cat_result
+        msg['COMMENT3'] = "Command used to call check_sentinel.sh is %s" % cmd
         self._publisher.publish_message("reports", yaml.dump(msg))
 
 
