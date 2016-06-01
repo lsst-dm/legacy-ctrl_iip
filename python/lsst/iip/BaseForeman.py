@@ -198,8 +198,10 @@ class BaseForeman:
         job_num = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(str(job_num))
         forwarders = pairs.keys()
+        rev_pairs = {}
         for forwarder in forwarders:
             distributor = pairs[forwarder]
+            rev_pairs[distributor] = forwarder
             msg_params = {}
             msg_params[MATE] = distributor
             msg_params[STATE] = STANDBY 
@@ -220,6 +222,7 @@ class BaseForeman:
         for distributor in distributors:
             msg_params = {}
             msg_params[MSG_TYPE] = STANDBY
+            msg_params[MATE] = rev_pairs[distributor]
             msg_params[JOB_NUM] = job_num
             routing_key = self.DIST_SCBD.get_value_for_distributor(distributor, ROUTING_KEY)
             self.DIST_SCBD.set_distributor_state(distributor, 'STANDBY')
@@ -415,6 +418,7 @@ class BaseForeman:
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     b_fm = BaseForeman()
+    print "Beginning BaseForeman event loop..."
     try:
         while 1:
             pass
