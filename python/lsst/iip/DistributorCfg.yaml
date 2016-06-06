@@ -24,7 +24,7 @@ CONSUME_QUEUE: D1_consume
 PUBLISH_QUEUE: distributor_publish
 
 SENTINEL_FILE: sentinel.fits
-TARGET_DIR: /home/users/D1/xfer_dir/
+TARGET_DIR: /home/D1/xfer_dir/
 
 
 
