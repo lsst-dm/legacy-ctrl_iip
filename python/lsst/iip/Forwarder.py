@@ -126,7 +126,7 @@ class Forwarder:
 
         # Still one conection for both files, but files are sent to scp in proper xfer order
         #FIX ':xfer_dir' must be changed to a mutable target dir...
-        cmd = ' scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
+        cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
 
         #remove datetime line below for production
         datetime2 = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
