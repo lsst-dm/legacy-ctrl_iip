@@ -121,12 +121,12 @@ class Forwarder:
         job_number = params[JOB_NUM]
         #source_dir = self._home_dir + self._xfer_file
         source_dir = self._home_dir + "xfer_dir"
-        #cmd = ' scp -r  ' + str(source_dir) + ' ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
-        #cmd = ' scp ' + str(source_dir) + '* ' + str(self._xfer_login) + ':' + str(params[TARGET_DIR])
         
-        # Command assembly efforts commented out above saved for time being. Not for production of course
         datetime1 = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
-        cmd = ' scp -r ' + str(source_dir) + ' ' + str(self._xfer_login) + ':'
+
+        # Still one conection for both files, but files are sent to scp in proper xfer order
+        #FIX ':xfer_dir' must be changed to a mutable target dir...
+        cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
 
         #remove datetime line below for production
         datetime2 = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
