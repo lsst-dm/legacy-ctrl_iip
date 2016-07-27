@@ -35,7 +35,7 @@ class BaseForeman:
     def __init__(self):
         toolsmod.singleton(self)
 
-        self._name = 'FM'      # rabbit user & passwd
+        self._name = 'FM'      # Message broker user & passwd
         self._passwd = 'FM'   
         self._broker_url = 'amqp_url'
         self._xfer_app = 'ssh'
@@ -74,7 +74,7 @@ class BaseForeman:
 
 
     def setup_consumers(self):
-        """This method sets up a message listener from each enitiy
+        """This method sets up a message listener from each entity
            with which the BaseForeman has contact here. These
            listeners are instanced in this class, but their run
            methods are each called as a separate thread. While
@@ -190,7 +190,7 @@ class BaseForeman:
                 # There should be a message sent to NCSA here asking for available resources
             LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
             LOGGER.info(forwarder_candidate_list)
-            return self.check_ncsa_resources(job_num, needed_workers, healthy_forwarders)
+            return self.check_ncsa_resources(job_num, needed_workers, forwarder_candidate_list)
 
 
     def process_dmcs_standby(self, params):
@@ -235,22 +235,6 @@ class BaseForeman:
 
     def process_dmcs_check_health(self, params):
         pass
-
-    def process_dmcs_set_xfer_app(self, parsms):
-        try:
-            self._xfer_app = params[XFER_APP]
-        except:
-            return False
-        return True
-
-
-    def process_dmcs_set_xfer_file(self, params):
-        try:
-            self._xfer_file = params[XFER_FILE]
-        except:
-            return False
-        return True
-
 
     def process_dmcs_readout(self, params):
         job_number = params[JOB_NUM]

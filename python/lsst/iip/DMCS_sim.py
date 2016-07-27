@@ -2,6 +2,7 @@ import logging
 import thread
 import sys
 import yaml
+import subprocess
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
@@ -11,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 
 """This file is a throwaway file used to temporarily
    generate messages as if it were the DMCS. The actual
-   DMCS component with have policy built into it and
+   DMCS component will have policy built into it and
    handle aborts, catastrophies, and general 'job'
    bookkeeping. Again, this is just something to
    generate command messages.
@@ -20,20 +21,33 @@ LOGGER = logging.getLogger(__name__)
 
 class DMCS_sim:
     DMCS_CONSUME = "dmcs_consume"
+    REPORTS_CONSUME = "reports"
 
     def __init__(self):
-        self._job_num = 0
-        self._raft_num = 1
+        self._job_num = 18
+        self._raft_num = 11
         self._options = self.get_options_string()
         self._broker_url = 'amqp://DMCS:DMCS@141.142.238.160:5672/%2fbunny'
+
+        command = 'rm -f /home/FM/logs/reports.log'
+        cmd = 'rm -f /home/FM/logs/misc.log'
+        result1 = subprocess.check_output(command, shell=True)
+        result2 = subprocess.check_output(cmd, shell=True)
+        LOGGER.info('Calling reports log file cleanup with %s; \nresult is %s', command, result1)
+        LOGGER.info('Calling misc log file cleanup with %s; \nresult is %s', cmd, result2)
+
+        self._reports_file = open('/home/FM/logs/reports.log','w')
+        self._misc_file = open('/home/FM/logs/misc.log','w')
+        
 
         LOGGER.info('Setting up consumer on %s for %s', self._broker_url, self.DMCS_CONSUME)
         #self._connection = pika.BlockingConnection(pika.URLParameters('amqp://DMCS:DMCS@141.142.208.191:5672/%2fbunny'))
         self._dmcs_consumer = Consumer(self._broker_url, self.DMCS_CONSUME)
+        self._reports_consumer = Consumer(self._broker_url, self.REPORTS_CONSUME)
         try:
-            thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmce_consume", 2,) )
+            thread.start_new_thread( self.run_dmcs_consumer, ("thread-reports_consume", 2,) )
         except:
-            LOGGER.error('Cannot start dmcs_consume thread')
+            LOGGER.error('Cannot start reports_consume thread')
             sys.exit(99)
 
         LOGGER.info('Setting up publisher on %s', self._broker_url)
@@ -50,6 +64,27 @@ class DMCS_sim:
         LOGGER.info('Latest message from Foreman: ')
         LOGGER.info('Message is %s', str(msg_dict))
         print msg_dict
+        self._misc_file.write('New Misc Message\n')
+        self._misc_file.write('===========================\n')
+        self._misc_file.write('===========================\n')
+        self._misc_file.write(str(msg_dict))
+        self._misc_file.write('\n\n')
+
+
+    def run_reports_consumer(self, threadname, delay):
+        self._reports_consumer.run(self.on_reports_messages)
+
+
+    def on_reports_messages(self, ch, method, properties, body):
+        report_dict = yaml.load(body)
+        LOGGER.info('Latest message from Foreman: ')
+        LOGGER.info('Message report is %s', str(report_dict))
+        print report_dict
+        self._misc_file.write('New Reports Message\n')
+        self._reports_file.write('===========================\n')
+        self._reports_file.write('===========================\n')
+        self._reports_file.write(str(report_dict))
+        self._misc_file.write('\n\n')
 
 
     def run(self):
@@ -62,6 +97,8 @@ class DMCS_sim:
             elif x == 3:
                 pass
             elif x == 4:
+                pass
+                pass
                 pass
             elif x == 5:  # Send Job msg
                 self._job_num = self._job_num + 1
@@ -135,8 +172,6 @@ class DMCS_sim:
             elif x == 22:
                 params = {}
                 params['MSG_TYPE'] = 'SET_XFER_APP'
-                params['XFER_APP'] = 'ftp'
-                LOGGER.info('Sending set_xfer_app ftp  message %s', params)
                 self._publisher.publish_message("dmcs_publish", yaml.dump(params))
             elif x == 23:
                 params = {}
@@ -168,6 +203,9 @@ class DMCS_sim:
 
         return options
 
+    def close_files(self):
+        self._reports_file.close()
+        self._misc_file.close()
 
 
 def main():
@@ -178,6 +216,7 @@ def main():
     except KeyboardInterrupt:
         pass
 
+    dmcs.close_files()
     print ""
     print "DMCS_sim Done."
 
