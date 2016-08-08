@@ -28,6 +28,7 @@ class BaseForeman:
     DMCS_CONSUME = "dmcs_consume"
     NCSA_PUBLISH = "ncsa_publish"
     FORWARDER_PUBLISH = "forwarder_publish"
+    ACK_PUBLISH = "ack_publish"
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
 
@@ -40,10 +41,12 @@ class BaseForeman:
         self._broker_url = 'amqp_url'
         self._xfer_app = 'ssh'
         self._xfer_file = '16.7meg'
+        self._pairing_dict = {}
  
         cdm = self.intake_yaml_file()
         try:
             self._broker_addr = cdm[ROOT][BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
             distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
         except KeyError as e:
@@ -56,21 +59,29 @@ class BaseForeman:
         self.FWD_SCBD = ForwarderScoreboard(forwarder_dict)
         self.DIST_SCBD = DistributorScoreboard(distributor_dict)
         self.JOB_SCBD = JobScoreboard()
-        self._msg_actions = { 'JOB': self.process_dmcs_job,
-                              'CHECK_HEALTH': self.process_dmcs_check_health,
+        self.ACK_SCBD = AckScoreboard()
+        self._msg_actions = { 'CHECK_HEALTH': self.process_dmcs_check_health,
+                              'JOB': self.process_dmcs_job,
                               'STANDBY': self.process_dmcs_standby,
-                              'SET_XFER_APP': self.process_dmcs_set_xfer_app,
-                              'SET_XFER_FILE': self.process_dmcs_set_xfer_file,
                               'READOUT': self.process_dmcs_readout,
                               'INSUFFICIENT_NCSA_RESOURCES': self.process_ncsa_insufficient_resources,
+                              'NCSA_RESOURCES_QUERY_ACK': self.process_ack,
+                              'NCSA_STANDBY_ACK': self.process_ack,
+                              'NCSA_READOUT_ACK': self.process_ack,
+                              'FORWARDER_HEALTH_CHECK_ACK': self.process_ack,
+                              'FORWARDER_STANDBY_ACK': self.process_ack,
+                              'FORWARDER_READOUT_ACK': self.process_ack,
                               'PAIRING': self.process_ncsa_pairings }
 
 
         self._broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._broker_addr)
         LOGGER.info('Building _broker_url. Result is %s', self._broker_url)
+
         self.setup_publishers()
         self.setup_consumers()
-        #self.setup_federated_exchange()
+
+        self._ncsa_broker_url = "" 
+        self.setup_federated_exchange()
 
 
     def setup_consumers(self):
@@ -108,6 +119,13 @@ class BaseForeman:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
             sys.exit(101)
 
+        self._ack_consumer = Consumer(self._broker_url, self.ACK_PUBLISH)
+        try:
+            thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
+        except:
+            LOGGER.critical('Cannot start ACK consumer thread, exiting...')
+            sys.exit(102)
+
         LOGGER.info('Finished starting all three consumer threads')
 
 
@@ -122,6 +140,9 @@ class BaseForeman:
     def run_ncsa_consumer(self, threadname, delay):
         self._ncsa_consumer.run(self.on_ncsa_message)
 
+    def run_ack_consumer(self, threadname, delay):
+        self._ack_consumer.run(self.on_ack_message)
+
 
 
     def setup_publishers(self):
@@ -132,6 +153,9 @@ class BaseForeman:
 
 
     def setup_federated_exchange(self):
+        # Set up connection URL for NCSA Broker here.
+        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
+        LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
         pass
 
 
@@ -158,6 +182,15 @@ class BaseForeman:
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
+    def on_ack_message(self, ch, method, properties, body):
+        msg_dict = yaml.load(body) 
+        LOGGER.info('In ACK message callback')
+        LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
+        LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
+
+        handler = self._msg_actions.get(msg_dict[MSG_TYPE])
+        result = handler(msg_dict)
+    
 
     def process_dmcs_job(self, params):
         needed_workers = int(params[RAFT_NUM])
