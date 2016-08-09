@@ -73,25 +73,17 @@ class JobScoreboard(Scoreboard):
 
 
 
-    def add_job(self, job_number, rafts, xfer_app, xfer_file):
+    def add_job(self, job_number, rafts):
       """All job rows created in the scoreboard begin with this method
          where initial attributes are inserted.
 
          :param str job_number: Necessary for all CRUDs on this new row.
          :param int rafts: The number of 'sub-jobs' to be handled within a job.
-         :params str xfer_app: This is the application to be used when 
-          transferring a file. This row value is mutable up until the 'READOUT'
-          state is entered. Note: This param is for TESTING.
-         :param str xfer_file: The file to be transferred from Forwarder to
-          to distributor. This value is mutable up until 'READOUT'. Note: this 
-          value is also for testing.
       """
       job_num = str(job_number)
       # XXX Needs try, catch block
       if self.check_connection():
         self._redis.hset(job_num, self.RAFTS, rafts)
-        self._redis.hset(job_num, self.XFER_APP, xfer_app)
-        self._redis.hset(job_num, self.XFER_FILE, xfer_file)
         self._redis.hset(job_num, self.STATE, 'CHECKING_RESOURCES')
         self._redis.lpush(self.JOBS, job_num)
         #self.persist_snapshot()

@@ -24,6 +24,7 @@ class BaseForeman:
     FWD_SCBD = None
     DIST_SCBD = None
     JOB_SCBD = None
+    ACK_SCBD = None
     DMCS_PUBLISH = "dmcs_publish"
     DMCS_CONSUME = "dmcs_consume"
     NCSA_PUBLISH = "ncsa_publish"
@@ -39,9 +40,9 @@ class BaseForeman:
         self._name = 'FM'      # Message broker user & passwd
         self._passwd = 'FM'   
         self._broker_url = 'amqp_url'
-        self._xfer_app = 'ssh'
-        self._xfer_file = '16.7meg'
+        self._ncsa_broker_url = 'amqp_url'
         self._pairing_dict = {}
+        self._next_timed_ack_id = 0
  
         cdm = self.intake_yaml_file()
         try:
@@ -146,9 +147,11 @@ class BaseForeman:
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up publisher on %s', self._broker_url)
+        LOGGER.info('Setting up Base publisher on %s', self._broker_url)
+        LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_broker_url)
 
         self._publisher = SimplePublisher(self._broker_url)
+        self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url)
         #self._publisher.run() 
 
 
@@ -199,7 +202,31 @@ class BaseForeman:
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
         # run forwarder health check
-        healthy_forwarders = self.FWD_SCBD.return_healthy_forwarders_list()
+        # get timed_ack_id
+        timed_ack = get_next_timed_ack_id("Forwarder_Ack")
+
+        forwarders = self.FWD_SCBD.return_forwarders_list()
+        # Mark all healthy Forwarders Unhealthy, ignore status 'Unknown'
+        self.FWD_SCBD.setall_forwarders_status("UNKNOWN")
+        # send health check messages
+        ack_params = {}
+        ack_params[MSG_TYPE] = "HEALTH_CHECK"
+        ack_params["TIMED_ACK_ID"] = timed_ack
+        ack_params[JOB_NUM] = job_num
+        for forwarder in forwarders:
+            self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
+                                            yaml.dump(ack_params))
+        
+        # start timers
+        self.ack_timer(4)
+        # at end of timer, get list of forwarders
+        healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
+        # update Forwarder scoreboard with healthy forwarders
+        for fwder in healthy_forwarders:
+            self.FWD_SCBD.set_forwarder_status(fwder, "HEALTHY")
+
+
+        ##XXX Continue...
         num_healthy_forwarders = len(healthy_forwarders)
         if needed_workers > num_healthy_forwarders:
             # send response msg to dmcs refusing job
@@ -430,6 +457,17 @@ class BaseForeman:
             # delete job 
             self.JOB_SCBD.delete_job(job_number)
             return False
+
+
+    def get_next_timed_ack_id(self, ack_type):
+        self._next_timed_ack_id = self._next_timed_ack_id + 1
+        retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
+        return retval 
+
+
+    def ack_timer(self, seconds):
+        sleep(seconds)
+        return True
 
 
 def main():
