@@ -97,9 +97,22 @@ class Forwarder:
         self._xfer_app = params[XFER_APP]
         self._xfer_file = params[XFER_FILE]
         LOGGER.info('Processing standby action for %s with the following settings: mate-%s   xfer_login-%s   xfer_app-%s   xfer_file-%s', self._name, self._pairmate, self._xfer_login, self._xfer_app, self._xfer_file)
-        msg_params = {}
-        msg_params[MSG_TYPE] = 'FORWARDER_STDBY_ACK'
-        self._publisher.publish_message("reports", yaml.dump(msg_params))
+
+        timed_ack = params.get("TIMED_ACK_ID")
+        job_num = params.get(JOB_NUM)
+        if timed_ack is None:
+            LOGGER.info('FORWARDER_STDBY_ACK failed, missing TIMED_ACK_ID')
+        elif job_num is None:
+            LOGGER.info('FORWARDER_STDBY_ACK failed, missing JOB_NUM for ACK ID: %s', timed_ack)
+        else:
+            msg_params = {}
+            msg_params[MSG_TYPE] = "FORWARDER_STDBY_ACK"
+            msg_params[JOB_NUM] = job_num
+            msg_params[NAME] = "FORWARDER_" + self._name
+            msg_params[ACK_BOOL] = "TRUE"
+            msg_params[TIMED_ACK] = timed_ack
+            self._publisher.publish_message("reports", yaml.dump(msg_params))
+            LOGGER.info('FORWARDER_STDBY_ACK sent for ACK ID: %s and JOB_NUM: %s', timed_ack, job_num)
 
 
     def process_foreman_readout(self, params):
@@ -117,6 +130,23 @@ class Forwarder:
            '-r' switch.
 
         """
+
+        timed_ack = params.get("TIMED_ACK_ID")
+        job_num = params.get(JOB_NUM)
+        if timed_ack is None:
+            LOGGER.info('FORWARDER_READOUT_ACK failed, missing TIMED_ACK_ID')
+        elif job_num is None:
+            LOGGER.info('FORWARDER_READOUT_ACK failed, missing JOB_NUM for ACK ID: %s', timed_ack)
+        else:
+            msg_params = {}
+            msg_params[MSG_TYPE] = "FORWARDER_READOUT_ACK"
+            msg_params[JOB_NUM] = job_num
+            msg_params[NAME] = "FORWARDER_" + self._name
+            msg_params[ACK_BOOL] = "TRUE"
+            msg_params[TIMED_ACK] = timed_ack
+            self._publisher.publish_message("reports", yaml.dump(msg_params))
+            LOGGER.info('FORWARDER_READOUT_ACK sent for ACK ID: %s and JOB_NUM: %s', timed_ack, job_num)
+
 
         job_number = params[JOB_NUM]
         #source_dir = self._home_dir + self._xfer_file
@@ -157,7 +187,22 @@ class Forwarder:
 
 
     def process_foreman_check_health(self, params):
-        pass # for now... 
+        timed_ack = params.get("TIMED_ACK_ID")
+        job_num = params.get(JOB_NUM)
+        if timed_ack is None:
+            LOGGER.info('FORWARDER_HEALTH_ACK failed, missing TIMED_ACK_ID')
+        elif job_num is None:
+            LOGGER.info('FORWARDER_HEALTH_ACK failed, missing JOB_NUM for ACK ID: %s', timed_ack)
+        else:
+            msg_params = {}
+            msg_params[MSG_TYPE] = "FORWARDER_HEALTH_ACK"
+            msg_params[JOB_NUM] = job_num
+            msg_params[NAME] = "FORWARDER_" + self._name
+            msg_params[ACK_BOOL] = "TRUE"
+            msg_params[TIMED_ACK] = timed_ack
+            self._publisher.publish_message("reports", yaml.dump(msg_params))
+            LOGGER.info('FORWARDER_HEALTH_ACK sent for ACK ID: %s and JOB_NUM: %s', timed_ack, job_num)
+
 
     def register(self):
         pass

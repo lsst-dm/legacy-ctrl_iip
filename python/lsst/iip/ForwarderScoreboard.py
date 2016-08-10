@@ -57,6 +57,12 @@ class ForwarderScoreboard(Scoreboard):
         return healthy_forwarders
 
 
+    def setall_forwarders_status(self, status):
+        forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
+        for forwarder in forwarders:
+            self._redis.hset(forwarder, 'STATUS', status)
+
+
     def set_forwarder_params(self, forwarder, params):
         for kee in params.keys():
             self._redis.hset(forwarder, kee, params[kee])
