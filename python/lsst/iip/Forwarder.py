@@ -98,7 +98,7 @@ class Forwarder:
         self._xfer_file = params[XFER_FILE]
         LOGGER.info('Processing standby action for %s with the following settings: mate-%s   xfer_login-%s   xfer_app-%s   xfer_file-%s', self._name, self._pairmate, self._xfer_login, self._xfer_app, self._xfer_file)
 
-        self.response_ack("FORWARDER_STDBY_ACK", params)
+        self.send_ack_response("FORWARDER_STDBY_ACK", params)
 
 
     def process_foreman_readout(self, params):
