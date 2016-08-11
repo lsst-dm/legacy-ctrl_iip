@@ -63,19 +63,11 @@ class ForwarderScoreboard(Scoreboard):
             self._redis.hset(forwarder, 'STATUS', 'UNKNOWN')
 
 
-    def set_forwarder_params(self, forwarder, params):
-        for kee in params.keys():
-            self._redis.hset(forwarder, kee, params[kee])
-
-        #self.persist_snapshot(self._redis)
-    
-
-    def set_value_for_multiple_forwarders(self, forwarders, kee, val):
-        for forwarder in forwarders:
-            self._redis.hset(forwarder, kee, val)
-
-
-    def set_params_for_multiple_forwarders(self, forwarders, params):
+    def set_forwarder_params(self, forwarders, params):
+        """This is the workhorse of scoreboard getter/setter methods.
+           :param list forwarders: One or many forwarders can be set, depending on size of list in this arg.           
+           :param dict params: One or many fields can be set depending on number of entries in this arg.
+        """
         for forwarder in forwarders:
             kees = params.keys()
             for kee in kees:

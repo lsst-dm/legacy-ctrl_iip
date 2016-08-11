@@ -206,8 +206,9 @@ class BaseForeman:
         timed_ack = get_next_timed_ack_id("Forwarder_Ack")
 
         forwarders = self.FWD_SCBD.return_forwarders_list()
-        # Mark all healthy Forwarders Unhealthy, ignore status 'Unknown'
-        self.FWD_SCBD.setall_forwarders_status("UNKNOWN")
+        # Mark all healthy Forwarders Unknown
+        state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
+        self.FWD_SCBD.set_forwarder_params(healthy_forwarders, state_status)
         # send health check messages
         ack_params = {}
         ack_params[MSG_TYPE] = "HEALTH_CHECK"
@@ -218,10 +219,12 @@ class BaseForeman:
                                             yaml.dump(ack_params))
         
         # start timers
-        self.ack_timer(4)
+        self.ack_timer(7)  # This is a HUGE number seconds for testing purposes...final setting will be milliseconds
         # at end of timer, get list of forwarders
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
         # update Forwarder scoreboard with healthy forwarders
+        healthy_status = {"STATUS": "HEALTHY"}
+        self.FWD_SCBD.set_forwarder_params(healthy_forwarders, healthy_status)
         for fwder in healthy_forwarders:
             self.FWD_SCBD.set_forwarder_status(fwder, "HEALTHY")
 
@@ -230,6 +233,7 @@ class BaseForeman:
         num_healthy_forwarders = len(healthy_forwarders)
         if needed_workers > num_healthy_forwarders:
             # send response msg to dmcs refusing job
+            LOGGER.info('Reporting to DMCS that there are insufficient healthy forwarders for job #%s', job_num)
             params = {}
             params[MSG_TYPE] = INSUFFICIENT_FORWARDERS
             params[JOB_NUM] = job_num
@@ -238,7 +242,8 @@ class BaseForeman:
             self._publisher.publish_message("dmcs_consume", yaml.dump(params))
             # delete job and leave Forwarders in Idle state
             self.JOB_SCBD.delete_job(job_num)
-            LOGGER.info('Reporting to DMCS that there are insufficient healthy forwarders')
+            idle_state = {"STATE": "IDLE"}
+            self.JOB_SCBD.set_forwarder_params(healthy_forwarders, idle_state)
             return False
         else:
             LOGGER.info('Sufficient forwarders have been found. Checking NCSA')

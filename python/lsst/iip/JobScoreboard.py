@@ -119,6 +119,17 @@ class JobScoreboard(Scoreboard):
       else:
         return False
 
+    def get_value_for_job(self, job_number, kee):
+      """Return a value for a specific field.
+  
+         :param str job_number: The job in which field value is needed.
+         :param str kee: The name of the field to retrieve desired data.
+      """
+      if self.check_connection():
+        return self._redis.hget(str(job_number), kee)
+      else:
+        return None
+
 
     def set_pairs_for_job(self, job_number, pairs):
       """Pairs is a temporary relationship between Forwarders 
@@ -151,19 +162,6 @@ class JobScoreboard(Scoreboard):
           return yaml.load(pairs)
       else:
         return None
-
-
-    def get_value_for_job(self, job_number, kee):
-      """Return a value for a specific field.
-  
-         :param str job_number: The job in which field value is needed.
-         :param str kee: The name of the field to retrieve desired data.
-      """
-      if self.check_connection():
-        return self._redis.hget(str(job_number), kee)
-      else:
-        return None
-
 
 
     def delete_job(self, job_number):
