@@ -203,7 +203,7 @@ class BaseForeman:
 
         # run forwarder health check
         # get timed_ack_id
-        timed_ack = get_next_timed_ack_id("Forwarder_Ack")
+        timed_ack = self.get_next_timed_ack_id("Forwarder_Ack")
 
         forwarders = self.FWD_SCBD.return_forwarders_list()
         # Mark all healthy Forwarders Unknown
@@ -247,12 +247,26 @@ class BaseForeman:
             return False
         else:
             LOGGER.info('Sufficient forwarders have been found. Checking NCSA')
+            self._pairs_dict = {}
             forwarder_candidate_list = []
             for i in range (0, needed_workers):
                 forwarder_candidate_list.append(healthy_forwarders[i])
                 self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES)
                 # Call this method for testing...
                 # There should be a message sent to NCSA here asking for available resources
+            timed_ack_id = self.get_next_timed_ack_id("NCSA_Ack") 
+            ncsa_params = {}
+            ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY"
+            ncsa_params[JOB_NUM] = job_num
+            ncsa_params[RAFT_NUM] = needed_workers
+            ncsa_params["TIMED_ACK_ID"] = timed_ack_id
+            ncsa_params["FORWARDER_LIST"] = forwarder_candidate_list
+            self._ncsa_publisher.publish_message("ncsa_consume", yaml.dump(ncsa_params)) 
+            self.ack_timer(2)
+            #Check ACK scoreboard for response from NCSA
+            ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(timed_ack_id)
+            if ncsa_response:
+                if ncsa_response["NCSA"] == TRUE  #XXX ADJUST JOB_SCOREBOARD........ 
             LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
             LOGGER.info(forwarder_candidate_list)
             return self.check_ncsa_resources(job_num, needed_workers, forwarder_candidate_list)
@@ -390,6 +404,12 @@ class BaseForeman:
             self.JOB_SCBD.delete_job(params[JOB_NUM])
             return False
 
+
+    def process_ack(self, params):
+        if params[MSG_TYPE] == "NCSA_RESOURCES_QUERY_ACK" and params[ACK_BOOL] == TRUE:
+           self._pairing_dict = params[PAIRS] 
+        self.ACK_SCBD.add_timed_ack(params)
+        
 
     def intake_yaml_file(self):
         """This method reads the ForemanCfg.yaml config file

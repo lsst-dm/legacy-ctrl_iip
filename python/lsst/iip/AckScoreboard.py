@@ -118,38 +118,6 @@ class AckScoreboard(Scoreboard):
 
         pass
 
-        pairs = {}
-        other_pairs = {}
-        #pairs = { 'F1':'D2', 'F2':'D6', 'F3':'D11', 'F4':'D1', 'F5':'D7'}
-        pairs['F1'] = 'D2'
-        pairs['F2'] = 'D6'
-        pairs['F3'] = 'D11'
-        pairs['F4'] = 'D1'
-        pairs['F5'] = 'D7'
-        other_pairs = { 'F1':'D10', 'F2':'D1', 'F3':'D11', 'F4':'D8', 'F5':'D4'}
-
-        self.add_job(1,7,'ssh', '1k.test')
-        self.add_job(2, 11,'rsync', '193k.test')
-        self.add_job(3,1,'ftp', '16.7meg.test')
-        self.add_job(4,7,'ssh', '1k.test')
-        self.add_job(5, 11,'rsync', '193k.test')
-        self.add_job(6,1,'ftp', '16.7meg.test')
-
-        #self.set_pairs_for_job('1',  pairs)
-        #self.set_pairs_for_job('2',  pairs)
-        self.set_value_for_job('1', 'PAIRS', pairs)
-        self.set_value_for_job('4', 'PAIRS', pairs)
-        #self.set_value_for_job('5', 'PAIRS', pairs)
-        #self.set_value_for_job('6', 'PAIRS', other_pairs)
-
-        #keez = pairs.keys()
-        #print("printing just keez")
-        #print keez
-        Ps = self.get_value_for_job(str(1), 'PAIRS')
-        ppps = eval(Ps)
-        print "final line"
-        print ppps == pairs
-
 
 def main():
     asb = AckScoreboard()
