@@ -20,14 +20,13 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
 LOGGER = logging.getLogger(__name__)
 
 
-class BaseForeman:
-    FWD_SCBD = None
+class NcsaForeman:
+    DIST_SCBD = None
     JOB_SCBD = None
     ACK_SCBD = None
-    DMCS_PUBLISH = "dmcs_publish"
-    DMCS_CONSUME = "dmcs_consume"
+    NCSA_CONSUME = "ncsa_consume"
     NCSA_PUBLISH = "ncsa_publish"
-    FORWARDER_PUBLISH = "forwarder_publish"
+    DISTRIBUTOR_PUBLISH = "distributor_publish"
     ACK_PUBLISH = "ack_publish"
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
@@ -36,8 +35,8 @@ class BaseForeman:
     def __init__(self):
         toolsmod.singleton(self)
 
-        self._name = 'FM'      # Message broker user & passwd
-        self._passwd = 'FM'   
+        self._name = 'NCSA_FM'      # Message broker user & passwd
+        self._passwd = 'NCSA_FM'   
         self._base_broker_url = 'amqp_url'
         self._ncsa_broker_url = 'amqp_url'
         self._pairing_dict = {}
@@ -47,37 +46,37 @@ class BaseForeman:
         try:
             self._base_broker_addr = cdm[ROOT][BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
+            distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
         except KeyError as e:
             print "Dictionary error"
             print "Bailing out..."
             sys.exit(99)
 
-        # Create Redis Forwarder table with Forwarder info
+        # Create Redis Distributor table with Distributor info
 
-        self.FWD_SCBD = ForwarderScoreboard(forwarder_dict)
+        self.DIST_SCBD = DistributorScoreboard(distributor_dict)
         self.JOB_SCBD = JobScoreboard()
         self.ACK_SCBD = AckScoreboard()
-        self._msg_actions = { 'JOB': self.process_dmcs_job,
-                              'STANDBY': self.process_dmcs_standby,
-                              'READOUT': self.process_dmcs_readout,
+        self._msg_actions = { 'JOB': self.process_base_job,
+                              'STANDBY': self.process_base_standby,
+                              'READOUT': self.process_base_readout,
                               'INSUFFICIENT_NCSA_RESOURCES': self.process_ncsa_insufficient_resources,
-                              'NCSA_RESOURCES_QUERY_ACK': self.process_ack,
-                              'NCSA_STANDBY_ACK': self.process_ack,
-                              'NCSA_READOUT_ACK': self.process_ack,
-                              'FORWARDER_HEALTH_CHECK_ACK': self.process_ack,
-                              'FORWARDER_STANDBY_ACK': self.process_ack,
-                              'FORWARDER_READOUT_ACK': self.process_ack,
+                              'NCSA_RESOURCES_QUERY': self.process_ncsa_resources_query,
+                              'PERFORM_HEALTH_CHECK': self.process_perform_health_check,
+                              ### XXX Next is special handler that assigns healthy status to DIST_SCBD as acks arrive
+                              'DISTRIBUTOR_HEALTH_CHECK_ACK': self.process_distributor_health_check_ack,
+                              'DISTRIBUTOR_STANDBY_ACK': self.process_ack,
+                              'DISTRIBUTOR_READOUT_ACK': self.process_ack,
                               'PAIRING': self.process_ncsa_pairings }
 
 
-        self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
-        LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
+        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
+        LOGGER.info('Building _broker_url. Result is %s', self._broker_url)
 
         self.setup_publishers()
         self.setup_consumers()
 
-        self._ncsa_broker_url = "" 
+        self._base_broker_url = "" 
         self.setup_federated_exchange()
 
 
@@ -92,31 +91,24 @@ class BaseForeman:
            to the BaseForeman.
 
         """
-        LOGGER.info('Setting up consumers on %s', self._base_broker_url)
+        LOGGER.info('Setting up consumers on %s', self._ncsa_broker_url)
         LOGGER.info('Running start_new_thread on all consumer methods')
 
-        self._dmcs_consumer = Consumer(self._base_broker_url, self.DMCS_PUBLISH)
-        try:
-            thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
-            sys.exit(99)
-
-        self._forwarder_consumer = Consumer(self._base_broker_url, self.FORWARDER_PUBLISH)
-        try:
-            thread.start_new_thread( self.run_forwarder_consumer, ("thread-forwarder-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start FORWARDERS consumer thread, exiting...')
-            sys.exit(100)
-
-        self._ncsa_consumer = Consumer(self._base_broker_url, self.NCSA_PUBLISH)
+        self._ncsa_consumer = Consumer(self._ncsa_broker_url, self.NCSA_CONSUME)
         try:
             thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
-            sys.exit(101)
+            sys.exit(99)
 
-        self._ack_consumer = Consumer(self._base_broker_url, self.ACK_PUBLISH)
+        self._distributor_consumer = Consumer(self._ncsa_broker_url, self.DISTRIBUTOR_PUBLISH)
+        try:
+            thread.start_new_thread( self.run_distributor_consumer, ("thread-distributor-consumer", 2,) )
+        except:
+            LOGGER.critical('Cannot start DISTRBUTORS consumer thread, exiting...')
+            sys.exit(100)
+
+        self._ack_consumer = Consumer(self._ncsa_broker_url, self.ACK_PUBLISH)
         try:
             thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
         except:
@@ -126,16 +118,12 @@ class BaseForeman:
         LOGGER.info('Finished starting all three consumer threads')
 
 
-    def run_dmcs_consumer(self, threadname, delay):
-        self._dmcs_consumer.run(self.on_dmcs_message)
-
-
-    def run_forwarder_consumer(self, threadname, delay):
-        self._forwarder_consumer.run(self.on_forwarder_message)
+    def run_distributor_consumer(self, threadname, delay):
+        self._distributor_consumer.run(self.on_distributor_message)
 
 
     def run_ncsa_consumer(self, threadname, delay):
-        self._ncsa_consumer.run(self.on_ncsa_message)
+        self._ncsa_consumer.run(self.on_base_message)
 
     def run_ack_consumer(self, threadname, delay):
         self._ack_consumer.run(self.on_ack_message)
@@ -143,40 +131,35 @@ class BaseForeman:
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up Base publisher on %s', self._base__broker_url)
+        LOGGER.info('Setting up Base publisher on %s', self._broker_url)
         LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_broker_url)
 
-        self._publisher = SimplePublisher(self._base_broker_url)
+        self._base_publisher = SimplePublisher(self._base_broker_url)
         self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url)
         #self._publisher.run() 
 
 
     def setup_federated_exchange(self):
-        # Set up connection URL for NCSA Broker here.
-        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
-        LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
+        # Set up connection URL for Base Broker here.
+        self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
+        LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
         pass
 
 
-    def on_dmcs_message(self, ch, method, properties, body):
+    def on_distributor_message(self, ch, method, properties, body):
         msg_dict = yaml.load(body) 
-        LOGGER.info('In DMCS message callback')
-        LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
-        LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
+        LOGGER.info('In Distributor message callback')
+        LOGGER.debug('Thread in Distributor callback is %s', thread.get_ident())
+        LOGGER.info('Message from Distributor callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
 
-    def on_forwarder_message(self, ch, method, properties, body):
-        LOGGER.info('In Forwarder message callback, thread is %s', thread.get_ident())
-        LOGGER.info('forwarder callback msg body is: %s', str(body))
-        pass
-
-    def on_ncsa_message(self,ch, method, properties, body):
-        LOGGER.info('In ncsa message callback, thread is %s', thread.get_ident())
+    def on_base_message(self,ch, method, properties, body):
+        LOGGER.info('In base message callback, thread is %s', thread.get_ident())
         msg_dict = yaml.load(body)
-        LOGGER.info('ncsa msg callback body is: %s', str(msg_dict))
+        LOGGER.info('base msg callback body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -300,7 +283,11 @@ class BaseForeman:
 ### XXX
             self.FWD_SCBD.set_forwarder_params(forwarder, params)
             msg_params[MSG_TYPE] = STANDBY
+            msg_params[XFER_LOGIN] = self.DIST_SCBD.get_value_for_distributor(distributor, XFER_LOGIN)
+            msg_params[TARGET_DIR] = self.DIST_SCBD.get_value_for_distributor(distributor, TARGET_DIR)
             msg_params[JOB_NUM] = job_num
+            msg_params[XFER_APP] = self._xfer_app
+            msg_params[XFER_FILE] = self._xfer_file
             routing_key = self.FWD_SCBD.get_value_for_forwarder(forwarder, ROUTING_KEY)
             LOGGER.info('Using routing key %s for forwarder %s message. Msg is %s',
                          routing_key, forwarder, msg_params)
@@ -315,10 +302,7 @@ class BaseForeman:
             msg_params[MSG_TYPE] = STANDBY
             msg_params[MATE] = rev_pairs[distributor]
             msg_params[JOB_NUM] = job_num
-            ### XXX Dist routing key must come with pairs data structure
-            ### XXX routing_key = self.DIST_SCBD.get_value_for_distributor(distributor, ROUTING_KEY)
-
-            ### XXX NCSA Foreman must set this state on distributors
+            routing_key = self.DIST_SCBD.get_value_for_distributor(distributor, ROUTING_KEY)
             self.DIST_SCBD.set_distributor_state(distributor, 'STANDBY')
             LOGGER.debug('**** Current distributor is: %s', distributor)
             LOGGER.info('DMCS Standby: Sending standby message to routing_key %s', routing_key) 
@@ -355,8 +339,6 @@ class BaseForeman:
             msg_params = {}
             msg_params[MSG_TYPE] = READOUT
             msg_params[JOB_NUM] = job_number
-
-            ### XXX This value should come with the pairings and is exposure specific
             target_dir = self.DIST_SCBD.get_value_for_distributor(pairs[forwarder], TARGET_DIR)
             msg_params[TARGET_DIR] = target_dir
             self.FWD_SCBD.set_forwarder_state(forwarder, READOUT)

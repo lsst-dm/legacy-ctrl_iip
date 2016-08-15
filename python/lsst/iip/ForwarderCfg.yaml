@@ -10,7 +10,7 @@
 # the hostname or IP, plus the vhost like this:
 
 NAME: F1
-BROKER_ADDR: 141.142.208.191:5672/%2fbunny
+BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
 CONSUME_QUEUE: F1_consume
 PUBLISH_QUEUE: forwarder_publish
 
