@@ -61,8 +61,7 @@ class BaseForeman:
         self.DIST_SCBD = DistributorScoreboard(distributor_dict)
         self.JOB_SCBD = JobScoreboard()
         self.ACK_SCBD = AckScoreboard()
-        self._msg_actions = { 'CHECK_HEALTH': self.process_dmcs_check_health,
-                              'JOB': self.process_dmcs_job,
+        self._msg_actions = { 'JOB': self.process_dmcs_job,
                               'STANDBY': self.process_dmcs_standby,
                               'READOUT': self.process_dmcs_readout,
                               'INSUFFICIENT_NCSA_RESOURCES': self.process_ncsa_insufficient_resources,
@@ -196,9 +195,15 @@ class BaseForeman:
     
 
     def process_dmcs_job(self, params):
-        needed_workers = int(params[RAFT_NUM])
         job_num = str(params[JOB_NUM])
-        self.JOB_SCBD.add_job(job_num, needed_workers, self._xfer_app, self._xfer_file)
+        LOGGER.info('Asking NCSA to perform a health check')#
+        ncsa_health_msg = {}
+        ncsa_health_msg[MSG_TYPE] = "PERFORM_HEALTH_CHECK"
+        ncsa_health_msg[JOB_NUM] = job_num
+        self._ncsa_publisher.publish_message("ncsa_consume", yaml.dump(ncsa_health_msg))
+        
+        needed_workers = int(params[RAFT_NUM])
+        self.JOB_SCBD.add_job(job_num, needed_workers)
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
         # run forwarder health check
@@ -229,7 +234,6 @@ class BaseForeman:
             self.FWD_SCBD.set_forwarder_status(fwder, "HEALTHY")
 
 
-        ##XXX Continue...
         num_healthy_forwarders = len(healthy_forwarders)
         if needed_workers > num_healthy_forwarders:
             # send response msg to dmcs refusing job
@@ -243,7 +247,7 @@ class BaseForeman:
             # delete job and leave Forwarders in Idle state
             self.JOB_SCBD.delete_job(job_num)
             idle_state = {"STATE": "IDLE"}
-            self.JOB_SCBD.set_forwarder_params(healthy_forwarders, idle_state)
+            self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_state)
             return False
         else:
             LOGGER.info('Sufficient forwarders have been found. Checking NCSA')
@@ -262,14 +266,22 @@ class BaseForeman:
             ncsa_params["TIMED_ACK_ID"] = timed_ack_id
             ncsa_params["FORWARDER_LIST"] = forwarder_candidate_list
             self._ncsa_publisher.publish_message("ncsa_consume", yaml.dump(ncsa_params)) 
+            LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
+            LOGGER.info(forwarder_candidate_list)
             self.ack_timer(2)
             #Check ACK scoreboard for response from NCSA
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(timed_ack_id)
             if ncsa_response:
-                if ncsa_response["NCSA"] == TRUE  #XXX ADJUST JOB_SCOREBOARD........ 
-            LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
-            LOGGER.info(forwarder_candidate_list)
-            return self.check_ncsa_resources(job_num, needed_workers, forwarder_candidate_list)
+                if ncsa_response["NCSA"] == TRUE
+                    self.JOB_SCBD.set_pairs_for_job(job_num, self._pairing_dict)                
+            LOGGER.info('The following pairs will be used for Job #%s: %s',job_num, str(self._pairing_dict))
+            #XXX FIX BELOW - LEAVE FORWARDERS IN READY STATE
+            # Tell DMCS we are ready
+            dmcs_message = {}
+            dmcs_message[JOB_NUM] = job_num
+            dmcs_message[MSG_TYPE] = IN_READY_STATE
+            self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+
 
 
     def process_dmcs_standby(self, params):
@@ -295,7 +307,9 @@ class BaseForeman:
             LOGGER.info('Using routing key %s for forwarder %s message. Msg is %s',
                          routing_key, forwarder, msg_params)
             self._publisher.publish_message(routing_key, yaml.dump(msg_params))
-
+### XXX 
+### XXX This section below must move to the NCSA Foreman
+### XXX
         distributors = pairs.values()
         LOGGER.info('Number of distributors here is: %s', str(len(distributors)))
         for distributor in distributors:
@@ -312,9 +326,6 @@ class BaseForeman:
             self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 
 
-    def process_dmcs_check_health(self, params):
-        pass
-
     def process_dmcs_readout(self, params):
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
@@ -322,7 +333,10 @@ class BaseForeman:
         self.JOB_SCBD.set_value_for_job(job_number, READOUT_SENT, date) 
         distributors = pairs.values()
         forwarders = pairs.keys()
-
+### XXX
+### XXX This section must move to NCSA Distributor AND
+### XXX also the Base Foreman must wait for ack from NCSA
+### XXX
         #XXX - Add mate value into msg for distributors, for debug purposes
         for distributor in distributors:
           msg_params = {}
@@ -345,49 +359,6 @@ class BaseForeman:
         
 
 
-    def process_ncsa_pairings(self, params):
-        job_num = params[JOB_NUM]
-        pairs = params[PAIRS]
-        #params = {}  #Do I have to declare this in Python?
-        #params[STATE] = READY
-        #params[PAIRINGS] = pairs
-
-        # Update Job scoreboard
-        self.JOB_SCBD.set_value_for_job(job_num, STATE, READY)
-        self.JOB_SCBD.set_pairs_for_job(job_num, pairs)
-
-        # Update Forwarder scoreboard and
-        # Contact all Forwarders
-        #items = pairs.keys()
-        LOGGER.info('Pairs set by NCSA are: %s', str(pairs))
-
-        # Do below after receiving STANDBY instead
-        """
-        # items are FQN forwarder names
-        for item in items:
-            params = {}
-            params[MATE] = pairs[item]
-            params[STATE] = READY 
-            self.FWD_SCBD.set_forwarder_params(item, params)
-
-            # Now add job_num, msg_type, app, and file type then send to all forwarders
-            params[MSG_TYPE] = READY
-            params[JOB_NUM] = job_num
-            params[XFER_APP] = self._xfer_app
-            params[XFER_FILE] = self._xfer_file
-            name = self.FWD_SCBD.get_value(item, NAME)
-            routing_key = name + '_consume'
-            self._publisher.publish_message(routing_key, yaml.dump(params)
-        """     
-
-        # Tell DMCS we are ready
-        dmcs_message = {}
-        dmcs_message[JOB_NUM] = job_num
-        dmcs_message[MSG_TYPE] = IN_READY_STATE
-        msg = yaml.dump(dmcs_message) 
-        self._publisher.publish_message("dmcs_consume", msg )
-
-
     def process_ncsa_insufficient_resources(self, params):
         forwarders = params[FORWARDERS_LIST]
         job_number = params[JOB_NUM]
@@ -403,7 +374,11 @@ class BaseForeman:
             # delete job
             self.JOB_SCBD.delete_job(params[JOB_NUM])
             return False
-
+### XXX 
+### XXX 
+### XXX  NOTE: Change this ACK handler to a custom handler for each type of ACK
+### XXX 
+### XXX 
 
     def process_ack(self, params):
         if params[MSG_TYPE] == "NCSA_RESOURCES_QUERY_ACK" and params[ACK_BOOL] == TRUE:

@@ -74,10 +74,10 @@ class AckScoreboard(Scoreboard):
 
     def add_timed_ack(self, ack_msg_body):
         """The first time that a new TIMED_ACK_ID is encountered, the ACK row is created.
-           From then on, new ACKS for a particulat ACK_ID are added here. 
+           From then on, new ACKS for a particular ACK_ID are added here. 
             
-           :param yaml'd text ack_msg_body: Description of an ACK enclosed within
-               a system message that has been sertialized with yaml  
+           :param dict ack_msg_body: Description of an ACK enclosed within
+               a system message 
         """
         ack_id_string = ack_msg_body[TIMED_ACK]
       
@@ -93,18 +93,24 @@ class AckScoreboard(Scoreboard):
 
 
     def get_components_for_timed_ack(self, timed_ack):
-        """Return components who checked in successfully for a specific job number.
+        """Return components who checked in successfully for a specific ack id.
+           First check if row exists in scoreboard for timed_ack
 
            :param str timed_ack: The name of the ACK name to be checked.
-           :rtype dict
+           :rtype dict if row exists, otherwise
         """
-        if self.check_connection():
-            component_dict = {}
-            keys = self._redis.hkeys(timed_ack)
-            for key in keys:
-                component_dict[key] = hget(timed_ack, key)
+        exists = self._redis.exists(timed_ack)
+        if exists:
+            if self.check_connection():
+                component_dict = {}
+                keys = self._redis.hkeys(timed_ack)
+                for key in keys:
+                   component_dict[key] = hget(timed_ack, key)
 
-        return component_dict
+            return component_dict
+
+        else:
+            return None
 
 
     def print_all(self):
