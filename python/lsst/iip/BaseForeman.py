@@ -193,13 +193,8 @@ class BaseForeman:
 
     def process_dmcs_job(self, params):
         job_num = str(params[JOB_NUM])
-        LOGGER.info('Asking NCSA to perform a health check')#
-        ncsa_health_msg = {}
-        ncsa_health_msg[MSG_TYPE] = "PERFORM_HEALTH_CHECK"
-        ncsa_health_msg[JOB_NUM] = job_num
-        self._ncsa_publisher.publish_message("ncsa_consume", yaml.dump(ncsa_health_msg))
-        
-        needed_workers = int(params[RAFT_NUM])
+        raft_list = params[RAFTS]
+        needed_workers = len(raft_list)
         self.JOB_SCBD.add_job(job_num, needed_workers)
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
@@ -227,8 +222,8 @@ class BaseForeman:
         # update Forwarder scoreboard with healthy forwarders
         healthy_status = {"STATUS": "HEALTHY"}
         self.FWD_SCBD.set_forwarder_params(healthy_forwarders, healthy_status)
-        for fwder in healthy_forwarders:
-            self.FWD_SCBD.set_forwarder_status(fwder, "HEALTHY")
+        #for fwder in healthy_forwarders:
+        #    self.FWD_SCBD.set_forwarder_status(fwder, "HEALTHY")
 
 
         num_healthy_forwarders = len(healthy_forwarders)
@@ -249,9 +244,9 @@ class BaseForeman:
         else:
             LOGGER.info('Sufficient forwarders have been found. Checking NCSA')
             self._pairs_dict = {}
-            forwarder_candidate_list = []
+            forwarder_candidate_dict = {}
             for i in range (0, needed_workers):
-                forwarder_candidate_list.append(healthy_forwarders[i])
+                forwarder_candidate_dict[healthy_forwarders[i]] = raft_list[i]
                 self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES)
                 # Call this method for testing...
                 # There should be a message sent to NCSA here asking for available resources
