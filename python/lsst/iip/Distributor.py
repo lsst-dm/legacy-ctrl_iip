@@ -36,7 +36,7 @@ class Distributor:
             self._name = cdm[NAME]
             self._passwd = cdm[PASSWD]
             self._fqn_name = cdm[FQN]
-            self._broker_addr = cdm[BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[NCSA_BROKER_ADDR]
             self._consume_queue = cdm[CONSUME_QUEUE]
             self._publish_queue = cdm[PUBLISH_QUEUE]
             self._hostname = cdm[HOSTNAME]
@@ -51,7 +51,7 @@ class Distributor:
 
 
         self._home_dir = "/home/" + self._name + "/"
-        self._broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._broker_addr)
+        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
 
         self._msg_actions = { CHECK_HEALTH: self.process_foreman_check_health,
                               STANDBY: self.process_foreman_standby,
@@ -61,11 +61,11 @@ class Distributor:
         self.setup_consumers()
 
     def setup_consumers(self):
-        LOGGER.info('Distributor %s setting up consumer on %s', self._name, self._broker_url)
+        LOGGER.info('Distributor %s setting up consumer on %s', self._name, self._ncsa_broker_url)
         LOGGER.info('Starting new thread on consumer method')
         threadname = "thread-" + self._consume_queue
 
-        self._consumer = Consumer(self._broker_url, self._consume_queue)
+        self._consumer = Consumer(self._ncsa_broker_url, self._consume_queue)
         try:
             thread.start_new_thread(self.run_consumer, (threadname, 2,) )
             LOGGER.info('Started distributor consumer thread %s', threadname)
@@ -78,8 +78,8 @@ class Distributor:
         self._consumer.run(self.on_message)
 
     def setup_publishers(self):
-        LOGGER.info('Setting up publisher for Distributor on %s', self._broker_url)
-        self._publisher = SimplePublisher(self._broker_url)
+        LOGGER.info('Setting up publisher for Distributor on %s', self._ncsa_broker_url)
+        self._publisher = SimplePublisher(self._ncsa_broker_url)
 
     def on_message(self, ch, method, properties, body):
         msg_dict = yaml.load(body)
@@ -144,8 +144,15 @@ class Distributor:
 
 
     def process_foreman_check_health(self, params):
-        pass # for now...
-
+        Logger.info("Checking Distributor's health")
+        # check health message
+        msg = {}
+        msg[MSG_TYPE] = "DISTRIBUTOR_HEALTH_CHECK"
+        msg[JOB_NUM] = params[JOB_NUM]
+        msg[NAME] = self._fqn_name
+        msg["ACK_BOOL"] = True
+        msg["TIMED_ACK"] = params["TIMED_ACK_ID"]
+        self._publisher.publish_message("distributor", yaml.dump(msg))
 
 
     def send_registration(self, msg_type):
