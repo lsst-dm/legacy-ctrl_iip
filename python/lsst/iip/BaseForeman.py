@@ -61,11 +61,10 @@ class BaseForeman:
         self._msg_actions = { 'JOB': self.process_dmcs_job,
                               'STANDBY': self.process_dmcs_standby,
                               'READOUT': self.process_dmcs_readout,
-                              'INSUFFICIENT_NCSA_RESOURCES': self.process_ncsa_insufficient_resources,
                               'NCSA_RESOURCES_QUERY_ACK': self.process_ack,
                               'NCSA_STANDBY_ACK': self.process_ack,
                               'NCSA_READOUT_ACK': self.process_ack,
-                              'FORWARDER_HEALTH_CHECK_ACK': self.process_ack,
+                              'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_STANDBY_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack,
                               'PAIRING': self.process_ncsa_pairings }
