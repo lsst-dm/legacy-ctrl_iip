@@ -56,17 +56,12 @@ class NcsaForeman:
         self.DIST_SCBD = DistributorScoreboard(distributor_dict)
         self.JOB_SCBD = JobScoreboard()
         self.ACK_SCBD = AckScoreboard()
-        self._msg_actions = { 'JOB': self.process_base_job,
+        self._msg_actions = { 'NCSA_RESOURCES_QUERY': self.process_base_resources_query,
                               'STANDBY': self.process_base_standby,
                               'READOUT': self.process_base_readout,
-                              'INSUFFICIENT_NCSA_RESOURCES': self.process_ncsa_insufficient_resources,
-                              'NCSA_RESOURCES_QUERY': self.process_ncsa_resources_query,
-                              'PERFORM_HEALTH_CHECK': self.process_perform_health_check,
-                              ### XXX Next is special handler that assigns healthy status to DIST_SCBD as acks arrive
                               'DISTRIBUTOR_HEALTH_ACK': self.process_distributor_health_ack,
                               'DISTRIBUTOR_STANDBY_ACK': self.process_ack,
-                              'DISTRIBUTOR_READOUT_ACK': self.process_ack,
-                              'PAIRING': self.process_ncsa_pairings }
+                              'DISTRIBUTOR_READOUT_ACK': self.process_ack }
 
 
         self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
@@ -173,13 +168,13 @@ class NcsaForeman:
         result = handler(msg_dict)
     
 
-    def process_ncsas_resources_query(self, params):
+    def process_base_resources_query(self, params):
         job_num = str(params[JOB_NUM])
-        LOGGER.info('Base asking NCSA to perform a health check')#
+        LOGGER.info('Base asking NCSA for available resources')#
        
         response_timed_ack_id = params["TIMED_ACK_ID"] 
         needed_workers = int(params[RAFT_NUM])
-        forwarders_list = params[FORWARDERS]
+        forwarders_dict = params[FORWARDERS]
         self.JOB_SCBD.add_job(job_num, needed_workers)
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
@@ -189,8 +184,8 @@ class NcsaForeman:
 
         distributors = self.DIST_SCBD.return_distributors_list()
         # Mark all healthy distributors Unknown
-        state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
-        self.DIST_SCBD.set_distributor_params(distributors, state_status)
+        state_unknown = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
+        self.DIST_SCBD.set_distributor_params(distributors, state_unknown)
         # send health check messages
         ack_params = {}
         ack_params[MSG_TYPE] = "HEALTH_CHECK"
@@ -207,8 +202,6 @@ class NcsaForeman:
         # update distributor scoreboard with healthy distributors 
         healthy_status = {"STATUS": "HEALTHY"}
         self.DIST_SCBD.set_distributor_params(healthy_distributors, healthy_status)
-        #for fwder in healthy_forwarders:
-        #    self.FWD_SCBD.set_forwarder_status(fwder, "HEALTHY")
 
 
         num_healthy_distributors = len(healthy_distributors)
@@ -220,7 +213,6 @@ class NcsaForeman:
             ncsa_params[JOB_NUM] = job_num
             ncsa_params["ACK_BOOL"] = False
             ncsa_params["TIMED_ACK_ID"] = response_timed_ack_id
-            ncsa_params[NEEDED_WORKERS] = str(needed_workers)
             ncsa_params[AVAILABLE_DISTRIBUTORS] = str(num_healthy_distributors)
             ncsa_params[AVAILABLE_WORKERS] = str(0)
             self._publisher.publish_message("ncsa_publish", yaml.dump(ncsa_params))
@@ -228,17 +220,10 @@ class NcsaForeman:
             self.JOB_SCBD.delete_job(job_num)
             idle_state = {"STATE": "IDLE"}
             self.DIST_SCBD.set_distributor_params(healthy_distributors, idle_state)
-            return False
+
         else:
             LOGGER.info('Sufficient distributors and workers are available. Informing NCSA')
-            pairs_dict = assemble_pairs_dict(forwarders_list, healthy_distributors)
-            forwarder_candidate_list = []
-            for i in range (0, needed_workers):
-                forwarder_candidate_list.append(healthy_forwarders[i])
-                self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES)
-                # Call this method for testing...
-                # There should be a message sent to NCSA here asking for available resources
-            timed_ack_id = self.get_next_timed_ack_id("NCSA_Ack") 
+            pairs_dict = assemble_pairs_dict(forwarders_dict, healthy_distributors)
             ncsa_params = {}
             ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY_ACK"
             ncsa_params[JOB_NUM] = job_num
