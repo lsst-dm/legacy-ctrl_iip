@@ -173,7 +173,7 @@ class NcsaForeman:
         job_num = str(params[JOB_NUM])
         LOGGER.info('Base asking NCSA for available resources')#
        
-        response_timed_ack_id = params["TIMED_ACK_ID"] 
+        response_timed_ack_id = params["ACK_ID"] 
         needed_workers = int(params[RAFT_NUM])
         forwarders_dict = params[FORWARDERS]
         self.JOB_SCBD.add_job(job_num, needed_workers)
@@ -190,7 +190,7 @@ class NcsaForeman:
         # send health check messages
         ack_params = {}
         ack_params[MSG_TYPE] = "HEALTH_CHECK"
-        ack_params["TIMED_ACK_ID"] = timed_ack
+        ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
         for distributor in distributors:
             self._publisher.publish_message(self.DIST_SCBD.get_value_for_distributor(distributor,"CONSUME_QUEUE"),
@@ -213,7 +213,7 @@ class NcsaForeman:
             ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY_ACK"
             ncsa_params[JOB_NUM] = job_num
             ncsa_params["ACK_BOOL"] = False
-            ncsa_params["TIMED_ACK_ID"] = response_timed_ack_id
+            ncsa_params["ACK_ID"] = response_timed_ack_id
             ncsa_params[AVAILABLE_DISTRIBUTORS] = str(num_healthy_distributors)
             ncsa_params[AVAILABLE_WORKERS] = str(0)
             self._publisher.publish_message("ncsa_publish", yaml.dump(ncsa_params))
@@ -229,7 +229,7 @@ class NcsaForeman:
             ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY_ACK"
             ncsa_params[JOB_NUM] = job_num
             ncsa_params[ACK_BOOL] = True
-            ncsa_params["TIMED_ACK_ID"] = response_timed_ack_id
+            ncsa_params["ACK_ID"] = response_timed_ack_id
             ncsa_params["PAIRS"] = pairs_dict
             LOGGER.info('The following pairings have been sent to the Base:')
             LOGGER.info(pairs_dict)

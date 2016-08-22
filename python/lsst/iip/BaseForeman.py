@@ -1,4 +1,5 @@
 import toolsmod
+from toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -10,7 +11,6 @@ import thread
 from const import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
-from DistributorScoreboard import DistributorScoreboard
 from JobScoreboard import JobScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -208,7 +208,7 @@ class BaseForeman:
         # send health check messages
         ack_params = {}
         ack_params[MSG_TYPE] = "HEALTH_CHECK"
-        ack_params["TIMED_ACK_ID"] = timed_ack
+        ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
         for forwarder in forwarders:
             self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
@@ -254,7 +254,7 @@ class BaseForeman:
             ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY"
             ncsa_params[JOB_NUM] = job_num
             ncsa_params[RAFT_NUM] = needed_workers
-            ncsa_params["TIMED_ACK_ID"] = timed_ack_id
+            ncsa_params["ACK_ID"] = timed_ack_id
             ncsa_params["FORWARDER_LIST"] = forwarder_candidate_list
             self._ncsa_publisher.publish_message("ncsa_consume", yaml.dump(ncsa_params)) 
             LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
