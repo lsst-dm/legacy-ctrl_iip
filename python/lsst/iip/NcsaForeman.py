@@ -1,4 +1,5 @@
 import toolsmod
+from toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -57,11 +58,11 @@ class NcsaForeman:
         self.JOB_SCBD = JobScoreboard()
         self.ACK_SCBD = AckScoreboard()
         self._msg_actions = { 'NCSA_RESOURCES_QUERY': self.process_base_resources_query,
-                              'STANDBY': self.process_base_standby,
-                              'READOUT': self.process_base_readout,
+                              'NCSA_STANDBY': self.process_base_standby,
+                              'NCSA_READOUT': self.process_base_readout,
                               'DISTRIBUTOR_HEALTH_ACK': self.process_distributor_health_ack,
-                              'DISTRIBUTOR_STANDBY_ACK': self.process_ack,
-                              'DISTRIBUTOR_READOUT_ACK': self.process_ack }
+                              'DISTRIBUTOR_STANDBY_ACK': self.process_standby_ack,
+                              'DISTRIBUTOR_READOUT_ACK': self.process_readout_ack }
 
 
         self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
@@ -313,7 +314,7 @@ class NcsaForeman:
             self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 
 
-    def process_dmcs_readout(self, params):
+    def process_base_readout(self, params):
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
         date = os.system('date +\"%Y-%m-%d %H:%M:%S.%5N\"')
@@ -323,6 +324,7 @@ class NcsaForeman:
 ### XXX
 ### XXX This section must move to NCSA Distributor AND
 ### XXX also the Base Foreman must wait for ack from NCSA
+### XXX so this method must send a response ack
 ### XXX
         #XXX - Add mate value into msg for distributors, for debug purposes
         for distributor in distributors:
@@ -348,28 +350,12 @@ class NcsaForeman:
         
 
 
-    def process_ncsa_insufficient_resources(self, params):
-        forwarders = params[FORWARDERS_LIST]
-        job_number = params[JOB_NUM]
-        for forwarder in forwarders:
-            self.FWD_SCBD.set_forwarder_state(forwarder, IDLE)
-            msg_params = {}
-            msg_params[MSG_TYPE] = INSUFFICIENT_NCSA_RESOURCES
-            msg_params[JOB_NUM] = params[JOB_NUM]
-            msg_params[NEEDED_WORKERS] = params[NEEDED_WORKERS]
-            msg_params[AVAILABLE_DISTRIBUTORS] = params[AVAILABLE_DISTRIBUTORS]
-            msg_params[AVAILABLE_FORWARDERS] = params[AVAILABLE_FORWARDERS]
-            self._publisher.publish_message("dmcs_consume", yaml.dump(msg_params))
-            # delete job
-            self.JOB_SCBD.delete_job(params[JOB_NUM])
-            return False
-### XXX 
-### XXX 
-### XXX  NOTE: Change this ACK handler to a custom handler for each type of ACK
-### XXX 
-### XXX 
-
-    def process_ack(self, params):
+    def process_standby_ack(self, params):
+        if params[MSG_TYPE] == "NCSA_RESOURCES_QUERY_ACK" and params[ACK_BOOL] == TRUE:
+           self._pairing_dict = params[PAIRS] 
+        self.ACK_SCBD.add_timed_ack(params)
+        
+    def process_readout_ack(self, params):
         if params[MSG_TYPE] == "NCSA_RESOURCES_QUERY_ACK" and params[ACK_BOOL] == TRUE:
            self._pairing_dict = params[PAIRS] 
         self.ACK_SCBD.add_timed_ack(params)
