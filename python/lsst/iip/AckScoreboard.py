@@ -81,10 +81,10 @@ class AckScoreboard(Scoreboard):
                a system message 
         """
 
-        ack_id_string = ack_msg_body[ACK_ID]
+        ack_id_string = ack_msg_body['ACK_ID']
       
         if self.check_connection():
-            self._redis.hset(ack_id_string, ack_msg_body[COMPONENT_NAME], yaml.dump(ack_msg_body)
+            self._redis.hset(ack_id_string, ack_msg_body['COMPONENT_NAME'], yaml.dump(ack_msg_body))
 
             # This next line builds a list of TIMED_ACK_IDs for use in unit tests and as a general 
             # component for printing out the entire scoreboard
@@ -120,11 +120,12 @@ class AckScoreboard(Scoreboard):
         for ack in acks:
             x = self._redis.hgetall(ack)
             print x
+            print ("---------")
 
 
     def charge_database(self):
-        forwarders_dict = {Forwarder_1: 3, Forwarder_2: 6, Forwarder_4: 7, Forwarder_8: 11}
-        healthy_distributors = [Distributor_16, Distributor_17, Distributor_19, Distributor_22]
+        forwarders_dict = {'Forwarder_1': '3', 'Forwarder_2': '6', 'Forwarder_4': '7', 'Forwarder_8': '11'}
+        healthy_distributors = ['Distributor_16', 'Distributor_17', 'Distributor_19', 'Distributor_22']
         keez = forwarders_dict.keys()
 
         #build dict...
@@ -143,6 +144,7 @@ class AckScoreboard(Scoreboard):
             pairs_dict[keez[i]] = tmp_dict
 
         big_d = {}
+        big_d['COMPONENT_NAME'] = 'NCSA_FOREMAN'
         big_d['ACK_ID'] = 'NCSA_16'
         big_d['ACK_BOOL'] = True
         big_d['PAIRS'] = pairs_dict
@@ -158,6 +160,18 @@ def main():
 
     comps = asb.get_components_for_timed_ack('NCSA_16')
 
+    print ("-------------------------------------")
+    print " "
+    asb.print_all()
+    print " "
+    print ("-------------------------------------")
+    print " "
+    print "Here comes Comps"
+    print " "
+    print "+++++++++++++++++++++++++++++++++++++"
+    print " "
     print comps
+    print " "
+    print "+++++++++++++++++++++++++++++++++++++"
 
 if __name__ == "__main__": main()
