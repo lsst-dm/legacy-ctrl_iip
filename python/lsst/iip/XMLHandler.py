@@ -48,9 +48,15 @@ class XMLHandler:
         return pydict
 
     def tostring(self, rootNode): 
+        """Changes the XML tree to string
+           :param rootNode: XML root node
+        """ 
         return etree.tostring(rootNode)
 
     def toTree(self, xmlstring): 
+        """Changes String back to XML tree
+           :param xmlstring: XML string
+        """ 
         return etree.XML(xmlstring)
 
     def printXML(self, rootNode): 

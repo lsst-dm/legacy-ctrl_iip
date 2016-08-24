@@ -117,8 +117,10 @@ class Distributor:
 
         standby_dict = {}
         standby_dict[MSG_TYPE] = "DISTRIBUTOR_STANDBY_ACK"
+        standby_dict[JOB_NUM] = params[JOB_NUM]
+        standby_dict["COMPONENT_NAME"] = self._fqn_name
         standby_dict["ACK_BOOL"] = True
-        standby_dict["TIMED_ACK"] = params["TIMED_ACK_ID"]
+        standby_dict["ACK_ID"] = params["TIMED_ACK_ID"]
         self._publisher.publish_message(self._publish_queue, yaml.dump(standby_dict))
 
 
@@ -151,9 +153,9 @@ class Distributor:
         readout_dict = {}
         readout_dict[MSG_TYPE] = "DISTRIBUTOR_READOUT_ACK"
         readout_dict[JOB_NUM] = params[JOB_NUM]
-        readout_dict[NAME] = self._fqn_name
+        readout_dict["COMPONENT_NAME"] = self._fqn_name
         readout_dict["ACK_BOOL"] = True
-        readout_dict["TIMED_ACK"] = params["TIMED_ACK_ID"]
+        readout_dict["ACK_ID"] = params["TIMED_ACK_ID"]
         self._publisher.publish_message(self._publish_queue, yaml.dump(readout_dict))
 
     def process_foreman_check_health(self, params):
@@ -164,7 +166,7 @@ class Distributor:
         msg[JOB_NUM] = params[JOB_NUM]
         msg[NAME] = self._fqn_name
         msg["ACK_BOOL"] = True
-        msg["TIMED_ACK"] = params["TIMED_ACK_ID"]
+        msg["ACK_ID"] = params["TIMED_ACK_ID"]
         self._publisher.publish_message(self._publish_queue, yaml.dump(msg))
 
 

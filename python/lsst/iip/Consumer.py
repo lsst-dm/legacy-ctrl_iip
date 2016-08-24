@@ -63,10 +63,7 @@ class Consumer(object):
 
         """
         LOGGER.info('Connecting to %s', self._url)
-        #return pika.SelectConnection(pika.URLParameters(self._url),
-        #                             self.on_connection_open,
-        #                             stop_ioloop_on_close=False)
-        return pika.SelectConnection(pika.ConnectionParameters(self._url),
+        return pika.SelectConnection(pika.URLParameters(self._url),
                                      self.on_connection_open,
                                      stop_ioloop_on_close=False)
 
