@@ -262,7 +262,6 @@
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_READOUT_ACK</value></attribute>
                     <element name="JOB_NUM"><data type="integer"/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="NAME"><text/></element>
                     <element name="ACK_BOOL"><data type="boolean"/></element>
                     <element name="ACK_ID"><text/></element>
                </interleave>

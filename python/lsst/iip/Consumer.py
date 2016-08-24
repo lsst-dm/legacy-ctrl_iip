@@ -329,8 +329,8 @@ class Consumer(object):
         starting the IOLoop to block and allow the SelectConnection to operate.
 
         """
-        self._xml_handler = XMLHandler()
-        self._message_callback = callback
+        self._xml_handler = XMLHandler(callback)
+        self._message_callback = self._xml_handler.xmlcallback  
         self._connection = self.connect()
         self._connection.ioloop.start()
 

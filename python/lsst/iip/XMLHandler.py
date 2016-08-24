@@ -3,11 +3,24 @@ from StringIO import *
 from const import *
 
 class XMLHandler:
-    def __init__(self):
+    def __init__(self, callback):
         self._schemafile = open("schema/relaxSchema.xml")
         self._schemadoc = etree.parse(self._schemafile)
         self._schemaNG = etree.RelaxNG(self._schemadoc)
-
+        self._consumer_callback = callback
+    
+    def xmlcallback(self, ch, method, properties, body): 
+        """Validate the message body with XML schema before consuming
+           Setting the consumer callback function
+        """
+        tree = self.toTree(body)
+        valid = self.validate(tree)
+        if valid: 
+            self._consumer_callback
+            print("valid XML.")
+        else: 
+            print("invalid XML")
+        
     def validate(self, rootNode):
         """ Validate the XML with the schema
             :param rootNode: root Node of the XML element
