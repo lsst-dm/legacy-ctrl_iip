@@ -36,7 +36,7 @@ class Consumer(object):
     QUEUE = 'text'
     ROUTING_KEY = 'example.text'
 
-    def __init__(self, amqp_url, queue, xmldict):
+    def __init__(self, amqp_url, queue):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -52,9 +52,7 @@ class Consumer(object):
         self._message_callback = None
         self.QUEUE = queue
         self.ROUTING_KEY = queue
-        self._xml_handler = XMLHandler()
-        self._xmldict = xmldict
-        self._validxml = False
+        self._xml_handler = None 
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -65,7 +63,10 @@ class Consumer(object):
 
         """
         LOGGER.info('Connecting to %s', self._url)
-        return pika.SelectConnection(pika.URLParameters(self._url),
+        #return pika.SelectConnection(pika.URLParameters(self._url),
+        #                             self.on_connection_open,
+        #                             stop_ioloop_on_close=False)
+        return pika.SelectConnection(pika.ConnectionParameters(self._url),
                                      self.on_connection_open,
                                      stop_ioloop_on_close=False)
 
@@ -331,12 +332,10 @@ class Consumer(object):
         starting the IOLoop to block and allow the SelectConnection to operate.
 
         """
-        if self._validxml:
-            self._message_callback = callback
-            self._connection = self.connect()
-            self._connection.ioloop.start()
-        else: 
-            Logger.error("XML is invalid")
+        self._xml_handler = XMLHandler()
+        self._message_callback = callback
+        self._connection = self.connect()
+        self._connection.ioloop.start()
 
     def stop(self):
         """Cleanly shutdown the connection to RabbitMQ by stopping the consumer
@@ -359,13 +358,6 @@ class Consumer(object):
         """This method closes the connection to RabbitMQ."""
         LOGGER.info('Closing connection')
         self._connection.close()
-
-    def validxml_callback(self): 
-        root = self._xml_handler.encodeXML(self._xmldict)
-        if self._xml_handler.validate(root): 
-            self._validxml = True
-        else: 
-            self._validxml = False
 
 def main():
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)

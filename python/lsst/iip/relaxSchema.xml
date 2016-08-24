@@ -37,9 +37,9 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>INSUFFICIENT_DISTRIBUTORS</value></attribute>
-                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
+                    <element name="NEEDED_DISTRIBUTORS"><data type="integer"/></element>
                     <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
-                    <!--element name="NEEDED_WORKERS"><data type="integer"/></element-->
+                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
                     <element name="AVAILABLE_WORKERS"><data type="integer"/></element>
                </interleave>
            </element>

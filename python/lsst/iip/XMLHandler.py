@@ -2,16 +2,25 @@ from lxml import etree
 from StringIO import *
 from const import *
 
-class XMLHandler(): 
+class XMLHandler: 
     def __init__(self): 
         self._schemafile = open("relaxSchema.xml")
         self._schemadoc = etree.parse(self._schemafile)
         self._schemaNG = etree.RelaxNG(self._schemadoc)
 
     def validate(self, rootNode): 
+        """ Validate the XML with the schema
+            :param rootNode: root Node of the XML element
+            :type rootNode: lxml etree
+        """ 
         return self._schemaNG.validate(rootNode)
     
     def encodeXML(self, pydict): 
+        """Encode python dictionary into XML
+           Has to convert ACK_BOOL to "true" so that it works with xml boolean
+           :param pydict: python dictionary
+           :type pydict: dict
+        """
         root = etree.Element("messageDict")
         msg = etree.Element("message", MSG_TYPE=pydict[MSG_TYPE])
         root.append(msg)
@@ -24,6 +33,11 @@ class XMLHandler():
         return root
 
     def decodeXML(self, rootNode): 
+        """Decode XML tree to python dictionary
+           Has to convert the "true" back to python boolean True
+           :param rootNode: XML root node 
+           :type rootNode: lxml etree 
+        """
         pydict = {}
         pydict[MSG_TYPE] = rootNode[0].get("MSG_TYPE")
         for node in rootNode.iter(): 
@@ -33,7 +47,17 @@ class XMLHandler():
                 pydict["ACK_BOOL"] = True if pydict["ACK_BOOL"] == "true" else False
         return pydict
 
+    def tostring(self, rootNode): 
+        return etree.tostring(rootNode)
+
+    def toTree(self, xmlstring): 
+        return etree.XML(xmlstring)
+
     def printXML(self, rootNode): 
+        """ print out XML tree in formatted manner 
+            :param rootNode: root Node of XML tree
+            :type rootNode: lxml etree root node
+        """
         print(etree.tostring(rootNode, pretty_print=True))
 
 def main(): 
