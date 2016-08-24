@@ -23,6 +23,7 @@ class AckScoreboard(Scoreboard):
     ACK_SCOREBOARD_DB = 3
     TIMED_ACKS = 'timed_acks'
     TIMED_ACK_ID = 'TIMED_ACK_ID'
+    ACKS = []
   
 
     def __init__(self):
@@ -73,21 +74,21 @@ class AckScoreboard(Scoreboard):
 
 
     def add_timed_ack(self, ack_msg_body):
-        """The first time that a new TIMED_ACK_ID is encountered, the ACK row is created.
+        """The first time that a new ACK_ID is encountered, the ACK row is created.
            From then on, new ACKS for a particular ACK_ID are added here. 
             
            :param dict ack_msg_body: Description of an ACK enclosed within
                a system message 
         """
-        ack_id_string = ack_msg_body[TIMED_ACK]
+
+        ack_id_string = ack_msg_body[ACK_ID]
       
         if self.check_connection():
-            self._redis.hset(ack_id_string, ack_msg_body[COMPONENT_NAME], ack_msg_body[ACK_BOOL])
+            self._redis.hset(ack_id_string, ack_msg_body[COMPONENT_NAME], yaml.dump(ack_msg_body)
 
             # This next line builds a list of TIMED_ACK_IDs for use in unit tests and as a general 
             # component for printing out the entire scoreboard
             self._redis.lpush(self.ACKS, ack_id_string)
-            #self.persist_snapshot()
         else:
             LOGGER.error('Unable to add new ACK; Redis connection unavailable')
 
@@ -99,18 +100,19 @@ class AckScoreboard(Scoreboard):
            :param str timed_ack: The name of the ACK name to be checked.
            :rtype dict if row exists, otherwise
         """
-        exists = self._redis.exists(timed_ack)
-        if exists:
-            if self.check_connection():
+
+        if self.check_connection():
+            exists = self._redis.exists(timed_ack)
+            if exists:
                 component_dict = {}
                 keys = self._redis.hkeys(timed_ack)
                 for key in keys:
-                   component_dict[key] = hget(timed_ack, key)
+                   component_dict[key] = yaml.load(self._redis.hget(timed_ack, key))
 
-            return component_dict
+                return component_dict
 
-        else:
-            return None
+            else:
+                return None
 
 
     def print_all(self):
@@ -121,12 +123,41 @@ class AckScoreboard(Scoreboard):
 
 
     def charge_database(self):
+        forwarders_dict = {Forwarder_1: 3, Forwarder_2: 6, Forwarder_4: 7, Forwarder_8: 11}
+        healthy_distributors = [Distributor_16, Distributor_17, Distributor_19, Distributor_22]
+        keez = forwarders_dict.keys()
 
-        pass
+        #build dict...
+        pairs_dict = {}
+
+        number_pairs = len(keez)
+        for i in range (0, number_pairs):
+            tmp_dict = {}
+            distributor = healthy_distributors[i]
+            tmp_dict['FQN'] = distributor
+            tmp_dict['RAFT'] = forwarders_dict[keez[i]]
+            tmp_dict['HOSTNAME'] =  'HOSTNAME'
+            tmp_dict['NAME'] = 'NAME'
+            tmp_dict['IP_ADDR'] = 'IP_ADDR'
+            tmp_dict['TARGET_DIR'] = 'TARGET_DIR'
+            pairs_dict[keez[i]] = tmp_dict
+
+        big_d = {}
+        big_d['ACK_ID'] = 'NCSA_16'
+        big_d['ACK_BOOL'] = True
+        big_d['PAIRS'] = pairs_dict
+
+        return big_d
 
 
 def main():
     asb = AckScoreboard()
 
+    ncsa_msg = asb.charge_database()
+    asb.add_timed_ack(ncsa_msg)
+
+    comps = asb.get_components_for_timed_ack('NCSA_16')
+
+    print comps
 
 if __name__ == "__main__": main()

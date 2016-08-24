@@ -40,7 +40,6 @@ class BaseForeman:
         self._passwd = 'FM'   
         self._base_broker_url = 'amqp_url'
         self._ncsa_broker_url = 'amqp_url'
-        self._pairing_dict = {}
         self._next_timed_ack_id = 0
  
         cdm = self.intake_yaml_file()
@@ -66,8 +65,7 @@ class BaseForeman:
                               'NCSA_READOUT_ACK': self.process_ack,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_STANDBY_ACK': self.process_ack,
-                              'FORWARDER_READOUT_ACK': self.process_ack,
-                              'PAIRING': self.process_ncsa_pairings }
+                              'FORWARDER_READOUT_ACK': self.process_ack }
 
 
         self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
@@ -89,6 +87,15 @@ class BaseForeman:
            the listeners are invoked below is a safe implementation
            that provides non-blocking, fully asynchronous messaging
            to the BaseForeman.
+
+           The code in this file expects message bodies to arrive as
+           YAML'd python dicts, while in fact, message bodies are sent
+           on the wire as XML; this way message format can be validated,
+           versioned, and specified in just one place. To make this work,
+           there is an object that translates the params dict to XML, and
+           visa versa. The translation object is instantiated by the consumer
+           and acts as a filter before sending messages on to the registered
+           callback for processing.
 
         """
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
@@ -380,8 +387,6 @@ class BaseForeman:
 ### XXX 
 
     def process_ack(self, params):
-        if params[MSG_TYPE] == "NCSA_RESOURCES_QUERY_ACK" and params[ACK_BOOL] == TRUE:
-           self._pairing_dict = params[PAIRS] 
         self.ACK_SCBD.add_timed_ack(params)
         
 
