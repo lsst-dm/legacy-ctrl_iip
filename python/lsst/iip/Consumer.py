@@ -10,6 +10,7 @@
 
 import logging
 import pika
+from XMLHandler import *
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -35,7 +36,7 @@ class Consumer(object):
     QUEUE = 'text'
     ROUTING_KEY = 'example.text'
 
-    def __init__(self, amqp_url, queue):
+    def __init__(self, amqp_url, queue, xmldict):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -51,6 +52,9 @@ class Consumer(object):
         self._message_callback = None
         self.QUEUE = queue
         self.ROUTING_KEY = queue
+        self._xml_handler = XMLHandler()
+        self._xmldict = xmldict
+        self._validxml = False
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -327,9 +331,12 @@ class Consumer(object):
         starting the IOLoop to block and allow the SelectConnection to operate.
 
         """
-        self._message_callback = callback
-        self._connection = self.connect()
-        self._connection.ioloop.start()
+        if self._validxml:
+            self._message_callback = callback
+            self._connection = self.connect()
+            self._connection.ioloop.start()
+        else: 
+            Logger.error("XML is invalid")
 
     def stop(self):
         """Cleanly shutdown the connection to RabbitMQ by stopping the consumer
@@ -353,6 +360,12 @@ class Consumer(object):
         LOGGER.info('Closing connection')
         self._connection.close()
 
+    def validxml_callback(self): 
+        root = self._xml_handler.encodeXML(self._xmldict)
+        if self._xml_handler.validate(root): 
+            self._validxml = True
+        else: 
+            self._validxml = False
 
 def main():
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)

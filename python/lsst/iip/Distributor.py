@@ -117,8 +117,6 @@ class Distributor:
 
         standby_dict = {}
         standby_dict[MSG_TYPE] = "DISTRIBUTOR_STANDBY_ACK"
-        standby_dict[JOB_NUM] = self._job_num
-        standby_dict[NAME] = self._fqn_name
         standby_dict["ACK_BOOL"] = True
         standby_dict["TIMED_ACK"] = params["TIMED_ACK_ID"]
         self._publisher.publish_message(self._publish_queue, yaml.dump(standby_dict))
