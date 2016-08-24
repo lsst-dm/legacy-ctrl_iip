@@ -1,4 +1,4 @@
-<?xml version="1.0"?> 
+<?xml version="1.0"?>
 <element name="messageDict" xmlns="http://relaxng.org/ns/structure/1.0"
     datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
     <oneOrMore>
@@ -217,7 +217,7 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>NCSA_READOUT_ACK</value></attribute>
                     <element name="JOB_NUM"><data type="integer"/></element>
-                    <element name="COMPONENT_NAME"><text/></element> 
+                    <element name="COMPONENT_NAME"><text/></element>
                     <element name="ACK_BOOL"><data type="boolean"/></element>
                     <element name="ACK_ID"><text/></element>
                </interleave>
