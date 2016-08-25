@@ -331,10 +331,20 @@ class BaseForeman:
     def process_dmcs_readout(self, params):
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        date = os.system('date +\"%Y-%m-%d %H:%M:%S.%5N\"')
-        self.JOB_SCBD.set_value_for_job(job_number, READOUT_SENT, date) 
-        distributors = pairs.values()
+        date - get_timestamp()
+        self.JOB_SCBD.set_value_for_job(job_number, START_READOUT, date) 
+        # The following line extracts the distributor FQNs from pairs dict using 
+        # list comprehension values; faster than for loops
+        distributors = [v['FQN'] for v in pairs.values()]
         forwarders = pairs.keys()
+
+### Send READOUT to NCSA with ACK_ID
+### Block until NCSA is complete
+### Send READOUT to forwarders with ACK_ID
+### Block until timer
+### Assess data
+
+
 ### XXX
 ### XXX This section must move to NCSA Distributor AND
 ### XXX also the Base Foreman must wait for ack from NCSA

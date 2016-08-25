@@ -33,10 +33,14 @@ class JobScoreboard(Scoreboard):
          for a clean start. A 'charge_database' method is 
          included for testing the module.
 
-         Each job will be in one of four states:
+         Each job will be tracked in one of these states:
+        
+         NEW_JOB 
          CHECKING_RESOURCES
+         IN_READY_STATE
          STANDBY
-         READOUT
+         START_READOUT
+         FINISH_READOUT
          COMPLETE
       """
       LOGGER.info('Setting up JobScoreboard')
@@ -84,7 +88,7 @@ class JobScoreboard(Scoreboard):
       # XXX Needs try, catch block
       if self.check_connection():
         self._redis.hset(job_num, self.RAFTS, rafts)
-        self._redis.hset(job_num, self.STATE, 'CHECKING_RESOURCES')
+        self._redis.hset(job_num, self.STATE, 'NEW_JOB')
         self._redis.lpush(self.JOBS, job_num)
         #self.persist_snapshot()
       else:
