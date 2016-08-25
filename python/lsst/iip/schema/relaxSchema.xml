@@ -1,0 +1,271 @@
+<?xml version="1.0"?>
+<element name="messageDict" xmlns="http://relaxng.org/ns/structure/1.0"
+    datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+    <oneOrMore>
+        <!-- Msg #1:  'JOB' Message From DMCS to Foreman  -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>JOB</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="RAFTS"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #2: Base Foreman to DMCS -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>IN_READY_STATE</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #3 Base Foreman to DMCS Insufficient Resources at the Base Site -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>INSUFFICIENT_BASE_RESOURCES</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
+                    <element name="AVAILABLE_FORWARDERS"><data type="integer"/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #4 Base Foreman to DMCS Insufficient NCSA Resources message -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>INSUFFICIENT_DISTRIBUTORS</value></attribute>
+                    <element name="NEEDED_DISTRIBUTORS"><data type="integer"/></element>
+                    <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
+                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
+                    <element name="AVAILABLE_WORKERS"><data type="integer"/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #5: Base Foreman to EACH Forwarder's consume queue - Health Check  -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>FORWARDER_HEALTH_CHECK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #6: Each Forwarder to Base Foreman Ack Queue - Health Check ACK -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>FORWARDER_HEALTH_ACK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="COMPONENT_NAME"><text/></element>
+                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #7 Base Foreman to NCSA resources query -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>NCSA_RESOURCES_QUERY</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="RAFT_NUM"><data type="integer"/></element>
+                    <element name="ACK_ID"><text/></element>
+                    <element name="FORWARDERS"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #8 NCSA to Base Foreman ACK Queue -  Resources Query ACK -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>NCSA_RESOURCE_QUERY_ACK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="COMPONENT_NAME"><text/></element>
+                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
+                    <element name="AVAILABLE_WORKERS"><data type="integer"/></element>
+                    <element name="ACK_ID"><text/></element>
+                    <element name="PAIRS"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #9: NCSA Foreman to EACH Distributor's consume queue - Health Check  -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>DISTRIBUTOR_HEALTH_CHECK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #10: Each Distributor to NCSA Foreman Ack Queue - Health Check ACK -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>DISTRIBUTOR_HEALTH_ACK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="COMPONENT_NAME"><text/></element>
+                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #11 DMCS to Base Foreman Standby message -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>STANDBY</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #12 Base Foreman to NCSA Standby message -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>NCSA_STANDBY</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #14 Base Foreman to EACH Forwarder's consume queue - Standby  -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>FORWARDER_STANDBY</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="RAFT"><data type="integer"/></element>
+                    <choice>
+                        <element name="host"><text/></element>
+                        <group>
+                            <element name="HOST"><text/></element>
+                            <element name="IP_ADDR"><text/></element>
+                        </group>
+                    </choice>
+                    <element name="FQN"><text/></element>
+                    <element name="NAME"><text/></element>
+                    <element name="TARGET_DIR"><text/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #15 NCSA Foreman to EACH Distributor's consume queue - Standby  -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>DISTRIBUTOR_STANDBY</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="RAFT"><data type="integer"/></element>
+                    <element name="SENDING_FQN"><text/></element>
+                    <element name="SKY"><text/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #16 Each Forwarder to Base Foreman ACK queue - Standby Ack -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>DISTRIBUTOR_STANDBY_ACK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="COMPONENT_NAME"><text/></element>
+                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #17 Each Distributor to NCSA Foreman ACK queue - Standby Ack -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>DISTRIBUTOR_STANDBY_ACK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="COMPONENT_NAME"><text/></element>
+                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #18 DMCS to Base Foreman DMCS_publish Queue - Readout -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>READOUT</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #19 Base Foreman to NCSA_consume Queue - Readout  -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>NCSA_READOUT</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #20 NCSA to Base Foreman ACK Queue - Readout ACK -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>NCSA_READOUT_ACK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="COMPONENT_NAME"><text/></element>
+                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #21 Base Foreman to Each Forwarder's Forwarder_consume Queue - Readout -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>FORWARDER_READOUT</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #22 Each Forwarder to Base Foreman Ack Queue - Readout ACK -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>FORWARDER_READOUT_ACK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="COMPONENT_NAME"><text/></element>
+                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #23 NCSA Foreman to Each Distributor's Forwarder_consume Queue - Readout -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>DISTRIBUTOR_READOUT</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+        </optional>
+        <!-- Msg #24 Each Distributor to NCSA Foreman Ack Queue - Readout ACK -->
+        <optional>
+           <element name="message">
+               <interleave>
+                    <attribute name="MSG_TYPE"><value>DISTRIBUTOR_READOUT_ACK</value></attribute>
+                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="COMPONENT_NAME"><text/></element>
+                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <element name="ACK_ID"><text/></element>
+               </interleave>
+           </element>
+       </optional>
+    </oneOrMore>
+</element>
