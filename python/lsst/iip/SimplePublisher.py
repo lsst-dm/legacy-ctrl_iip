@@ -1,7 +1,9 @@
 import pika
 import logging
 import yaml
-
+import sys
+from XMLHandler import * 
+from Exceptions import * 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -20,6 +22,7 @@ class SimplePublisher:
     self._stopping = False
     self._url = amqp_url
     self._closing = False
+    self._xml_handler = None
 
     try:
        self.connect()
@@ -44,5 +47,15 @@ class SimplePublisher:
          sys.exit(105)
 
     LOGGER.debug ("Sending msg to %s", route_key)
-    self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=msg)
 
+    self._xml_handler = XMLHandler()
+    try:
+        xmlRoot = self._xml_handler.encodeXML(msg)
+        valid = self._xml_handler.validate(xmlRoot)
+        if valid: 
+            xmlMsg = self._xml_handler.tostring(xmlRoot)
+            self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=xmlMsg)
+        else: 
+            raise InvalidXML("Message is invalid XML.")
+    except InvalidXML, e:
+        print("Error: %s" % e.errormsg)
