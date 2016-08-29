@@ -40,7 +40,7 @@ class NcsaForeman:
         self._base_broker_url = 'amqp_url'
         self._ncsa_broker_url = 'amqp_url'
         self._pairing_dict = {}
-        self._next_timed_ack_id = 0
+        self._next_timed_ack_id = 10000
  
         cdm = self.intake_yaml_file()
         try:
@@ -263,46 +263,22 @@ class NcsaForeman:
             
 
     def process_distributor_health_ack(self, params):
-        if params[ACK_BOOL] == TRUE:
-            self.ACK_SCBD.add_timed_ack(params)
+        self.ACK_SCBD.add_timed_ack(params)
         
 
     def process_base_standby(self, params):
         # tell all forwarders then distributors
         job_num = params[JOB_NUM]
+        response_ack_id = params['ACK_ID']
         pairs = self.JOB_SCBD.get_pairs_for_job(str(job_num))
-        forwarders = pairs.keys()
-        rev_pairs = {}
-        for forwarder in forwarders:
-            distributor = pairs[forwarder]
-            rev_pairs[distributor] = forwarder
-            msg_params = {}
-            msg_params[MATE] = distributor
-            msg_params[STATE] = STANDBY 
-### XXX
-### XXX Add new Distributor params that came with the ncsa resource ack msg, 
-### XXX thereby making the Distributor scoreboard unnecessary at the base -- only at NCSA
-### XXX will it be needed.
-### XXX
-            self.FWD_SCBD.set_forwarder_params(forwarder, params)
-            msg_params[MSG_TYPE] = STANDBY
-            msg_params[XFER_LOGIN] = self.DIST_SCBD.get_value_for_distributor(distributor, XFER_LOGIN)
-            msg_params[TARGET_DIR] = self.DIST_SCBD.get_value_for_distributor(distributor, TARGET_DIR)
-            msg_params[JOB_NUM] = job_num
-            msg_params[XFER_APP] = self._xfer_app
-            msg_params[XFER_FILE] = self._xfer_file
-            routing_key = self.FWD_SCBD.get_value_for_forwarder(forwarder, ROUTING_KEY)
-            LOGGER.info('Using routing key %s for forwarder %s message. Msg is %s',
-                         routing_key, forwarder, msg_params)
-            self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 ### XXX 
 ### XXX This section below must move to the NCSA Foreman
 ### XXX
-        distributors = pairs.values()
-        LOGGER.info('Number of distributors here is: %s', str(len(distributors)))
+        forwarders = pairs.keys()
+        distributors = [v['FQN'] for v in pairs.values()]
         for distributor in distributors:
             msg_params = {}
-            msg_params[MSG_TYPE] = STANDBY
+            msg_params[MSG_TYPE] = DISTRIBUTOR_STANDBY
             msg_params[MATE] = rev_pairs[distributor]
             msg_params[JOB_NUM] = job_num
             routing_key = self.DIST_SCBD.get_value_for_distributor(distributor, ROUTING_KEY)
@@ -316,38 +292,53 @@ class NcsaForeman:
 
     def process_base_readout(self, params):
         job_number = params[JOB_NUM]
+        response_ack_id = params['ACK_ID']
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        date = os.system('date +\"%Y-%m-%d %H:%M:%S.%5N\"')
-        self.JOB_SCBD.set_value_for_job(job_number, READOUT_SENT, date) 
-        distributors = pairs.values()
-        forwarders = pairs.keys()
-### XXX
-### XXX This section must move to NCSA Distributor AND
-### XXX also the Base Foreman must wait for ack from NCSA
-### XXX so this method must send a response ack
-### XXX
-        #XXX - Add mate value into msg for distributors, for debug purposes
+        date = get_timestamp()
+        ack_id = self.get_next_timed_ack_id("DISTRIBUTOR_READOUT")
+        self.JOB_SCBD.set_value_for_job(job_number, READOUT_START, date) 
+        # The following line extracts the distributor FQNs from pairs dict using
+        # list comprehension values; faster than for loops
+        distributors = [v['FQN'] for v in pairs.values()]
         for distributor in distributors:
-          msg_params = {}
-          msg_params[MSG_TYPE] = READOUT
-          msg_params[JOB_NUM] = job_number
-          routing_key = self.DIST_SCBD.get_routing_key(distributor)
-          self.DIST_SCBD.set_distributor_state(distributor, READOUT)
-          self._publisher.publish_message(routing_key, yaml.dump(msg_params))
-### XXX
-
-
-        for forwarder in forwarders:
-            name = self.FWD_SCBD.get_value_for_forwarder(forwarder, NAME)
-            routing_key = self.FWD_SCBD.get_routing_key(forwarder)
             msg_params = {}
-            msg_params[MSG_TYPE] = READOUT
+            msg_params[MSG_TYPE] = 'DISTRIBUTOR_READOUT'
             msg_params[JOB_NUM] = job_number
-            target_dir = self.DIST_SCBD.get_value_for_distributor(pairs[forwarder], TARGET_DIR)
-            msg_params[TARGET_DIR] = target_dir
-            self.FWD_SCBD.set_forwarder_state(forwarder, READOUT)
+            msg_params['ACK_ID'] = ack_id
+            routing_key = self.DIST_SCBD.get_routing_key(distributor)
+            self.DIST_SCBD.set_distributor_state(distributor, START_READOUT)
             self._publisher.publish_message(routing_key, yaml.dump(msg_params))
-        
+
+
+        self.ack_timer(4)
+
+        distributor_responses = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+        if len(distributor_responses) == len(distributors):
+            ncsa_params = {}
+            ncsa_params[MSG_TYPE] = 'NCSA_READOUT_ACK'
+            ncsa_params[JOB_NUM] = job_number
+            ncsa_params['ACK_ID'] = response_ack_id
+            ncsa_params['ACK_BOOL'] = True
+            self.publisher.publish_message("ncsa_publish", yaml.dump(msg_params))
+        else:
+            ncsa_params = {}
+            ncsa_params[MSG_TYPE] = 'NCSA_READOUT_ACK'
+            ncsa_params[JOB_NUM] = job_number
+            ncsa_params['COMPONENT_NAME'] = 'NCSA'
+            ncsa_params['ACK_ID'] = response_ack_id
+            ncsa_params['ACK_BOOL'] = FALSE
+            ncsa_params['EXPECTED_DISTRIBUTOR_ACKS'] = len(distributors)
+            ncsa_params['RECIEVED_DISTRIBUTOR_ACKS'] = len(distributor_responses)
+            missing_distributors = {}
+            forwarders = pairs.keys()
+                for forwarder in forwarders:
+                    if forwarder['MATE'] in distributor_responses:
+                        continue
+                    else:
+                        missing_distributors[forwarder['MATE']] = forwarder['RAFT']
+            ncsa_params['MISSING_DISTRIBUTORS'] = missing_distributors
+            self.publisher.publish_message("ncsa_publish", yaml.dump(msg_params))
+             
 
 
     def process_standby_ack(self, params):

@@ -331,39 +331,68 @@ class BaseForeman:
     def process_dmcs_readout(self, params):
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        date = os.system('date +\"%Y-%m-%d %H:%M:%S.%5N\"')
-        self.JOB_SCBD.set_value_for_job(job_number, READOUT_SENT, date) 
-        distributors = pairs.values()
+        date - get_timestamp()
+        self.JOB_SCBD.set_value_for_job(job_number, START_READOUT, date) 
+        # The following line extracts the distributor FQNs from pairs dict using 
+        # list comprehension values; faster than for loops
+        distributors = [v['FQN'] for v in pairs.values()]
         forwarders = pairs.keys()
-### XXX
-### XXX This section must move to NCSA Distributor AND
-### XXX also the Base Foreman must wait for ack from NCSA
-### XXX
-        #XXX - Add mate value into msg for distributors, for debug purposes
-        for distributor in distributors:
-          msg_params = {}
-          msg_params[MSG_TYPE] = READOUT
-          msg_params[JOB_NUM] = job_number
-          routing_key = self.DIST_SCBD.get_routing_key(distributor)
-          self.DIST_SCBD.set_distributor_state(distributor, READOUT)
-          self._publisher.publish_message(routing_key, yaml.dump(msg_params))
-### XXX
 
+        ack_id = self.get_next_timed_ack_id('NCSA_READOUT')
+### Send READOUT to NCSA with ACK_ID
+        ncsa_params = {}
+        ncsa_params[MSG_TYPE] = 'NCSA_READOUT'
+        ncsa_params['ACK_ID'] = ack_id
 
-        for forwarder in forwarders:
-            name = self.FWD_SCBD.get_value_for_forwarder(forwarder, NAME)
-            routing_key = self.FWD_SCBD.get_routing_key(forwarder)
-            msg_params = {}
-            msg_params[MSG_TYPE] = READOUT
-            msg_params[JOB_NUM] = job_number
+        self.ack_timer(4)
 
-            ### XXX This value should come with the pairings and is exposure specific
-            target_dir = self.DIST_SCBD.get_value_for_distributor(pairs[forwarder], TARGET_DIR)
-            msg_params[TARGET_DIR] = target_dir
-            self.FWD_SCBD.set_forwarder_state(forwarder, READOUT)
-            self._publisher.publish_message(routing_key, yaml.dump(msg_params))
+        ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+        if ncsa_response:
+            if ncsa_response['ACK_BOOL'] == True:
+                #inform forwarders
+                fwd_ack_id = self.get_next_timed_ack_id('FORWARDER_READOUT')
+                for forwarder in forwarders:
+                    name = self.FWD_SCBD.get_value_for_forwarder(forwarder, NAME)
+                    routing_key = self.FWD_SCBD.get_routing_key(forwarder)
+                    msg_params = {}
+                    msg_params[MSG_TYPE] = 'FORWARDER_READOUT'
+                    msg_params[JOB_NUM] = job_number
+                    msg_params['ACK_ID'] = fwd_ack_id
+                    self.FWD_SCBD.set_forwarder_state(forwarder, START_READOUT)
+                    self._publisher.publish_message(routing_key, yaml.dump(msg_params))
+                self.ack_timer(4)
+                forwarder_responses = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
+                if len(forwarder_responses) == len(forwarders)
+                    dmcs_params = {}
+                    dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
+                    dmcs_params[JOB_NUM] = job_number
+                    dmcs_params['ACK_BOOL'] = True
+                    dmcs_params['COMMENT'] = "Readout begun at %s" % get_timestamp()
+                    self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+                    
+            else:
+                #send problem with ncsa to DMCS
+                dmcs_params = {}
+                dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
+                dmcs_params[JOB_NUM] = job_number
+                dmcs_params['ACK_BOOL'] = False
+                dmcs_params['COMMENT'] = "Readout Failed: Problem at NCSA - Expected 
+                                          Distributor Acks is %s, Number of Distributor 
+                                          Acks received is %s" % 
+                                          (ncsa_response['EXPECTED_DISTRIBUTOR_ACKS'],
+                                          ncsa_response['RECEIVED_DISTRIBUTOR_ACKS'])
+                self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+                    
+        else:
+            #send no response from ncsa to DMCS               )
+            dmcs_params = {}
+            dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
+            dmcs_params[JOB_NUM] = job_number
+            dmcs_params['ACK_BOOL'] = False
+            dmcs_params['COMMENT'] = "Readout Failed: No Response from NCSA"
+            self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+                    
         
-
 
     def process_ncsa_insufficient_resources(self, params):
         forwarders = params[FORWARDERS_LIST]

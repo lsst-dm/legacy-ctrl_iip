@@ -16,12 +16,12 @@ LOGGER = logging.getLogger(__name__)
 
 class Distributor:
     """This is a basic Distributor class. The cadence of the file
-       is very similar to its workmate the Forwarder class and begins to 
-       viollate the DRY rule. It may be that this class and the 
-       Forwarder class are eventually combined into single class so that 
-       a personality can be chosen at the time of initialization. Or a 
-       parent class for both may be a better approach... but at this 
-       point, they are separate classes until it is certain that 
+       is very similar to its workmate the Forwarder class and begins to
+       viollate the DRY rule. It may be that this class and the
+       Forwarder class are eventually combined into single class so that
+       a personality can be chosen at the time of initialization. Or a
+       parent class for both may be a better approach... but at this
+       point, they are separate classes until it is certain that
        individual classes are definetely not necessary.
     """
 
@@ -53,7 +53,7 @@ class Distributor:
         self._home_dir = "/home/" + self._name + "/"
         self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
 
-        self._msg_actions = { CHECK_HEALTH: self.process_foreman_check_health,
+        self._msg_actions = { HEALTH_CHECK: self.process_foreman_check_health,
                               STANDBY: self.process_foreman_standby,
                               READOUT: self.process_foreman_readout }
 
@@ -94,9 +94,9 @@ class Distributor:
     def process_foreman_standby(self, params):
         """Right now, only three message types matter to Distributors:
            1) Health checks
-           2) Standby, and 
+           2) Standby, and
            3) Readout.
-           This action method is for the standby message and asks the 
+           This action method is for the standby message and asks the
            Distributor to clean up the target directory. Removing the
            Sentinel file is paramount, as leaving an old one in the
            target directory will have transfer time scripts thinking
@@ -114,6 +114,14 @@ class Distributor:
         msg_params[MSG_TYPE] = 'DISTRIBUTOR_STDBY_ACK'
         msg_params['COMMENT1'] = "Result from running rm command: %s" % result
         self._publisher.publish_message('reports', yaml.dump(msg_params))
+
+        standby_dict = {}
+        standby_dict[MSG_TYPE] = "DISTRIBUTOR_STANDBY_ACK"
+        standby_dict[JOB_NUM] = params[JOB_NUM]
+        standby_dict["COMPONENT_NAME"] = self._fqn_name
+        standby_dict["ACK_BOOL"] = True
+        standby_dict["ACK_ID"] = params["TIMED_ACK_ID"]
+        self._publisher.publish_message(self._publish_queue, yaml.dump(standby_dict))
 
 
     def process_foreman_readout(self, params):
@@ -142,17 +150,24 @@ class Distributor:
         msg['COMMENT3'] = "Command used to call check_sentinel.sh is %s" % cmd
         self._publisher.publish_message("reports", yaml.dump(msg))
 
+        readout_dict = {}
+        readout_dict[MSG_TYPE] = "DISTRIBUTOR_READOUT_ACK"
+        readout_dict[JOB_NUM] = params[JOB_NUM]
+        readout_dict["COMPONENT_NAME"] = self._fqn_name
+        readout_dict["ACK_BOOL"] = True
+        readout_dict["ACK_ID"] = params["TIMED_ACK_ID"]
+        self._publisher.publish_message(self._publish_queue, yaml.dump(readout_dict))
 
     def process_foreman_check_health(self, params):
         Logger.info("Checking Distributor's health")
         # check health message
         msg = {}
-        msg[MSG_TYPE] = "DISTRIBUTOR_HEALTH_CHECK"
+        msg[MSG_TYPE] = "DISTRIBUTOR_HEALTH_ACK"
         msg[JOB_NUM] = params[JOB_NUM]
         msg[NAME] = self._fqn_name
         msg["ACK_BOOL"] = True
-        msg["TIMED_ACK"] = params["TIMED_ACK_ID"]
-        self._publisher.publish_message("distributor", yaml.dump(msg))
+        msg["ACK_ID"] = params["TIMED_ACK_ID"]
+        self._publisher.publish_message(self._publish_queue, yaml.dump(msg))
 
 
     def send_registration(self, msg_type):

@@ -10,6 +10,7 @@
 
 import logging
 import pika
+from XMLHandler import *
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -51,6 +52,7 @@ class Consumer(object):
         self._message_callback = None
         self.QUEUE = queue
         self.ROUTING_KEY = queue
+        self._xml_handler = None 
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -327,7 +329,8 @@ class Consumer(object):
         starting the IOLoop to block and allow the SelectConnection to operate.
 
         """
-        self._message_callback = callback
+        self._xml_handler = XMLHandler(callback)
+        self._message_callback = self._xml_handler.xmlcallback  
         self._connection = self.connect()
         self._connection.ioloop.start()
 
@@ -352,7 +355,6 @@ class Consumer(object):
         """This method closes the connection to RabbitMQ."""
         LOGGER.info('Closing connection')
         self._connection.close()
-
 
 def main():
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
