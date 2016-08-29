@@ -27,6 +27,8 @@ class XMLHandler:
     def encodeXML(self, pydict):
         """ Encode python dictionary into XML
             Has to convert ACK_BOOL to "true" so that it works with xml boolean
+            NCSA_READOUT_ACK is treated differently so that it can handle conditional
+            statement.
             :param pydict: python dictionary
             :type pydict: dict
         """
