@@ -263,46 +263,22 @@ class NcsaForeman:
             
 
     def process_distributor_health_ack(self, params):
-        if params[ACK_BOOL] == TRUE:
-            self.ACK_SCBD.add_timed_ack(params)
+        self.ACK_SCBD.add_timed_ack(params)
         
 
     def process_base_standby(self, params):
         # tell all forwarders then distributors
         job_num = params[JOB_NUM]
+        response_ack_id = params['ACK_ID']
         pairs = self.JOB_SCBD.get_pairs_for_job(str(job_num))
-        forwarders = pairs.keys()
-        rev_pairs = {}
-        for forwarder in forwarders:
-            distributor = pairs[forwarder]
-            rev_pairs[distributor] = forwarder
-            msg_params = {}
-            msg_params[MATE] = distributor
-            msg_params[STATE] = STANDBY 
-### XXX
-### XXX Add new Distributor params that came with the ncsa resource ack msg, 
-### XXX thereby making the Distributor scoreboard unnecessary at the base -- only at NCSA
-### XXX will it be needed.
-### XXX
-            self.FWD_SCBD.set_forwarder_params(forwarder, params)
-            msg_params[MSG_TYPE] = STANDBY
-            msg_params[XFER_LOGIN] = self.DIST_SCBD.get_value_for_distributor(distributor, XFER_LOGIN)
-            msg_params[TARGET_DIR] = self.DIST_SCBD.get_value_for_distributor(distributor, TARGET_DIR)
-            msg_params[JOB_NUM] = job_num
-            msg_params[XFER_APP] = self._xfer_app
-            msg_params[XFER_FILE] = self._xfer_file
-            routing_key = self.FWD_SCBD.get_value_for_forwarder(forwarder, ROUTING_KEY)
-            LOGGER.info('Using routing key %s for forwarder %s message. Msg is %s',
-                         routing_key, forwarder, msg_params)
-            self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 ### XXX 
 ### XXX This section below must move to the NCSA Foreman
 ### XXX
-        distributors = pairs.values()
-        LOGGER.info('Number of distributors here is: %s', str(len(distributors)))
+        forwarders = pairs.keys()
+        distributors = [v['FQN'] for v in pairs.values()]
         for distributor in distributors:
             msg_params = {}
-            msg_params[MSG_TYPE] = STANDBY
+            msg_params[MSG_TYPE] = DISTRIBUTOR_STANDBY
             msg_params[MATE] = rev_pairs[distributor]
             msg_params[JOB_NUM] = job_num
             routing_key = self.DIST_SCBD.get_value_for_distributor(distributor, ROUTING_KEY)
@@ -325,12 +301,13 @@ class NcsaForeman:
         # list comprehension values; faster than for loops
         distributors = [v['FQN'] for v in pairs.values()]
         for distributor in distributors:
-          msg_params = {}
-          msg_params[MSG_TYPE] = 'DISTRIBUTOR_READOUT'
-          msg_params[JOB_NUM] = job_number
-          routing_key = self.DIST_SCBD.get_routing_key(distributor)
-          self.DIST_SCBD.set_distributor_state(distributor, READOUT)
-          self._publisher.publish_message(routing_key, yaml.dump(msg_params))
+            msg_params = {}
+            msg_params[MSG_TYPE] = 'DISTRIBUTOR_READOUT'
+            msg_params[JOB_NUM] = job_number
+            msg_params['ACK_ID'] = ack_id
+            routing_key = self.DIST_SCBD.get_routing_key(distributor)
+            self.DIST_SCBD.set_distributor_state(distributor, START_READOUT)
+            self._publisher.publish_message(routing_key, yaml.dump(msg_params))
 
 
         self.ack_timer(4)
