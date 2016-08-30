@@ -218,8 +218,22 @@
                     <attribute name="MSG_TYPE"><value>NCSA_READOUT_ACK</value></attribute>
                     <element name="JOB_NUM"><data type="integer"/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="ACK_BOOL"><data type="boolean"/></element>
                     <element name="ACK_ID"><text/></element>
+                    <choice>
+                        <element name="ACK_BOOL">
+                            <attribute name="ack_true"><value>true</value></attribute>
+                        </element> 
+                        <group>
+                            <interleave> 
+                                <element name="ACK_BOOL"> 
+                                    <attribute name="ack_false"><value>false</value></attribute>
+                                </element> 
+                                <element name="EXPECTED_DISTRIBUTOR_ACKS"><data type="integer"/></element>
+                                <element name="RECEIVED_DISTRIBUTOR_ACKS"><data type="integer"/></element> 
+                                <element name="MISSING_DISTRIBUTORS"><text/></element> 
+                            </interleave> 
+                        </group>
+                    </choice>
                </interleave>
            </element>
         </optional>
