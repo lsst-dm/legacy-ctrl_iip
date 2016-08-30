@@ -286,46 +286,35 @@ class BaseForeman:
         # tell all forwarders then distributors
         job_num = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(str(job_num))
+
+        ncsa_ack_id = self.get_next_timed_ack_id('NCSA_STANDBY')
+        ncsa_params = {}
+        ncsa_params[JOB_NUM] = job_num
+        ncsa_params[MSG_TYPE] = 'NCSA_STANDBY'
+        ncsa_params['ACK_ID'] = ncsa_ack_id
+        self._publisher.publish_message('ncsa_consume', yaml.dump(ncsa_params))
+        
         forwarders = pairs.keys()
-        rev_pairs = {}
+        fwd_ack_id = self.get_next_timed_ack_id('FORWARDER_STANDBY')
+        fwd_params = {}
+        fwd_params[STATE] = STANDBY 
         for forwarder in forwarders:
-            distributor = pairs[forwarder]
-            rev_pairs[distributor] = forwarder
             msg_params = {}
-            msg_params[MATE] = distributor
-            msg_params[STATE] = STANDBY 
-### XXX
-### XXX Add new Distributor params that came with the ncsa resource ack msg, 
-### XXX thereby making the Distributor scoreboard unnecessary at the base -- only at NCSA
-### XXX will it be needed.
-### XXX
-            self.FWD_SCBD.set_forwarder_params(forwarder, params)
-            msg_params[MSG_TYPE] = STANDBY
             msg_params[JOB_NUM] = job_num
+            msg_params['PAIRING'] = pairs[forwarder]
+            msg_params[MSG_TYPE] = FORWARDER_STANDBY' 
+            msg_params['ACK_ID'] = fwd_ack_id
             routing_key = self.FWD_SCBD.get_value_for_forwarder(forwarder, ROUTING_KEY)
             LOGGER.info('Using routing key %s for forwarder %s message. Msg is %s',
                          routing_key, forwarder, msg_params)
             self._publisher.publish_message(routing_key, yaml.dump(msg_params))
-### XXX 
-### XXX This section below must move to the NCSA Foreman
-### XXX
-        distributors = pairs.values()
-        LOGGER.info('Number of distributors here is: %s', str(len(distributors)))
-        for distributor in distributors:
-            msg_params = {}
-            msg_params[MSG_TYPE] = STANDBY
-            msg_params[MATE] = rev_pairs[distributor]
-            msg_params[JOB_NUM] = job_num
-            ### XXX Dist routing key must come with pairs data structure
-            ### XXX routing_key = self.DIST_SCBD.get_value_for_distributor(distributor, ROUTING_KEY)
+            self.FWD_SCBD.set_forwarder_params(forwarder, fwd_params)
 
-            ### XXX NCSA Foreman must set this state on distributors
-            self.DIST_SCBD.set_distributor_state(distributor, 'STANDBY')
-            LOGGER.debug('**** Current distributor is: %s', distributor)
-            LOGGER.info('DMCS Standby: Sending standby message to routing_key %s', routing_key) 
-            LOGGER.info('Using routing key %s for distributor %s message. Msg is %s',
-                         routing_key, distributor, msg_params)
-            self._publisher.publish_message(routing_key, yaml.dump(msg_params))
+        self.ack_timer(4)
+        ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ncsa_ack_id)
+        if ncsa_response:
+            if ncsa_response['ACK_BOOL'] = False:
+            
 
 
     def process_dmcs_readout(self, params):
