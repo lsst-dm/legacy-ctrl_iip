@@ -36,7 +36,7 @@ class Consumer(object):
     QUEUE = 'text'
     ROUTING_KEY = 'example.text'
 
-    def __init__(self, amqp_url, queue):
+    def __init__(self, amqp_url, queue, formatOptions=None):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -53,6 +53,7 @@ class Consumer(object):
         self.QUEUE = queue
         self.ROUTING_KEY = queue
         self._xml_handler = None 
+        self._format_options = formatOptions
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -329,8 +330,11 @@ class Consumer(object):
         starting the IOLoop to block and allow the SelectConnection to operate.
 
         """
-        self._xml_handler = XMLHandler(callback)
-        self._message_callback = self._xml_handler.xmlcallback  
+        if self._format_options == "XML":
+            self._xml_handler = XMLHandler(callback)
+            self._message_callback = self._xml_handler.xmlcallback  
+        else:
+            self._message_callback = callback
         self._connection = self.connect()
         self._connection.ioloop.start()
 
