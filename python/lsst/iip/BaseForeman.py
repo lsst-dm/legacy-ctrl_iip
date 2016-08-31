@@ -237,9 +237,9 @@ class BaseForeman:
             # send response msg to dmcs refusing job
             LOGGER.info('Reporting to DMCS that there are insufficient healthy forwarders for job #%s', job_num)
             params = {}
-            params[MSG_TYPE] = INSUFFICIENT_FORWARDERS
+            params[MSG_TYPE] = INSUFFICIENT_BASE_RESOURCES
             params[JOB_NUM] = job_num
-            params[NEEDED_WORKERS] = str(needed_workers)
+            params[NEEDED_FORWARDERS] = str(needed_workers)
             params[AVAILABLE_FORWARDERS] = str(num_healthy_forwarders)
             self._publisher.publish_message("dmcs_consume", yaml.dump(params))
             # delete job and leave Forwarders in Idle state
@@ -266,19 +266,27 @@ class BaseForeman:
             self._ncsa_publisher.publish_message("ncsa_consume", yaml.dump(ncsa_params)) 
             LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
             LOGGER.info(forwarder_candidate_list)
-            self.ack_timer(2)
+
+            self.ack_timer(3)
+
             #Check ACK scoreboard for response from NCSA
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(timed_ack_id)
             if ncsa_response:
                 if ncsa_response["NCSA"] == TRUE
                     self.JOB_SCBD.set_pairs_for_job(job_num, self._pairing_dict)                
-            LOGGER.info('The following pairs will be used for Job #%s: %s',job_num, str(self._pairing_dict))
-            #XXX FIX BELOW - LEAVE FORWARDERS IN READY STATE
-            # Tell DMCS we are ready
-            dmcs_message = {}
-            dmcs_message[JOB_NUM] = job_num
-            dmcs_message[MSG_TYPE] = IN_READY_STATE
-            self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+                    LOGGER.info('The following pairs will be used for Job #%s: %s',
+                                 job_num, str(self._pairing_dict))
+                    fwders = forwarder_candidate_dict.keys()
+                    in_ready_state = {'STATE':'IN_READY_STATE'}}
+                    self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
+                    # Tell DMCS we are ready
+                    dmcs_message = {}
+                    dmcs_message[JOB_NUM] = job_num
+                    dmcs_message[MSG_TYPE] = IN_READY_STATE
+                    self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+                else:
+                   ##########XXXXXXXXXXXXXXX############### 
+
 
 
 
@@ -398,11 +406,7 @@ class BaseForeman:
             # delete job
             self.JOB_SCBD.delete_job(params[JOB_NUM])
             return False
-### XXX 
-### XXX 
-### XXX  NOTE: Change this ACK handler to a custom handler for each type of ACK
-### XXX 
-### XXX 
+
 
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
