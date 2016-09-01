@@ -57,7 +57,7 @@ class BaseForeman:
         self.FWD_SCBD = ForwarderScoreboard(forwarder_dict)
         self.JOB_SCBD = JobScoreboard()
         self.ACK_SCBD = AckScoreboard()
-        self._msg_actions = { 'JOB': self.process_dmcs_job,
+        self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
                               'STANDBY': self.process_dmcs_standby,
                               'READOUT': self.process_dmcs_readout,
                               'NCSA_RESOURCES_QUERY_ACK': self.process_ack,
@@ -197,7 +197,7 @@ class BaseForeman:
         result = handler(msg_dict)
     
 
-    def process_dmcs_job(self, params):
+    def process_dmcs_new_job(self, params):
         job_num = str(params[JOB_NUM])
         raft_list = params[RAFTS]
         needed_workers = len(raft_list)
@@ -236,12 +236,13 @@ class BaseForeman:
         if needed_workers > num_healthy_forwarders:
             # send response msg to dmcs refusing job
             LOGGER.info('Reporting to DMCS that there are insufficient healthy forwarders for job #%s', job_num)
-            params = {}
-            params[MSG_TYPE] = INSUFFICIENT_BASE_RESOURCES
-            params[JOB_NUM] = job_num
-            params[NEEDED_FORWARDERS] = str(needed_workers)
-            params[AVAILABLE_FORWARDERS] = str(num_healthy_forwarders)
-            self._publisher.publish_message("dmcs_consume", yaml.dump(params))
+            dmcs_params = {}
+            dmcs_params[MSG_TYPE] = NEW_JOB_ACK
+            dmcs_params[JOB_NUM] = job_num
+            dmcs_params[ACK_BOOL] = False
+            dmcs_params[NEEDED_FORWARDERS] = str(needed_workers)
+            dmcs_params[AVAILABLE_FORWARDERS] = str(num_healthy_forwarders)
+            self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_params))
             # delete job and leave Forwarders in Idle state
             self.JOB_SCBD.delete_job(job_num)
             idle_state = {"STATE": "IDLE"}
@@ -253,7 +254,7 @@ class BaseForeman:
             forwarder_candidate_dict = {}
             for i in range (0, needed_workers):
                 forwarder_candidate_dict[healthy_forwarders[i]] = raft_list[i]
-                self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES)
+                self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES_QUERY)
                 # Call this method for testing...
                 # There should be a message sent to NCSA here asking for available resources
             timed_ack_id = self.get_next_timed_ack_id("NCSA_Ack") 
@@ -262,17 +263,18 @@ class BaseForeman:
             ncsa_params[JOB_NUM] = job_num
             ncsa_params[RAFT_NUM] = needed_workers
             ncsa_params["ACK_ID"] = timed_ack_id
-            ncsa_params["FORWARDER_LIST"] = forwarder_candidate_list
+            ncsa_params["FORWARDERS"] = forwarder_candidate_dict
             self._ncsa_publisher.publish_message("ncsa_consume", yaml.dump(ncsa_params)) 
             LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
-            LOGGER.info(forwarder_candidate_list)
+            LOGGER.info(forwarder_candidate_dict)
 
             self.ack_timer(3)
 
             #Check ACK scoreboard for response from NCSA
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(timed_ack_id)
             if ncsa_response:
-                if ncsa_response["NCSA"] == TRUE
+                if ncsa_response["ACK_BOOL"] == TRUE
+                    #ncsa has enough resources...
                     self.JOB_SCBD.set_pairs_for_job(job_num, self._pairing_dict)                
                     LOGGER.info('The following pairs will be used for Job #%s: %s',
                                  job_num, str(self._pairing_dict))
@@ -282,18 +284,62 @@ class BaseForeman:
                     # Tell DMCS we are ready
                     dmcs_message = {}
                     dmcs_message[JOB_NUM] = job_num
-                    dmcs_message[MSG_TYPE] = IN_READY_STATE
+                    dmcs_message[MSG_TYPE] = NEW_JOB_ACK
+                    dmcs_message[ACK_BOOL] = True
                     self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
                 else:
-                   ##########XXXXXXXXXXXXXXX############### 
-
-
+                    #not enough ncsa resources to do job - Notify DMCS
+                    dmcs_params = {}
+                    dmcs_params[MSG_TYPE] = "NEW_JOB_ACK"
+                    dmcs_params[JOB_NUM] = job_num 
+                    dmcs_params[ACK_BOOL] = False
+                    dmcs_params[BASE_RESOURCES] = True
+                    dmcs_params[NCSA_RESOURCES] = False
+                    dmcs_params[NEEDED_DISTRIBUTORS] = ncsa_response[NEEDED_DISTRIBUTORS]
+                    dmcs_params[AVAILABLE_DISTRIBUTORS] = ncsa_response[AVAILABLE_DISTRIBUTORS]
+                    dmcs_params[NEEDED_WORKERS] = ncsa_response[NEEDED_WORKERS]
+                    dmcs_params[AVAILABLE_WORKERS] = ncsa_response[AVAILABLE_WORKERS]
+                    self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+                    idle_param = {'STATE': 'IDLE'}
+                    self.FWD_SCBD.set_forwarder_params(forwarder_candidate_dict.keys(), idle_params)
+            else:
+                #No answer from NCSA...
+                dmcs_params = {}
+                dmcs_params[MSG_TYPE] = "NEW_JOB_ACK"
+                dmcs_params[JOB_NUM] = job_num 
+                dmcs_params[ACK_BOOL] = False
+                dmcs_params[BASE_RESOURCES] = True
+                dmcs_params[NCSA_RESOURCES] = False
+                dmcs_params[NEEDED_DISTRIBUTORS] = ncsa_response[NEEDED_DISTRIBUTORS]
+                dmcs_params[AVAILABLE_DISTRIBUTORS] = str(0)
+                dmcs_params[NEEDED_WORKERS] = ncsa_response[NEEDED_WORKERS]
+                dmcs_params[AVAILABLE_WORKERS] = str(0)
+                self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_params) )
+                idle_param = {'STATE': 'IDLE'}
+                self.FWD_SCBD.set_forwarder_params(forwarder_candidate_dict.keys(), idle_params)
+                     
 
 
     def process_dmcs_standby(self, params):
         # tell all forwarders then distributors
         job_num = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(str(job_num))
+
+        forwarders = pairs.keys()
+        fwd_ack_id = self.get_next_timed_ack_id('FORWARDER_STANDBY')
+        fwd_params = {}
+        fwd_params[STATE] = STANDBY 
+        for forwarder in forwarders:
+            fwd_params = {}
+            fwd_params[JOB_NUM] = job_num
+            fwd_params[PAIRING] = pairs[forwarder]
+            fwd_params[MSG_TYPE] = FORWARDER_STANDBY 
+            fwd_params[ACK_ID] = fwd_ack_id
+            routing_key = self.FWD_SCBD.get_value_for_forwarder(forwarder, ROUTING_KEY)
+            LOGGER.info('Using routing key %s for forwarder %s message. Msg is %s',
+                         routing_key, forwarder, msg_params)
+            self._publisher.publish_message(routing_key, yaml.dump(fwd_params))
+        self.FWD_SCBD.set_forwarder_params(forwarder, fwd_params)
 
         ncsa_ack_id = self.get_next_timed_ack_id('NCSA_STANDBY')
         ncsa_params = {}
@@ -302,26 +348,12 @@ class BaseForeman:
         ncsa_params['ACK_ID'] = ncsa_ack_id
         self._publisher.publish_message('ncsa_consume', yaml.dump(ncsa_params))
         
-        forwarders = pairs.keys()
-        fwd_ack_id = self.get_next_timed_ack_id('FORWARDER_STANDBY')
-        fwd_params = {}
-        fwd_params[STATE] = STANDBY 
-        for forwarder in forwarders:
-            msg_params = {}
-            msg_params[JOB_NUM] = job_num
-            msg_params['PAIRING'] = pairs[forwarder]
-            msg_params[MSG_TYPE] = FORWARDER_STANDBY' 
-            msg_params['ACK_ID'] = fwd_ack_id
-            routing_key = self.FWD_SCBD.get_value_for_forwarder(forwarder, ROUTING_KEY)
-            LOGGER.info('Using routing key %s for forwarder %s message. Msg is %s',
-                         routing_key, forwarder, msg_params)
-            self._publisher.publish_message(routing_key, yaml.dump(msg_params))
-            self.FWD_SCBD.set_forwarder_params(forwarder, fwd_params)
 
         self.ack_timer(4)
         ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ncsa_ack_id)
         if ncsa_response:
-            if ncsa_response['ACK_BOOL'] = False:
+            if ncsa_response['ACK_BOOL'] == True:
+             ##################XXXXXXXXXXXXXXXXXXXXXXXXXX#############################
             
 
 
@@ -381,7 +413,7 @@ class BaseForeman:
                 self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
                     
         else:
-            #send no response from ncsa to DMCS               )
+            #send 'no response from ncsa' to DMCS               )
             dmcs_params = {}
             dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
             dmcs_params[JOB_NUM] = job_number
