@@ -273,20 +273,40 @@ class BaseForeman:
             #Check ACK scoreboard for response from NCSA
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(timed_ack_id)
             if ncsa_response:
-                if ncsa_response["ACK_BOOL"] == TRUE
+                try:
+                    ack_bool = ncsa_response[ACK_BOOL]
+                    if ack_bool == True:
+                        pairs = ncsa_response[PAIRS] 
+                except KeyError, e:
+                    pass 
+                if ack_bool == TRUE:
                     #ncsa has enough resources...
-                    self.JOB_SCBD.set_pairs_for_job(job_num, self._pairing_dict)                
+                    self.JOB_SCBD.set_pairs_for_job(job_num, pairs)          
                     LOGGER.info('The following pairs will be used for Job #%s: %s',
                                  job_num, str(self._pairing_dict))
-                    fwders = forwarder_candidate_dict.keys()
+                    fwd_ack_id = self.get_next_timed_ack_id("FWD_PARAMS_ACK")
+                    fwders = pairs.keys()
+                    fwd_params = {}
+                    fwd_params[MSG_TYPE] = "FORWARDER_JOB_PARAMS"
+                    fwd_params[JOB_NUM] = job_num
+                    fwd_params[ACK_ID] = fwd_ack_id
+                    for fwder in fwders:
+                        fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
+                        route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
+                        self._publisher.publish_message(route_key, yaml.dump(fwd_params))
                     in_ready_state = {'STATE':'IN_READY_STATE'}}
                     self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
-                    # Tell DMCS we are ready
-                    dmcs_message = {}
-                    dmcs_message[JOB_NUM] = job_num
-                    dmcs_message[MSG_TYPE] = NEW_JOB_ACK
-                    dmcs_message[ACK_BOOL] = True
-                    self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+
+                    self.ack_timer(3)
+
+                    fwd_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
+                    if fwd_params_response and len(fwd_params_response:
+                        # Tell DMCS we are ready
+                        dmcs_message = {}
+                        dmcs_message[JOB_NUM] = job_num
+                        dmcs_message[MSG_TYPE] = NEW_JOB_ACK
+                        dmcs_message[ACK_BOOL] = True
+                        self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message))
                 else:
                     #not enough ncsa resources to do job - Notify DMCS
                     dmcs_params = {}
