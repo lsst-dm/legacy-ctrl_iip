@@ -6,7 +6,7 @@
         <optional>
            <element name="message">
                <interleave>
-                    <attribute name="MSG_TYPE"><value>JOB</value></attribute>
+                    <attribute name="MSG_TYPE"><value>NEW_JOB</value></attribute>
                     <element name="JOB_NUM"><data type="integer"/></element>
                     <element name="RAFTS"><text/></element>
                </interleave>
