@@ -1,5 +1,5 @@
 from StringIO import * 
-from lxml import etree
+from xml import etree
 from const import *
 from copy import deepcopy 
 import yaml

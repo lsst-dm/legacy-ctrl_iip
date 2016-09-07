@@ -12,6 +12,7 @@ from const import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
 from JobScoreboard import JobScoreboard
+from AckScoreboard import AckScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
@@ -27,6 +28,7 @@ class BaseForeman:
     DMCS_PUBLISH = "dmcs_publish"
     DMCS_CONSUME = "dmcs_consume"
     NCSA_PUBLISH = "ncsa_publish"
+    NCSA_CONSUME = "ncsa_consume"
     FORWARDER_PUBLISH = "forwarder_publish"
     ACK_PUBLISH = "ack_publish"
     EXCHANGE = 'message'
@@ -44,7 +46,7 @@ class BaseForeman:
  
         cdm = self.intake_yaml_file()
         try:
-            self._base_broker_addr = cdm[ROOT][BROKER_ADDR]
+            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
         except KeyError as e:
@@ -58,7 +60,6 @@ class BaseForeman:
         self.JOB_SCBD = JobScoreboard()
         self.ACK_SCBD = AckScoreboard()
         self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
-                              'STANDBY': self.process_dmcs_standby,
                               'READOUT': self.process_dmcs_readout,
                               'NCSA_RESOURCES_QUERY_ACK': self.process_ack,
                               'NCSA_STANDBY_ACK': self.process_ack,
@@ -149,7 +150,7 @@ class BaseForeman:
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up Base publisher on %s', self._base__broker_url)
+        LOGGER.info('Setting up Base publisher on %s', self._base_broker_url)
         LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_broker_url)
 
         self._publisher = SimplePublisher(self._base_broker_url)
@@ -262,9 +263,9 @@ class BaseForeman:
             ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY"
             ncsa_params[JOB_NUM] = job_num
             ncsa_params[RAFT_NUM] = needed_workers
-            ncsa_params["ACK_ID"] = timed_ack_id
+            ncsa_params[ACK_ID] = timed_ack_id
             ncsa_params["FORWARDERS"] = forwarder_candidate_dict
-            self._ncsa_publisher.publish_message("ncsa_consume", yaml.dump(ncsa_params)) 
+            self._ncsa_publisher.publish_message(NCSA_CONSUME, yaml.dump(ncsa_params)) 
             LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
             LOGGER.info(forwarder_candidate_dict)
 
@@ -391,7 +392,9 @@ class BaseForeman:
 ### Send READOUT to NCSA with ACK_ID
         ncsa_params = {}
         ncsa_params[MSG_TYPE] = 'NCSA_READOUT'
-        ncsa_params['ACK_ID'] = ack_id
+        ncsa_params[ACK_ID] = ack_id
+        self._ncsa_publisher.publish_message(NCSA_CONSUME, yaml.dump(ncsa_params))
+
 
         self.ack_timer(4)
 
