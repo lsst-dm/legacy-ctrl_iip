@@ -12,6 +12,7 @@ from const import *
 from Scoreboard import Scoreboard
 from DistributorScoreboard import DistributorScoreboard
 from JobScoreboard import JobScoreboard
+from AckScoreboard import AckScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
@@ -44,7 +45,7 @@ class NcsaForeman:
  
         cdm = self.intake_yaml_file()
         try:
-            self._base_broker_addr = cdm[ROOT][BROKER_ADDR]
+            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
         except KeyError as e:
@@ -58,14 +59,14 @@ class NcsaForeman:
         self.JOB_SCBD = JobScoreboard()
         self.ACK_SCBD = AckScoreboard()
         self._msg_actions = { 'NCSA_RESOURCES_QUERY': self.process_base_resources_query,
-                              'NCSA_STANDBY': self.process_base_standby,
                               'NCSA_READOUT': self.process_base_readout,
                               'DISTRIBUTOR_HEALTH_ACK': self.process_distributor_health_ack,
+                              'DISTRIBUTOR_JOB_PARAMS_ACK': self.process_distributor_job_params_ack,
                               'DISTRIBUTOR_READOUT_ACK': self.process_readout_ack }
 
 
         self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
-        LOGGER.info('Building _broker_url. Result is %s', self._broker_url)
+        LOGGER.info('Building _broker_url. Result is %s', self._ncsa_broker_url)
 
         self.setup_publishers()
         self.setup_consumers()
@@ -335,6 +336,14 @@ class NcsaForeman:
              
 
 
+    def process_distributor_health_ack(self, params):
+        self.ACK_SCBD.add_timed_ack(params)
+
+       
+    def process_distributor_job_params_ack(self, params):
+        self.ACK_SCBD.add_timed_ack(params)
+       
+ 
     def process_readout_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
         
@@ -382,8 +391,8 @@ class NcsaForeman:
 
 
 def main():
-    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
-    b_fm = BaseForeman()
+    logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=LOG_FORMAT)
+    n_fm = NcsaForeman()
     print "Beginning BaseForeman event loop..."
     try:
         while 1:
@@ -392,7 +401,7 @@ def main():
         pass
 
     print ""
-    print "Base Foreman Done."
+    print "Ncsa Foreman Done."
 
 
 if __name__ == "__main__": main()
