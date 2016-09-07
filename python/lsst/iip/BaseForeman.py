@@ -221,8 +221,8 @@ class BaseForeman:
             self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             yaml.dump(ack_params))
         
-        # start timers
-        self.ack_timer(7)  # This is a HUGE number seconds for testing purposes...final setting will be milliseconds
+        # start timer
+        self.ack_timer(7)  # This is a HUGE number seconds for now...final setting will be milliseconds
         # at end of timer, get list of forwarders
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
         # update Forwarder scoreboard with healthy forwarders
@@ -294,13 +294,13 @@ class BaseForeman:
                         fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
                         route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
                         self._publisher.publish_message(route_key, yaml.dump(fwd_params))
-                    in_ready_state = {'STATE':'IN_READY_STATE'}}
+                    in_ready_state = {'STATE':'IN_READY_STATE'}
                     self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
 
                     self.ack_timer(3)
 
                     fwd_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
-                    if fwd_params_response and len(fwd_params_response:
+                    if fwd_params_response and len(fwd_params_response):
                         # Tell DMCS we are ready
                         dmcs_message = {}
                         dmcs_message[JOB_NUM] = job_num
@@ -339,7 +339,7 @@ class BaseForeman:
                 self.FWD_SCBD.set_forwarder_params(forwarder_candidate_dict.keys(), idle_params)
                      
 
-
+    """
     def process_dmcs_standby(self, params):
         # tell all forwarders then distributors
         job_num = params[JOB_NUM]
@@ -374,7 +374,7 @@ class BaseForeman:
         if ncsa_response:
             if ncsa_response['ACK_BOOL'] == True:
              ##################XXXXXXXXXXXXXXXXXXXXXXXXXX#############################
-            
+    """         
 
 
     def process_dmcs_readout(self, params):
@@ -411,7 +411,7 @@ class BaseForeman:
                     self._publisher.publish_message(routing_key, yaml.dump(msg_params))
                 self.ack_timer(4)
                 forwarder_responses = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
-                if len(forwarder_responses) == len(forwarders)
+                if len(forwarder_responses) == len(forwarders):
                     dmcs_params = {}
                     dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
                     dmcs_params[JOB_NUM] = job_number
@@ -425,11 +425,7 @@ class BaseForeman:
                 dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
                 dmcs_params[JOB_NUM] = job_number
                 dmcs_params['ACK_BOOL'] = False
-                dmcs_params['COMMENT'] = "Readout Failed: Problem at NCSA - Expected 
-                                          Distributor Acks is %s, Number of Distributor 
-                                          Acks received is %s" % 
-                                          (ncsa_response['EXPECTED_DISTRIBUTOR_ACKS'],
-                                          ncsa_response['RECEIVED_DISTRIBUTOR_ACKS'])
+                dmcs_params['COMMENT'] = 'Readout Failed: Problem at NCSA - Expected Distributor Acks is %s, Number of Distributor Acks received is %s' % (ncsa_response['EXPECTED_DISTRIBUTOR_ACKS'], ncsa_response['RECEIVED_DISTRIBUTOR_ACKS'])
                 self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
                     
         else:
@@ -442,23 +438,6 @@ class BaseForeman:
             self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
                     
         
-
-    def process_ncsa_insufficient_resources(self, params):
-        forwarders = params[FORWARDERS_LIST]
-        job_number = params[JOB_NUM]
-        for forwarder in forwarders:
-            self.FWD_SCBD.set_forwarder_state(forwarder, IDLE)
-            msg_params = {}
-            msg_params[MSG_TYPE] = INSUFFICIENT_NCSA_RESOURCES
-            msg_params[JOB_NUM] = params[JOB_NUM]
-            msg_params[NEEDED_WORKERS] = params[NEEDED_WORKERS]
-            msg_params[AVAILABLE_DISTRIBUTORS] = params[AVAILABLE_DISTRIBUTORS]
-            msg_params[AVAILABLE_FORWARDERS] = params[AVAILABLE_FORWARDERS]
-            self._publisher.publish_message("dmcs_consume", yaml.dump(msg_params))
-            # delete job
-            self.JOB_SCBD.delete_job(params[JOB_NUM])
-            return False
-
 
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
@@ -493,48 +472,6 @@ class BaseForeman:
             pass #use default or await reassignment
 
         return cdm
-
-
-    def check_ncsa_resources(self, job_number, needed_workers, healthy_forwarders):
-        """This is a junk method used only for testing
-
-        """
-        LOGGER.info('Checking NCSA Resources')
-        pairs = {}
-        healthy_distributors = self.DIST_SCBD.get_healthy_distributors_list()
-        LOGGER.debug('Healthy dist list returned is %s', healthy_distributors)
-
-        if len(healthy_distributors) >= len(healthy_forwarders):
-            # Just pair 'em up...
-            number_pairs = len(healthy_forwarders)
-            for i in range (0,number_pairs):
-                pairs[healthy_forwarders[i]] = healthy_distributors[i]
-                self.DIST_SCBD.set_distributor_status(healthy_distributors[i], READY)
-
-            params = {}
-            params[MSG_TYPE] = PAIRING
-            params[JOB_NUM] = job_number
-            params[PAIRS] = pairs
-            LOGGER.info('NCSA found adequate number of distributors')
-            LOGGER.info('Pairings returned by NCSA:')
-            LOGGER.info(pairs)
-            self._publisher.publish_message("ncsa_publish", yaml.dump(params))
-            return True
-
-        else:
-            LOGGER.info('NCSA reports insufficient resources...found only %s distributors', 
-                         str(len(healthy_distributors))) 
-            params = {}
-            params[MSG_TYPE] = INSUFFICIENT_NCSA_RESOURCES
-            params[JOB_NUM] = job_number
-            params[NEEDED_WORKERS] = needed_workers
-            params[AVAILABLE_DISTRIBUTORS] = len(healthy_distributors)
-            params[AVAILABLE_FORWARDERS] = len(healthy_forwarders)
-            params[FORWARDERS_LIST] = healthy_forwarders
-            self._publisher.publish_message("ncsa_publish", yaml.dump(params))
-            # delete job 
-            self.JOB_SCBD.delete_job(job_number)
-            return False
 
 
     def get_next_timed_ack_id(self, ack_type):
