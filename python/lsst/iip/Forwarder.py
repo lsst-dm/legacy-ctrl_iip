@@ -1,4 +1,6 @@
 import pika
+import Scratchpad
+from toolsmod import get_timestamp
 import yaml
 import sys
 import time
@@ -21,7 +23,6 @@ class Forwarder:
     """
 
     def __init__(self):
-        LOGGER.info('+++++++++++++------++++++++++++')
         LOGGER.info("Initializing Forwarder")
         self._registered = False
         f = open('ForwarderCfg.yaml')
@@ -31,7 +32,7 @@ class Forwarder:
             self._name = cdm[NAME]
             self._passwd = cdm[PASSWD]
             self._fqn_name = cdm[FQN]
-            self._broker_addr = cdm[BROKER_ADDR]
+            self._base_broker_addr = cdm[BROKER_ADDR]
             self._consume_queue = cdm[CONSUME_QUEUE]
             self._publish_queue = cdm[PUBLISH_QUEUE]
             self._xfer_app = cdm[XFER_APP]
@@ -44,25 +45,24 @@ class Forwarder:
             sys.exit(99)
 
         self._home_dir = "/home/" + self._name + "/"
-        self._broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._broker_addr)
+        self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._broker_addr)
 
-        self._msg_actions = { CHECK_HEALTH: self.process_foreman_check_health,
-                              STANDBY: self.process_foreman_standby,
-                              SET_XFER_APP: self.process_foreman_set_xfer_app,
-                              SET_XFER_FILE: self.process_foreman_set_xfer_file,
+        self._msg_actions = { FORWARDER_HEALTH_CHECK: self.process_health_check,
+                              FORWARDER_JOB_PARAMS: self.process_job_params,
                               READOUT: self.process_foreman_readout }
 
         self.setup_publishers()
         self.setup_consumers()
+        self._job_scratchpad = Scratchpad(self._base_broker_url)
 
  
     def setup_consumers(self):
-        LOGGER.info('Setting up consumers on %s', self._broker_url)
+        LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread on all consumer methods')
         threadname = "thread-" + self._consume_queue
         print "Threadname is %s" % threadname
 
-        self._consumer = Consumer(self._broker_url, self._consume_queue)
+        self._consumer = Consumer(self._base_broker_url, self._consume_queue)
         try:
             thread.start_new_thread( self.run_consumer, (threadname, 2,) )
             LOGGER.info('Started forwarder consumer thread %s', threadname)
@@ -77,8 +77,8 @@ class Forwarder:
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up publisher on %s', self._broker_url)
-        self._publisher = SimplePublisher(self._broker_url)
+        LOGGER.info('Setting up publisher on %s', self._base_broker_url)
+        self._publisher = SimplePublisher(self._base_broker_url)
 
 
     def on_message(self, ch, method, properties, body):
@@ -91,15 +91,19 @@ class Forwarder:
         result = handler(msg_dict)
 
 
-    def process_foreman_standby(self, params):
-        self._pairmate = params[MATE]
-        self._xfer_login = params[XFER_LOGIN]
-        self._xfer_app = params[XFER_APP]
-        self._xfer_file = params[XFER_FILE]
-        LOGGER.info('Processing standby action for %s with the following settings: mate-%s   xfer_login-%s   xfer_app-%s   xfer_file-%s', self._name, self._pairmate, self._xfer_login, self._xfer_app, self._xfer_file)
-        msg_params = {}
-        msg_params[MSG_TYPE] = 'FORWARDER_STDBY_ACK'
-        self._publisher.publish_message("reports", yaml.dump(msg_params))
+    def process_health_check(self, params):
+        job_number = params[JOB_NUM]
+        self._job_scratchpad.set_job_value(job_number, "STATE", "ADD_JOB")
+        self._job_scratchpad.set_job_value(job_number, "ADD_JOB_TIME", get_timestamp())
+        self.send_ack_response("FORWARDER_HEALTH_ACK", params)
+
+
+    def process_job_params(self, params):
+        transfer_params = params[TRANSFER_PARAMS]
+        self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], transfer_params)
+        self._job_scratchpad.set_job_value(job_number, "STATE", "READY_WITH_PARAMS")
+        self._job_scratchpad.set_job_value(job_number, "READY_WITH_PARAMS_TIME", get_timestamp())
+        self.send_ack_response(FORWARDER_JOB_PARAMS_ACK, params)
 
 
     def process_foreman_readout(self, params):
@@ -118,24 +122,28 @@ class Forwarder:
 
         """
 
+        self.send_ack_response("FORWARDER_READOUT_ACK", params)
+
         job_number = params[JOB_NUM]
         #source_dir = self._home_dir + self._xfer_file
         source_dir = self._home_dir + "xfer_dir"
         
-        datetime1 = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
+        datetime1 = get_timestamp()
 
+        """
+###########XXXXXXXXXXXXXXX##############
+#### 3 F's go here...Fetch, Format and Forward
         # Still one conection for both files, but files are sent to scp in proper xfer order
         #FIX ':xfer_dir' must be changed to a mutable target dir...
         cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
 
+#### After file forwarded, send finished ACK...
         #remove datetime line below for production
-        datetime2 = subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
+        datetime2 = get_timestamp()
         proc = subprocess.check_output(cmd, shell=True)
         LOGGER.info('%s readout message action; command run in os at %s is: %s ',self._name, datetime1, cmd)
         LOGGER.info('File xfer command completed (returned) at %s', datetime2)
         msg_params = {}
-        msg_params['COMMENT1'] = "File Transfer Time start time: %s" % datetime1
-        msg_params['COMMENT2'] = "Result from start xfer command is %s" % proc
         msg_params[MSG_TYPE] = 'XFER_COMPLETE'
         msg_params['COMPONENT'] = 'FORWARDER'
         msg_params['JOB_NUM'] = params[JOB_NUM]
@@ -144,20 +152,28 @@ class Forwarder:
         msg_params['SOURCE_DIR'] = source_dir
         msg_params['COMMAND'] = cmd
         self._publisher.publish_message('reports', yaml.dump(msg_params))
+###########XXXXXXXXXXXXX###############
+        """
 
 
-    def process_foreman_set_xfer_app(self, params):
-        self._xfer_app = params[self.XFER_APP]
-        LOGGER.info('Setting transfer App for %s to %s', self._name, self._xfer_app)
 
+    def send_ack_response(self, type, params):
+        timed_ack = params.get("TIMED_ACK_ID")
+        job_num = params.get(JOB_NUM)
+        if timed_ack is None:
+            LOGGER.info('%s failed, missing TIMED_ACK_ID', type)
+        elif job_num is None:
+            LOGGER.info('%s failed, missing JOB_NUM for ACK ID: %s', type)
+        else:
+            msg_params = {}
+            msg_params[MSG_TYPE] = type
+            msg_params[JOB_NUM] = job_num
+            msg_params[NAME] = "FORWARDER_" + self._name
+            msg_params[ACK_BOOL] = "TRUE"
+            msg_params[TIMED_ACK] = timed_ack
+            self._publisher.publish_message("reports", yaml.dump(msg_params))
+            LOGGER.info('%s sent for ACK ID: %s and JOB_NUM: %s', type, timed_ack, job_num)
 
-    def process_foreman_set_xfer_file(self, params):
-        self._xfer_file = params[self.XFER_FILE]
-        LOGGER.info('Setting transfer file for %s to %s', self._name, self._xfer_file)
-
-
-    def process_foreman_check_health(self, params):
-        pass # for now... 
 
     def register(self):
         pass

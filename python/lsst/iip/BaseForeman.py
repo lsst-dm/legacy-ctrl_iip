@@ -65,7 +65,7 @@ class BaseForeman:
                               'NCSA_STANDBY_ACK': self.process_ack,
                               'NCSA_READOUT_ACK': self.process_ack,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
-                              'FORWARDER_STANDBY_ACK': self.process_ack,
+                              'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack }
 
 
@@ -203,13 +203,14 @@ class BaseForeman:
         raft_list = params[RAFTS]
         needed_workers = len(raft_list)
         self.JOB_SCBD.add_job(job_num, needed_workers)
+        self.JOB_SCBD.set_value_for_job(job_num, "ADD_JOB_TIME", get_timestamp())
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
         # run forwarder health check
         # get timed_ack_id
         timed_ack = self.get_next_timed_ack_id("Forwarder_Ack")
 
-        forwarders = self.FWD_SCBD.return_forwarders_list()
+        forwarders = self.FWD_SCBD.return_available_forwarders_list()
         # Mark all healthy Forwarders Unknown
         state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
         self.FWD_SCBD.set_forwarder_params(healthy_forwarders, state_status)
@@ -221,13 +222,15 @@ class BaseForeman:
         for forwarder in forwarders:
             self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             yaml.dump(ack_params))
+        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
+        self.JOB_SCBD.set_value_for_job(job_num, "BASE_RESOURCE_QUERY_TIME", get_timestamp())
         
         # start timer
         self.ack_timer(7)  # This is a HUGE number seconds for now...final setting will be milliseconds
         # at end of timer, get list of forwarders
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
         # update Forwarder scoreboard with healthy forwarders
-        healthy_status = {"STATUS": "HEALTHY"}
+        healthy_status = {"STATUS": "HEALTHY", "STATE":"READY_WITHOUT_PARAMS"}
         self.FWD_SCBD.set_forwarder_params(healthy_forwarders, healthy_status)
         #for fwder in healthy_forwarders:
         #    self.FWD_SCBD.set_forwarder_status(fwder, "HEALTHY")
@@ -245,7 +248,8 @@ class BaseForeman:
             dmcs_params[AVAILABLE_FORWARDERS] = str(num_healthy_forwarders)
             self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_params))
             # delete job and leave Forwarders in Idle state
-            self.JOB_SCBD.delete_job(job_num)
+            self.JOB_SCBD.set_value_for_job(job_num, "STATE", "JOB_ABORTED")
+            self.JOB_SCBD.set_value_for_job(job_num, "JOB_ABORTED_TIME", get_timestamp())
             idle_state = {"STATE": "IDLE"}
             self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_state)
             return False
@@ -266,6 +270,8 @@ class BaseForeman:
             ncsa_params[ACK_ID] = timed_ack_id
             ncsa_params["FORWARDERS"] = forwarder_candidate_dict
             self._ncsa_publisher.publish_message(NCSA_CONSUME, yaml.dump(ncsa_params)) 
+            self.JOB_SCBD.set_value_for_job(job_num, "STATE", "NCSA_RESOURCE_QUERY")
+            self.JOB_SCBD.set_value_for_job(job_num, "NCSA_RESOURCE_QUERY_TIME", get_timestamp())
             LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
             LOGGER.info(forwarder_candidate_dict)
 
@@ -283,6 +289,7 @@ class BaseForeman:
                 if ack_bool == TRUE:
                     #ncsa has enough resources...
                     self.JOB_SCBD.set_pairs_for_job(job_num, pairs)          
+                    self.JOB_SCBD.set_value_for_job(job_num, "ADD_PAIRS_TIME", get_timestamp())
                     LOGGER.info('The following pairs will be used for Job #%s: %s',
                                  job_num, str(self._pairing_dict))
                     fwd_ack_id = self.get_next_timed_ack_id("FWD_PARAMS_ACK")
@@ -295,13 +302,13 @@ class BaseForeman:
                         fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
                         route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
                         self._publisher.publish_message(route_key, yaml.dump(fwd_params))
-                    in_ready_state = {'STATE':'IN_READY_STATE'}
+                    in_ready_state = {'STATE':'READY_WITH_PARAMS'}
                     self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
 
                     self.ack_timer(3)
 
                     fwd_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
-                    if fwd_params_response and len(fwd_params_response):
+                    if fwd_params_response and (len(fwd_params_response) == len(fwders)):
                         # Tell DMCS we are ready
                         dmcs_message = {}
                         dmcs_message[JOB_NUM] = job_num

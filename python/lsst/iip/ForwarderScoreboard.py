@@ -57,6 +57,17 @@ class ForwarderScoreboard(Scoreboard):
         return healthy_forwarders
 
 
+    def return_available_forwarders_list(self):
+        available_forwarders = []
+        forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
+        for forwarder in forwarders:
+            if self._redis.hget(forwarder, 'STATUS') == 'HEALTHY' and 
+               self._redis.hget(forwarder, 'STATE')  == 'IDLE':
+                available_forwarders.append(forwarder)
+
+        return available_forwarders
+
+
     def setall_forwarders_status(self, status):
         forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
         for forwarder in forwarders:
