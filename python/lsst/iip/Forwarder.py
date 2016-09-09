@@ -1,5 +1,5 @@
 import pika
-import Scratchpad
+from Scratchpad import Scratchpad
 from toolsmod import get_timestamp
 import yaml
 import sys
@@ -32,7 +32,7 @@ class Forwarder:
             self._name = cdm[NAME]
             self._passwd = cdm[PASSWD]
             self._fqn_name = cdm[FQN]
-            self._base_broker_addr = cdm[BROKER_ADDR]
+            self._base_broker_addr = cdm[BASE_BROKER_ADDR]
             self._consume_queue = cdm[CONSUME_QUEUE]
             self._publish_queue = cdm[PUBLISH_QUEUE]
             self._xfer_app = cdm[XFER_APP]
@@ -45,7 +45,7 @@ class Forwarder:
             sys.exit(99)
 
         self._home_dir = "/home/" + self._name + "/"
-        self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._broker_addr)
+        self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
 
         self._msg_actions = { FORWARDER_HEALTH_CHECK: self.process_health_check,
                               FORWARDER_JOB_PARAMS: self.process_job_params,
