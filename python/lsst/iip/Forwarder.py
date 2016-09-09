@@ -35,8 +35,6 @@ class Forwarder:
             self._base_broker_addr = cdm[BASE_BROKER_ADDR]
             self._consume_queue = cdm[CONSUME_QUEUE]
             self._publish_queue = cdm[PUBLISH_QUEUE]
-            self._xfer_app = cdm[XFER_APP]
-            self._xfer_file = cdm[XFER_FILE]
             self._hostname = cdm[HOSTNAME]
             self._ip_addr = cdm[IP_ADDR]
         except KeyError as e:
@@ -49,11 +47,16 @@ class Forwarder:
 
         self._msg_actions = { FORWARDER_HEALTH_CHECK: self.process_health_check,
                               FORWARDER_JOB_PARAMS: self.process_job_params,
-                              READOUT: self.process_foreman_readout }
+                              FORWARDER_READOUT: self.process_foreman_readout }
 
         self.setup_publishers()
         self.setup_consumers()
         self._job_scratchpad = Scratchpad(self._base_broker_url)
+
+
+    def setup_publishers(self):
+        LOGGER.info('Setting up publisher on %s', self._base_broker_url)
+        self._publisher = SimplePublisher(self._base_broker_url)
 
  
     def setup_consumers(self):
@@ -74,11 +77,6 @@ class Forwarder:
 
     def run_consumer(self, threadname, delay):
         self._consumer.run(self.on_message)
-
-
-    def setup_publishers(self):
-        LOGGER.info('Setting up publisher on %s', self._base_broker_url)
-        self._publisher = SimplePublisher(self._base_broker_url)
 
 
     def on_message(self, ch, method, properties, body):
@@ -126,7 +124,6 @@ class Forwarder:
 
         job_number = params[JOB_NUM]
         #source_dir = self._home_dir + self._xfer_file
-        source_dir = self._home_dir + "xfer_dir"
         
         datetime1 = get_timestamp()
 

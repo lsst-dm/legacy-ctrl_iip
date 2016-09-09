@@ -291,7 +291,7 @@ class NcsaForeman:
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
         date = get_timestamp()
         ack_id = self.get_next_timed_ack_id(DISTRIBUTOR_READOUT)
-        self.JOB_SCBD.set_value_for_job(job_number, READOUT_START, date) 
+        self.JOB_SCBD.set_value_for_job(job_number, START_READOUT, date) 
         # The following line extracts the distributor FQNs from pairs dict using
         # list comprehension values; faster than for loops
         distributors = [v['FQN'] for v in pairs.values()]
