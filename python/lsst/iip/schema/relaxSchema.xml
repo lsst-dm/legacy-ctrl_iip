@@ -7,7 +7,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>NEW_JOB</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="RAFTS"><text/></element>
                </interleave>
            </element>
@@ -17,30 +17,80 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>IN_READY_STATE</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                </interleave>
            </element>
         </optional>
-        <!-- Msg #3 Base Foreman to DMCS Insufficient Resources at the Base Site -->
+        <!-- Msg #3 Base Foreman to DMCS New Job Ack -->
         <optional>
-           <element name="message">
+            <element name="message">
                <interleave>
-                    <attribute name="MSG_TYPE"><value>INSUFFICIENT_BASE_RESOURCES</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
-                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
-                    <element name="AVAILABLE_FORWARDERS"><data type="integer"/></element>
-               </interleave>
-           </element>
+                    <attribute name="MSG_TYPE"><value>NEW_JOB_ACK</value></attribute> 
+                    <element name="JOB_NUM"><text/></element>
+                    <interleave> 
+                        <choice>
+                            <element name="ACK_BOOL">
+                                <attribute name="ack_bool_true"><value>true</value></attribute>
+                            </element>
+                            <group>
+                                <element name="ACK_BOOL">
+                                    <attribute name="ack_bool_false"><value>false</value></attribute>
+                                    <attribute name="base_resources_true"><value>true</value></attribute>
+                                    <attribute name="ncsa_resources_true"><value>true</value></attribute>
+                                </element>
+                            </group> 
+                            <group>
+                                <interleave> 
+                                    <element name="ACK_BOOL">
+                                        <attribute name="ack_bool_false"><value>false</value></attribute>
+                                        <attribute name="base_resources_false"><value>false</value></attribute>
+                                        <attribute name="ncsa_resources_true"><value>true</value></attribute>
+                                    </element>
+                                    <element name="NEEDED_FORWARDERS"><data type="integer"/></element>
+                                    <element name="AVAILABLE_FORWARDERS"><data type="integer"/></element>
+                                </interleave>
+                            </group> 
+                            <group>
+                                <interleave> 
+                                    <element name="ACK_BOOL">
+                                        <attribute name="ack_bool_false"><value>false</value></attribute>
+                                        <attribute name="base_resources_true"><value>true</value></attribute>
+                                        <attribute name="ncsa_resources_false"><value>false</value></attribute>
+                                    </element>
+                                    <element name="NEEDED_DISTRIBUTORS"><data type="integer"/></element>
+                                    <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
+                                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
+                                    <element name="AVAILABLE_WORKERS"><data type="integer"/></element> 
+                                </interleave> 
+                            </group> 
+                            <group>
+                                <interleave> 
+                                    <element name="ACK_BOOL">
+                                        <attribute name="ack_bool_false"><value>false</value></attribute>
+                                        <attribute name="base_resources_false"><value>false</value></attribute>
+                                        <attribute name="ncsa_resources_false"><value>false</value></attribute>
+                                    </element>
+                                    <element name="NEEDED_FORWARDERS"><data type="integer"/></element>
+                                    <element name="AVAILABLE_FORWARDERS"><data type="integer"/></element>
+                                    <element name="NEEDED_DISTRIBUTORS"><data type="integer"/></element>
+                                    <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
+                                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
+                                    <element name="AVAILABLE_WORKERS"><data type="integer"/></element> 
+                                </interleave>
+                            </group> 
+                        </choice>
+                    </interleave>
+               </interleave> 
+           </element> 
         </optional>
-        <!-- Msg #4 Base Foreman to DMCS Insufficient NCSA Resources message -->
+        <!-- Msg #4 Base Foreman to EACH Forwarder's consume queue - Send Parameters for Transfer  -->
         <optional>
            <element name="message">
                <interleave>
-                    <attribute name="MSG_TYPE"><value>INSUFFICIENT_DISTRIBUTORS</value></attribute>
-                    <element name="NEEDED_DISTRIBUTORS"><data type="integer"/></element>
-                    <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
-                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
-                    <element name="AVAILABLE_WORKERS"><data type="integer"/></element>
+                    <attribute name="MSG_TYPE"><value>FORWARDER_JOB_PARAMS</value></attribute>
+                    <element name="JOB_NUM"><text/></element>
+                    <element name="ACK_ID"><text/></element>
+                    <element name="TRANSFER_PARAMS"><text/></element>
                </interleave>
            </element>
         </optional>
@@ -49,7 +99,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>FORWARDER_HEALTH_CHECK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -59,9 +109,12 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>FORWARDER_HEALTH_ACK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -71,8 +124,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>NCSA_RESOURCES_QUERY</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
-                    <element name="RAFT_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="FORWARDERS"><text/></element>
                </interleave>
@@ -83,9 +135,15 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>NCSA_RESOURCE_QUERY_ACK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice>
+                    <element name="BASE_RESOURCES"><data type="boolean"/></element>
+                    <element name="NCSA_RESOURCES"><data type="boolean"/></element>
+                    <element name="NCSA_RESPONSE"><data type="boolean"/></element>
                     <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
                     <element name="AVAILABLE_WORKERS"><data type="integer"/></element>
                     <element name="ACK_ID"><text/></element>
@@ -98,7 +156,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_HEALTH_CHECK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -108,19 +166,35 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_HEALTH_ACK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
         </optional>
+        <!-- Msg #26: NCSA Foreman to EACH Distributor's consume queue - Send Parameters for Transfer -->
+        <optional>
+            <element name="message">
+                <interleave>
+                    <attribute name="MSG_TYPE"><value>DISTRIBUTOR_JOB_PARAMS</value></attribute>
+                    <element name="JOB_NUM"><text/></element>
+                    <element name="ACK_ID"><text/></element>
+                    <element name="TRANSFER_PARAMS"><text/></element>
+                </interleave>
+            </element> 
+        </optional>
+
+        <!-- STANDBY -->
         <!-- Msg #11 DMCS to Base Foreman Standby message -->
         <optional>
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>STANDBY</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                </interleave>
            </element>
         </optional>
@@ -129,7 +203,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>NCSA_STANDBY</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -139,7 +213,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>FORWARDER_STANDBY</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="RAFT"><data type="integer"/></element>
                     <choice>
                         <element name="host"><text/></element>
@@ -160,7 +234,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_STANDBY</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="RAFT"><data type="integer"/></element>
                     <element name="SENDING_FQN"><text/></element>
                     <element name="SKY"><text/></element>
@@ -173,9 +247,12 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_STANDBY_ACK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -185,19 +262,24 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_STANDBY_ACK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
         </optional>
+
+        <!-- READOUT --> 
         <!-- Msg #18 DMCS to Base Foreman DMCS_publish Queue - Readout -->
         <optional>
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>READOUT</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                </interleave>
            </element>
         </optional>
@@ -206,7 +288,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>NCSA_READOUT</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -216,17 +298,17 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>NCSA_READOUT_ACK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="COMPONENT_NAME"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <choice>
                         <element name="ACK_BOOL">
-                            <attribute name="ack_true"><value>true</value></attribute>
+                            <attribute name="ack_bool_true"><value>true</value></attribute>
                         </element> 
                         <group>
                             <interleave> 
                                 <element name="ACK_BOOL"> 
-                                    <attribute name="ack_false"><value>false</value></attribute>
+                                    <attribute name="ack_bool_false"><value>false</value></attribute>
                                 </element> 
                                 <element name="EXPECTED_DISTRIBUTOR_ACKS"><data type="integer"/></element>
                                 <element name="RECEIVED_DISTRIBUTOR_ACKS"><data type="integer"/></element> 
@@ -242,7 +324,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>FORWARDER_READOUT</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -252,9 +334,12 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>FORWARDER_READOUT_ACK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -264,7 +349,7 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_READOUT</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
@@ -274,12 +359,29 @@
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_READOUT_ACK</value></attribute>
-                    <element name="JOB_NUM"><data type="integer"/></element>
+                    <element name="JOB_NUM"><text/></element>
                     <element name="COMPONENT_NAME"><text/></element>
-                    <element name="ACK_BOOL"><data type="boolean"/></element>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice>
                     <element name="ACK_ID"><text/></element>
                </interleave>
            </element>
-       </optional>
+        </optional>
+        <!-- Msg#25 BASE Foreman to DMCS_consume Queue - Readout_Ack --> 
+        <optional>
+            <element name="message">
+                <interleave>
+                    <attribute name="MSG_TYPE"><value>READOUT_ACK</value></attribute>
+                    <element name="JOB_NUM"><text/></element>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice>
+                    <element name="COMMENT"><text/></element>
+                </interleave> 
+            </element>
+        </optional>
     </oneOrMore>
 </element>
