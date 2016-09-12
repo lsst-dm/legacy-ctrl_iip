@@ -45,7 +45,7 @@ class XMLHandler:
                 keenode.text = str(value)
             elif type(value) == bool: 
                 pydict[kee] = str(value).lower()
-                if msg.find("ACK_BOOL") != None: 
+                if msg.find("ACK_BOOL") is not None: 
                     ack_bool = msg.find("ACK_BOOL")
                     ack_bool.set(kee.lower() + "_" + pydict[kee], pydict[kee]) 
                 else: 
