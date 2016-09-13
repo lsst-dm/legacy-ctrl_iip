@@ -28,8 +28,6 @@ class XMLHandler:
     def encodeXML(self, dictValue):
         """ Encode python dictionary into XML
             Has to convert ACK_BOOL to "true" so that it works with xml boolean
-            NCSA_READOUT_ACK is treated differently so that it can handle conditional
-            statement.
             :param pydict: python dictionary
             :type pydict: dict
         """
@@ -93,29 +91,3 @@ class XMLHandler:
             :type rootNode: lxml etree root node
         """
         print(etree.tostring(rootNode, pretty_print=True))
-
-def main():
-    handler = XMLHandler()
-    f = """
-    <messageDict>
-        <message MSG_TYPE="DISTRIBUTOR_HEALTH_ACK">
-            <JOB_NUM>6</JOB_NUM> 
-            <COMPONENT_NAME>NCSA</COMPONENT_NAME>
-            <ACK_ID>yea</ACK_ID> 
-            <ACK_BOOL>true</ACK_BOOL>
-        </message>
-    </messageDict>
-    """ 
-    readout_dict = {}
-    readout_dict[MSG_TYPE] = "DISTRIBUTOR_STANDBY_ACK"
-    readout_dict[JOB_NUM] = 4
-    readout_dict["COMPONENT_NAME"] = "CONSUME"
-    readout_dict["ACK_BOOL"] = False   
-    readout_dict["ACK_ID"] = "TIMED_ACK_ID"
-    
-    xmlString = '<messageDict><message MSG_TYPE="DISTRIBUTOR_HEALTH_ACK"><JOB_NUM>6</JOB_NUM><COMPONENT_NAME>NCSA</COMPONENT_NAME><ACK_ID>yea</ACK_ID><ACK_BOOL>true</ACK_BOOL></message></messageDict>' 
-    x = etree.fromstring(xmlString)
-    print handler.decodeXML(x) 
-
-if __name__ == "__main__":
-    main()

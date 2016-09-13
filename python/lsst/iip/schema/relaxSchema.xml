@@ -216,11 +216,8 @@
                     <element name="JOB_NUM"><text/></element>
                     <element name="RAFT"><data type="integer"/></element>
                     <choice>
-                        <element name="host"><text/></element>
-                        <group>
-                            <element name="HOST"><text/></element>
-                            <element name="IP_ADDR"><text/></element>
-                        </group>
+                        <element name="HOST"><text/></element>
+                        <element name="IP_ADDR"><text/></element>
                     </choice>
                     <element name="FQN"><text/></element>
                     <element name="NAME"><text/></element>
