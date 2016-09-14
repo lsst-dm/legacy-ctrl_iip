@@ -35,8 +35,12 @@ class BaseForeman:
     EXCHANGE_TYPE = 'direct'
 
 
-    def __init__(self):
+    def __init__(self, filename=None):
         toolsmod.singleton(self)
+
+        self._default_cfg_file = 'ForemanCfg.yaml'
+        if filename == None:
+            filename = self._default_cfg_file
 
         self._name = 'FM'      # Message broker user & passwd
         self._passwd = 'FM'   
@@ -44,7 +48,7 @@ class BaseForeman:
         self._ncsa_broker_url = 'amqp_url'
         self._next_timed_ack_id = 0
  
-        cdm = self.intake_yaml_file()
+        cdm = self.intake_yaml_file(filename)
         try:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
@@ -257,13 +261,14 @@ class BaseForeman:
         job_num = str(params[JOB_NUM])
         raft_list = params[RAFTS]
         needed_workers = len(raft_list)
+
         self.JOB_SCBD.add_job(job_num, needed_workers)
         self.JOB_SCBD.set_value_for_job(job_num, "ADD_JOB_TIME", get_timestamp())
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
         # run forwarder health check
         # get timed_ack_id
-        timed_ack = self.get_next_timed_ack_id("Forwarder_Ack")
+        timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
         forwarders = self.FWD_SCBD.return_available_forwarders_list()
         # Mark all healthy Forwarders Unknown
@@ -356,6 +361,7 @@ class BaseForeman:
         dmcs_message[MSG_TYPE] = NEW_JOB_ACK
         dmcs_message[ACK_BOOL] = True
         self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message))
+        return True
 
 
     def insufficient_ncsa_resources(self, ncsa_response):
@@ -369,7 +375,12 @@ class BaseForeman:
         dmcs_params[AVAILABLE_DISTRIBUTORS] = ncsa_response[AVAILABLE_DISTRIBUTORS]
         dmcs_params[NEEDED_WORKERS] = ncsa_response[NEEDED_WORKERS]
         dmcs_params[AVAILABLE_WORKERS] = ncsa_response[AVAILABLE_WORKERS]
-        self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+        try:
+            self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+        except L1MessageError e:
+            return False
+
+        return True
 
 
 
@@ -457,7 +468,7 @@ class BaseForeman:
         self.ACK_SCBD.add_timed_ack(params)
         
 
-    def intake_yaml_file(self):
+    def intake_yaml_file(self, filename):
         """This method reads the ForemanCfg.yaml config file
            found in the same directory as the BaseForeman class.
            The config file can list an initial set of forwarders and/or
@@ -466,7 +477,7 @@ class BaseForeman:
     
         """
         try:
-            f = open('ForemanCfg.yaml')
+            f = open(filename)
         except IOError:
             print "Cant open ForemanCfg.yaml"
             print "Bailing out..."
