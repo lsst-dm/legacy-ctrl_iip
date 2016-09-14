@@ -10,3 +10,13 @@ def singleton(object, instantiated=[]):
 
 
 
+
+""" Exception class for LSST/IIP Project  
+""" 
+class L1Exception(Exception): 
+    pass 
+
+class L1MessageError(L1Exception): 
+    """ Raise when asserting check_message in XML returns exception """
+    def __init__(self, arg): 
+        self.errormsg = arg
