@@ -7,6 +7,7 @@ import yaml
 import sys
 import os
 import time
+from time import sleep
 import thread
 from const import *
 from Scoreboard import Scoreboard

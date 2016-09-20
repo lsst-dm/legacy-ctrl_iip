@@ -9,7 +9,7 @@ class Setup:
 
 
     def __init__(self):
-        connection = pika.BlockingConnection(pika.URLParameters('amqp://DMCS:DMCS@141.142.238.160:5672/%2fbunny'))
+        connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
         channel = connection.channel()
 
 #        channel.exchange_declare(self.on_exchange_declare_ok,'message', 'direct')
@@ -48,6 +48,13 @@ class Setup:
 
         channel.queue_declare(queue='reports')
 
+        connection.close()
+
+
+        connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2ftester'))
+        channel = connection.channel()
+        channel.queue_declare(queue='f_consume')
+        channel.queue_declare(queue='forwarders_publish')
         connection.close()
 
 
