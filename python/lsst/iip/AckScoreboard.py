@@ -20,7 +20,6 @@ class AckScoreboard(Scoreboard):
     """
 
     ### FIX: Put Redis DB numbers in Const
-    ACK_SCOREBOARD_DB = 3
     TIMED_ACKS = 'timed_acks'
     TIMED_ACK_ID = 'TIMED_ACK_ID'
     ACKS = []
@@ -47,7 +46,7 @@ class AckScoreboard(Scoreboard):
     
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.ACK_SCOREBOARD_DB)
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=ACK_SCOREBOARD_DB)
         return redis.Redis(connection_pool=pool) 
 
 

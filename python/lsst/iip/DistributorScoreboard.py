@@ -6,6 +6,7 @@ import redis
 import time
 import sys
 from Scoreboard import Scoreboard
+from const import * 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -14,7 +15,6 @@ LOGGER = logging.getLogger(__name__)
 class DistributorScoreboard(Scoreboard):
     DISTRIBUTOR_ROWS = 'distributor_rows'
     ROUTING_KEY = 'ROUTING_KEY'
-    DIST_SCOREBOARD_DB = 4 
     PUBLISH_QUEUE = 'distributor_publish'
 
     def __init__(self, ddict):
@@ -46,7 +46,7 @@ class DistributorScoreboard(Scoreboard):
 
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DIST_SCOREBOARD_DB)
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=DIST_SCOREBOARD_DB)
         self._redis = redis.Redis(connection_pool=pool)
 
     
