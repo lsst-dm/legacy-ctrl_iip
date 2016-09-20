@@ -1,4 +1,5 @@
 import redis
+import time
 import sys
 import logging
 
@@ -12,11 +13,16 @@ class Scoreboard:
        that continually stores state information about components and jobs.
     """
 
-    def persist_snapshot(self, connection):
-
+    def persist_snapshot(self, connection, filename):
         LOGGER.info('Saving Scoreboard Snapshot')
-        print "Persisting."
-        self._redis.bgsave()
+        self._redis.config_set("dbfilename", filename + ".rdb")
+        while True: 
+            try: 
+                self._redis.bgsave()
+                break
+            except: 
+                print("Persisting.")
+                time.sleep(10) 
 
     
 
