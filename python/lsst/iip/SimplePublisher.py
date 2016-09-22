@@ -56,6 +56,6 @@ class SimplePublisher:
             xmlMsg = self._xml_handler.tostring(xmlRoot)
             self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=xmlMsg)
         else: 
-            raise InvalidXML("Message is invalid XML.")
-    except InvalidXML, e:
+            raise L1MessageError("Message is invalid XML.")
+    except L1MessageError, e:
         print("Error: %s" % e.errormsg)

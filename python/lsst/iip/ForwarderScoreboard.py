@@ -10,7 +10,6 @@ LOGGER = logging.getLogger(__name__)
 
 class ForwarderScoreboard(Scoreboard):
     FORWARDER_ROWS = 'forwarder_rows'
-    FWD_SCOREBOARD_DB = 6
     PUBLISH_QUEUE = 'forwarder_publish'
   
 
@@ -38,7 +37,7 @@ class ForwarderScoreboard(Scoreboard):
 
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.FWD_SCOREBOARD_DB)
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=FWD_SCOREBOARD_DB)
         return redis.Redis(connection_pool=pool)
 
 
@@ -71,6 +70,7 @@ class ForwarderScoreboard(Scoreboard):
         forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
         for forwarder in forwarders:
             self._redis.hset(forwarder, 'STATUS', 'UNKNOWN')
+        self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
     def set_forwarder_params(self, forwarders, params):
@@ -82,6 +82,7 @@ class ForwarderScoreboard(Scoreboard):
             kees = params.keys()
             for kee in kees:
                 self._redis.hset(forwarder, kee, params[kee])
+        self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
     def get_value_for_forwarder(self, forwarder, kee):
@@ -90,10 +91,12 @@ class ForwarderScoreboard(Scoreboard):
 
     def set_forwarder_state(self, forwarder, state):
         self._redis.hset(forwarder, 'STATE', state)
+        self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
     def set_forwarder_status(self, forwarder, status):
         self._redis.hset(forwarder, 'STATUS', status)
+        self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
     def get_routing_key(self, forwarder):

@@ -1,12 +1,11 @@
-from StringIO import * 
-from xml import etree
+from lxml import etree
 from const import *
 from copy import deepcopy 
 import yaml
 
 class XMLHandler:
     def __init__(self, callback=None):
-        self._schemafile = open("../schema/relaxSchema.xml")
+        self._schemafile = open("schema/relaxSchema.xml")
         self._schemadoc = etree.parse(self._schemafile)
         self._schemaNG = etree.RelaxNG(self._schemadoc)
         self._consumer_callback = callback
@@ -29,26 +28,30 @@ class XMLHandler:
     def encodeXML(self, dictValue):
         """ Encode python dictionary into XML
             Has to convert ACK_BOOL to "true" so that it works with xml boolean
-            NCSA_READOUT_ACK is treated differently so that it can handle conditional
-            statement.
             :param pydict: python dictionary
             :type pydict: dict
         """
         pydict = deepcopy(dictValue)
         root = etree.Element("messageDict")
-        msg = etree.Element("message", MSG_TYPE=pydict[MSG_TYPE])
+        msg = etree.Element("message", MSG_TYPE=pydict["MSG_TYPE"]) 
         root.append(msg)
-        if "ACK_BOOL" in pydict: 
-            pydict["ACK_BOOL"] = "true" if pydict["ACK_BOOL"] == True else "false"
-        for kee, value in pydict.items():
-            if pydict[MSG_TYPE] == "NCSA_READOUT_ACK" and kee == "ACK_BOOL": 
-                ack_bool = etree.Element("ACK_BOOL")
-                ack_bool.set("ack_"+pydict["ACK_BOOL"], pydict["ACK_BOOL"])
-                msg.append(ack_bool)
-            elif kee != MSG_TYPE:
+
+        for kee, value in pydict.items(): 
+            if kee != "MSG_TYPE" and type(value) != bool:
                 keenode = etree.Element(kee)
                 msg.append(keenode)
                 keenode.text = str(value)
+            elif type(value) == bool: 
+                pydict[kee] = str(value).lower()
+                if msg.find("ACK_BOOL") is not None: 
+                    ack_bool = msg.find("ACK_BOOL")
+                    ack_bool.set(kee.lower() + "_" + pydict[kee], pydict[kee]) 
+                else: 
+                    ack = str(pydict["ACK_BOOL"]).lower()
+                    ack_bool = etree.Element("ACK_BOOL")
+                    ack_bool.set("ack_bool_" + ack, ack) 
+                    ack_bool.set(kee.lower() + "_" + pydict[kee], pydict[kee]) 
+                    msg.append(ack_bool) 
         return root
 
     def decodeXML(self, rootNode):
@@ -58,19 +61,16 @@ class XMLHandler:
             :type rootNode: lxml etree
         """
         pydict = {}
-        pydict[MSG_TYPE] = rootNode[0].get("MSG_TYPE") 
+        pydict["MSG_TYPE"] = rootNode[0].get("MSG_TYPE") 
         for node in rootNode.iter():
             if node.text != None: 
                 pydict[node.tag] = int(node.text) if node.text.isdigit() else node.text
             elif node.tag == "ACK_BOOL": 
-                if node.text != None: 
-                    pydict["ACK_BOOL"] = node.text
-                else: 
-                    attribute = node.attrib.values()
-                    value = "".join(attribute)
-                    pydict["ACK_BOOL"] = value
-        if "ACK_BOOL" in pydict: 
-            pydict["ACK_BOOL"] = True if pydict["ACK_BOOL"] == "true" else False
+                attr = node.attrib
+                for kee,value in attr.items():
+                    key = kee.replace("_" + value,"")
+                    val = True if value == "true" else False
+                    pydict[key.upper()] = val
         return pydict
 
     def tostring(self, rootNode):
@@ -91,29 +91,3 @@ class XMLHandler:
             :type rootNode: lxml etree root node
         """
         print(etree.tostring(rootNode, pretty_print=True))
-
-def main():
-    handler = XMLHandler()
-    f = """
-    <messageDict>
-        <message MSG_TYPE="DISTRIBUTOR_HEALTH_ACK">
-            <JOB_NUM>6</JOB_NUM> 
-            <COMPONENT_NAME>NCSA</COMPONENT_NAME>
-            <ACK_ID>yea</ACK_ID> 
-            <ACK_BOOL>true</ACK_BOOL>
-        </message>
-    </messageDict>
-    """ 
-    readout_dict = {}
-    readout_dict[MSG_TYPE] = "DISTRIBUTOR_STANDBY_ACK"
-    readout_dict[JOB_NUM] = 4
-    readout_dict["COMPONENT_NAME"] = "CONSUME"
-    readout_dict["ACK_BOOL"] = False   
-    readout_dict["ACK_ID"] = "TIMED_ACK_ID"
-    
-    xmlString = '<messageDict><message MSG_TYPE="DISTRIBUTOR_HEALTH_ACK"><JOB_NUM>6</JOB_NUM><COMPONENT_NAME>NCSA</COMPONENT_NAME><ACK_ID>yea</ACK_ID><ACK_BOOL>true</ACK_BOOL></message></messageDict>' 
-    x = etree.fromstring(xmlString)
-    print handler.decodeXML(x) 
-
-if __name__ == "__main__":
-    main()
