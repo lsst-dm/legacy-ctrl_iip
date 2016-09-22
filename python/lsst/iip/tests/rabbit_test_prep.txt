@@ -1,0 +1,27 @@
+#
+#  Rabbit Prep for running the Foreman Test Suite
+#
+# Needed items:
+# Create new rabbit vhost named /tester
+# rabbitmqctl add_vhost /tester
+
+# Create Users for Testing with passwd the same as user name
+#  rabbitmqctl add_user TesT TesT
+#  rabbitmqctl add_user adm adm
+#  rabbitmqctl add_user FM FM
+
+# Give users permissions in new vhost
+# rabbitmqctl -p /tester set_permissions TesT '.*' '.*' '.*'
+# rabbitmqctl -p /tester set_permissions FM '.*' '.*' '.*'
+# rabbitmqctl -p /tester set_permissions adm '.*' '.*' '.*'
+
+# Create the necesary queues
+#connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2ftester'))
+#channel = connection.channel()
+#channel.queue_declare(queue='f_consume')
+#channel.queue_declare(queue='forwarders_publish')
+#connection.close()
+
+# Purge queues at the start of each test
+# os.system('rabbitmqctl -p /tester purge_queue f_consume')
+# os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
