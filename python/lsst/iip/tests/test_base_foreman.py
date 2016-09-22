@@ -39,8 +39,9 @@ about the Forwarders that this file will use as well.
 
 @pytest.fixture(scope='session')
 def bf(request):
-    return BaseForeman('../ForemanCfgTest.yaml')
+    return BaseForeman('ForemanCfgTest.yaml')
 
+fman = bf
 
 def setup_publisher(broker_url):
     publisher = SimplePublisher(broker_url)
@@ -48,8 +49,16 @@ def setup_publisher(broker_url):
 
 
 def on_health_check_message(ch, method, properties, body):
-    pass
-    #respond to ack_consume queue
+    msg_dict = yaml.load(body)
+    timed_ack = msg_dict["TIMED_ACK_ID"]
+    job_num = msh_dict['JOB_NUM']
+    msg_params = {}
+    msg_params['MSG_TYPE'] = 'FORWARDER_HEALTH_ACK'
+    msg_params['JOB_NUM'] = job_num
+    msg_params['ACK_BOOL'] = True
+    msg_params['ACK_ID'] = timed_ack
+    msg_params['NAME'] = 'Forwarder_'
+    publisher.publish_message("ack_publish", yaml.dump(msg_params))
 
 def run_consumer(threadname, delay, adict):
     adict['csume'].run(on_health_check_message)
@@ -64,7 +73,7 @@ def setup_consumer(base_broker_url, f_consume):
         sys.exit(101)
 
 
-def test_forwarder_check_health(bf):
+def test_forwarder_check_health(fman):
     os.system('rabbitmqctl -p /tester purge_queue f_consume')
     os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
     #prep: create publisher and consumer
@@ -99,7 +108,7 @@ def test_forwarder_check_health(bf):
         #test case will need a publisher 
     #stuff
     try:
-        f = open('../ForemanCFGTest.yaml')
+        f = open('ForemanCfgTest.yaml')
     except IOError:
         print "Can't open ForemanCfgTest.yaml"
         print "Bailing out on test_forwarder_check_health..."
@@ -110,12 +119,12 @@ def test_forwarder_check_health(bf):
     base_broker_address = cdm['ROOT']['BASE_BROKER_ADDR']
     name = cdm['ROOT']['BROKER_NAME']
     passwd = cdm['ROOT']['BROKER_PASSWD']
-    base_broker_url = "amqp://" + name + ":" + passwd + "@" + str(self._base_broker_addr)
+    base_broker_url = "amqp://" + name + ":" + passwd + "@" + str(base_broker_address)
     setup_consumer(base_broker_url, 'F_consume')
     publisher = setup_publisher(base_broker_url)
     forwarders = cdm['ROOT']['XFER_COMPONENTS']['FORWARDERS']
 
-    ack_scbd = bf.get_ack_scbd()
+    #ack_scbd = bf.get_ack_scbd()
 
     #The test cfg file includes a list of all 21 rafts in non-consecutive order
     #The NUMBER_OF_PAIRS param is used to generate a sublist of above
@@ -128,9 +137,9 @@ def test_forwarder_check_health(bf):
     params['JOB_NUM'] = str(7)
     params['RAFTS'] = L
 
-    ack_id = bf.forwarder_health_check(params)
+    ack_id = fman.forwarder_health_check(params)
     sleep(3)
-    ack_responses = bf.ACK_SCBD.get_components_for_timed_ack(ack_id)
+    ack_responses = fman.ACK_SCBD.get_components_for_timed_ack(ack_id)
     assert len(ack_responses) == int(number_of_pairs)
 
     print "ACK Responses are:"
@@ -139,20 +148,20 @@ def test_forwarder_check_health(bf):
 
 
 
-def test_insufficient_base_resources(bf):
+def test_insufficient_base_resources(fman):
     pass
 
-def test_ncsa_resources_query(bf):
+def test_ncsa_resources_query(fman):
     pass
 
-def test_distribute_job_params(bf):
+def test_distribute_job_params(fman):
     pass
 
-def test_accept_job(bf):
+def test_accept_job(fman):
     pass
 
-def test_insufficient_ncsa_resources(bf):
+def test_insufficient_ncsa_resources(fman):
     pass
 
-def test_ncsa_no_response(bf):
+def test_ncsa_no_response(fman):
     pass

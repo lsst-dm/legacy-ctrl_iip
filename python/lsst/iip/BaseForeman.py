@@ -242,7 +242,7 @@ class BaseForeman:
                         in_ready_state = {'STATE':'READY_WITH_PARAMS'}
                         self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
                         # Tell DMCS we are ready
-                        result = self.accept_job(job_num):
+                        result = self.accept_job(job_num)
                 else:
                     #not enough ncsa resources to do job - Notify DMCS
                     idle_param = {'STATE': 'IDLE'}
@@ -260,7 +260,7 @@ class BaseForeman:
  
     def forwarder_health_check(self, params):
         job_num = str(params[JOB_NUM])
-        raft_list = params[RAFTS]
+        raft_list = params['RAFTS']
         needed_workers = len(raft_list)
 
         self.JOB_SCBD.add_job(job_num, needed_workers)
@@ -274,7 +274,7 @@ class BaseForeman:
         forwarders = self.FWD_SCBD.return_available_forwarders_list()
         # Mark all healthy Forwarders Unknown
         state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
-        self.FWD_SCBD.set_forwarder_params(healthy_forwarders, state_status)
+        self.FWD_SCBD.set_forwarder_params(forwarders, state_status)
         # send health check messages
         ack_params = {}
         ack_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
@@ -376,10 +376,10 @@ class BaseForeman:
         dmcs_params[AVAILABLE_DISTRIBUTORS] = ncsa_response[AVAILABLE_DISTRIBUTORS]
         dmcs_params[NEEDED_WORKERS] = ncsa_response[NEEDED_WORKERS]
         dmcs_params[AVAILABLE_WORKERS] = ncsa_response[AVAILABLE_WORKERS]
-        try:
-            self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
-        except L1MessageError e:
-            return False
+        #try: FIXME - catch exception
+        self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+        #except L1MessageError e:
+        #    return False
 
         return True
 
