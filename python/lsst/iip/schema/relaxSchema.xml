@@ -8,7 +8,9 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>NEW_JOB</value></attribute>
                     <element name="JOB_NUM"><text/></element>
+                    <element name="ACK_ID"><text/></element>
                     <element name="RAFTS"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -18,6 +20,7 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>IN_READY_STATE</value></attribute>
                     <element name="JOB_NUM"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -27,6 +30,7 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>NEW_JOB_ACK</value></attribute> 
                     <element name="JOB_NUM"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                     <interleave> 
                         <choice>
                             <element name="ACK_BOOL">
@@ -91,6 +95,7 @@
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="TRANSFER_PARAMS"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -101,6 +106,7 @@
                     <attribute name="MSG_TYPE"><value>FORWARDER_HEALTH_CHECK</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -116,6 +122,7 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -127,6 +134,7 @@
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="FORWARDERS"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -148,6 +156,7 @@
                     <element name="AVAILABLE_WORKERS"><data type="integer"/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="PAIRS"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -158,6 +167,7 @@
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_HEALTH_CHECK</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -173,6 +183,7 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -184,6 +195,7 @@
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="TRANSFER_PARAMS"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                 </interleave>
             </element> 
         </optional>
@@ -195,6 +207,7 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>STANDBY</value></attribute>
                     <element name="JOB_NUM"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -205,6 +218,7 @@
                     <attribute name="MSG_TYPE"><value>NCSA_STANDBY</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -223,6 +237,7 @@
                     <element name="NAME"><text/></element>
                     <element name="TARGET_DIR"><text/></element>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -236,6 +251,7 @@
                     <element name="SENDING_FQN"><text/></element>
                     <element name="SKY"><text/></element>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -251,6 +267,7 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -266,6 +283,7 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -277,6 +295,7 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>READOUT</value></attribute>
                     <element name="JOB_NUM"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -287,6 +306,7 @@
                     <attribute name="MSG_TYPE"><value>NCSA_READOUT</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -313,6 +333,7 @@
                             </interleave> 
                         </group>
                     </choice>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -323,6 +344,7 @@
                     <attribute name="MSG_TYPE"><value>FORWARDER_READOUT</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -338,6 +360,7 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -348,6 +371,7 @@
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_READOUT</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -363,6 +387,7 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
            </element>
         </optional>
@@ -377,6 +402,7 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="COMMENT"><text/></element>
+                    <optional><element name="COMMENT"><text/></element></optional>
                 </interleave> 
             </element>
         </optional>
