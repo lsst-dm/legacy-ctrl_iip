@@ -7,10 +7,15 @@ from time import sleep
 import thread
 import pytest
 import random
+import logging
 
 sys.path.insert(0, '../iip')
 #sys.path.append('/home/fedora/src/git/ctrl_iip/python/lsst/iip')
 from const import *
+import toolsmod
+from toolsmod import L1Exception
+from toolsmod import L1MessageError
+from toolsmod import get_timestamp
 from BaseForeman import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
@@ -43,29 +48,43 @@ def bf(request):
 
 fman = bf
 
+f = open('ForemanCfgTest.yaml')
+x = yaml.safe_load(f)
+base_broker_url = "amqp://" + "TesT" + ":" + "TesT" + "@" + str(x['ROOT']['BASE_BROKER_ADDR'])
+def pb(request):
+    return SimplePublisher(base_broker_url)
+
+
+logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
+
+PUB = None
+
 def setup_publisher(broker_url):
-    publisher = SimplePublisher(broker_url)
-    return publisher
+    PUB = SimplePublisher(broker_url)
+    #publisher = SimplePublisher(broker_url)
+    return True
 
 
 def on_health_check_message(ch, method, properties, body):
-    msg_dict = yaml.load(body)
-    timed_ack = msg_dict["TIMED_ACK_ID"]
-    job_num = msh_dict['JOB_NUM']
+    base_broker_url = "amqp://" + "TesT" + ":" + "TesT" + "@" + "141.142.208.191:5672/%2ftester"
+    publisher = SimplePublisher(base_broker_url)
+    msg_dict = body
+    timed_ack = msg_dict["ACK_ID"]
+    job_num = msg_dict['JOB_NUM']
     msg_params = {}
     msg_params['MSG_TYPE'] = 'FORWARDER_HEALTH_ACK'
     msg_params['JOB_NUM'] = job_num
     msg_params['ACK_BOOL'] = True
     msg_params['ACK_ID'] = timed_ack
-    msg_params['NAME'] = 'Forwarder_'
-    publisher.publish_message("ack_publish", yaml.dump(msg_params))
+    msg_params['COMPONENT_NAME'] = 'Forwarder_' + str(get_timestamp()) 
+    publisher.publish_message("ack_publish", msg_params)
 
 def run_consumer(threadname, delay, adict):
     adict['csume'].run(on_health_check_message)
 
 
-def setup_consumer(base_broker_url, f_consume):
-    consumer = Consumer(base_broker_url, f_consume)
+def setup_consumer(base_broker_url, f_consume, format):
+    consumer = Consumer(base_broker_url, f_consume, format)
     try:
         thread.start_new_thread( run_consumer, ("thread-test-consume", 2, {'csume': consumer}))
     except:
@@ -76,37 +95,7 @@ def setup_consumer(base_broker_url, f_consume):
 def test_forwarder_check_health(fman):
     os.system('rabbitmqctl -p /tester purge_queue f_consume')
     os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
-    #prep: create publisher and consumer
-    #build params
-    #inputs: job params
-    #outputs: success or failure
-    #intermediate worrys:
-        # Sending health check to forwarders:
-            #The foreman will handle this
-            #for testing, he will use the SAME forwarder consume 
-            #queue for each forwarder...spec'd in test CFG file   
-            #
-            #This test case file will generate the acks.
-            #by watching the publish queue that ALL of the
-            #forwarders will use, according to their conf files.
-        #  
-        # Receiving acks
-            #then generate the appropriate responses.
-        #
-        # processing acks
-            #the ack scoreboard will do receiving and processing.
-        # this test case will check ack queue and compare
-        # using the ack_id returned by the function
-        #
-        #
-        # Close pub and consumer connection?
-
-        ## Set up test cfg file
-        #set up queue and permission creation
-        #set up purge queue capability
-        #put test forwarder_publish queue in CFG file
-        #test case will need a publisher 
-    #stuff
+    os.system('rabbitmqctl -p /tester purge_queue ack_publish')
     try:
         f = open('ForemanCfgTest.yaml')
     except IOError:
@@ -120,11 +109,10 @@ def test_forwarder_check_health(fman):
     name = cdm['ROOT']['BROKER_NAME']
     passwd = cdm['ROOT']['BROKER_PASSWD']
     base_broker_url = "amqp://" + name + ":" + passwd + "@" + str(base_broker_address)
-    setup_consumer(base_broker_url, 'F_consume')
-    publisher = setup_publisher(base_broker_url)
+    setup_publisher(base_broker_url)
+    setup_consumer(base_broker_url, 'f_consume', 'XML')
     forwarders = cdm['ROOT']['XFER_COMPONENTS']['FORWARDERS']
 
-    #ack_scbd = bf.get_ack_scbd()
 
     #The test cfg file includes a list of all 21 rafts in non-consecutive order
     #The NUMBER_OF_PAIRS param is used to generate a sublist of above
@@ -138,12 +126,10 @@ def test_forwarder_check_health(fman):
     params['RAFTS'] = L
 
     ack_id = fman.forwarder_health_check(params)
-    sleep(3)
+    sleep(6)
     ack_responses = fman.ACK_SCBD.get_components_for_timed_ack(ack_id)
+    assert ack_responses != None
     assert len(ack_responses) == int(number_of_pairs)
-
-    print "ACK Responses are:"
-    print ack_responses
     print "Done with forwarder_health_check test"
 
 

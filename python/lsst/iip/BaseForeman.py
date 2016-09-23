@@ -39,6 +39,7 @@ class BaseForeman:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
+        self.purge_broker()
         self._default_cfg_file = 'ForemanCfg.yaml'
         if filename == None:
             filename = self._default_cfg_file
@@ -107,28 +108,28 @@ class BaseForeman:
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread on all consumer methods')
 
-        self._dmcs_consumer = Consumer(self._base_broker_url, self.DMCS_PUBLISH)
+        self._dmcs_consumer = Consumer(self._base_broker_url, self.DMCS_PUBLISH, XML)
         try:
             thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
             sys.exit(99)
 
-        self._forwarder_consumer = Consumer(self._base_broker_url, self.FORWARDER_PUBLISH)
+        self._forwarder_consumer = Consumer(self._base_broker_url, self.FORWARDER_PUBLISH, XML)
         try:
             thread.start_new_thread( self.run_forwarder_consumer, ("thread-forwarder-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start FORWARDERS consumer thread, exiting...')
             sys.exit(100)
 
-        self._ncsa_consumer = Consumer(self._base_broker_url, self.NCSA_PUBLISH)
+        self._ncsa_consumer = Consumer(self._base_broker_url, self.NCSA_PUBLISH, XML)
         try:
             thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
             sys.exit(101)
 
-        self._ack_consumer = Consumer(self._base_broker_url, self.ACK_PUBLISH)
+        self._ack_consumer = Consumer(self._base_broker_url, self.ACK_PUBLISH, XML)
         try:
             thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
         except:
@@ -171,7 +172,8 @@ class BaseForeman:
 
 
     def on_dmcs_message(self, ch, method, properties, body):
-        msg_dict = yaml.load(body) 
+        #msg_dict = yaml.load(body) 
+        msg_dict = body 
         LOGGER.info('In DMCS message callback')
         LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
@@ -187,14 +189,15 @@ class BaseForeman:
 
     def on_ncsa_message(self,ch, method, properties, body):
         LOGGER.info('In ncsa message callback, thread is %s', thread.get_ident())
-        msg_dict = yaml.load(body)
+        #msg_dict = yaml.load(body)
+        msg_dict = body
         LOGGER.info('ncsa msg callback body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
-        msg_dict = yaml.load(body) 
+        msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
@@ -280,9 +283,11 @@ class BaseForeman:
         ack_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
         ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
+        
         for forwarder in forwarders:
+            print "Publishing to %s" % forwarder
             self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
-                                            yaml.dump(ack_params))
+                                            ack_params)
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
         self.JOB_SCBD.set_value_for_job(job_num, "BASE_RESOURCE_QUERY_TIME", get_timestamp())
 
@@ -509,6 +514,36 @@ class BaseForeman:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
+    def purge_broker(self):
+        #This will either move to an external script, or be done dynamically by reading cfg file
+        os.system('rabbitmqctl -p /tester purge_queue f_consume')
+        os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
+        os.system('rabbitmqctl -p /tester purge_queue ack_publish')
+
+        os.system('rabbitmqctl -p /bunny purge_queue forwarder_publish')
+        os.system('rabbitmqctl -p /bunny purge_queue ack_publish')
+        os.system('rabbitmqctl -p /bunny purge_queue F1_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F2_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F3_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F4_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F5_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F6_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F7_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F8_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F9_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F10_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F11_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F12_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F13_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F14_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F15_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F16_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F17_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F18_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F19_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F20_consume')
+        os.system('rabbitmqctl -p /bunny purge_queue F21_consume')
 
 
 def main():

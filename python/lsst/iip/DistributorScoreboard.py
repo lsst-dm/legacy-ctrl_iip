@@ -83,13 +83,13 @@ class DistributorScoreboard(Scoreboard):
         """
         for kee in params.keys():
             self._redis.hset(distributor, kee, params[kee])
-        self.persist_snapshot(self._redis, "distributorscoreboard") 
+        #self.persist_snapshot(self._redis, "distributorscoreboard") 
 
 
     def set_value_for_multiple_distributors(self, distributors, kee, val):
         for distributor in distributors:
             self._redis.hset(distributor, kee, val)
-        self.persist_snapshot(self._redis, "distributorscoreboard") 
+        #self.persist_snapshot(self._redis, "distributorscoreboard") 
 
 
     def set_params_for_multiple_distributors(self, distributors, params):
@@ -97,7 +97,7 @@ class DistributorScoreboard(Scoreboard):
             kees = params.keys()
             for kee in kees:
                 self._redis.hset(distributor, kee, params[kee])
-        self.persist_snapshot(self._redis, "distributorscoreboard") 
+        #self.persist_snapshot(self._redis, "distributorscoreboard") 
 
 
     def get_value_for_distributor(self, distributor, kee):
@@ -106,12 +106,12 @@ class DistributorScoreboard(Scoreboard):
 
     def set_distributor_state(self, distributor, state):
         self._redis.hset(distributor,'STATE', state)
-        self.persist_snapshot(self._redis, "distributorscoreboard") 
+        #self.persist_snapshot(self._redis, "distributorscoreboard") 
 
 
     def set_distributor_status(self, distributor, status):
         self._redis.hset(distributor,'STATUS', status)
-        self.persist_snapshot(self._redis, "distributorscoreboard") 
+        #self.persist_snapshot(self._redis, "distributorscoreboard") 
 
 
     def get_routing_key(self, distributor):

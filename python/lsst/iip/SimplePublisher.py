@@ -2,6 +2,9 @@ import pika
 import logging
 import yaml
 import sys
+import toolsmod
+from toolsmod import L1Exception
+from toolsmod import L1MessageError
 from XMLHandler import * 
 from Exceptions import * 
 
@@ -59,3 +62,7 @@ class SimplePublisher:
             raise L1MessageError("Message is invalid XML.")
     except L1MessageError, e:
         print("Error: %s" % e.errormsg)
+        print "Message body to be published is: %s" % msg
+        print "++++++++++++++++++++++++++++++++"
+        print "XML Version of message is %s" % xmlRoot
+        raise L1MessageError("Message is invalid XML.")

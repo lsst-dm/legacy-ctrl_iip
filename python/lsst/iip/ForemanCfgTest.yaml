@@ -14,7 +14,7 @@ ROOT:
         HOSTNAME: lsst-wf-base01.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.161
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_2:
@@ -22,7 +22,7 @@ ROOT:
         HOSTNAME: lsst-wf-base02.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.162
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_3:
@@ -30,7 +30,7 @@ ROOT:
         HOSTNAME: lsst-wf-base03.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.163
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_4:
@@ -38,7 +38,7 @@ ROOT:
         HOSTNAME: lsst-wf-base04.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.164
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_5:
@@ -46,7 +46,7 @@ ROOT:
         HOSTNAME: lsst-wf-base05.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.165
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_6:
@@ -54,7 +54,7 @@ ROOT:
         HOSTNAME: lsst-wf-base06.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.166
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_7:
@@ -62,7 +62,7 @@ ROOT:
         HOSTNAME: lsst-wf-base07.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.167
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_8:
@@ -70,7 +70,7 @@ ROOT:
         HOSTNAME: lsst-wf-base08.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.168
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_9:
@@ -78,7 +78,7 @@ ROOT:
         HOSTNAME: lsst-wf-base09.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.169
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_10:
@@ -86,7 +86,7 @@ ROOT:
         HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.170
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
 

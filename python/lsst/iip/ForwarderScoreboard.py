@@ -70,7 +70,7 @@ class ForwarderScoreboard(Scoreboard):
         forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
         for forwarder in forwarders:
             self._redis.hset(forwarder, 'STATUS', 'UNKNOWN')
-        self.persist_snapshot(self._redis, "forwarderscoreboard")
+        #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
     def set_forwarder_params(self, forwarders, params):
@@ -82,7 +82,7 @@ class ForwarderScoreboard(Scoreboard):
             kees = params.keys()
             for kee in kees:
                 self._redis.hset(forwarder, kee, params[kee])
-        self.persist_snapshot(self._redis, "forwarderscoreboard")
+        #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
     def get_value_for_forwarder(self, forwarder, kee):
@@ -91,12 +91,12 @@ class ForwarderScoreboard(Scoreboard):
 
     def set_forwarder_state(self, forwarder, state):
         self._redis.hset(forwarder, 'STATE', state)
-        self.persist_snapshot(self._redis, "forwarderscoreboard")
+        #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
     def set_forwarder_status(self, forwarder, status):
         self._redis.hset(forwarder, 'STATUS', status)
-        self.persist_snapshot(self._redis, "forwarderscoreboard")
+        #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
     def get_routing_key(self, forwarder):
