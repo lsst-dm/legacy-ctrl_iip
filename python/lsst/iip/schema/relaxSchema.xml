@@ -10,48 +10,40 @@
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="RAFTS"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
-        <!-- Msg #2: Base Foreman to DMCS -->
+        <!-- Msg #2: Base Foreman to DMCS New Job Ack -->
         <optional>
            <element name="message">
                <interleave>
                     <attribute name="MSG_TYPE"><value>IN_READY_STATE</value></attribute>
                     <element name="JOB_NUM"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #3 Base Foreman to DMCS New Job Ack -->
         <optional>
             <element name="message">
+               <optional><element name="COMMENT"><text/></element></optional>
                <interleave>
                     <attribute name="MSG_TYPE"><value>NEW_JOB_ACK</value></attribute> 
                     <element name="JOB_NUM"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                     <interleave> 
                         <choice>
                             <element name="ACK_BOOL">
                                 <attribute name="ack_bool_true"><value>true</value></attribute>
                             </element>
                             <group>
-                                <element name="ACK_BOOL">
-                                    <attribute name="ack_bool_false"><value>false</value></attribute>
-                                    <attribute name="base_resources_true"><value>true</value></attribute>
-                                    <attribute name="ncsa_resources_true"><value>true</value></attribute>
-                                </element>
-                            </group> 
-                            <group>
                                 <interleave> 
                                     <element name="ACK_BOOL">
                                         <attribute name="ack_bool_false"><value>false</value></attribute>
                                         <attribute name="base_resources_false"><value>false</value></attribute>
-                                        <attribute name="ncsa_resources_true"><value>true</value></attribute>
                                     </element>
-                                    <element name="NEEDED_FORWARDERS"><data type="integer"/></element>
-                                    <element name="AVAILABLE_FORWARDERS"><data type="integer"/></element>
+                                    <element name="NEEDED_FORWARDERS"><text/></element>
+                                    <element name="AVAILABLE_FORWARDERS"><text/></element>
                                 </interleave>
                             </group> 
                             <group>
@@ -61,26 +53,11 @@
                                         <attribute name="base_resources_true"><value>true</value></attribute>
                                         <attribute name="ncsa_resources_false"><value>false</value></attribute>
                                     </element>
-                                    <element name="NEEDED_DISTRIBUTORS"><data type="integer"/></element>
-                                    <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
-                                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
-                                    <element name="AVAILABLE_WORKERS"><data type="integer"/></element> 
+                                    <element name="NEEDED_DISTRIBUTORS"><text/></element>
+                                    <element name="AVAILABLE_DISTRIBUTORS"><text/></element>
+                                    <element name="NEEDED_WORKERS"><text/></element>
+                                    <element name="AVAILABLE_WORKERS"><text/></element> 
                                 </interleave> 
-                            </group> 
-                            <group>
-                                <interleave> 
-                                    <element name="ACK_BOOL">
-                                        <attribute name="ack_bool_false"><value>false</value></attribute>
-                                        <attribute name="base_resources_false"><value>false</value></attribute>
-                                        <attribute name="ncsa_resources_false"><value>false</value></attribute>
-                                    </element>
-                                    <element name="NEEDED_FORWARDERS"><data type="integer"/></element>
-                                    <element name="AVAILABLE_FORWARDERS"><data type="integer"/></element>
-                                    <element name="NEEDED_DISTRIBUTORS"><data type="integer"/></element>
-                                    <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
-                                    <element name="NEEDED_WORKERS"><data type="integer"/></element>
-                                    <element name="AVAILABLE_WORKERS"><data type="integer"/></element> 
-                                </interleave>
                             </group> 
                         </choice>
                     </interleave>
@@ -95,8 +72,8 @@
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="TRANSFER_PARAMS"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #5: Base Foreman to EACH Forwarder's consume queue - Health Check  -->
@@ -106,8 +83,8 @@
                     <attribute name="MSG_TYPE"><value>FORWARDER_HEALTH_CHECK</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #6: Each Forwarder to Base Foreman Ack Queue - Health Check ACK -->
@@ -122,8 +99,8 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #7 Base Foreman to NCSA resources query -->
@@ -134,8 +111,8 @@
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="FORWARDERS"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #8 NCSA to Base Foreman ACK Queue -  Resources Query ACK -->
@@ -149,15 +126,12 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
-                    <element name="BASE_RESOURCES"><data type="boolean"/></element>
-                    <element name="NCSA_RESOURCES"><data type="boolean"/></element>
-                    <element name="NCSA_RESPONSE"><data type="boolean"/></element>
-                    <element name="AVAILABLE_DISTRIBUTORS"><data type="integer"/></element>
-                    <element name="AVAILABLE_WORKERS"><data type="integer"/></element>
+                    <element name="AVAILABLE_DISTRIBUTORS"><text/></element>
+                    <element name="AVAILABLE_WORKERS"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="PAIRS"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #9: NCSA Foreman to EACH Distributor's consume queue - Health Check  -->
@@ -167,8 +141,8 @@
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_HEALTH_CHECK</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #10: Each Distributor to NCSA Foreman Ack Queue - Health Check ACK -->
@@ -183,8 +157,8 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #26: NCSA Foreman to EACH Distributor's consume queue - Send Parameters for Transfer -->
@@ -195,8 +169,8 @@
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="TRANSFER_PARAMS"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                 </interleave>
+                <optional><element name="COMMENT"><text/></element></optional>
             </element> 
         </optional>
 
@@ -207,8 +181,8 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>STANDBY</value></attribute>
                     <element name="JOB_NUM"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #12 Base Foreman to NCSA Standby message -->
@@ -218,8 +192,8 @@
                     <attribute name="MSG_TYPE"><value>NCSA_STANDBY</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #14 Base Foreman to EACH Forwarder's consume queue - Standby  -->
@@ -228,7 +202,7 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>FORWARDER_STANDBY</value></attribute>
                     <element name="JOB_NUM"><text/></element>
-                    <element name="RAFT"><data type="integer"/></element>
+                    <element name="RAFT"><text/></element>
                     <choice>
                         <element name="HOST"><text/></element>
                         <element name="IP_ADDR"><text/></element>
@@ -237,8 +211,8 @@
                     <element name="NAME"><text/></element>
                     <element name="TARGET_DIR"><text/></element>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #15 NCSA Foreman to EACH Distributor's consume queue - Standby  -->
@@ -247,12 +221,12 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_STANDBY</value></attribute>
                     <element name="JOB_NUM"><text/></element>
-                    <element name="RAFT"><data type="integer"/></element>
+                    <element name="RAFT"><text/></element>
                     <element name="SENDING_FQN"><text/></element>
                     <element name="SKY"><text/></element>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #16 Each Forwarder to Base Foreman ACK queue - Standby Ack -->
@@ -267,8 +241,8 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #17 Each Distributor to NCSA Foreman ACK queue - Standby Ack -->
@@ -283,8 +257,8 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
 
@@ -295,8 +269,8 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>READOUT</value></attribute>
                     <element name="JOB_NUM"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #19 Base Foreman to NCSA_consume Queue - Readout  -->
@@ -306,8 +280,8 @@
                     <attribute name="MSG_TYPE"><value>NCSA_READOUT</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #20 NCSA to Base Foreman ACK Queue - Readout ACK -->
@@ -327,14 +301,14 @@
                                 <element name="ACK_BOOL"> 
                                     <attribute name="ack_bool_false"><value>false</value></attribute>
                                 </element> 
-                                <element name="EXPECTED_DISTRIBUTOR_ACKS"><data type="integer"/></element>
-                                <element name="RECEIVED_DISTRIBUTOR_ACKS"><data type="integer"/></element> 
+                                <element name="EXPECTED_DISTRIBUTOR_ACKS"><text/></element>
+                                <element name="RECEIVED_DISTRIBUTOR_ACKS"><text/></element> 
                                 <element name="MISSING_DISTRIBUTORS"><text/></element> 
                             </interleave> 
                         </group>
                     </choice>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #21 Base Foreman to Each Forwarder's Forwarder_consume Queue - Readout -->
@@ -344,8 +318,8 @@
                     <attribute name="MSG_TYPE"><value>FORWARDER_READOUT</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #22 Each Forwarder to Base Foreman Ack Queue - Readout ACK -->
@@ -360,8 +334,8 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #23 NCSA Foreman to Each Distributor's Forwarder_consume Queue - Readout -->
@@ -371,8 +345,8 @@
                     <attribute name="MSG_TYPE"><value>DISTRIBUTOR_READOUT</value></attribute>
                     <element name="JOB_NUM"><text/></element>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #24 Each Distributor to NCSA Foreman Ack Queue - Readout ACK -->
@@ -387,8 +361,8 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
                     <element name="ACK_ID"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                </interleave>
+               <optional><element name="COMMENT"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg#25 BASE Foreman to DMCS_consume Queue - Readout_Ack --> 
@@ -401,9 +375,8 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
-                    <element name="COMMENT"><text/></element>
-                    <optional><element name="COMMENT"><text/></element></optional>
                 </interleave> 
+                <optional><element name="COMMENT"><text/></element></optional>
             </element>
         </optional>
     </oneOrMore>
