@@ -207,7 +207,8 @@ class BaseForeman:
     
 
     def process_dmcs_new_job(self, params):
-        param_input = params
+        input_params = params
+        needed_workers = len(input_params[RAFTS])
         ack_id = self.forwarder_health_check(param_input)
         
         self.ack_timer(7)  # This is a HUGE number seconds for now...final setting will be milliseconds
@@ -304,6 +305,8 @@ class BaseForeman:
         dmcs_params[MSG_TYPE] = NEW_JOB_ACK
         dmcs_params[JOB_NUM] = job_num
         dmcs_params[ACK_BOOL] = False
+        dmcs_params['BASE_RESOURCES'] = False
+        dmcs_params['NCSA_RESOURCES'] = True
         dmcs_params[NEEDED_FORWARDERS] = str(needed_workers)
         dmcs_params[AVAILABLE_FORWARDERS] = str(num_healthy_forwarders)
         self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_params))
@@ -491,16 +494,6 @@ class BaseForeman:
 
         #cfg data map...
         cdm = yaml.safe_load(f)
-
-        try:
-            self._xfer_app = cdm[XFER_APP]
-        except KeyError as e:
-            pass #use default or await reassignment
-
-        try:
-            self._xfer_file = cdm[XFER_FILE]
-        except KeyError:
-            pass #use default or await reassignment
 
         return cdm
 
