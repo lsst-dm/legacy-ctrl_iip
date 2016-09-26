@@ -126,9 +126,6 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
-                    <element name="BASE_RESOURCES"><data type="boolean"/></element>
-                    <element name="NCSA_RESOURCES"><data type="boolean"/></element>
-                    <element name="NCSA_RESPONSE"><data type="boolean"/></element>
                     <element name="AVAILABLE_DISTRIBUTORS"><text/></element>
                     <element name="AVAILABLE_WORKERS"><text/></element>
                     <element name="ACK_ID"><text/></element>
