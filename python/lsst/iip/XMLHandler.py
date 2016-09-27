@@ -2,10 +2,16 @@ from lxml import etree
 from const import *
 from copy import deepcopy 
 import yaml
+import sys
+
 
 class XMLHandler:
     def __init__(self, callback=None):
-        self._schemafile = open("schema/relaxSchema.xml")
+        try:
+            self._schemafile = open("schema/relaxSchema.xml")
+        except IOError:
+            print "Cannot open schema file"
+            sys.exit(96)
         self._schemadoc = etree.parse(self._schemafile)
         self._schemaNG = etree.RelaxNG(self._schemadoc)
         self._consumer_callback = callback

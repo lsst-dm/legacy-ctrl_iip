@@ -15,6 +15,8 @@ class Scoreboard:
     """
 
     def persist_snapshot(self, connection, filename):
+        pass
+        """
         LOGGER.info('Saving Scoreboard Snapshot')
         rdb = filename + ".rdb" 
         self._redis.config_set("dbfilename", rdb)
@@ -34,7 +36,7 @@ class Scoreboard:
             else:
                 print("Waiting for current persistence to complete.")
                 time.sleep(10)
-    
+        """ 
 
 
 
