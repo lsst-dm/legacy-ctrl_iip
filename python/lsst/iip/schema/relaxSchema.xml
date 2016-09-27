@@ -27,41 +27,15 @@
         <!-- Msg #3 Base Foreman to DMCS New Job Ack -->
         <optional>
             <element name="message">
-               <optional><element name="COMMENT"><text/></element></optional>
                <interleave>
                     <attribute name="MSG_TYPE"><value>NEW_JOB_ACK</value></attribute> 
                     <element name="JOB_NUM"><text/></element>
-                    <interleave> 
-                        <choice>
-                            <element name="ACK_BOOL">
-                                <attribute name="ack_bool_true"><value>true</value></attribute>
-                            </element>
-                            <group>
-                                <interleave> 
-                                    <element name="ACK_BOOL">
-                                        <attribute name="ack_bool_false"><value>false</value></attribute>
-                                        <attribute name="base_resources_false"><value>false</value></attribute>
-                                    </element>
-                                    <element name="NEEDED_FORWARDERS"><text/></element>
-                                    <element name="AVAILABLE_FORWARDERS"><text/></element>
-                                </interleave>
-                            </group> 
-                            <group>
-                                <interleave> 
-                                    <element name="ACK_BOOL">
-                                        <attribute name="ack_bool_false"><value>false</value></attribute>
-                                        <attribute name="base_resources_true"><value>true</value></attribute>
-                                        <attribute name="ncsa_resources_false"><value>false</value></attribute>
-                                    </element>
-                                    <element name="NEEDED_DISTRIBUTORS"><text/></element>
-                                    <element name="AVAILABLE_DISTRIBUTORS"><text/></element>
-                                    <element name="NEEDED_WORKERS"><text/></element>
-                                    <element name="AVAILABLE_WORKERS"><text/></element> 
-                                </interleave> 
-                            </group> 
-                        </choice>
-                    </interleave>
+                    <choice>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                        <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
+                    </choice> 
                </interleave> 
+               <optional><element name="COMMENT"><text/></element></optional>
            </element> 
         </optional>
         <!-- Msg #4 Base Foreman to EACH Forwarder's consume queue - Send Parameters for Transfer  -->
@@ -126,8 +100,6 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice>
-                    <element name="AVAILABLE_DISTRIBUTORS"><text/></element>
-                    <element name="AVAILABLE_WORKERS"><text/></element>
                     <element name="ACK_ID"><text/></element>
                     <element name="PAIRS"><text/></element>
                </interleave>
