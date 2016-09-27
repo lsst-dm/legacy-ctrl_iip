@@ -30,6 +30,7 @@
                <interleave>
                     <attribute name="MSG_TYPE"><value>NEW_JOB_ACK</value></attribute> 
                     <element name="JOB_NUM"><text/></element>
+                    <element name="ACK_ID"><text/></element>
                     <choice>
                         <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
