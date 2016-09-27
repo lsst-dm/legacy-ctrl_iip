@@ -36,6 +36,7 @@
                     </choice> 
                </interleave> 
                <optional><element name="COMMENT"><text/></element></optional>
+               <optional><element name="FAIL_DETAILS"><text/></element></optional>
            </element> 
         </optional>
         <!-- Msg #4 Base Foreman to EACH Forwarder's consume queue - Send Parameters for Transfer  -->
@@ -104,6 +105,7 @@
                     <element name="PAIRS"><text/></element>
                </interleave>
                <optional><element name="COMMENT"><text/></element></optional>
+               <optional><element name="FAIL_DETAILS"><text/></element></optional>
            </element>
         </optional>
         <!-- Msg #9: NCSA Foreman to EACH Distributor's consume queue - Health Check  -->
