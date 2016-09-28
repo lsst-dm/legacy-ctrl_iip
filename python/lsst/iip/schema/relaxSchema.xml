@@ -35,9 +35,9 @@
                         <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
                         <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                     </choice> 
+                   <optional><element name="COMMENT"><text/></element></optional>
+                   <optional><element name="FAIL_DETAILS"><text/></element></optional>
                </interleave> 
-               <optional><element name="COMMENT"><text/></element></optional>
-               <optional><element name="FAIL_DETAILS"><text/></element></optional>
            </element> 
         </optional>
         <!-- Msg #4 Base Foreman to EACH Forwarder's consume queue - Send Parameters for Transfer  -->
