@@ -36,7 +36,7 @@ class Consumer(object):
     QUEUE = 'text'
     ROUTING_KEY = 'example.text'
 
-    def __init__(self, amqp_url, queue, formatOptions=None):
+    def __init__(self, amqp_url, queue, exchange_type=EXCHANGE_TYPE,  formatOptions=None):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -54,6 +54,7 @@ class Consumer(object):
         self.ROUTING_KEY = queue
         self._xml_handler = None 
         self._format_options = formatOptions
+        self.EXCHANGE_TYPE = exchange_type
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.

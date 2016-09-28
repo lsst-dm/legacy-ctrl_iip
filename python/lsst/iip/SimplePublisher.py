@@ -6,7 +6,6 @@ import toolsmod
 from toolsmod import L1Exception
 from toolsmod import L1MessageError
 from XMLHandler import * 
-from Exceptions import * 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -17,7 +16,7 @@ class SimplePublisher:
 
   EXCHANGE = 'message'
 
-  def __init__(self, amqp_url):
+  def __init__(self, amqp_url, formatOptions="XML"):
 
     self._connection = None
     self._channel = None
@@ -26,6 +25,7 @@ class SimplePublisher:
     self._url = amqp_url
     self._closing = False
     self._xml_handler = None
+    self._format_options = formatOptions
 
     try:
        self.connect()
@@ -51,18 +51,21 @@ class SimplePublisher:
 
     LOGGER.debug ("Sending msg to %s", route_key)
 
-    self._xml_handler = XMLHandler()
-    try:
-        xmlRoot = self._xml_handler.encodeXML(msg)
-        valid = self._xml_handler.validate(xmlRoot)
-        if valid: 
-            xmlMsg = self._xml_handler.tostring(xmlRoot)
-            self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=xmlMsg)
-        else: 
+    if self._format_options == "XML": 
+        self._xml_handler = XMLHandler()
+        try:
+            xmlRoot = self._xml_handler.encodeXML(msg)
+            valid = self._xml_handler.validate(xmlRoot)
+            if valid: 
+                xmlMsg = self._xml_handler.tostring(xmlRoot)
+                self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=xmlMsg)
+            else: 
+                raise L1MessageError("Message is invalid XML.")
+        except L1MessageError, e:
+            print("Error: %s" % e.errormsg)
+            print "Message body to be published is: %s" % msg
+            print "++++++++++++++++++++++++++++++++"
+            print "XML Version of message is %s" % xmlRoot
             raise L1MessageError("Message is invalid XML.")
-    except L1MessageError, e:
-        print("Error: %s" % e.errormsg)
-        print "Message body to be published is: %s" % msg
-        print "++++++++++++++++++++++++++++++++"
-        print "XML Version of message is %s" % xmlRoot
-        raise L1MessageError("Message is invalid XML.")
+    else: 
+        self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=msg)

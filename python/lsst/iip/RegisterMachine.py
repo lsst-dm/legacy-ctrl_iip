@@ -3,12 +3,12 @@ import subprocess
 import yaml
 from Consumer import *
 from SimplePublisher import *
+from Helper import read_yaml
             
 class RegisterMachine:
     """ FoodForThought: 
         1. We should have helper class like read_yaml, which is repeated everywhere
-        2. GLOBAL VARIABLE should be moved to a single file
-        3. guest useraccount cannot be used coz guest can connect only via localhost
+        2. guest useraccount cannot be used coz guest can connect only via localhost
 
         Running: 
         * RegisterForeman has to run first, so that consumer does declare_q, bind_q
@@ -22,16 +22,13 @@ class RegisterMachine:
         TODO: 
         1. 
     """ 
-    CONSUME_QUEUE = "responding_ack"
-    PUBLISH_QUEUE = "registering_machine"
-    BROKER_ADDR = "141.142.208.241/%2fregi"
-    BROKER_USRNAME = "REGI"
-    BROKER_PASSWD = "REGI"
-
     def __init__(self): 
-        self._broker_username = self.BROKER_USRNAME 
-        self._broker_password = self.BROKER_PASSWD
-        self._broker_addr = self.BROKER_ADDR 
+        cfg = read_yaml("Registration.cfg") 
+        self._broker_username = cfg["BROKER_USERNAME"] 
+        self._broker_password = cfg["BROKER_PASSWORD"]
+        self._broker_addr = cfg["BROKER_ADDR"] 
+        self._publish_queue = cfg["PUBLISH_QUEUE"]
+        self._consume_queue = cfg["CONSUME_QUEUE"] 
         self._amqpurl = "amqp://" + self._broker_username + ":" + self._broker_password + "@" + self._broker_addr
         self._hostname = self.get_hostname()
         self._ip_addr = self.get_ip_addr()
@@ -46,7 +43,7 @@ class RegisterMachine:
         self._publisher = SimplePublisher(self._amqpurl, "yaml")
 
     def setup_consumer(self): 
-        self._consumer = Consumer(self._amqpurl, self.CONSUME_QUEUE) 
+        self._consumer = Consumer(self._amqpurl, self._consume_queue) 
 
     def get_hostname(self): 
         # Remove the trailing \n
@@ -62,7 +59,7 @@ class RegisterMachine:
         machine_info = {}
         machine_info["HOSTNAME"] = self._hostname
         machine_info["IP_ADDR"] = self._ip_addr
-        self._publisher.publish_message(self.PUBLISH_QUEUE, yaml.dump(machine_info))
+        self._publisher.publish_message(self._publish_queue, yaml.dump(machine_info))
         print("[x] Message Sent.")
     
     def consume_info(self): 
