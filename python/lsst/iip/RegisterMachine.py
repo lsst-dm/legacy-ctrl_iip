@@ -6,22 +6,6 @@ from SimplePublisher import *
 from Helper import read_yaml
             
 class RegisterMachine:
-    """ FoodForThought: 
-        1. We should have helper class like read_yaml, which is repeated everywhere
-        2. guest useraccount cannot be used coz guest can connect only via localhost
-
-        Running: 
-        * RegisterForeman has to run first, so that consumer does declare_q, bind_q
-        * Logging level is set to CRITICAL. There is warning for shutting down, but won't show up.
-
-        Assumption: 
-        * broker is at 141.142.208.241 and vhost regi is created beforehand
-        * "hostname" command works // can use socket.gethostname() instead
-        * "hostname -I" command works // a workaround maybe using socket package(python built-in)
-        
-        TODO: 
-        1. 
-    """ 
     def __init__(self): 
         cfg = read_yaml("Registration.cfg") 
         self._broker_username = cfg["BROKER_USERNAME"] 
@@ -36,14 +20,10 @@ class RegisterMachine:
         self.setup_consumer() 
     
     def setup_publisher(self): 
-        """ SimplePublisher might want to change to include exchange name
-            so that we can use different exchange instead of message
-            probably we should be fine since we are using different vhost
-        """ 
-        self._publisher = SimplePublisher(self._amqpurl, "yaml")
+        self._publisher = SimplePublisher(self._amqpurl, formatOptions="yaml")
 
     def setup_consumer(self): 
-        self._consumer = Consumer(self._amqpurl, self._consume_queue) 
+        self._consumer = Consumer(self._amqpurl, self._consume_queue)
 
     def get_hostname(self): 
         # Remove the trailing \n
@@ -67,8 +47,11 @@ class RegisterMachine:
 
     def callback_consumer(self, ch, method, properties, body): 
         SN = yaml.load(body)
+        print("[x] Msg Received. %r" % body)
         if (SN["IP_ADDR"] == self._ip_addr): 
-            print("[x] Msg Received. %r" % body)
+            # stop_consuming is a better method, but consumer won't let me.
+            # future implementation should uses stop consuming
+            self._consumer.acknowledge_message(method.delivery_tag)
             self._consumer.stop()
 
     def register(self): 
@@ -76,7 +59,7 @@ class RegisterMachine:
         self.consume_info()
 
 def main(): 
-    logging.basicConfig(level=logging.CRITICAL)
+    logging.basicConfig(level=logging.ERROR)
     machine = RegisterMachine()
     machine.register() 
 

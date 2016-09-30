@@ -16,7 +16,7 @@ class SimplePublisher:
 
   EXCHANGE = 'message'
 
-  def __init__(self, amqp_url, formatOptions="XML"):
+  def __init__(self, amqp_url, exchange=EXCHANGE, formatOptions="XML"):
 
     self._connection = None
     self._channel = None
@@ -25,6 +25,7 @@ class SimplePublisher:
     self._url = amqp_url
     self._closing = False
     self._xml_handler = None
+    self.EXCHANGE = exchange
     self._format_options = formatOptions
 
     try:
