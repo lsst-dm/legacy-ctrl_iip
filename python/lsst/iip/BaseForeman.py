@@ -72,7 +72,8 @@ class BaseForeman:
                               'NCSA_READOUT_ACK': self.process_ack,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
-                              'FORWARDER_READOUT_ACK': self.process_ack }
+                              'FORWARDER_READOUT_ACK': self.process_ack,
+                              'NEW_JOB_ACK': self.process_ack }
 
 
         self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
@@ -211,14 +212,14 @@ class BaseForeman:
         needed_workers = len(input_params[RAFTS])
         ack_id = self.forwarder_health_check(param_input)
         
-        self.ack_timer(7)  # This is a HUGE number seconds for now...final setting will be milliseconds
+        self.ack_timer(7)  # This is a HUGE num seconds for now..final setting will be milliseconds
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
         healthy_status = {"STATUS": "HEALTHY", "STATE":"READY_WITHOUT_PARAMS"}
         self.FWD_SCBD.set_forwarder_params(healthy_forwarders, healthy_status)
 
         num_healthy_forwarders = len(healthy_forwarders)
         if needed_workers > num_healthy_forwarders:
-            result = self.insufficient_base_resources(input_params, num_healthy_forwarders)
+            result = self.insufficient_base_resources(input_params, healthy_forwarders)
             return result
         else:
             ack_id = self.ncsa_resources_query(input_params, healthy_forwarders)
@@ -295,21 +296,27 @@ class BaseForeman:
         return timed_ack
 
 
-    def insufficient_base_resources(self, params, num_healthy_forwarders):
+    def insufficient_base_resources(self, params, healthy_forwarders):
+        print "### IN insufficient_base_resources, AND PARAMS ARE: %s" %  params
+        print "### DONE WITH PARAMS"
         # send response msg to dmcs refusing job
         job_num = str(params[JOB_NUM])
         raft_list = params[RAFTS]
+        ack_id = params['ACK_ID']
         needed_workers = len(raft_list)
         LOGGER.info('Reporting to DMCS that there are insufficient healthy forwarders for job #%s', job_num)
         dmcs_params = {}
+        fail_dict = {}
         dmcs_params[MSG_TYPE] = NEW_JOB_ACK
         dmcs_params[JOB_NUM] = job_num
         dmcs_params[ACK_BOOL] = False
-        dmcs_params['BASE_RESOURCES'] = False
-        dmcs_params['NCSA_RESOURCES'] = True
-        dmcs_params[NEEDED_FORWARDERS] = str(needed_workers)
-        dmcs_params[AVAILABLE_FORWARDERS] = str(num_healthy_forwarders)
-        self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_params))
+        dmcs_params[ACK_ID] = ack_id
+        fail_dict['BASE_RESOURCES'] = False
+        fail_dict['NCSA_RESOURCES'] = True
+        fail_dict[NEEDED_FORWARDERS] = str(needed_workers)
+        fail_dict[AVAILABLE_FORWARDERS] = str(len(healthy_forwarders))
+        #dmcs_params['FAIL_DETAILS'] = yaml.dump(fail_dict)
+        self._publisher.publish_message("dmcs_consume", dmcs_params)
         # mark job refused, and leave Forwarders in Idle state
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "JOB_ABORTED")
         self.JOB_SCBD.set_value_for_job(job_num, "JOB_ABORTED_TIME", get_timestamp())
@@ -488,7 +495,7 @@ class BaseForeman:
         try:
             f = open(filename)
         except IOError:
-            print "Cant open ForemanCfg.yaml"
+            print "Cant open %s" % filename
             print "Bailing out..."
             sys.exit(99)
 

@@ -176,8 +176,6 @@ def test_ncsa_resources_query(fman):
     assert details['AVAILABLE_FORWARDERS'] == available_forwarders
     assert details['JOB_NUM'] == str(7)
 
-def test_ncsa_resources_query(fman):
-    pass
 
 def test_distribute_job_params(fman):
     pass

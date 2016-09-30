@@ -63,6 +63,5 @@ class SimplePublisher:
     except L1MessageError, e:
         print("Error: %s" % e.errormsg)
         print "Message body to be published is: %s" % msg
-        print "++++++++++++++++++++++++++++++++"
         print "XML Version of message is %s" % xmlRoot
         raise L1MessageError("Message is invalid XML.")
