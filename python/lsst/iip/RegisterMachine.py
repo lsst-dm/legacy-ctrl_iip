@@ -1,4 +1,5 @@
 import logging
+logging.basicConfig(level=logging.ERROR)
 import subprocess
 import yaml
 from Consumer import *
@@ -6,6 +7,10 @@ from SimplePublisher import *
 from Helper import read_yaml
             
 class RegisterMachine:
+    """ Notes:
+        callback_consumer: stop_consuming is a better method but Consumer doesn't let me do
+    """ 
+    INFO = None
     def __init__(self): 
         cfg = read_yaml("Registration.cfg") 
         self._broker_username = cfg["BROKER_USERNAME"] 
@@ -42,26 +47,20 @@ class RegisterMachine:
         self._publisher.publish_message(self._publish_queue, yaml.dump(machine_info))
         print("[x] Message Sent.")
     
-    def consume_info(self): 
+    def run_consumer(self): 
         self._consumer.run(self.callback_consumer)
 
     def callback_consumer(self, ch, method, properties, body): 
         SN = yaml.load(body)
-        print("[x] Msg Received. %r" % body)
         if (SN["IP_ADDR"] == self._ip_addr): 
-            # stop_consuming is a better method, but consumer won't let me.
-            # future implementation should uses stop consuming
+            print("[x] Msg Received. %r" % body)
             self._consumer.acknowledge_message(method.delivery_tag)
+            self.INFO = body
             self._consumer.stop()
+        
+    def return_listener(self): 
+        return yaml.load(self.INFO)
 
     def register(self): 
         self.publish_info()
-        self.consume_info()
-
-def main(): 
-    logging.basicConfig(level=logging.ERROR)
-    machine = RegisterMachine()
-    machine.register() 
-
-if __name__ == "__main__": 
-    main() 
+        self.run_consumer() 
