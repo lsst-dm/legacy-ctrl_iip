@@ -42,6 +42,7 @@ class RegisterMachine:
 
     def publish_info(self): 
         machine_info = {}
+        machine_info["MSG_TYPE"] = "REGISTERING_MACHINE"
         machine_info["HOSTNAME"] = self._hostname
         machine_info["IP_ADDR"] = self._ip_addr
         self._publisher.publish_message(self._publish_queue, yaml.dump(machine_info))
@@ -55,11 +56,21 @@ class RegisterMachine:
         if (SN["IP_ADDR"] == self._ip_addr): 
             print("[x] Msg Received. %r" % body)
             self._consumer.acknowledge_message(method.delivery_tag)
-            self.INFO = body
+            self.INFO = yaml.load(body)
             self._consumer.stop()
+            self.send_ack()
+    
+    def send_ack(self): 
+        ack = {}
+        ack["MSG_TYPE"] = "REGISTRATION_COMPLETE_ACK"
+        ack["FQN"] = self.INFO["FQN"]
+        ack["IP_ADDR"] = self.INFO["IP_ADDR"]
+        ack["HOSTNAME"] = self.INFO["HOSTNAME"]
+        self._publisher.publish_message(self._publish_queue, yaml.dump(ack))
+        print("[x] Ack Sent.")
         
     def return_listener(self): 
-        return yaml.load(self.INFO)
+        return self.INFO
 
     def register(self): 
         self.publish_info()

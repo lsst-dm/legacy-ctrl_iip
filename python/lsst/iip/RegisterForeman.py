@@ -1,24 +1,24 @@
+import threading
 import subprocess
 import random
 import logging
 from SimplePublisher import * 
 from Consumer import * 
+from Helper import read_yaml 
 
 logging.basicConfig()
 class RegisterForeman: 
-    BROKER_USRNAME = "NCSA_FM"
-    BROKER_PASSWD = "NCSA_FM"
-    BROKER_ADDR = "141.142.208.241/%2fregi"
-    CONSUME_QUEUE = "registering_machine"
-    PUBLISH_QUEUE = "responding_ack"
-    EXCHANGE = "register_msg"
     MACHINES = [] 
     SEED = 1
 
     def __init__(self, machineType, scoreboard): 
-        self._broker_username = self.BROKER_USRNAME
-        self._broker_password = self.BROKER_PASSWD
-        self._broker_addr = self.BROKER_ADDR
+        cfg = read_yaml("Registration.cfg")
+        self._broker_username = cfg["BROKER_USERNAME"]
+        self._broker_password = cfg["BROKER_PASSWORD"]
+        self._broker_addr = cfg["BROKER_ADDR"]
+        self._publish_queue = cfg["CONSUME_QUEUE"]
+        self._consume_queue = cfg["PUBLISH_QUEUE"]
+        self._exchange = cfg["EXCHANGE"]
         self._amqpurl = "amqp://" + self._broker_username + ":" + self._broker_password + "@" + self._broker_addr
         self._machine_type = machineType
         self._scoreboard = scoreboard
@@ -28,10 +28,10 @@ class RegisterForeman:
         self.setup_consumer()
 
     def setup_publisher(self): 
-        self._publisher = SimplePublisher(self._amqpurl, exchange=self.EXCHANGE, formatOptions="yaml")  
+        self._publisher = SimplePublisher(self._amqpurl, exchange=self._exchange, formatOptions="yaml")  
 
     def setup_consumer(self): 
-        self._consumer = Consumer(self._amqpurl, self.CONSUME_QUEUE)
+        self._consumer = Consumer(self._amqpurl, self._consume_queue)
     
     def run_consumer(self): 
         self._consumer.run(self.callback_consumer) 
@@ -47,17 +47,24 @@ class RegisterForeman:
     def callback_consumer(self, ch, method, properties, body): 
         print("[x] Message Received %r " % body)
         self._consumer.acknowledge_message(method.delivery_tag)
-        sqn = self.get_sequence_info(body)
-        params = { "STATE": "REGISTERING", "STATUS": "UNKNOWN" }
-        params.update(sqn) # works as long as sqn does not contain STATE and STATUS fields
-        action = self._scoreboard_action.get(self._machine_type)
-        action(sqn["FQN"], params)
-        self.publisher_info(sqn)
+        msg = yaml.load(body)
+        if msg["MSG_TYPE"] == "REGISTERING_MACHINE": 
+            sqn = self.get_sequence_info(msg)
+            params = { "STATE": "REGISTERING", "STATUS": "UNKNOWN" }
+            params.update(sqn) # works as long as sqn does not contain STATE and STATUS fields
+            action = self._scoreboard_action.get(self._machine_type)
+            action(sqn["FQN"], params)
+            self.publisher_info(sqn)
+        elif msg["MSG_TYPE"] == "REGISTRATION_COMPLETE_ACK": 
+            params = { "STATE": "HEALTHY", "STATUS": "IDLE" }
+            action = self._scoreboard_action.get(self._machine_type)
+            action( msg["FQN"], params)
+            print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 
     def publisher_info(self, sequence_info): 
         print("[x] Sent message is %r"% yaml.dump(sequence_info))
         self.setup_account(sequence_info) 
-        self._publisher.publish_message(self.PUBLISH_QUEUE, yaml.dump(sequence_info))
+        self._publisher.publish_message(self._publish_queue, yaml.dump(sequence_info))
         print "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     
     def setup_account(self, body): 
@@ -65,7 +72,6 @@ class RegisterForeman:
         subprocess.call(["sudo", "rabbitmqctl", "set_permissions", "-p", "/bunny", body["USRNAME"], ".*", ".*", ".*"])
 
     def get_sequence_info(self, machine_info): 
-        machine_info = yaml.load(machine_info)
         sequence_number = self.generate_random()
         account = self._machine_type[0] + "_" + str(sequence_number)
         SN = {}
@@ -92,4 +98,4 @@ class RegisterForeman:
         return self.generate_random_number(1)
     
     def run(self): 
-        self.run_consumer()  
+        self.run_consumer()
