@@ -70,7 +70,7 @@ class XMLHandler:
         pydict["MSG_TYPE"] = rootNode[0].get("MSG_TYPE") 
         for node in rootNode.iter():
             if node.text != None: 
-                pydict[node.tag] = int(node.text) if node.text.isdigit() else node.text
+                pydict[node.tag] = node.text
             elif node.tag == "ACK_BOOL": 
                 attr = node.attrib
                 for kee,value in attr.items():
