@@ -1,5 +1,3 @@
-#import pdb
-#pdb.set_trace()
 import pika
 import redis
 import yaml
@@ -63,26 +61,48 @@ PUB = None
 
 def setup_publisher(broker_url):
     PUB = SimplePublisher(broker_url)
-#    #publisher = SimplePublisher(broker_url)
-#    return True
+    #publisher = SimplePublisher(broker_url)
+    return True
 
-def on_insufficient_base_message(ch, method, properties, body):
+def on_ncsa_resources_query(ch, method, properties, body):
     base_broker_url = "amqp://" + "TesT" + ":" + "TesT" + "@" + "141.142.208.191:5672/%2ftester"
+    pub = SimplePublisher(base_broker_url)
     msg_dict = body
-#    details_dict = msg_dict['FAIL_DETAILS']
-    timed_ack = msg_dict[ACK_ID]
-    job_num = msg_dict[JOB_NUM]
+    forwarder_dict = msg_dict['FORWARDERS']
+    try:
+        f = open('ForemanCfgTest.yaml')
+    except IOError:
+        print "Can't open ForemanCfgTest.yaml"
+        print "Bailing out on test_forwarder_check_health..."
+        sys.exit(99)
+
+    distributors = cdm['ROOT']['XFER_COMPONENTS']['DISTRIBUTORS']
+    pairs = {}
+    keez = forwarder_dict.keys()
+    dee_keez = distributors.keys()
+    num_forwarders = len(keez)
+    for i in range (0, num_forwarders):
+        mini_dict = {}
+        distributor = distributors[dee_keez[i]]
+        mini_dict['FQN'] = distributor
+        mini_dict['NAME'] = distributor['NAME']
+        mini_dict['HOSTNAME'] = distributor['HOSTNAME']
+        mini_dict['IP_ADDR'] = distributor['IP_ADDR']
+        mini_dict['TARGET_DIR'] = distributor['TARGET_DIR']
+        mini_dict['RAFT'] = forwarders_dict[keez[i]]
+        pairs[keez[i]] = mini_dict
+    
+
+    timed_ack = msg_dict["ACK_ID"]
     msg_params = {}
-    msg_params['MSG_TYPE'] = NEW_JOB_ACK
-    msg_params[JOB_NUM] = job_num
-    msg_params[ACK_BOOL] = False
-    msg_params[ACK_ID] = timed_ack
-    msg_params[COMPONENT_NAME] = 'BASE' 
-#    msg_params['FAIL_DETAILS'] = details_dict
-    #msg_params['COMMENT'] = "INSIDE MESSAGE HEADED TO ACK_PUBLISH QUEUE"
-    #publisher.publish_message("ack_publish", msg_params)
-    ackie = AckScoreboard()
-    ackie.add_timed_ack(msg_params)
+    msg_params['MSG_TYPE'] = 'NCSA_RESOURCES_QUERY_ACK'
+    msg_params['JOB_NUM'] = msg_dict[JOB_NUM]
+    msg_params['ACK_BOOL'] = True
+    msg_params['ACK_ID'] = msg_dict[ACK_ID]
+    msg_params['COMPONENT_NAME'] = 'NCSA_FOREMAN'
+    msg_params['PAIRS'] = pairs
+    msg_params['COMMENT'] = yaml.dump(msg_dict)
+    publisher.publish_message("ack_publish", msg_params)
 
 
 def run_consumer(threadname, delay, adict):
@@ -99,11 +119,10 @@ def setup_consumer(base_broker_url, Q, format, callback):
         sys.exit(101)
 
 
-def test_insufficient_base_resources(fman):
+def test_ncsa_resources_query(fman):
     os.system('rabbitmqctl -p /tester purge_queue f_consume')
     os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
     os.system('rabbitmqctl -p /tester purge_queue ack_publish')
-    os.system('rabbitmqctl -p /tester purge_queue dmcs_consume')
     try:
         f = open('ForemanCfgTest.yaml')
     except IOError:
@@ -112,52 +131,51 @@ def test_insufficient_base_resources(fman):
         sys.exit(99)
 
     cdm = yaml.safe_load(f)
-    number_of_rafts = int(cdm[ROOT][NUMBER_OF_PAIRS])
-    base_broker_address = cdm[ROOT][BASE_BROKER_ADDR]
-    name = cdm[ROOT][BROKER_NAME]
-    passwd = cdm[ROOT][BROKER_PASSWD]
+    number_of_pairs = cdm['ROOT']['NUMBER_OF_PAIRS']
+    base_broker_address = cdm['ROOT']['BASE_BROKER_ADDR']
+    ncsa_broker_address = cdm['ROOT']['NCSA_BROKER_ADDR']
+    name = cdm['ROOT']['BROKER_NAME']
+    passwd = cdm['ROOT']['BROKER_PASSWD']
+    forwarders = cdm['ROOT']['XFER_COMPONENTS']['FORWARDERS']
+    close(f)
+
     base_broker_url = "amqp://" + name + ":" + passwd + "@" + str(base_broker_address)
-    #setup_publisher(base_broker_url)
-    setup_consumer(base_broker_url, 'dmcs_consume', 'XML', on_insufficient_base_message)
+    base_broker_url = "amqp://" + name + ":" + passwd + "@" + str(base_broker_address)
     setup_publisher(base_broker_url)
-    raft_list = cdm[ROOT][RAFT_LIST]
-    forwarders = cdm[ROOT][XFER_COMPONENTS][FORWARDERS].keys()
+    setup_consumer(ncsa_broker_url, 'ncsa_consume', 'XML', on_ncsa_resources_query)
 
     #The test cfg file includes a list of all 21 rafts in non-consecutive order
     #The NUMBER_OF_PAIRS param is used to generate a sublist of above
-    needed_forwarders = number_of_rafts - 1
-    available_forwarders = needed_forwarders - 1
+    needed_forwarders = number_of_pairs - 1
     L = []
-    fwdrs = []
-    for i in range (0, (needed_forwarders)):
-        L.append(raft_list[i])
-    for i in range (0, (available_forwarders)):
-        fwdrs.append(forwarders[i])
+    for i in range (0, (number_of_pairs)):
+        L.append(cdm['ROOT']['RAFT_LIST'][i])
 
-    acker = "LLLL_X_42"
+    acker = str(44)
     params = {}
-    params[MSG_TYPE] = 'NEW_JOB'
-    params[JOB_NUM] = str(7)
-    params[ACK_ID] = acker
-    params[RAFTS] = L
+    params['MSG_TYPE'] = 'NEW_JOB'
+    params['JOB_NUM'] = str(7)
+    params['ACK_ID'] = acker
+    params['RAFTS'] = L
 
-    fman.insufficient_base_resources(params, fwdrs)
+    available_forwarders = number_of_pairs
+
+    fman.ncsa_resources_query(params, available_forwarders)
+
     sleep(6)
-    ack_responses = fman.ACK_SCBD.get_components_for_timed_ack(acker)
-    print ack_responses
 
+    #Fix below for new test......
+    ack_responses = fman.ACK_SCBD.get_components_for_timed_ack(acker)
 
     assert len(ack_responses) == 1
-    assert ack_responses['BASE'][ACK_BOOL] == False
+    assert ack_responses[acker]['ACK_BOOL'] == False
 
-    #details = yaml.load(ack_responses[acker]['BASE']['FAIL_DETAILS'])
+    details = ack_responses[acker]['COMMENT']
 
-    #assert details['NEEDED_FORWARDERS'] == str(needed_forwarders)
-    #assert details['AVAILABLE_FORWARDERS'] == str(available_forwarders)
-    assert str(ack_responses['BASE']['JOB_NUM']) == str(7)
+    assert details['NEEDED_FORWARDERS'] == needed_forwarders
+    assert details['AVAILABLE_FORWARDERS'] == available_forwarders
+    assert details['JOB_NUM'] == str(7)
 
-def test_ncsa_resources_query(fman):
-    pass
 
 def test_distribute_job_params(fman):
     pass
