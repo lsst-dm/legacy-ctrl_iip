@@ -117,7 +117,6 @@ def test_insufficient_base_resources(fman):
     name = cdm[ROOT][BROKER_NAME]
     passwd = cdm[ROOT][BROKER_PASSWD]
     base_broker_url = "amqp://" + name + ":" + passwd + "@" + str(base_broker_address)
-    print "IN TestCASE METHOd, BASE_BROker_url is %s" % base_broker_url
     #setup_publisher(base_broker_url)
     setup_consumer(base_broker_url, 'dmcs_consume', 'XML', on_insufficient_base_message)
     setup_publisher(base_broker_url)

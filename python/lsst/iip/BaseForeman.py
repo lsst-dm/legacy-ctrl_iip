@@ -44,14 +44,13 @@ class BaseForeman:
         if filename == None:
             filename = self._default_cfg_file
 
-        self._name = 'FM'      # Message broker user & passwd
-        self._passwd = 'FM'   
-        self._base_broker_url = 'amqp_url'
-        self._ncsa_broker_url = 'amqp_url'
-        self._next_timed_ack_id = 0
- 
         cdm = self.intake_yaml_file(filename)
+
         try:
+            self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
+            self._base_passwd = cdm[ROOT][BASE_BROKER_PASSWD]   
+            self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
+            self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
@@ -59,6 +58,11 @@ class BaseForeman:
             print "Dictionary error"
             print "Bailing out..."
             sys.exit(99)
+
+        self._base_broker_url = 'amqp_url'
+        self._ncsa_broker_url = 'amqp_url'
+        self._next_timed_ack_id = 0
+
 
         # Create Redis Forwarder table with Forwarder info
 
@@ -76,14 +80,16 @@ class BaseForeman:
                               'NEW_JOB_ACK': self.process_ack }
 
 
-        self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
+        self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
+        self._ncsa_broker_url = "amqp://" + self._ncsa_name + ":" + self._ncsa_passwd + "@" + str(self._ncsa_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
+        LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
 
         self.setup_publishers()
         self.setup_consumers()
 
-        self._ncsa_broker_url = "" 
-        self.setup_federated_exchange()
+        #self._ncsa_broker_url = "" 
+        #self.setup_federated_exchange()
 
 
     def setup_consumers(self):
@@ -159,17 +165,15 @@ class BaseForeman:
     def setup_publishers(self):
         LOGGER.info('Setting up Base publisher on %s', self._base_broker_url)
         LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_broker_url)
-
-        self._publisher = SimplePublisher(self._base_broker_url)
+        self._base_publisher = SimplePublisher(self._base_broker_url)
         self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url)
-        #self._publisher.run() 
 
 
-    def setup_federated_exchange(self):
-        # Set up connection URL for NCSA Broker here.
-        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
-        LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
-        pass
+#    def setup_federated_exchange(self):
+#        # Set up connection URL for NCSA Broker here.
+#        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
+#        LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
+#        pass
 
 
     def on_dmcs_message(self, ch, method, properties, body):
@@ -288,7 +292,7 @@ class BaseForeman:
         
         for forwarder in forwarders:
             print "Publishing to %s" % forwarder
-            self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
+            self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             ack_params)
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
         self.JOB_SCBD.set_value_for_job(job_num, "BASE_RESOURCE_QUERY_TIME", get_timestamp())
@@ -297,8 +301,6 @@ class BaseForeman:
 
 
     def insufficient_base_resources(self, params, healthy_forwarders):
-        print "### IN insufficient_base_resources, AND PARAMS ARE: %s" %  params
-        print "### DONE WITH PARAMS"
         # send response msg to dmcs refusing job
         job_num = str(params[JOB_NUM])
         raft_list = params[RAFTS]
@@ -316,7 +318,7 @@ class BaseForeman:
         fail_dict[NEEDED_FORWARDERS] = str(needed_workers)
         fail_dict[AVAILABLE_FORWARDERS] = str(len(healthy_forwarders))
         #dmcs_params['FAIL_DETAILS'] = yaml.dump(fail_dict)
-        self._publisher.publish_message("dmcs_consume", dmcs_params)
+        self._base_publisher.publish_message("dmcs_consume", dmcs_params)
         # mark job refused, and leave Forwarders in Idle state
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "JOB_ABORTED")
         self.JOB_SCBD.set_value_for_job(job_num, "JOB_ABORTED_TIME", get_timestamp())
@@ -341,10 +343,10 @@ class BaseForeman:
         ncsa_params = {}
         ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY"
         ncsa_params[JOB_NUM] = job_num
-        ncsa_params[RAFT_NUM] = needed_workers
+        #ncsa_params[RAFT_NUM] = needed_workers
         ncsa_params[ACK_ID] = timed_ack_id
-        ncsa_params["FORWARDERS"] = forwarder_candidate_dict
-        self._ncsa_publisher.publish_message(NCSA_CONSUME, yaml.dump(ncsa_params)) 
+        ncsa_params["FORWARDERS"] = yaml.dump(forwarder_candidate_dict)
+        self._ncsa_publisher.publish_message(self.NCSA_CONSUME, ncsa_params) 
         LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
         LOGGER.info(forwarder_candidate_dict)
         return timed_ack_id
@@ -366,7 +368,7 @@ class BaseForeman:
         for fwder in fwders:
                 fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
                 route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
-                self._publisher.publish_message(route_key, yaml.dump(fwd_params))
+                self._base_publisher.publish_message(route_key, yaml.dump(fwd_params))
 
         return fwd_ack_id
 
@@ -376,7 +378,7 @@ class BaseForeman:
         dmcs_message[JOB_NUM] = job_num
         dmcs_message[MSG_TYPE] = NEW_JOB_ACK
         dmcs_message[ACK_BOOL] = True
-        self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message))
+        self._base_publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message))
         return True
 
 
@@ -392,7 +394,7 @@ class BaseForeman:
         dmcs_params[NEEDED_WORKERS] = ncsa_response[NEEDED_WORKERS]
         dmcs_params[AVAILABLE_WORKERS] = ncsa_response[AVAILABLE_WORKERS]
         #try: FIXME - catch exception
-        self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
+        self._base_publisher.publish_message("dmcs_consume", yaml.dump(dmcs_message) )
         #except L1MessageError e:
         #    return False
 
@@ -412,7 +414,7 @@ class BaseForeman:
                 dmcs_params[BASE_RESOURCES] = True
                 dmcs_params[NCSA_RESOURCES] = False
                 dmcs_params[NCSA_RESPONSE] = False
-                self._publisher.publish_message("dmcs_consume", yaml.dump(dmcs_params) )
+                self._base_publisher.publish_message("dmcs_consume", yaml.dump(dmcs_params) )
 
 
 
@@ -467,7 +469,7 @@ class BaseForeman:
                 dmcs_params[JOB_NUM] = job_number
                 dmcs_params['ACK_BOOL'] = False
                 dmcs_params['COMMENT'] = 'Readout Failed: Problem at NCSA - Expected Distributor Acks is %s, Number of Distributor Acks received is %s' % (ncsa_response['EXPECTED_DISTRIBUTOR_ACKS'], ncsa_response['RECEIVED_DISTRIBUTOR_ACKS'])
-                self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+                self._base_publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
                     
         else:
             #send 'no response from ncsa' to DMCS               )
@@ -476,7 +478,7 @@ class BaseForeman:
             dmcs_params[JOB_NUM] = job_number
             dmcs_params['ACK_BOOL'] = False
             dmcs_params['COMMENT'] = "Readout Failed: No Response from NCSA"
-            self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+            self._base_publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
                     
         
 
@@ -502,7 +504,10 @@ class BaseForeman:
         #cfg data map...
         cdm = yaml.safe_load(f)
 
+        f.close()
+
         return cdm
+
 
 
     def get_next_timed_ack_id(self, ack_type):
@@ -520,6 +525,8 @@ class BaseForeman:
         os.system('rabbitmqctl -p /tester purge_queue f_consume')
         os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
         os.system('rabbitmqctl -p /tester purge_queue ack_publish')
+        os.system('rabbitmqctl -p /tester purge_queue dmcs_consume')
+        os.system('rabbitmqctl -p /tester purge_queue ncsa_consume')
 
         os.system('rabbitmqctl -p /bunny purge_queue forwarder_publish')
         os.system('rabbitmqctl -p /bunny purge_queue ack_publish')
