@@ -282,8 +282,6 @@ class Consumer(object):
         
         LOGGER.info('Received message  %s', body)
 
-        print "Printing body: "
-        print body
         self.acknowledge_message(basic_deliver.delivery_tag)
 
     def acknowledge_message(self, delivery_tag):

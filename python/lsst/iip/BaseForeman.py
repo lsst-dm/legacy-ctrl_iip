@@ -71,7 +71,7 @@ class BaseForeman:
         self.ACK_SCBD = AckScoreboard()
         self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
                               'READOUT': self.process_dmcs_readout,
-                              'NCSA_RESOURCES_QUERY_ACK': self.process_ack,
+                              'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
                               'NCSA_STANDBY_ACK': self.process_ack,
                               'NCSA_READOUT_ACK': self.process_ack,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
@@ -291,7 +291,6 @@ class BaseForeman:
         ack_params[JOB_NUM] = job_num
         
         for forwarder in forwarders:
-            print "Publishing to %s" % forwarder
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             ack_params)
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
@@ -366,9 +365,9 @@ class BaseForeman:
         fwd_params[JOB_NUM] = job_num
         fwd_params[ACK_ID] = fwd_ack_id
         for fwder in fwders:
-                fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
-                route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
-                self._base_publisher.publish_message(route_key, yaml.dump(fwd_params))
+            fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
+            self._base_publisher.publish_message(route_key, yaml.dump(fwd_params))
 
         return fwd_ack_id
 

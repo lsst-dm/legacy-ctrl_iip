@@ -20,7 +20,6 @@ class SimplePublisher:
 
   def __init__(self, amqp_url):
 
-    print "In SimplePublisher init, amqp_url is %s" % amqp_url
     self._connection = None
     self._channel = None
     self._message_number = 0
@@ -42,13 +41,11 @@ class SimplePublisher:
       LOGGER.error('No channel - connection channel is None')
 
   def publish_message(self, route_key, msg):
-    print "In SimplePublisher publish_message, amqp_url is %s and route_key is %s" % (self._url, route_key)
     #if self._channel.is_closed == True:
-    if self._channel == None:
+    if self._channel == None or self._channel.is_closed == True:
        try:
          self.connect()
        except AMQPError, e:
-         print "e prints out as %s" % e 
          LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
          sys.exit(105)
 
@@ -64,7 +61,4 @@ class SimplePublisher:
         else: 
             raise L1MessageError("Message is invalid XML.")
     except L1MessageError, e:
-        print("Error: %s" % e.errormsg)
-        print "Message body to be published is: %s" % msg
-        print "XML Version of message is %s" % xmlRoot
         raise L1MessageError("Message is invalid XML.")
