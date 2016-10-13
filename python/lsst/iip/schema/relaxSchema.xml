@@ -36,7 +36,13 @@
                                 <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                             </choice> 
                            <optional><element name="COMMENT"><text/></element></optional>
-                           <optional><element name="FAIL_DETAILS"><text/></element></optional>
+                           <optional>
+                               <element name="FAIL_DETAILS">
+                                   <zeroOrMore>
+                                       <ref name="anyElement"/>
+                                   </zeroOrMore>
+                               </element>
+                           </optional>
                        </interleave> 
                    </element> 
                 </optional>
@@ -120,7 +126,13 @@
                                 </zeroOrMore>
                             </element>
                            <optional><element name="COMMENT"><text/></element></optional>
-                           <optional><element name="FAIL_DETAILS"><text/></element></optional>
+                           <optional>
+                               <element name="FAIL_DETAILS">
+                                   <zeroOrMore>
+                                       <ref name="anyElement"/>
+                                   </zeroOrMore>
+                               </element>
+                           </optional>
                        </interleave>
                    </element>
                 </optional>
@@ -287,21 +299,17 @@
                             <element name="COMPONENT_NAME"><text/></element>
                             <element name="ACK_ID"><text/></element>
                             <choice>
-                                <element name="ACK_BOOL">
-                                    <attribute name="ack_bool_true"><value>true</value></attribute>
-                                </element> 
-                                <group>
-                                    <interleave> 
-                                        <element name="ACK_BOOL"> 
-                                            <attribute name="ack_bool_false"><value>false</value></attribute>
-                                        </element> 
-                                        <element name="EXPECTED_DISTRIBUTOR_ACKS"><text/></element>
-                                        <element name="RECEIVED_DISTRIBUTOR_ACKS"><text/></element> 
-                                        <element name="MISSING_DISTRIBUTORS"><text/></element> 
-                                    </interleave> 
-                                </group>
+                                <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
+                                <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                             </choice>
                             <optional><element name="COMMENT"><text/></element></optional>
+                            <optional>
+                                <element name="FAIL_DETAILS">
+                                    <zeroOrMore>
+                                        <ref name="anyElement"/>
+                                    </zeroOrMore>
+                                </element>
+                            </optional>
                        </interleave>
                    </element>
                 </optional>
@@ -369,7 +377,14 @@
                                 <element name="ACK_BOOL"><attribute name="ack_bool_true"><value>true</value></attribute></element>
                                 <element name="ACK_BOOL"><attribute name="ack_bool_false"><value>false</value></attribute></element>
                             </choice>
-                             <optional><element name="COMMENT"><text/></element></optional>
+                            <optional><element name="COMMENT"><text/></element></optional>
+                            <optional>
+                                <element name="FAIL_DETAILS">
+                                    <zeroOrMore>
+                                        <ref name="anyElement"/>
+                                    </zeroOrMore>
+                                </element>
+                            </optional>
                         </interleave> 
                     </element>
                 </optional>
