@@ -41,7 +41,6 @@ class SimplePublisher:
       LOGGER.error('No channel - connection channel is None')
 
   def publish_message(self, route_key, msg):
-    #if self._channel.is_closed == True:
     if self._channel == None or self._channel.is_closed == True:
        try:
          self.connect()

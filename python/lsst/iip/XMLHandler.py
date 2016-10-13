@@ -100,7 +100,7 @@ class XMLHandler:
             else:
                 if len(node.attrib) != 0: 
                     ack_bool = next(val for kee, val in node.attrib.iteritems() if kee.startswith("ack_bool"))
-                    msgDict[node.tag] = bool(ack_bool)
+                    msgDict[node.tag] = True if ack_bool == "True" else False 
                 else:
                     msgDict[node.tag] = node.text
         return msgDict

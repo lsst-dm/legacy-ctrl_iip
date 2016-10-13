@@ -85,7 +85,7 @@ class AckScoreboard(Scoreboard):
       
         if self.check_connection():
             ack_msg_body['ACK_RETURN_TIME'] = get_timestamp()
-            self._redis.hset(ack_id_string, ack_msg_body['COMPONENT_NAME'], yaml.dump(ack_msg_body))
+            self._redis.hset(ack_id_string, ack_msg_body['COMPONENT_NAME'], ack_msg_body)
 
             # This next line builds a list of TIMED_ACK_IDs for use in unit tests and as a general 
             # component for printing out the entire scoreboard

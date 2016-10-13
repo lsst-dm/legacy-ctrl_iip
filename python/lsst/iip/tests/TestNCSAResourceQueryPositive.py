@@ -69,7 +69,7 @@ class TestNCSAResourceQueryPositive:
 
     def on_ncsa_resources_query(self, ch, method, properties, body):
         msg_dict = body
-        forwarder_dict = yaml.load(msg_dict['FORWARDERS'])
+        forwarder_dict = msg_dict['FORWARDERS']
 
         distributors = self.CDM['ROOT']['XFER_COMPONENTS']['DISTRIBUTORS']
         pairs = {}
@@ -93,7 +93,7 @@ class TestNCSAResourceQueryPositive:
         msg_params['ACK_BOOL'] = True
         msg_params['ACK_ID'] = self.ACK_REPLACEMENT
         msg_params['COMPONENT_NAME'] = 'NCSA_FOREMAN'
-        msg_params['PAIRS'] = yaml.dump(pairs)
+        msg_params['PAIRS'] = pairs
         self.PUB.publish_message("ack_publish", msg_params)
 
 
@@ -161,10 +161,5 @@ class TestNCSAResourceQueryPositive:
 
         assert len(ack_responses.keys()) == 1
         assert ack_responses['NCSA_FOREMAN']['ACK_BOOL'] == True
-        print "Ack return time is: %s" % ack_responses['NCSA_FOREMAN']['ACK_RETURN_TIME']
-        #assert ack_responses['NCSA_FOREMAN']['JOB_NUM'] == this_job_num
+        assert ack_responses['NCSA_FOREMAN']['JOB_NUM'] == this_job_num
 
-        #details = ack_responses[acker]['COMMENT']
-
-        #assert details['NEEDED_FORWARDERS'] == needed_forwarders
-        #assert details['AVAILABLE_FORWARDERS'] == available_forwarders

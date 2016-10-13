@@ -60,7 +60,7 @@ class TestNCSAResourceQueryNegative:
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
     PUB = None
-    ACK_REPLACEMENT = "22_ZZ"
+    ACK_REPLACEMENT = "22_AF"
     CDM = None
     test_broker_url = None
 
@@ -70,13 +70,20 @@ class TestNCSAResourceQueryNegative:
     def on_ncsa_resources_query(self, ch, method, properties, body):
         msg_dict = body
 
+        fail_dict = {}
+        needed_distributors = len(msg_dict[FORWARDERS].keys())
+        fail_dict['NEEDED_DISTRIBUTORS'] = str(needed_distributors)
+        fail_dict['AVAILABLE_DISTRIBUTORS'] = str(needed_distributors - 1) 
+        fail_dict['BASE_RESOURCES'] = '1'
+        fail_dict['NCSA_RESOURCES'] = '0'
         msg_params = {}
         msg_params['MSG_TYPE'] = 'NCSA_RESOURCE_QUERY_ACK'
         msg_params['JOB_NUM'] = msg_dict[JOB_NUM]
         msg_params['ACK_BOOL'] = False
         msg_params['ACK_ID'] = self.ACK_REPLACEMENT
         msg_params['COMPONENT_NAME'] = 'NCSA_FOREMAN'
-        msg_params['PAIRS'] = " "
+        #msg_params['FAIL_DETAILS'] = fail_dict
+        msg_params['PAIRS'] = {}  # Empty if insufficient resources
         self.PUB.publish_message("ack_publish", msg_params)
 
 
@@ -94,7 +101,7 @@ class TestNCSAResourceQueryNegative:
             sys.exit(101)
 
 
-    def test_ncsa_resources_query_positive(self, bf):
+    def test_ncsa_resources_query_negative(self, bf):
         os.system('rabbitmqctl -p /tester purge_queue f_consume')
         os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
         os.system('rabbitmqctl -p /tester purge_queue ack_publish')
@@ -140,14 +147,15 @@ class TestNCSAResourceQueryNegative:
 
         sleep(2)
 
+        #print ">>>>>>>>>>>>>>> Printing Ack Scoreboard <<<<<<<<<<<<<"
+        #bf.ACK_SCBD.print_all()
+        #print ">>>>>>>>>>>>>>> Printing Ack Scoreboard <<<<<<<<<<<<<"
         ack_responses = bf.ACK_SCBD.get_components_for_timed_ack(self.ACK_REPLACEMENT)
 
         assert len(ack_responses.keys()) == 1
         assert ack_responses['NCSA_FOREMAN']['ACK_BOOL'] == False
-        print "Ack return time is: %s" % ack_responses['NCSA_FOREMAN']['ACK_RETURN_TIME']
-        #assert ack_responses['NCSA_FOREMAN']['JOB_NUM'] == this_job_num
+        assert ack_responses['NCSA_FOREMAN']['JOB_NUM'] == this_job_num
 
-        #details = ack_responses[acker]['COMMENT']
-
-        #assert details['NEEDED_FORWARDERS'] == needed_forwarders
-        #assert details['AVAILABLE_FORWARDERS'] == available_forwarders
+        #details = ack_responses['NCSA_FOREMAN']['FAIL_DETAILS']
+        #assert details['NEEDED_DISTRIBUTORS'] == str(needed_forwarders)
+        #assert details['AVAILABLE_DISTRIBUTORS'] == str(needed_forrwarders - 1)
