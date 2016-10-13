@@ -82,7 +82,7 @@ class TestNCSAResourceQueryNegative:
         msg_params['ACK_BOOL'] = False
         msg_params['ACK_ID'] = self.ACK_REPLACEMENT
         msg_params['COMPONENT_NAME'] = 'NCSA_FOREMAN'
-        #msg_params['FAIL_DETAILS'] = fail_dict
+        msg_params['FAIL_DETAILS'] = fail_dict
         msg_params['PAIRS'] = {}  # Empty if insufficient resources
         self.PUB.publish_message("ack_publish", msg_params)
 
@@ -156,6 +156,6 @@ class TestNCSAResourceQueryNegative:
         assert ack_responses['NCSA_FOREMAN']['ACK_BOOL'] == False
         assert ack_responses['NCSA_FOREMAN']['JOB_NUM'] == this_job_num
 
-        #details = ack_responses['NCSA_FOREMAN']['FAIL_DETAILS']
-        #assert details['NEEDED_DISTRIBUTORS'] == str(needed_forwarders)
-        #assert details['AVAILABLE_DISTRIBUTORS'] == str(needed_forrwarders - 1)
+        details = ack_responses['NCSA_FOREMAN']['FAIL_DETAILS']
+        assert details['NEEDED_DISTRIBUTORS'] == str(needed_forwarders)
+        assert details['AVAILABLE_DISTRIBUTORS'] == str(needed_forwarders - 1)
