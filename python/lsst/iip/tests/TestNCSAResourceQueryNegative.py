@@ -25,6 +25,8 @@ from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
 """
+Run:  py.test -v -s ./tests/TestNCSAResourceQueryNegative.py 
+
  Creates BaseForeman object and is used by test methods below
  Can either last for the entire testing session or per test one can be created
 
