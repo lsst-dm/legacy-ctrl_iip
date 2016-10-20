@@ -250,7 +250,7 @@ class BaseForeman:
                     fwd_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
                     if fwd_params_response and (len(fwd_params_response) == len(fwders)):
                         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "FORWARDER_JOB_PARAMS_SENT")
-                        self.JOB_SCBD.set_value_for_job(job_num, "FORWARDER_JOB_PARAMS_SENT_TIME", get_timestamp())
+                        self.JOB_SCBD.set_value_for_job(job_num, "TIME_FORWARDER_JOB_PARAMS_SENT", get_timestamp())
                         in_ready_state = {'STATE':'READY_WITH_PARAMS'}
                         self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
                         # Tell DMCS we are ready
@@ -276,7 +276,7 @@ class BaseForeman:
         needed_workers = len(raft_list)
 
         self.JOB_SCBD.add_job(job_num, needed_workers)
-        self.JOB_SCBD.set_value_for_job(job_num, "ADD_JOB_TIME", get_timestamp())
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_ADD_JOB", get_timestamp())
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
         # run forwarder health check
@@ -293,11 +293,11 @@ class BaseForeman:
         ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
         
+        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_BASE_RESOURCE_QUERY", get_timestamp())
         for forwarder in forwarders:
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             ack_params)
-        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
-        self.JOB_SCBD.set_value_for_job(job_num, "BASE_RESOURCE_QUERY_TIME", get_timestamp())
 
         return timed_ack
 
@@ -333,7 +333,7 @@ class BaseForeman:
         self._base_publisher.publish_message("dmcs_consume", dmcs_params)
         # mark job refused, and leave Forwarders in Idle state
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "JOB_ABORTED")
-        self.JOB_SCBD.set_value_for_job(job_num, "JOB_ABORTED_TIME", get_timestamp())
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ABORTED_BASE_RESOURCES", get_timestamp())
         idle_state = {"STATE": "IDLE"}
         self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_state)
         return False
@@ -358,6 +358,8 @@ class BaseForeman:
         #ncsa_params[RAFT_NUM] = needed_workers
         ncsa_params[ACK_ID] = timed_ack_id
         ncsa_params["FORWARDERS"] = forwarder_candidate_dict
+        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "NCSA_RESOURCES_QUERY_SENT")
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_NCSA_RESOURCES_QUERY_SENT", get_timestamp())
         self._ncsa_publisher.publish_message(self.NCSA_CONSUME, ncsa_params) 
         LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
         LOGGER.info(forwarder_candidate_dict)
@@ -368,7 +370,7 @@ class BaseForeman:
         #ncsa has enough resources...
         job_num = str(params[JOB_NUM])
         self.JOB_SCBD.set_pairs_for_job(job_num, pairs)          
-        self.JOB_SCBD.set_value_for_job(job_num, "ADD_PAIRS_TIME", get_timestamp())
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_PAIRS_ADDED", get_timestamp())
         LOGGER.info('The following pairs will be used for Job #%s: %s',
                      job_num, pairs)
         fwd_ack_id = self.get_next_timed_ack_id("FWD_PARAMS_ACK")
@@ -390,6 +392,8 @@ class BaseForeman:
         dmcs_message[JOB_NUM] = job_num
         dmcs_message[MSG_TYPE] = NEW_JOB_ACK
         dmcs_message[ACK_BOOL] = True
+        self.JOB_SCBD.set_value_for_job(job_num, STATE, "JOB_ACCEPTED")
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ACCEPTED", get_timestamp())
         self._base_publisher.publish_message("dmcs_consume", dmcs_message)
         return True
 
@@ -431,7 +435,7 @@ class BaseForeman:
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
         date - get_timestamp()
-        self.JOB_SCBD.set_value_for_job(job_number, START_READOUT, date) 
+        self.JOB_SCBD.set_value_for_job(job_number, TIME_START_READOUT, date) 
         # The following line extracts the distributor FQNs from pairs dict using 
         # list comprehension values; faster than for loops
         distributors = [v['FQN'] for v in pairs.values()]
