@@ -58,17 +58,25 @@ class DMCS:
         self._next_timed_ack_id = 0
 
 
-        # Create Redis Forwarder table with Forwarder info
 
         self.JOB_SCBD = JobScoreboard()
         self.TO_DO_SCBD = ToDoScoreboard()
         self.ACK_SCBD = AckScoreboard()
         self.CMD_ST_SCBD = CommandStateScoreboard()
         # Messages from both Base Foreman AND OCS Bridge
-        self._msg_actions = { 'COMMAND': self.process_command,
-                              'EVENT': self.process_event,
-                              'TELEMETRY': self.process_telemetry,
-                              'FOREMAN_HEALTH_ACK': self.process_ack,
+        self._OCS_msg_actions = { 'START': self.process_start_command,
+                              'ENABLE': self.process_enable_command,
+                              'DISABLE': self.process_disable_command,
+                              'STANDBY': self.process_standby_command,
+                              'EXIT': self.process_exit_command,
+                              'FAULT': self.process_fault_command,
+                              'OFFLINE': self.process_offline_command,
+                              'NEXT_VISIT': self.process_next_visit_event,
+                              'START_INTEGRATION': self.process_start_integration_event,
+                              'READOUT': self.process_readout_event,
+                              'TELEMETRY': self.process_telemetry }
+
+        self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
                               'FOREMAN_NEXT_VISIT_ACK': self.process_ack,
                               'FOREMAN_START_INTEGRATION_ACK': self.process_ack,
                               'FOREMAN_READOUT_ACK': self.process_ack,
@@ -181,6 +189,48 @@ class DMCS:
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
    ==================================================================================== 
+    def process_start_command(self, msg):
+        pass
+
+
+    def process_enable_command(self, msg):
+        pass
+
+
+    def process_disable_command(self, msg):
+        pass
+
+
+    def process_standby_command(self, msg):
+        pass
+
+
+    def process_exit_command(self, msg):
+        pass
+
+
+    def process_fault_command(self, msg):
+        pass
+
+
+    def process_offline_command(self, msg):
+        pass
+
+
+    def process_next_visit_event(self, msg):
+        pass
+
+
+    def process_start_integration_event(self, msg):
+        pass
+
+
+    def process_readout_event(self, msg):
+        pass
+
+
+    def process_telemetry(self, msg):
+        pass
 
 
 

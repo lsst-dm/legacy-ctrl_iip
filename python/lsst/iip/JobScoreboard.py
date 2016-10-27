@@ -1,6 +1,7 @@
 import redis
 import yaml
 import logging
+import subprocess
 from Scoreboard import Scoreboard
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -29,28 +30,28 @@ class JobScoreboard(Scoreboard):
   
 
     def __init__(self):
-      """After connecting to the Redis database instance 
-         JOB_SCOREBOARD_DB, this redis database is flushed 
-         for a clean start. A 'charge_database' method is 
-         included for testing the module.
+        """After connecting to the Redis database instance 
+           JOB_SCOREBOARD_DB, this redis database is flushed 
+           for a clean start. A 'charge_database' method is 
+           included for testing the module.
 
-         Each job will be tracked in one of these states:
+           Each job will be tracked in one of these states:
         
-         NEW_JOB 
-         CHECKING_RESOURCES
-         IN_READY_STATE
-         STANDBY
-         START_READOUT
-         FINISH_READOUT
-         COMPLETE
-      """
+           NEW_JOB 
+           CHECKING_RESOURCES
+           IN_READY_STATE
+           STANDBY
+           START_READOUT
+           FINISH_READOUT
+           COMPLETE
+        """
         LOGGER.info('Setting up JobScoreboard')
         self._redis = self.connect()
         self._redis.flushdb()
         #DEBUG_ONLY:
         #self.charge_database()
 
-        weekday = subprocess.check_output('date +%u')
+        weekday = subprocess.check_output('date +"%u"', shell=True)
         job_num_seed = str(weekday) + "000"
         #set up auto sequence
         self._redis.set(self.JOB_SEQUENCE_NUM, job_num_seed)
