@@ -25,10 +25,10 @@ class DMCS:
     JOB_SCBD = None
     ACK_SCBD = None
     CMD_ST_SCBD = None
-    DMCS_OCS_PUBLISH = "ocs_consume"
-    DMCS_OCS_CONSUME = "ocs_publish"
-    DMCS_PUBLISH = "dmcs_publish"
-    DMCS_CONSUME = "dmcs_consume"
+    OCS_BDG_PUBLISH = "ocs_bdg_publish"  #Messages from OCS Bridge
+    OCS_BDG_CONSUME = "ocs_bdg_consume"  #Messages to OCS Bridge
+    DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
+    DMCS_CONSUME = "dmcs_consume" #Used for Foreman comm
     ACK_PUBLISH = "ack_publish"
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
@@ -38,7 +38,7 @@ class DMCS:
         toolsmod.singleton(self)
 
         self.purge_broker()
-        self._default_cfg_file = 'DmcsCfg.yaml'
+        self._default_cfg_file = 'Dmcs_Cfg.yaml'
         if filename == None:
             filename = self._default_cfg_file
 
@@ -48,8 +48,7 @@ class DMCS:
             self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
             self._base_passwd = cdm[ROOT][BASE_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
+            self._session_id_file = cdm[ROOT][SESSION_ID_FILE]
         except KeyError as e:
             print "Dictionary error"
             print "Bailing out..."
@@ -62,31 +61,45 @@ class DMCS:
         # Create Redis Forwarder table with Forwarder info
 
         self.JOB_SCBD = JobScoreboard()
+        self.TO_DO_SCBD = ToDoScoreboard()
         self.ACK_SCBD = AckScoreboard()
         self.CMD_ST_SCBD = CommandStateScoreboard()
-        self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
-                              'READOUT': self.process_dmcs_readout,
-                              'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
-                              'NCSA_STANDBY_ACK': self.process_ack,
-                              'NCSA_READOUT_ACK': self.process_ack,
-                              'FORWARDER_HEALTH_ACK': self.process_ack,
-                              'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
-                              'FORWARDER_READOUT_ACK': self.process_ack,
+        # Messages from both Base Foreman AND OCS Bridge
+        self._msg_actions = { 'COMMAND': self.process_command,
+                              'EVENT': self.process_event,
+                              'TELEMETRY': self.process_telemetry,
+                              'FOREMAN_HEALTH_ACK': self.process_ack,
+                              'FOREMAN_NEXT_VISIT_ACK': self.process_ack,
+                              'FOREMAN_START_INTEGRATION_ACK': self.process_ack,
+                              'FOREMAN_READOUT_ACK': self.process_ack,
                               'NEW_JOB_ACK': self.process_ack }
 
 
         self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
+        self._session_id = self.get_session_id(self._session_id_file)
         self.setup_publishers()
         self.setup_consumers()
 
+
+
+    def get_session_id(self, filename):
+        last_session = self.intake_yaml(filename)
+        current_session = int(last_session[SESSION_ID]) + 1
+        session_dict = {}
+        session_dict[SESSION_ID] = current_session
+        session_dict[SESSION_START_TIMESTAMP] = get_timestamp()
+        self.export_yaml(filename, session_dict)
+        return current_session
+
+        
 
     def setup_consumers(self):
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread on all consumer methods')
 
-        self._dmcs_consumer = Consumer(self._base_broker_url, self.DMCS_PUBLISH, XML)
+        self._ocs_bdg_consumer = Consumer(self._base_broker_url, self.OCS_BDG_PUBLISH, XML)
         try:
             thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
         except:
@@ -174,6 +187,9 @@ class DMCS:
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
         
+    def increment_job_num(self):
+       self._current_job = str(self._session_id) + "_" + str(self.JOB_SCBD.get_next_job_num())
+
 
     def intake_yaml_file(self, filename):
         """This method reads the ForemanCfg.yaml config file
@@ -197,6 +213,19 @@ class DMCS:
 
         return cdm
 
+
+    def export_yaml_file(self, filename, params):
+        try:
+            f = open(filename, 'w')
+        except IOError:
+            print "Cant open %s" % filename
+            print "No YAML File Exported to %s" % filename"
+
+        f.write(yaml.dump(params))
+
+        f.close()
+
+        return cdm
 
 
     def get_next_timed_ack_id(self, ack_type):

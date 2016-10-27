@@ -25,6 +25,7 @@ class JobScoreboard(Scoreboard):
     STATE = 'STATE'
     XFER_APP = 'XFER_APP'
     XFER_FILE = 'XFER_FILE'
+    JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
   
 
     def __init__(self):
@@ -43,141 +44,157 @@ class JobScoreboard(Scoreboard):
          FINISH_READOUT
          COMPLETE
       """
-      LOGGER.info('Setting up JobScoreboard')
-      self._redis = self.connect()
-      self._redis.flushdb()
-      #DEBUG_ONLY:
-      #self.charge_database()
+        LOGGER.info('Setting up JobScoreboard')
+        self._redis = self.connect()
+        self._redis.flushdb()
+        #DEBUG_ONLY:
+        #self.charge_database()
+
+        weekday = subprocess.check_output('date +%u')
+        job_num_seed = str(weekday) + "000"
+        #set up auto sequence
+        self._redis.set(self.JOB_SEQUENCE_NUM, job_num_seed)
+      
     
 
     def connect(self):
-      pool = redis.ConnectionPool(host='localhost', port=6379, db=self.JOB_SCOREBOARD_DB)
-      return redis.Redis(connection_pool=pool) 
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.JOB_SCOREBOARD_DB)
+        return redis.Redis(connection_pool=pool) 
 
 
     def check_connection(self):
-      ok_flag = False
-      for i in range (1,4):
-        try:
-          response = self._redis.client_list()
-          ok_flag = True
-          break
-        except redis.ConnectionError:
-          self.connect()
+        ok_flag = False
+        for i in range (1,4):
+            try:
+                response = self._redis.client_list()
+                ok_flag = True
+                break
+            except redis.ConnectionError:
+                self.connect()
 
-      if ok_flag:
-        if i == 1:
-          return True
+        if ok_flag:
+            if i == 1:
+                return True
+            else:
+                LOGGER.info('In add_job, had to reconnect to Redis - all set now')
+                return True
+        else: 
+            LOGGER.info('In add_job, could not reconnect to Redis after 3 attempts')
+            return False
+
+
+    def get_next_job_num(self):
+        if self.check_connection():
+            self._redis.incr(self.JOB_SEQUENCE_NUM)
+            return self._redis.get(self.JOB_SEQUENCE_NUM)
         else:
-          LOGGER.info('In add_job, had to reconnect to Redis - all set now')
-          return True
-      else: 
-        LOGGER.info('In add_job, could not reconnect to Redis after 3 attempts')
-        return False
+            LOGGER.error('Unable to increment job number due to lack of redis connection')
+            #RAISE exception to catch in DMCS.py
 
 
 
     def add_job(self, job_number, rafts):
-      """All job rows created in the scoreboard begin with this method
-         where initial attributes are inserted.
+        """All job rows created in the scoreboard begin with this method
+           where initial attributes are inserted.
 
-         :param str job_number: Necessary for all CRUDs on this new row.
-         :param int rafts: The number of 'sub-jobs' to be handled within a job.
-      """
-      job_num = str(job_number)
-      # XXX Needs try, catch block
-      if self.check_connection():
-        self._redis.hset(job_num, self.RAFTS, rafts)
-        self._redis.hset(job_num, self.STATE, 'NEW_JOB')
-        self._redis.lpush(self.JOBS, job_num)
-        #self.persist_snapshot()
-      else:
-        LOGGER.error('Unable to add new job; Redis connection unavailable')
+           :param str job_number: Necessary for all CRUDs on this new row.
+           :param int rafts: The number of 'sub-jobs' to be handled within a job.
+        """
+        job_num = str(job_number)
+        # XXX Needs try, catch block
+        if self.check_connection():
+            self._redis.hset(job_num, self.RAFTS, rafts)
+            self._redis.hset(job_num, self.STATE, 'NEW_JOB')
+            self._redis.hset(job_num, 'JOB_CREATION_TIME', get_timestamp())
+            self._redis.lpush(self.JOBS, job_num)
+            #self.persist_snapshot()
+        else:
+            LOGGER.error('Unable to add new job; Redis connection unavailable')
 
 
     def set_job_params(self, job_number, params):
-      """Sets a number of job row fields at once.
+        """Sets a number of job row fields at once.
 
-         :param str job_number: Cast as str below just in case an int type slipped in.
-         :param dict params: A python dict of key/value pairs.
-      """   
-      if self.check_connection():
-        job = str(job_number)
-        for kee in params.keys():
-          self._redis.hset(str(job), kee, params[kee])
-      else:
-        return False
-      #self.persist_snapshot()
+           :param str job_number: Cast as str below just in case an int type slipped in.
+           :param dict params: A python dict of key/value pairs.
+        """   
+        if self.check_connection():
+            job = str(job_number)
+            for kee in params.keys():
+                self._redis.hset(str(job), kee, params[kee])
+        else:
+            return False
+        #self.persist_snapshot()
 
 
     def set_value_for_job(self, job_number, kee, val):
-      """Set a specific field in a job row with a key and value.
+        """Set a specific field in a job row with a key and value.
 
-         :param str job_number: Cast as str below.
-         :param str kee: Represents the field (or key) to be set.
-         :param str val: The value to be used for above key.
-      """
-      if self.check_connection():
-        job = str(job_number) 
-        return self._redis.hset(str(job), kee, val)
-      else:
-        return False
+           :param str job_number: Cast as str below.
+           :param str kee: Represents the field (or key) to be set.
+           :param str val: The value to be used for above key.
+        """
+        if self.check_connection():
+            job = str(job_number) 
+            return self._redis.hset(str(job), kee, val)
+        else:
+           return False
 
     def get_value_for_job(self, job_number, kee):
-      """Return a value for a specific field.
+        """Return a value for a specific field.
   
-         :param str job_number: The job in which field value is needed.
-         :param str kee: The name of the field to retrieve desired data.
-      """
-      if self.check_connection():
-        return self._redis.hget(str(job_number), kee)
-      else:
-        return None
+           :param str job_number: The job in which field value is needed.
+           :param str kee: The name of the field to retrieve desired data.
+        """
+        if self.check_connection():
+            return self._redis.hget(str(job_number), kee)
+        else:
+            return None
 
 
     def set_pairs_for_job(self, job_number, pairs):
-      """Pairs is a temporary relationship between Forwarders 
-         and Distributors that lasts for one job. Note the use of yaml...
-         Unlike python dicts, Redis is not a nested level database. For a 
-         field to have a dict attached to it, it is necessary to serialize 
-         the dict using yaml, json, or pickle. Pyyaml is already in use 
-         for conf files.
+        """Pairs is a temporary relationship between Forwarders 
+           and Distributors that lasts for one job. Note the use of yaml...
+           Unlike python dicts, Redis is not a nested level database. For a 
+           field to have a dict attached to it, it is necessary to serialize 
+           the dict using yaml, json, or pickle. Pyyaml is already in use 
+           for conf files.
 
-         :param str job_number: cast as str below just to make certain.
-         :param  dict pairs: Forwarders and Distributors arranged in a
-          dictionary.
-      """
-      if self.check_connection():
-        self._redis.hset(str(job_number), 'PAIRS', yaml.dump(pairs))
-        return True
-      else:
-        return False
+           :param str job_number: cast as str below just to make certain.
+           :param  dict pairs: Forwarders and Distributors arranged in a
+           dictionary.
+        """
+        if self.check_connection():
+            self._redis.hset(str(job_number), 'PAIRS', yaml.dump(pairs))
+            return True
+        else:
+            return False
 
 
     def get_pairs_for_job(self, job_number):
-      """Return Forwarder-Distributor pairs for a specific job number.
+        """Return Forwarder-Distributor pairs for a specific job number.
 
-         :param str job_number: The job associated with the pairs.
-         :rtype dict
-      """
-      if self.check_connection():
-        pairs =  self._redis.hget(str(job_number), 'PAIRS')
+           :param str job_number: The job associated with the pairs.
+           :rtype dict
+        """
+        if self.check_connection():
+            pairs =  self._redis.hget(str(job_number), 'PAIRS')
         if pairs:
-          return yaml.load(pairs)
-      else:
-        return None
+            return yaml.load(pairs)
+        else:
+            return None
 
 
     def delete_job(self, job_number):
-      #self._redis.hdel(self.JOBS, str(job_number))
-      self._redis.lrem(self.JOBS, 0, str(job_number))
+        #self._redis.hdel(self.JOBS, str(job_number))
+        self._redis.lrem(self.JOBS, 0, str(job_number))
 
 
     def print_all(self):
-      jobs = self._redis.lrange(self.JOBS, 0, -1)
-      for job in jobs:
-        x = self._redis.hgetall(job)
-        print x
+        jobs = self._redis.lrange(self.JOBS, 0, -1)
+        for job in jobs:
+            x = self._redis.hgetall(job)
+            print x
 
 
     def charge_database(self):
