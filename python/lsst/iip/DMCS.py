@@ -24,7 +24,7 @@ LOGGER = logging.getLogger(__name__)
 class DMCS:
     JOB_SCBD = None
     ACK_SCBD = None
-    CMD_ST_SCBD = None
+    STATE_SCBD = None
     OCS_BDG_PUBLISH = "ocs_bdg_publish"  #Messages from OCS Bridge
     OCS_BDG_CONSUME = "ocs_bdg_consume"  #Messages to OCS Bridge
     DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
@@ -188,33 +188,73 @@ class DMCS:
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
-   ==================================================================================== 
+
+   #==================================================================================== 
+   # The following functions map to the state transition commands that the OCS will generate
+   # It is noted here rather than in method documentation below (to keep descriptions simple),
+   # that a FaultState is reachable from StandbyState, DisableState, and EnableState.
+
+    def process_standby_command(self, msg):
+        """StandbyState is the initial system stste after the system comes up and makes connection with DDS.
+           WHENEVER the StandbyState is entered, a new Session_ID is created. 
+           IOW, the DMCS wakes up to find itself in StandbyState.
+           Communication with DDS is expected and needed in ths state.
+           There are two transitions INTO StandbyState:
+               1) Component/system wake up
+               2) Standby - the transition command from DisableState to StandbyState. THIS TRANSITION IS THE
+                  ONE THAT THIS METHOD ADDRESSES.
+
+           There are two transitions OUT of StandbyState:
+               1) Start - the command from SandbyState to DisableState will be
+                  accompanied by configuration settings, such as interface version, DM cfg, etc.
+               2) Exit - effectively ends session by moving state to OfflineState which 
+                  has only one 'out'  state transition - to FinalState.
+        """
+        self._session_id = self.get_session_id(self._session_id_file)
+
+        pass
+
+
     def process_start_command(self, msg):
+        """Transition from StandbyState to DisableState. Includes configuration data for DM. 
+
+        """
         pass
 
 
     def process_enable_command(self, msg):
+        """Transition from DisableState to EnableState. Full operation is capable after this transition.
+
+        """
         pass
 
 
     def process_disable_command(self, msg):
-        pass
+        """Transition from EnableState to DisableState. Limited operation only is capable after 
+           this transition; for example, transfer of 'catch up' work from camera buffer to archive 
+           is possible, but no NextVisit events will be received while in this state.
 
-
-    def process_standby_command(self, msg):
+        """
         pass
 
 
     def process_exit_command(self, msg):
+        """Transition from StandbyState to OfflineState. Catch up work could conceivably 
+           be done in OfflineState. There will be no contact with DDS, however. The only
+           available transition is from OfflineState to Final...which is 'off.' 
+           Any needed entities to be persisted beteen starts should happen after this transition. 
+           The system cannot be brought back up to EnableState from OfflineState.
+
+           When this method is called, DMCS should finish up any running jobs, and then 
+           begin working on the TO-DO queue. If the TO-DO queue is empty, persist and shut down.
+
+           Because the DDS is not reachable in the state resulting from this command, and 
+           telemetry from tasks done on the TO-DO queue must be staged, and then sent when 
+           the system returns to StandbyState.
+        
+        """
         pass
 
-
-    def process_fault_command(self, msg):
-        pass
-
-
-    def process_offline_command(self, msg):
-        pass
 
 
     def process_next_visit_event(self, msg):
@@ -230,6 +270,9 @@ class DMCS:
 
 
     def process_telemetry(self, msg):
+        pass
+
+    def enter_fault_state(self):
         pass
 
 
