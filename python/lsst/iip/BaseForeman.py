@@ -32,6 +32,7 @@ class BaseForeman:
     NCSA_CONSUME = "ncsa_consume"
     FORWARDER_PUBLISH = "forwarder_publish"
     ACK_PUBLISH = "ack_publish"
+    self.YAML = 'YAML'
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
 
@@ -40,6 +41,7 @@ class BaseForeman:
         toolsmod.singleton(self)
 
         self.purge_broker()
+
         self._default_cfg_file = 'ForemanCfg.yaml'
         if filename == None:
             filename = self._default_cfg_file
@@ -58,6 +60,15 @@ class BaseForeman:
             print "Dictionary error"
             print "Bailing out..."
             sys.exit(99)
+
+        self._base_msg_format = self.YAML
+        self._ncsa_msg_format = self.YAML
+
+        if 'BASE_MSG_FORMAT' in cdm[ROOT]:
+            self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
+
+        if 'NCSA_MSG_FORMAT' in cdm[ROOT]
+            self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
 
         self._base_broker_url = 'amqp_url'
         self._ncsa_broker_url = 'amqp_url'
@@ -115,28 +126,28 @@ class BaseForeman:
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread on all consumer methods')
 
-        self._dmcs_consumer = Consumer(self._base_broker_url, self.DMCS_PUBLISH, XML)
+        self._dmcs_consumer = Consumer(self._base_broker_url, self.DMCS_PUBLISH, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
             sys.exit(99)
 
-        self._forwarder_consumer = Consumer(self._base_broker_url, self.FORWARDER_PUBLISH, XML)
+        self._forwarder_consumer = Consumer(self._base_broker_url, self.FORWARDER_PUBLISH, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_forwarder_consumer, ("thread-forwarder-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start FORWARDERS consumer thread, exiting...')
             sys.exit(100)
 
-        self._ncsa_consumer = Consumer(self._base_broker_url, self.NCSA_PUBLISH, XML)
+        self._ncsa_consumer = Consumer(self._base_broker_url, self.NCSA_PUBLISH, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
             sys.exit(101)
 
-        self._ack_consumer = Consumer(self._base_broker_url, self.ACK_PUBLISH, XML)
+        self._ack_consumer = Consumer(self._base_broker_url, self.ACK_PUBLISH, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
         except:
@@ -163,10 +174,10 @@ class BaseForeman:
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up Base publisher on %s', self._base_broker_url)
-        LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_broker_url)
-        self._base_publisher = SimplePublisher(self._base_broker_url)
-        self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url)
+        LOGGER.info('Setting up Base publisher on %s using %s', self._base_broker_url, self._base_msg_format)
+        LOGGER.info('Setting up NCSA publisher on %s using %s', self._ncsa_broker_url, self._ncsa_msg_format)
+        self._base_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
+        self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url, self._ncsa_msg_format)
 
 
 #    def setup_federated_exchange(self):

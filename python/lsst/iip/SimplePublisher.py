@@ -57,10 +57,7 @@ class SimplePublisher:
 
     LOGGER.debug ("Sending msg to %s", route_key)
 
-    if self._format_options == None:
-        yamldict = self._message_handler.encode_message(msg)
-        self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, yamldict)
-    else:  # Format is XML
+    if self._format_options == "XML":
         try:
             xmlRoot = self._xml_handler.encodeXML(msg)
             valid = self._xml_handler.validate(xmlRoot)
@@ -70,4 +67,7 @@ class SimplePublisher:
             else: 
                 raise L1MessageError("Message is invalid XML.")
         except L1MessageError, e:
-        raise L1MessageError("Message is invalid XML.")
+            raise L1MessageError("Message is invalid XML.")
+    else: 
+        yamldict = self._message_handler.encode_message(msg)
+        self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=yamldict)
