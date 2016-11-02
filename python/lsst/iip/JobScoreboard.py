@@ -1,8 +1,10 @@
 import redis
+from toolsmod import get_timestamp
 import yaml
 import logging
 import subprocess
 from Scoreboard import Scoreboard
+from const import *
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -18,7 +20,6 @@ class JobScoreboard(Scoreboard):
        assigned to Redis's rdDatabase instance 8. Redis launches with a default 
        15 separate database instances.
     """
-    JOB_SCOREBOARD_DB = 8
     JOBS = 'jobs'
     JOB_NUM = 'JOB_NUM'
     WORKER_NUM = 'worker_num'
@@ -59,7 +60,7 @@ class JobScoreboard(Scoreboard):
     
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.JOB_SCOREBOARD_DB)
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=JOB_SCOREBOARD_DB)
         return redis.Redis(connection_pool=pool) 
 
 
@@ -192,11 +193,15 @@ class JobScoreboard(Scoreboard):
 
 
     def print_all(self):
+        dump_dict = {}
+        f = open("dump", 'w')
         jobs = self._redis.lrange(self.JOBS, 0, -1)
         for job in jobs:
             x = self._redis.hgetall(job)
-            print x
+            dump_dict[job] = x
 
+        f.write(yaml.dump(dump_dict))
+        print dump_dict
 
     def charge_database(self):
       pairs = {}
@@ -209,12 +214,12 @@ class JobScoreboard(Scoreboard):
       pairs['F5'] = 'D7'
       other_pairs = { 'F1':'D10', 'F2':'D1', 'F3':'D11', 'F4':'D8', 'F5':'D4'}
 
-      self.add_job(1,7,'ssh', '1k.test')
-      self.add_job(2, 11,'rsync', '193k.test')
-      self.add_job(3,1,'ftp', '16.7meg.test')
-      self.add_job(4,7,'ssh', '1k.test')
-      self.add_job(5, 11,'rsync', '193k.test')
-      self.add_job(6,1,'ftp', '16.7meg.test')
+      self.add_job(1, 7)
+      self.add_job(2,  8)
+      self.add_job(3,  1)
+      self.add_job(4,  1)
+      self.add_job(5,  2)
+      self.add_job(6,  6)
 
       #self.set_pairs_for_job('1',  pairs)
       #self.set_pairs_for_job('2',  pairs)
@@ -226,13 +231,15 @@ class JobScoreboard(Scoreboard):
       #keez = pairs.keys()
       #print("printing just keez")
       #print keez
-      Ps = self.get_value_for_job(str(1), 'PAIRS')
-      ppps = eval(Ps)
-      print "final line"
-      print ppps == pairs
+      #Ps = self.get_value_for_job(str(1), 'PAIRS')
+      #ppps = eval(Ps)
+      #print "final line"
+      #print ppps == pairs
 
 def main():
   jbs = JobScoreboard()
+  jbs.charge_database()
+  jbs.print_all()
   #Ps = jbs.get_value_for_job(str(1), 'PAIRS')
   #print "printing Ps"
   #print Ps
