@@ -11,6 +11,7 @@
 import logging
 import pika
 from XMLHandler import *
+from YamlHandler import *
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -53,6 +54,7 @@ class Consumer(object):
         self.QUEUE = queue
         self.ROUTING_KEY = queue
         self._xml_handler = None 
+        self._yaml_handler = None 
         self._format_options = formatOptions
 
     def connect(self):
@@ -332,7 +334,8 @@ class Consumer(object):
             self._xml_handler = XMLHandler(callback)
             self._message_callback = self._xml_handler.xmlcallback  
         else:
-            self._message_callback = callback
+            self._yaml_handler = YamlHandler(callback)
+            self._message_callback = self._yaml_handler.yaml_callback  
         self._connection = self.connect()
         self._connection.ioloop.start()
 

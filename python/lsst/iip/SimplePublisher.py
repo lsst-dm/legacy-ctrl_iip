@@ -7,6 +7,7 @@ import toolsmod
 from toolsmod import L1Exception
 from toolsmod import L1MessageError
 from XMLHandler import * 
+from YamlHandler import * 
 from Exceptions import * 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -18,7 +19,7 @@ class SimplePublisher:
 
   EXCHANGE = 'message'
 
-  def __init__(self, amqp_url):
+  def __init__(self, amqp_url, formatOptions=None):
 
     self._connection = None
     self._channel = None
@@ -27,6 +28,12 @@ class SimplePublisher:
     self._url = amqp_url
     self._closing = False
     self._xml_handler = None
+    self._format_options = formatOptions
+
+    if formatOptions == None:
+        self._message_handler = YamlHandler()
+    else:
+        self._message_handler = XMLHandler()
 
     try:
        self.connect()
@@ -50,14 +57,17 @@ class SimplePublisher:
 
     LOGGER.debug ("Sending msg to %s", route_key)
 
-    self._xml_handler = XMLHandler()
-    try:
-        xmlRoot = self._xml_handler.encodeXML(msg)
-        valid = self._xml_handler.validate(xmlRoot)
-        if valid: 
-            xmlMsg = self._xml_handler.tostring(xmlRoot)
-            self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=xmlMsg)
-        else: 
-            raise L1MessageError("Message is invalid XML.")
-    except L1MessageError, e:
+    if self._format_options == None:
+        yamldict = self._message_handler.encode_message(msg)
+        self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, yamldict)
+    else:  # Format is XML
+        try:
+            xmlRoot = self._xml_handler.encodeXML(msg)
+            valid = self._xml_handler.validate(xmlRoot)
+            if valid: 
+                xmlMsg = self._xml_handler.tostring(xmlRoot)
+                self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=xmlMsg)
+            else: 
+                raise L1MessageError("Message is invalid XML.")
+        except L1MessageError, e:
         raise L1MessageError("Message is invalid XML.")
