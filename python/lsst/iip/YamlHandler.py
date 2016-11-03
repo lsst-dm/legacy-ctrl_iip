@@ -15,6 +15,9 @@ class YamlHandler:
             Setting the consumer callback function
         """
         pydict = self.decode_message(body)
+        print "#########    #############    ############"
+        print "In YAML HAndler, after decoding...pydict is %s" % pydict
+        print "#########    #############    ############"
         self._consumer_callback(ch, method, properties, pydict)
 
 

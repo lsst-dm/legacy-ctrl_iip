@@ -22,7 +22,7 @@ class AckScoreboard(Scoreboard):
 
     ### FIX: Put Redis DB numbers in Const
     TIMED_ACKS = 'timed_acks'
-    TIMED_ACK_ID = 'TIMED_ACK_ID'
+    TIMED_ACK_IDS = 'TIMED_ACK_IDS'
     ACKS = []
   
 
@@ -82,6 +82,7 @@ class AckScoreboard(Scoreboard):
         """
 
         ack_id_string = ack_msg_body['ACK_ID']
+        print "In add timed ack...ack id is %s" % ack_id_string
       
         if self.check_connection():
             ack_msg_body['ACK_RETURN_TIME'] = get_timestamp()
@@ -89,7 +90,8 @@ class AckScoreboard(Scoreboard):
 
             # This next line builds a list of TIMED_ACK_IDs for use in unit tests and as a general 
             # component for printing out the entire scoreboard
-            self._redis.lpush(self.ACKS, ack_id_string)
+            self._redis.lpush(self.TIMED_ACK_IDS, ack_id_string)
+            #self._redis.lpush(self.ACKS, ack_id_string)
             
         else:
             LOGGER.error('Unable to add new ACK; Redis connection unavailable')

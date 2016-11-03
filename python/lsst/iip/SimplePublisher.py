@@ -30,10 +30,10 @@ class SimplePublisher:
     self._xml_handler = None
     self._format_options = formatOptions
 
-    if formatOptions == None:
-        self._message_handler = YamlHandler()
-    else:
+    if formatOptions == "XML":
         self._message_handler = XMLHandler()
+    else:
+        self._message_handler = YamlHandler()
 
     try:
        self.connect()

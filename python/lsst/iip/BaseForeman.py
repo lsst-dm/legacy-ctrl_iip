@@ -32,7 +32,7 @@ class BaseForeman:
     NCSA_CONSUME = "ncsa_consume"
     FORWARDER_PUBLISH = "forwarder_publish"
     ACK_PUBLISH = "ack_publish"
-    self.YAML = 'YAML'
+    YAML = 'YAML'
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
 
@@ -67,7 +67,7 @@ class BaseForeman:
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
 
-        if 'NCSA_MSG_FORMAT' in cdm[ROOT]
+        if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
             self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
 
         self._base_broker_url = 'amqp_url'
@@ -213,6 +213,7 @@ class BaseForeman:
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
+        print "In ON_ACK_MESSAGE...body is %s" % body
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
@@ -507,6 +508,7 @@ class BaseForeman:
         
 
     def process_ack(self, params):
+        print "YAYYYYYYY In Process Ack"
         self.ACK_SCBD.add_timed_ack(params)
         
 
@@ -547,6 +549,7 @@ class BaseForeman:
     def purge_broker(self):
         #This will either move to an external script, or be done dynamically by reading cfg file
         os.system('rabbitmqctl -p /tester purge_queue f_consume')
+        os.system('rabbitmqctl -p /tester purge_queue F_consume')
         os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
         os.system('rabbitmqctl -p /tester purge_queue ack_publish')
         os.system('rabbitmqctl -p /tester purge_queue dmcs_consume')

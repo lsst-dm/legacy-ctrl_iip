@@ -25,20 +25,21 @@ from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
 """
- Creates BaseForeman object used to test the methods below
+ Creates BaseForeman object and is used by test methods below
  Can either last for the entire testing session or per test one can be created
 
 This test file requires the use of two external fixtures:
 1) An AMQP message broker
 2) The Redis in-memory database
 
-The BaseForeman class s built to receive parameters froma configuration file.
+The BaseForeman class is built to receive parameters froma configuration file.
 If an init arg is not given when creating a BaseForeman, the default
 ForemanCFG.yaml is used...but it is also possible to create a BaseForeman
 instance with a specific config file given as the arg - in this case, we will
-use a file called ForemanCFGTest.yaml. This file contains the user/passwd
-information for access to the message broker, and also gives explicit info
-about the Forwarders that this file will use as well.
+use a file set up for testing purposes called ForemanCFGTest.yaml. 
+This file contains the user/passwd information for access to the message 
+broker, and also gives explicit info about the Forwarders that this file will 
+use as well.
 
 """
 
@@ -46,10 +47,9 @@ about the Forwarders that this file will use as well.
 def bf(request):
     return BaseForeman('ForemanCfgTest.yaml')
 
-
 logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
 
-class TestForwarderCheckHealth:
+class TestDistributeBaseJobParams:
     DMCS_PUBLISH = "dmcs_publish"
     DMCS_CONSUME = "dmcs_consume"
     NCSA_PUBLISH = "ncsa_publish"
@@ -60,9 +60,9 @@ class TestForwarderCheckHealth:
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
     PUB = None
-    ACK_REPLACEMENT = "11_BB"
+    ACK_REPLACEMENT = "s62_TS"
+    THIS_JOB_NUM = '18644'
     CDM = None
-    FORMAT = None
     test_broker_url = None
     next_integer = 0
 
@@ -70,20 +70,20 @@ class TestForwarderCheckHealth:
         self.PUB = SimplePublisher(self.test_broker_url)
 
     def get_next_integer(self):
-        self.next_integer = self.next_integer + 2
+        self.next_integer = self.next_integer + 1
         return self.next_integer
 
-    def on_health_check_message(self, ch, method, properties, body):
+    def on_job_params(self, ch, method, properties, body):
         msg_dict = body
-        timed_ack = msg_dict["ACK_ID"]
-        job_num = msg_dict['JOB_NUM']
         msg_params = {}
-        msg_params['MSG_TYPE'] = 'FORWARDER_HEALTH_ACK'
-        msg_params['JOB_NUM'] = job_num
+        msg_params['MSG_TYPE'] = 'FORWARDER_JOB_PARAMS_ACK'
+        msg_params['JOB_NUM'] = msg_dict[JOB_NUM]
         msg_params['ACK_BOOL'] = True
         msg_params['ACK_ID'] = self.ACK_REPLACEMENT
-        msg_params['COMPONENT_NAME'] = 'Forwarder_' + str(self.get_next_integer()) 
+        msg_params['COMPONENT_NAME'] = 'FORWARDER_' + str(self.get_next_integer())
+        #msg_params['PAIRS'] = pairs
         self.PUB.publish_message("ack_publish", msg_params)
+
 
     def run_consumer(self, threadname, delay, adict):
         callback = adict['cb']
@@ -99,12 +99,12 @@ class TestForwarderCheckHealth:
             sys.exit(101)
 
 
-    def test_forwarder_check_health(self, bf):
+    def test_ncsa_resources_query_positive(self, bf):
         os.system('rabbitmqctl -p /tester purge_queue f_consume')
         os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
         os.system('rabbitmqctl -p /tester purge_queue ack_publish')
         try:
-           f = open('ForemanCfgTest.yaml')
+            f = open('ForemanCfgTest.yaml')
         except IOError:
             print "Can't open ForemanCfgTest.yaml"
             print "Bailing out on test_forwarder_check_health..."
@@ -115,39 +115,48 @@ class TestForwarderCheckHealth:
         test_broker_address = self.CDM['ROOT']['TEST_BROKER_ADDR']
         name = self.CDM['ROOT']['TEST_BROKER_NAME']
         passwd = self.CDM['ROOT']['TEST_BROKER_PASSWD']
-        self.base_format = None
-        self.ncsa_format = None
-        if 'BASE_MSG_FORMAT' in self.CDM[ROOT]:
-            self.base_format = self.CDM[ROOT][BASE_MSG_FORMAT]
-        if 'NCSA_MSG_FORMAT' in self.CDM[ROOT]:
-            self.ncsa_format = self.CDM[ROOT][NCSA_MSG_FORMAT]
+        forwarders = self.CDM['ROOT']['XFER_COMPONENTS']['FORWARDERS']
+        distributors = self.CDM['ROOT']['XFER_COMPONENTS']['DISTRIBUTORS']
+        f.close()
 
         self.test_broker_url = "amqp://" + name + ":" + passwd + "@" + str(test_broker_address)
         self.setup_publisher()
-        self.setup_consumer(self.test_broker_url, 'f_consume', self.base_format, self.on_health_check_message )
-        forwarders = self.CDM['ROOT']['XFER_COMPONENTS']['FORWARDERS']
+        self.setup_consumer(self.test_broker_url, 'f_consume', None, self.on_job_params)
 
+        needed_forwarders = number_of_pairs - 1
 
-        #The test cfg file includes a list of all 21 rafts in non-consecutive order
-        #The NUMBER_OF_PAIRS param is used to generate a sublist of above
-        L = []
-        for i in range (0, number_of_pairs):
-           L.append(self.CDM['ROOT']['RAFT_LIST'][i]) 
+        rafts = []
+        for i in range (0, (needed_forwarders)):
+            rafts.append(self.CDM['ROOT']['RAFT_LIST'][i])
 
-        this_job_num = '562'
+        pairs = {}
+        keez = forwarders.keys()
+        deekeez = distributors.keys()
+        for i in range (0, (needed_forwarders)):
+            inner_dict = {}
+            inner_dict[FQN] = deekeez[i]
+            inner_dict[NAME] = distributors[deekeez[i]][NAME]
+            inner_dict[IP_ADDR] = distributors[deekeez[i]][IP_ADDR]
+            inner_dict[RAFTS] = self.CDM['ROOT']['RAFT_LIST'][i]
+            pairs[keez[i]] = inner_dict
+
+        this_job_num = '18664'
 
         params = {}
         params['MSG_TYPE'] = 'NEW_JOB'
-        params['JOB_NUM'] = this_job_num
+        params['JOB_NUM'] = self.THIS_JOB_NUM
         params['ACK_ID'] = self.ACK_REPLACEMENT
-        params['RAFTS'] = L
+        params['RAFTS'] = rafts
 
-        bf.forwarder_health_check(params)
-        sleep(1)
+
+        bf.distribute_job_params(params, pairs)
+
+        sleep(3)
+
+        ### CHECK SCOREBOARDS FOR PROPER STATES
         ack_responses = bf.ACK_SCBD.get_components_for_timed_ack(self.ACK_REPLACEMENT)
-        assert ack_responses != None
-        assert len(ack_responses) == int(number_of_pairs)
-        print "Done with forwarder_health_check test"
+        akkeez = ack_responses.keys()
 
-
+        assert len(akkeez) == needed_forwarders
+        assert ack_responses[akkeez[0]]['ACK_BOOL'] == True
 
