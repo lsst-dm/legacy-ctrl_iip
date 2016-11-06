@@ -15,16 +15,12 @@ class YamlHandler:
             Setting the consumer callback function
         """
         pydict = self.decode_message(body)
-        print "#########    #############    ############"
-        print "In YAML HAndler, after decoding...pydict is %s" % pydict
-        print "#########    #############    ############"
         self._consumer_callback(ch, method, properties, pydict)
 
 
     def encode_message(self, dictValue):
         pydict = deepcopy(dictValue)
         yaml_body = yaml.dump(dictValue)
-        self.print_yaml(yaml_body)
         return yaml_body
 
 
@@ -34,6 +30,4 @@ class YamlHandler:
 
 
     def print_yaml(self, body):
-        print "+++++++++++++++++++++++++++++++++++++"
         print str(body)
-        print "+++++++++++++++++++++++++++++++++++++"

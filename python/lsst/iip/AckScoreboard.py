@@ -82,7 +82,6 @@ class AckScoreboard(Scoreboard):
         """
 
         ack_id_string = ack_msg_body['ACK_ID']
-        print "In add timed ack...ack id is %s" % ack_id_string
       
         if self.check_connection():
             ack_msg_body['ACK_RETURN_TIME'] = get_timestamp()

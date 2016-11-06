@@ -178,4 +178,9 @@ ROOT:
         PUBLISH_QUEUE: distributor_publish
         TARGET_DIR: /home/D10/xfer_dir
 
-
+  QUEUE_PURGES:
+    - dmcs_consume
+    - ack_publish
+    - f_consume
+    - forwarder_publish
+ 

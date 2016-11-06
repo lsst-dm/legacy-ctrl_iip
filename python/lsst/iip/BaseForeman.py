@@ -40,8 +40,6 @@ class BaseForeman:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self.purge_broker()
-
         self._default_cfg_file = 'ForemanCfg.yaml'
         if filename == None:
             filename = self._default_cfg_file
@@ -60,6 +58,9 @@ class BaseForeman:
             print "Dictionary error"
             print "Bailing out..."
             sys.exit(99)
+
+        if 'QUEUE_PURGES' in cdm[ROOT]:
+            self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
         self._base_msg_format = self.YAML
         self._ncsa_msg_format = self.YAML
@@ -213,7 +214,6 @@ class BaseForeman:
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
-        print "In ON_ACK_MESSAGE...body is %s" % body
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
@@ -508,7 +508,6 @@ class BaseForeman:
         
 
     def process_ack(self, params):
-        print "YAYYYYYYY In Process Ack"
         self.ACK_SCBD.add_timed_ack(params)
         
 
@@ -546,38 +545,42 @@ class BaseForeman:
         sleep(seconds)
         return True
 
-    def purge_broker(self):
-        #This will either move to an external script, or be done dynamically by reading cfg file
-        os.system('rabbitmqctl -p /tester purge_queue f_consume')
-        os.system('rabbitmqctl -p /tester purge_queue F_consume')
-        os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
-        os.system('rabbitmqctl -p /tester purge_queue ack_publish')
-        os.system('rabbitmqctl -p /tester purge_queue dmcs_consume')
-        os.system('rabbitmqctl -p /tester purge_queue ncsa_consume')
+    def purge_broker(self, queues):
+        for q in queues:
+            cmd = "rabbitmqctl -p /tester purge_queue " + q
+            os.system(cmd)
 
-        os.system('rabbitmqctl -p /bunny purge_queue forwarder_publish')
-        os.system('rabbitmqctl -p /bunny purge_queue ack_publish')
-        os.system('rabbitmqctl -p /bunny purge_queue F1_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F2_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F3_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F4_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F5_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F6_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F7_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F8_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F9_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F10_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F11_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F12_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F13_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F14_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F15_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F16_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F17_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F18_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F19_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F20_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F21_consume')
+        #This will either move to an external script, or be done dynamically by reading cfg file
+        #os.system('rabbitmqctl -p /tester purge_queue f_consume')
+        #os.system('rabbitmqctl -p /tester purge_queue F_consume')
+        #os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
+        #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
+        #os.system('rabbitmqctl -p /tester purge_queue dmcs_consume')
+        #os.system('rabbitmqctl -p /tester purge_queue ncsa_consume')
+
+        #os.system('rabbitmqctl -p /bunny purge_queue forwarder_publish')
+        #os.system('rabbitmqctl -p /bunny purge_queue ack_publish')
+        #os.system('rabbitmqctl -p /bunny purge_queue F1_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F2_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F3_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F4_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F5_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F6_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F7_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F8_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F9_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F10_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F11_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F12_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F13_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F14_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F15_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F16_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F17_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F18_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F19_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F20_consume')
+        #os.system('rabbitmqctl -p /bunny purge_queue F21_consume')
 
 
 def main():
