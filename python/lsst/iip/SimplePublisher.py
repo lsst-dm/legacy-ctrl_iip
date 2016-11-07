@@ -69,5 +69,8 @@ class SimplePublisher:
         except L1MessageError, e:
             raise L1MessageError("Message is invalid XML.")
     else: 
+        #print "In Simple Publisher, route_key is %s" % str(route_key)
+        #print "In Simple Publisher, msg is %s" % str(msg)
         yamldict = self._message_handler.encode_message(msg)
+        #print "In Simple Publisher,  fter encoding message, yamldict is %s" % str(yamldict)
         self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=yamldict)

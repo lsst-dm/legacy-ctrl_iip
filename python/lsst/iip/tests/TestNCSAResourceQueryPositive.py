@@ -112,9 +112,9 @@ class TestNCSAResourceQueryPositive:
 
 
     def test_ncsa_resources_query_positive(self, bf):
-        os.system('rabbitmqctl -p /tester purge_queue f_consume')
-        os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
-        os.system('rabbitmqctl -p /tester purge_queue ack_publish')
+        #os.system('rabbitmqctl -p /tester purge_queue f_consume')
+        #os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
+        #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
         try:
             f = open('ForemanCfgTest.yaml')
         except IOError:
@@ -132,7 +132,7 @@ class TestNCSAResourceQueryPositive:
 
         self.test_broker_url = "amqp://" + name + ":" + passwd + "@" + str(test_broker_address)
         self.setup_publisher()
-        self.setup_consumer(self.test_broker_url, 'ncsa_consume', 'XML', self.on_ncsa_resources_query)
+        self.setup_consumer(self.test_broker_url, 'ncsa_consume', 'YAML', self.on_ncsa_resources_query)
 
         needed_forwarders = number_of_pairs - 1
         L = []

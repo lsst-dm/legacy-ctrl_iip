@@ -124,7 +124,7 @@ class TestNCSAResourceQueryNegative:
 
         self.test_broker_url = "amqp://" + name + ":" + passwd + "@" + str(test_broker_address)
         self.setup_publisher()
-        self.setup_consumer(self.test_broker_url, 'ncsa_consume', 'XML', self.on_ncsa_resources_query)
+        self.setup_consumer(self.test_broker_url, 'ncsa_consume', 'YAML', self.on_ncsa_resources_query)
 
         needed_forwarders = number_of_pairs - 1
         L = []
