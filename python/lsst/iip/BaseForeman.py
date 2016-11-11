@@ -288,7 +288,8 @@ class BaseForeman:
         needed_workers = len(raft_list)
 
         self.JOB_SCBD.add_job(job_num, needed_workers)
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_ADD_JOB", get_timestamp())
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ADDED", get_timestamp())
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ADDED_E", get_epoch_timestamp())
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
         # run forwarder health check
