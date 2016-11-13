@@ -261,8 +261,8 @@ class BaseForeman:
 
                     fwd_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
                     if fwd_params_response and (len(fwd_params_response) == len(fwders)):
-                        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "FORWARDER_JOB_PARAMS_SENT")
-                        self.JOB_SCBD.set_value_for_job(job_num, "TIME_FORWARDER_JOB_PARAMS_SENT", get_timestamp())
+                        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_TASK_PARAMS_SENT")
+                        self.JOB_SCBD.set_value_for_job(job_num, "TIME_BASE_TASK_PARAMS_SENT", get_timestamp())
                         in_ready_state = {'STATE':'READY_WITH_PARAMS'}
                         self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
                         # Tell DMCS we are ready

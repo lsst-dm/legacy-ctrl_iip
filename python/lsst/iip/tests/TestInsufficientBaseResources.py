@@ -107,9 +107,9 @@ class TestInsufficientBaseResources:
 
     def test_forwarder_check_health(self, bf):
         time.sleep(4)
-        os.system('rabbitmqctl -p /tester purge_queue f_consume')
-        os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
-        os.system('rabbitmqctl -p /tester purge_queue ack_publish')
+        #os.system('rabbitmqctl -p /tester purge_queue f_consume')
+        #os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
+        #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
         #os.system('rabbitmqctl -p /tester purge_queue dmcs_consume')
         try:
            f = open('ForemanCfgTest.yaml')

@@ -1,7 +1,10 @@
 import redis
 from toolsmod import get_timestamp
+from toolsmod import L1RedisError
+from toolsmod import L1RabbitConnectionError
 import yaml
 import logging
+import time
 import subprocess
 from Scoreboard import Scoreboard
 from const import *
@@ -25,8 +28,6 @@ class JobScoreboard(Scoreboard):
     WORKER_NUM = 'worker_num'
     RAFTS = 'RAFTS'
     STATE = 'STATE'
-    XFER_APP = 'XFER_APP'
-    XFER_FILE = 'XFER_FILE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
   
 
@@ -36,18 +37,33 @@ class JobScoreboard(Scoreboard):
            for a clean start. A 'charge_database' method is 
            included for testing the module.
 
-           Each job will be tracked in one of these states:
-        
-           NEW_JOB 
-           CHECKING_RESOURCES
-           IN_READY_STATE
-           STANDBY
+           Each job will be tracked in one of these states: 
+           NEW 
+           BASE_RESOURCES_QUERY
+           BASE_INSUFFICIENT_RESOURCES
+           NCSA_RESOURCES_QUERY
+           NCSA_INSUFFICIENT_RESOURCES
+           BASE_EVENT_PARAMS_SENT
+           READY_FOR_READOUT
            START_READOUT
            FINISH_READOUT
            COMPLETE
         """
         LOGGER.info('Setting up JobScoreboard')
-        self._redis = self.connect()
+        try:
+            Scoreboard.__init__(self, JOB_SCOREBOARD_DB)
+        except L1RabbitConnectionError as e:
+            LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
+            print "No Monitoring for YOU"
+            raise L1Error('Calling super.init in JobScoreboard init caused: ', e.arg)
+
+        try:
+            self._redis = self.connect()
+        except L1RedisError as e:
+            LOGGER.error("Cannot make connection to Redis:  " , e)  
+            print "No Redis for YOU"
+            raise L1Error('Calling connect in JobScoreboard init caused:  ', e.arg)
+
         self._redis.flushdb()
         #DEBUG_ONLY:
         #self.charge_database()
@@ -82,17 +98,8 @@ class JobScoreboard(Scoreboard):
                 return True
         else: 
             LOGGER.info('In add_job, could not reconnect to Redis after 3 attempts')
+            raise L1RedisError
             return False
-
-
-    def get_next_job_num(self):
-        if self.check_connection():
-            self._redis.incr(self.JOB_SEQUENCE_NUM)
-            return self._redis.get(self.JOB_SEQUENCE_NUM)
-        else:
-            LOGGER.error('Unable to increment job number due to lack of redis connection')
-            #RAISE exception to catch in DMCS.py
-
 
 
     def add_job(self, job_number, rafts):
@@ -192,6 +199,16 @@ class JobScoreboard(Scoreboard):
         self._redis.lrem(self.JOBS, 0, str(job_number))
 
 
+    def get_next_job_num(self):
+        if self.check_connection():
+            self._redis.incr(self.JOB_SEQUENCE_NUM)
+            return self._redis.get(self.JOB_SEQUENCE_NUM)
+        else:
+            LOGGER.error('Unable to increment job number due to lack of redis connection')
+            #RAISE exception to catch in DMCS.py
+
+
+
     def print_all(self):
         dump_dict = {}
         f = open("dump", 'w')
@@ -238,8 +255,11 @@ class JobScoreboard(Scoreboard):
 
 def main():
   jbs = JobScoreboard()
-  jbs.charge_database()
-  jbs.print_all()
+  print "Job Scoreboard seems to be running OK"
+  time.sleep(2)
+  print "Done."
+  #jbs.charge_database()
+  #jbs.print_all()
   #Ps = jbs.get_value_for_job(str(1), 'PAIRS')
   #print "printing Ps"
   #print Ps

@@ -25,6 +25,7 @@ class DMCS:
     JOB_SCBD = None
     ACK_SCBD = None
     STATE_SCBD = None
+    BACKLOG_SCBD = None
     OCS_BDG_PUBLISH = "ocs_bdg_publish"  #Messages from OCS Bridge
     OCS_BDG_CONSUME = "ocs_bdg_consume"  #Messages to OCS Bridge
     DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
