@@ -23,7 +23,9 @@ class JobScoreboard(Scoreboard):
        assigned to Redis's rdDatabase instance 8. Redis launches with a default 
        15 separate database instances.
     """
-    JOBS = 'jobs'
+    JOBS = 'JOBS'
+    SESSIONS = 'SESSIONS'
+    VISITS = 'VISITS'
     JOB_NUM = 'JOB_NUM'
     WORKER_NUM = 'worker_num'
     RAFTS = 'RAFTS'
@@ -71,11 +73,9 @@ class JobScoreboard(Scoreboard):
         except L1RedisError as e:
             LOGGER.error("Cannot make connection to Redis:  " , e)  
             print "No Redis for YOU"
-            raise L1Error('Calling connect in JobScoreboard init caused:  ', e.arg)
+            raise L1Error('Calling redis connect in JobScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
-        #DEBUG_ONLY:
-        #self.charge_database()
 
         weekday = subprocess.check_output('date +"%u"', shell=True)
         job_num_seed = str(weekday) + "000"
@@ -111,6 +111,27 @@ class JobScoreboard(Scoreboard):
             return False
 
 
+    def set_session(self, session_id):
+        if self.check_connection():
+            self._redis.rpush(self.SESSIONS, session_id)
+            params = {}
+            params[self.SUB_TYPE] = self.SESSION
+            params[self.SESSION_ID] = session_id
+            self.persist(self.build_monitor_data(params))
+
+
+    def set_visit(self, visit_id):
+        if self.check_connection():
+            session_id = self.get_current_session()
+            self._redis.rpush(session_id, visit_id)
+            params = {}
+            params[self.SUB_TYPE] = self.VISIT
+            params[self.VISIT_ID] = visit_id
+            params[self.SESSION_ID] = session_id
+            self.persist(self.build_monitor_data(params))
+
+
+
     def add_job(self, job_number, rafts):
         """All job rows created in the scoreboard begin with this method
            where initial attributes are inserted.
@@ -126,12 +147,16 @@ class JobScoreboard(Scoreboard):
             self._redis.hset(job_num, self.STATUE, 'ACTIVE')
             self._redis.hset(job_num, 'JOB_CREATION_TIME', get_timestamp())
             self._redis.lpush(self.JOBS, job_num)
-            self.persist(self.build_monitor_data(job_num,'NEW'))
+            params = {}
+            params[self.SUB_TYPE] = self.JOB_STATE
+            params[JOB_NUM] = job_num
+            params[self.STATE] = 'NEW'
+            self.persist(self.build_monitor_data(params))
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
 
 
-    def set_job_params(self, job_number, params):
+    def set_job_params(self, job_number, in_params):
         """Sets a number of job row fields at once.
 
            :param str job_number: Cast as str below just in case an int type slipped in.
@@ -140,15 +165,14 @@ class JobScoreboard(Scoreboard):
         if self.check_connection():
             job = str(job_number)
             for kee in params.keys():
-                self._redis.hset(str(job), kee, params[kee])
+                self._redis.hset(str(job), kee, in_params[kee])
         else:
             return False
-        monitor_data[JOB_NUM] = job_number
-        monitor_data['SESSION_ID'] = self._session_id
-        monitor_data['SUB_TYPE'] = self.JOB_STATE
-        monitor_data['STATE'] = params['STATE']
-        monitor_data['TIME'] = get_epoch_timestamp()
-        self.persist(self.build_monitor_data(job_number, params['STATE']))
+        params = {}
+        params[JOB_NUM] = job_number
+        params['SUB_TYPE'] = self.JOB_STATE
+        params['STATE'] = in_params['STATE']
+        self.persist(self.build_monitor_data(params))
 
 
     def set_value_for_job(self, job_number, kee, val):
@@ -203,10 +227,23 @@ class JobScoreboard(Scoreboard):
         """
         if self.check_connection():
             pairs =  self._redis.hget(str(job_number), 'PAIRS')
+        ### XXX FIX - Check for existence of pairs...
         if pairs:
             return yaml.load(pairs)
         else:
             return None
+
+
+    def get_current_session(self):
+        if self.check_connection():
+            return self._redis.lindex(self.SESSIONS, 0)
+
+    def get_current_visit(self):
+        if self.check_connection():
+            if self._redis.exists(self.get_current_session()):
+                return self._redis.lindex(self.get_current_session(), 0)
+            else:
+                return None
 
 
     def delete_job(self, job_number):
@@ -218,6 +255,7 @@ class JobScoreboard(Scoreboard):
         monitor_data = {}
         monitor_data[JOB_NUM] = job_number
         monitor_data['SESSION_ID'] = self._session_id
+        monitor_data['VISIT_ID'] = 2
         monitor_data['SUB_TYPE'] = self.JOB_STATE
         monitor_data['STATE'] = state
         monitor_data['TIME'] = get_epoch_timestamp()
