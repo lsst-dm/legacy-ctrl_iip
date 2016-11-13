@@ -1,8 +1,8 @@
 from const import *
 import toolsmod
 from toolsmod import get_timestamp
-#from Consumer import Consumer
-#import yaml
+from Consumer import Consumer
+import yaml
 import time
 import thread
 import os
@@ -13,7 +13,7 @@ from influxdb import InfluxDBClient
 class MonitorJournal:
 
     def __init__(self, filename=None):
-        if file == None:
+        if filename == None:
             file = 'ForemanCfgTest.yaml'
         try:
             f = open(file)
@@ -45,10 +45,9 @@ class MonitorJournal:
         self.start_consumer(self.broker_url, self.monitor_format)
 
 
-    def start_consumer(self, self.broker_url, 
-        self.broker_url = "amqp://BASE:BASE@141.142.208.191:5672/%2ftester"
+    def start_consumer(self, broker_url, format): 
 
-        self.influx_consumer = Consumer(self.broker_url, "influx_consume", "YAML")
+        self.influx_consumer = Consumer(self.broker_url, "monitor_consume", "YAML")
         try:
             thread.start_new_thread( self.run_influx_consumer, ("thread-influx-consumer", 2,) )
         except:
@@ -61,7 +60,7 @@ class MonitorJournal:
 
 
     def on_influx_message(self, ch, method, properties, msg):
-        handler = self.msg_actions.get(msg['DATA_TYPE']
+        handler = self.msg_actions.get(msg['DATA_TYPE'])
         result = handler(body)
 
 
@@ -78,20 +77,20 @@ class MonitorJournal:
     def process_job_scbd(self, msg):
         tags_dict = {}
         tags_dict['job'] = msg['JOB_NUM']
-        tags_dict['session_id' = msg['SESSION_ID']
+        tags_dict['session_id'] = msg['SESSION_ID']
 
         fields_dict = {}
         if msg['SUB_TYPE'] == 'STATE':
             fields_dict['state'] = msg['STATE']
         elif msg['SUB_TYPE'] == 'STATUS':
             fields_dict['status'] = msg['STATUS']
-        elif msg['SUB_TYPE'] = 'PAIRS':
+        elif msg['SUB_TYPE'] == 'PAIRS':
             fields_dict['pairs'] = 'mates'
         else:
             fields_dict['pairs'] = '9999'
 
         if_dict = {}
-        if_dict["measurement":msg['SUB_TYPE']
+        if_dict["measurement":msg['SUB_TYPE']]
         if_dict["time"] = msg['TIME']
         if_dict["tags"] = tags_dict
         if_dict["fields"] = fields_dict
@@ -108,8 +107,8 @@ class MonitorJournal:
 
 
 def main():
-    inf = Influxator()
-    print "Influxator Done."
+    mj = MonitorJournal()
+    print "MonitorJournal finished."
 
 #        self.points = []
 #        point = { "measurement":"State",'entity':'fwd_4',"time":1478636564520880478, "fields": {'state':'unknown' }}
