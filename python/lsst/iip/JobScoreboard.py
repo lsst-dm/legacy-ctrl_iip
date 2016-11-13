@@ -28,6 +28,7 @@ class JobScoreboard(Scoreboard):
     WORKER_NUM = 'worker_num'
     RAFTS = 'RAFTS'
     STATE = 'STATE'
+    STATUS = 'STATUS'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
   
 
@@ -44,12 +45,20 @@ class JobScoreboard(Scoreboard):
            NCSA_RESOURCES_QUERY
            NCSA_INSUFFICIENT_RESOURCES
            BASE_EVENT_PARAMS_SENT
-           READY_FOR_READOUT
-           START_READOUT
-           FINISH_READOUT
+           READY_FOR_EVENT
+           READOUT
+           READOUT_COMPLETE
+           DELIVERY_COMPLETE
+           SCRUBBED
            COMPLETE
+
+           In addition, each job will have an assigned status:
+           ACTIVE
+           COMPLETE
+           TERMINATED
         """
         LOGGER.info('Setting up JobScoreboard')
+        self._session_id = str(1)
         try:
             Scoreboard.__init__(self, JOB_SCOREBOARD_DB)
         except L1RabbitConnectionError as e:
@@ -113,10 +122,11 @@ class JobScoreboard(Scoreboard):
         # XXX Needs try, catch block
         if self.check_connection():
             self._redis.hset(job_num, self.RAFTS, rafts)
-            self._redis.hset(job_num, self.STATE, 'NEW_JOB')
+            self._redis.hset(job_num, self.STATE, 'NEW')
+            self._redis.hset(job_num, self.STATUE, 'ACTIVE')
             self._redis.hset(job_num, 'JOB_CREATION_TIME', get_timestamp())
             self._redis.lpush(self.JOBS, job_num)
-            #self.persist_snapshot()
+            self.persist(self.build_monitor_data(job_num,'NEW'))
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
 
@@ -126,14 +136,19 @@ class JobScoreboard(Scoreboard):
 
            :param str job_number: Cast as str below just in case an int type slipped in.
            :param dict params: A python dict of key/value pairs.
-        """   
+        """  
         if self.check_connection():
             job = str(job_number)
             for kee in params.keys():
                 self._redis.hset(str(job), kee, params[kee])
         else:
             return False
-        #self.persist_snapshot()
+        monitor_data[JOB_NUM] = job_number
+        monitor_data['SESSION_ID'] = self._session_id
+        monitor_data['SUB_TYPE'] = self.JOB_STATE
+        monitor_data['STATE'] = params['STATE']
+        monitor_data['TIME'] = get_epoch_timestamp()
+        self.persist(self.build_monitor_data(job_number, params['STATE']))
 
 
     def set_value_for_job(self, job_number, kee, val):
@@ -197,6 +212,20 @@ class JobScoreboard(Scoreboard):
     def delete_job(self, job_number):
         #self._redis.hdel(self.JOBS, str(job_number))
         self._redis.lrem(self.JOBS, 0, str(job_number))
+
+
+    def build_monitor_data(self, job_number, state):
+        monitor_data = {}
+        monitor_data[JOB_NUM] = job_number
+        monitor_data['SESSION_ID'] = self._session_id
+        monitor_data['SUB_TYPE'] = self.JOB_STATE
+        monitor_data['STATE'] = state
+        monitor_data['TIME'] = get_epoch_timestamp()
+        return monitor_data
+
+
+    def set_session_id(self, session_id):
+        self._session_id = str(session_id)
 
 
     def get_next_job_num(self):
