@@ -160,7 +160,7 @@ class AuditListener:
         self.influx_client.write_points(if_dict)
 
 
-    def foreman_ack_request(self, msg):
+    def process_foreman_ack_request(self, msg):
         tags_dict = {}
         tags_dict['ack_type'] = msg['SUB_TYPE']
         tags_dict['component'] = msg['COMPONENT_NAME']
@@ -188,15 +188,10 @@ class AuditListener:
 
 
 def main():
-    aa = AuditListener()
-    print "AuditListener finished."
+    al = AuditListener()
+    time.sleep(2)
+    print "AuditListener seems to be working all right."
 
-#        self.points = []
-#        point = { "measurement":"State",'entity':'fwd_4',"time":1478636564520880478, "fields": {'state':'unknown' }}
-#        point2 = { "measurement":"State",'entity':'fwd_5',"time":1478636564520880476, "fields": {'state':'idle' }}
-#        self.points.append(point)
-#        self.points.append(point2)
-#        self.influx_client.write_points(self.points)
 
 if __name__ == "__main__": main()
 

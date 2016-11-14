@@ -3,6 +3,7 @@ from toolsmod import get_timestamp
 from toolsmod import get_epoch_timestamp
 import yaml
 import logging
+from time import sleep
 from const import *
 from Scoreboard import Scoreboard
 
@@ -158,9 +159,11 @@ class AckScoreboard(Scoreboard):
 def main():
     asb = AckScoreboard()
 
-    asb.add_timed_ack(ncsa_msg)
+#    asb.add_timed_ack(ncsa_msg)
 
-    comps = asb.get_components_for_timed_ack('NCSA_16')
+#    comps = asb.get_components_for_timed_ack('NCSA_16')
+    sleep(2)
+    print "AckScoreboard seems to be running OK."
 
 
 if __name__ == "__main__": main()
