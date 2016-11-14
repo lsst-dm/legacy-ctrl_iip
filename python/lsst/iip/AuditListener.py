@@ -28,9 +28,9 @@ class AuditListener:
         passwd = self.cdm['ROOT']['BASE_BROKER_PASSWD']
         self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
         self.influx_db = self.cdm['ROOT']['INFLUX_DB']
-        self.monitor_format = "YAML"
-        if 'MONITOR_MSG_FORMAT' in self.cdm['ROOT']:
-            self.monitor_format = self.cdm['ROOT']['MONITOR_MSG_FORMAT']
+        self.audit_format = "YAML"
+        if 'AUDIT_MSG_FORMAT' in self.cdm['ROOT']:
+            self.audit_format = self.cdm['ROOT']['AUDIT_MSG_FORMAT']
 
 
         self.msg_actions = { 'ACK_SCOREBOARD_DB': self.process_ack_scbd,
@@ -50,12 +50,12 @@ class AuditListener:
         self.influx_client = InfluxDBClient('localhost', 8086)
         self.influx_client.switch_database(self.influx_db)
 
-        self.start_consumer(self.broker_url, self.monitor_format)
+        self.start_consumer(self.broker_url, self.audit_format)
 
 
     def start_consumer(self, broker_url, format): 
 
-        self.influx_consumer = Consumer(self.broker_url, "monitor_consume", "YAML")
+        self.influx_consumer = Consumer(self.broker_url, "audit_consume", format)
         try:
             thread.start_new_thread( self.run_influx_consumer, ("thread-influx-consumer", 2,) )
         except:
