@@ -185,6 +185,7 @@ class AuditListener:
         pass
 
     def run(self):
+        print "Starting AuditListener..."
         while (1):
             pass
 
@@ -195,6 +196,7 @@ def main():
     try:
         al.run()
     except KeyboardInterrupt:
+        print "AuditListener shutting down."
         pass
 
 #    time.sleep(2)

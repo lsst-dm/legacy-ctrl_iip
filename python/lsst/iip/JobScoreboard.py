@@ -34,6 +34,7 @@ class JobScoreboard(Scoreboard):
     STATE = 'STATE'
     JOB_STATUS = 'JOB_STATUS'
     STATUS = 'STATUS'
+    SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
   
 
@@ -118,8 +119,8 @@ class JobScoreboard(Scoreboard):
         if self.check_connection():
             self._redis.rpush(self.SESSIONS, session_id)
             params = {}
-            params[self.SUB_TYPE] = self.SESSION
-            params[self.SESSION_ID] = session_id
+            params['SUB_TYPE'] = 'SESSION'
+            params['SESSION_ID'] = session_id
             # skipping build_audit_data, so put TIME in here - see comment below
             params['TIME'] = get_epoch_timestamp()
 
@@ -132,7 +133,7 @@ class JobScoreboard(Scoreboard):
             session_id = self.get_current_session()
             self._redis.rpush(session_id, visit_id)
             params = {}
-            params[self.SUB_TYPE] = self.VISIT
+            params['SUB_TYPE'] = 'VISIT'
             self.persist(self.build_monitor_data(params))
 
 
@@ -149,7 +150,7 @@ class JobScoreboard(Scoreboard):
         if self.check_connection():
             self._redis.hset(job_num, self.RAFTS, rafts)
             self._redis.hset(job_num, self.STATE, 'NEW')
-            self._redis.hset(job_num, self.STATUE, 'ACTIVE')
+            self._redis.hset(job_num, self.STATUS, 'ACTIVE')
             self._redis.hset(job_num, 'JOB_CREATION_TIME', get_timestamp())
             self._redis.lpush(self.JOBS, job_num)
             params = {}
@@ -175,7 +176,7 @@ class JobScoreboard(Scoreboard):
         """  
         if self.check_connection():
             job = str(job_number)
-            for kee in params.keys():
+            for kee in in_params.keys():
                 self._redis.hset(str(job), kee, in_params[kee])
             params = {}
             params[JOB_NUM] = job_number
