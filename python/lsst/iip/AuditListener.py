@@ -184,13 +184,21 @@ class AuditListener:
     def process_backlog_scbd(self, msg):
         pass
 
-
+    def run(self):
+        while (1):
+            pass
 
 
 def main():
     al = AuditListener()
-    time.sleep(2)
-    print "AuditListener seems to be working all right."
+
+    try:
+        al.run()
+    except KeyboardInterrupt:
+        pass
+
+#    time.sleep(2)
+#    print "AuditListener seems to be working all right."
 
 
 if __name__ == "__main__": main()

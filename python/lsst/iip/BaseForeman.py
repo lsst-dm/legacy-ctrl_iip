@@ -557,38 +557,6 @@ class BaseForeman:
             cmd = "rabbitmqctl -p /tester purge_queue " + q
             os.system(cmd)
 
-        #This will either move to an external script, or be done dynamically by reading cfg file
-        #os.system('rabbitmqctl -p /tester purge_queue f_consume')
-        #os.system('rabbitmqctl -p /tester purge_queue F_consume')
-        #os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
-        #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
-        #os.system('rabbitmqctl -p /tester purge_queue dmcs_consume')
-        #os.system('rabbitmqctl -p /tester purge_queue ncsa_consume')
-
-        #os.system('rabbitmqctl -p /bunny purge_queue forwarder_publish')
-        #os.system('rabbitmqctl -p /bunny purge_queue ack_publish')
-        #os.system('rabbitmqctl -p /bunny purge_queue F1_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F2_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F3_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F4_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F5_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F6_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F7_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F8_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F9_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F10_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F11_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F12_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F13_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F14_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F15_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F16_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F17_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F18_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F19_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F20_consume')
-        #os.system('rabbitmqctl -p /bunny purge_queue F21_consume')
-
 
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
