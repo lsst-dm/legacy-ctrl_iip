@@ -22,6 +22,9 @@ class Scoreboard:
     SCOREBOARD_TYPE = None
 
     def __init__(self, scoreboard_type, file=None):
+        print "The scoreboard arg is "
+        print scoreboard_type
+        print "Done printing scoreboard arg is "
         if file == None:
             file = 'ForemanCfgTest.yaml'
         try:
@@ -31,8 +34,17 @@ class Scoreboard:
             raise L1Error
 
         self.cdm = yaml.safe_load(f)
-        self.SCBDS = self.cdm['ROOT']['SCOREBOARDS']
-        self.SCOREBOARD_TYPE = (key for key, value in self.SCBDS.iteritems() if value == scoreboard_type)
+        scbds = self.cdm['ROOT']['SCOREBOARDS']
+        keez = scbds.keys()
+        for k in keez:
+            if scbds[k] == scoreboard_type:
+                self.SCOREBOARD_TYPE = k
+                break
+
+#        self.SCOREBOARD_TYPE = (key for key, value in self.SCBDS.iteritems() if value == scoreboard_type)
+        print "Printing value of self.SCOREBOARD_TYPE"
+        print self.SCOREBOARD_TYPE
+        print "Done printing value of self.SCOREBOARD_TYPE"
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
         name = self.cdm['ROOT']['BASE_BROKER_NAME']
         passwd = self.cdm['ROOT']['BASE_BROKER_PASSWD']
