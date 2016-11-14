@@ -10,7 +10,7 @@ import sys
 from influxdb import InfluxDBClient
 
 
-class MonitorJournal:
+class AuditListener:
 
     def __init__(self, filename=None):
         if filename == None:
@@ -159,8 +159,8 @@ class MonitorJournal:
 
 
 def main():
-    mj = MonitorJournal()
-    print "MonitorJournal finished."
+    aa = AuditListener()
+    print "AuditListener finished."
 
 #        self.points = []
 #        point = { "measurement":"State",'entity':'fwd_4',"time":1478636564520880478, "fields": {'state':'unknown' }}
