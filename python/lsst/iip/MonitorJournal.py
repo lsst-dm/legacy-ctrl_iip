@@ -39,8 +39,14 @@ class MonitorJournal:
                              'DMCS_SCOREBOARD_DB': self.process_dmcs_scbd,
                              'BACKLOG_SCOREBOARD_DB': self.process_backlog_scbd}
 
+        self.job_sub_actions = { 'SESSION': self.process_job_session,
+                                 'VISIT': self.process_job_visit,
+                                 'JOB_STATE': self.process_job_state,
+                                 'JOB_STATUS': self.process_job_status,
+                                 'JOB_PAIRS': self.process_job_pairs}
+
         self.influx_client = InfluxDBClient('localhost', 8086)
-        self.influx_client.switch_database('L1_Test')
+        self.influx_client.switch_database('L1_TEST2')
 
         self.start_consumer(self.broker_url, self.monitor_format)
 
@@ -74,20 +80,20 @@ class MonitorJournal:
     def process_fwd_scbd(self, msg):
         pass
 
+
     def process_job_scbd(self, msg):
+        handler = self.job_sub_actions(msg['SUB_TYPE'])
+        result = handler(msg)
+
+
+    def process_job_state(self, msg):
         tags_dict = {}
         tags_dict['job'] = msg['JOB_NUM']
-        tags_dict['session_id'] = msg['SESSION_ID']
+        tags_dict['session'] = msg['SESSION_ID']
+        tags_dict['visit'] = msg['VISIT_ID']
 
         fields_dict = {}
-        if msg['SUB_TYPE'] == 'STATE':
-            fields_dict['state'] = msg['STATE']
-        elif msg['SUB_TYPE'] == 'STATUS':
-            fields_dict['status'] = msg['STATUS']
-        elif msg['SUB_TYPE'] == 'PAIRS':
-            fields_dict['pairs'] = 'mates'
-        else:
-            fields_dict['pairs'] = '9999'
+        fields_dict['state'] = msg['STATE']
 
         if_dict = {}
         if_dict["measurement":msg['SUB_TYPE']]
@@ -96,6 +102,52 @@ class MonitorJournal:
         if_dict["fields"] = fields_dict
         self.influx_client.write_points(if_dict)
 
+
+    def process_job_status(self, msg):
+        tags_dict = {}
+        tags_dict['job'] = msg['JOB_NUM']
+        tags_dict['session'] = msg['SESSION_ID']
+        tags_dict['visit'] = msg['VISIT_ID']
+
+        fields_dict = {}
+        fields_dict['status'] = msg['STATUS']
+
+        if_dict = {}
+        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["time"] = msg['TIME']
+        if_dict["tags"] = tags_dict
+        if_dict["fields"] = fields_dict
+        self.influx_client.write_points(if_dict)
+
+
+    def process_job_session(self, msg):
+        fields_dict = {}
+        fields_dict['session'] = msg['SESSION']
+
+        if_dict = {}
+        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["time"] = msg['TIME']
+        if_dict["fields"] = fields_dict
+        self.influx_client.write_points(if_dict)
+
+
+    def process_job_visit(self, msg):
+        tags_dict = {}
+        tags_dict['session'] = msg['SESSION_ID']
+
+        fields_dict = {}
+        fields_dict['visit'] = msg['VISIT']
+
+        if_dict = {}
+        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["time"] = msg['TIME']
+        if_dict["tags"] = tags_dict
+        if_dict["fields"] = fields_dict
+        self.influx_client.write_points(if_dict)
+
+
+    def process_job_pairs(self, msg):
+        pass
 
     def process_dmcs_scbd(self, msg):
         pass

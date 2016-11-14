@@ -29,7 +29,9 @@ class JobScoreboard(Scoreboard):
     JOB_NUM = 'JOB_NUM'
     WORKER_NUM = 'worker_num'
     RAFTS = 'RAFTS'
+    JOB_STATE = 'JOB_STATE'
     STATE = 'STATE'
+    JOB_STATUS = 'JOB_STATUS'
     STATUS = 'STATUS'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
   
@@ -152,6 +154,12 @@ class JobScoreboard(Scoreboard):
             params[JOB_NUM] = job_num
             params[self.STATE] = 'NEW'
             self.persist(self.build_monitor_data(params))
+
+            params = {}
+            params[self.SUB_TYPE] = self.JOB_STATUS
+            params[JOB_NUM] = job_num
+            params[self.STATUS] = 'active'
+            self.persist(self.build_monitor_data(params))
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
 
@@ -166,14 +174,22 @@ class JobScoreboard(Scoreboard):
             job = str(job_number)
             for kee in params.keys():
                 self._redis.hset(str(job), kee, in_params[kee])
+            params = {}
+            params[JOB_NUM] = job_number
+            params['SUB_TYPE'] = self.JOB_STATE
+            params['STATE'] = in_params['STATE']
+            self.persist(self.build_monitor_data(params))
         else:
             return False
-        params = {}
-        params[JOB_NUM] = job_number
-        params['SUB_TYPE'] = self.JOB_STATE
-        params['STATE'] = in_params['STATE']
-        self.persist(self.build_monitor_data(params))
 
+    def set_job_status(self, job_number, status):
+        if self.check_connection():
+            job = str(job_number)
+            return self._redis.hset(job, self.STATUS, status)
+            params = {}
+            params[JOB_NUM] = job
+            params[self.STATUS] = status
+            self.persist(self.build_monitor_data(params))
 
     def set_value_for_job(self, job_number, kee, val):
         """Set a specific field in a job row with a key and value.
@@ -184,7 +200,7 @@ class JobScoreboard(Scoreboard):
         """
         if self.check_connection():
             job = str(job_number) 
-            return self._redis.hset(str(job), kee, val)
+            return self._redis.hset(job, kee, val)
         else:
            return False
 
@@ -251,13 +267,13 @@ class JobScoreboard(Scoreboard):
         self._redis.lrem(self.JOBS, 0, str(job_number))
 
 
-    def build_monitor_data(self, job_number, state):
+    def build_monitor_data(self, params):
         monitor_data = {}
-        monitor_data[JOB_NUM] = job_number
-        monitor_data['SESSION_ID'] = self._session_id
-        monitor_data['VISIT_ID'] = 2
-        monitor_data['SUB_TYPE'] = self.JOB_STATE
-        monitor_data['STATE'] = state
+        keez = params.keys()
+        for kee in keez:
+            monitor_data[kee] = params[kee]
+        monitor_data['SESSION_ID'] = self.get_current_session()
+        monitor_data['VISIT_ID'] = self.get_current_visit()
         monitor_data['TIME'] = get_epoch_timestamp()
         return monitor_data
 
@@ -287,38 +303,6 @@ class JobScoreboard(Scoreboard):
         f.write(yaml.dump(dump_dict))
         print dump_dict
 
-    def charge_database(self):
-      pairs = {}
-      other_pairs = {}
-      #pairs = { 'F1':'D2', 'F2':'D6', 'F3':'D11', 'F4':'D1', 'F5':'D7'}
-      pairs['F1'] = 'D2'
-      pairs['F2'] = 'D6'
-      pairs['F3'] = 'D11'
-      pairs['F4'] = 'D1'
-      pairs['F5'] = 'D7'
-      other_pairs = { 'F1':'D10', 'F2':'D1', 'F3':'D11', 'F4':'D8', 'F5':'D4'}
-
-      self.add_job(1, 7)
-      self.add_job(2,  8)
-      self.add_job(3,  1)
-      self.add_job(4,  1)
-      self.add_job(5,  2)
-      self.add_job(6,  6)
-
-      #self.set_pairs_for_job('1',  pairs)
-      #self.set_pairs_for_job('2',  pairs)
-      self.set_value_for_job('1', 'PAIRS', pairs)
-      self.set_value_for_job('4', 'PAIRS', pairs)
-      #self.set_value_for_job('5', 'PAIRS', pairs)
-      #self.set_value_for_job('6', 'PAIRS', other_pairs)
-
-      #keez = pairs.keys()
-      #print("printing just keez")
-      #print keez
-      #Ps = self.get_value_for_job(str(1), 'PAIRS')
-      #ppps = eval(Ps)
-      #print "final line"
-      #print ppps == pairs
 
 def main():
   jbs = JobScoreboard()
