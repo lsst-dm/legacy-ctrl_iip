@@ -68,7 +68,10 @@ class AuditListener:
 
 
     def on_influx_message(self, ch, method, properties, msg):
-        time.sleep(1)
+        print "Message is: "
+        print msg
+        print "End of message"
+        #handler = self.msg_actions.get(msg['DATA']['DATA_TYPE'])
         handler = self.msg_actions.get(msg['DATA_TYPE'])
         result = handler(msg)
 
