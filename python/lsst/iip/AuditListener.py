@@ -23,10 +23,11 @@ class AuditListener:
 
         self.cdm = yaml.safe_load(f)
 
-        broker_address = self.cdm['ROOT']['TEST_BROKER_ADDR']
-        name = self.cdm['ROOT']['TEST_BROKER_NAME']
-        passwd = self.cdm['ROOT']['TEST_BROKER_PASSWD']
+        broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
+        name = self.cdm['ROOT']['BASE_BROKER_NAME']
+        passwd = self.cdm['ROOT']['BASE_BROKER_PASSWD']
         self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
+        self.influx_db = self.cdm['ROOT']['INFLUX_DB']
         self.monitor_format = "YAML"
         if 'MONITOR_MSG_FORMAT' in self.cdm['ROOT']:
             self.monitor_format = self.cdm['ROOT']['MONITOR_MSG_FORMAT']
@@ -37,7 +38,8 @@ class AuditListener:
                              'FWD_SCOREBOARD_DB': self.process_fwd_scbd,
                              'JOB_SCOREBOARD_DB': self.process_job_scbd,
                              'DMCS_SCOREBOARD_DB': self.process_dmcs_scbd,
-                             'BACKLOG_SCOREBOARD_DB': self.process_backlog_scbd}
+                             'BACKLOG_SCOREBOARD_DB': self.process_backlog_scbd,
+                             'FOREMAN_ACK_REQUEST': self.process_foreman_ack_request }
 
         self.job_sub_actions = { 'SESSION': self.process_job_session,
                                  'VISIT': self.process_job_visit,
@@ -46,7 +48,7 @@ class AuditListener:
                                  'JOB_PAIRS': self.process_job_pairs}
 
         self.influx_client = InfluxDBClient('localhost', 8086)
-        self.influx_client.switch_database('L1_TEST2')
+        self.influx_client.switch_database(self.influx_db)
 
         self.start_consumer(self.broker_url, self.monitor_format)
 
@@ -67,12 +69,24 @@ class AuditListener:
 
     def on_influx_message(self, ch, method, properties, msg):
         handler = self.msg_actions.get(msg['DATA_TYPE'])
-        result = handler(body)
+        result = handler(msg)
 
 
 
-    def process_ack_scbd(self, body):
-        pass
+    def process_ack_scbd(self, msg):
+        tags_dict = {}
+        tags_dict['ack_type'] = msg['SUB_TYPE']
+        tags_dict['component'] = msg['COMPONENT_NAME']
+
+        fields_dict = {}
+        fields_dict['ack_id'] = msg['ACK_ID']
+
+        if_dict = {}
+        if_dict["measurement:" + str(msg['ACK_ID'])]
+        if_dict["time"] = msg['TIME']
+        if_dict["tags"] = tags_dict
+        if_dict["fields"] = fields_dict
+        self.influx_client.write_points(if_dict)
 
     def process_dist_scbd(self, body):
         pass
@@ -96,7 +110,7 @@ class AuditListener:
         fields_dict['state'] = msg['STATE']
 
         if_dict = {}
-        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["measurement:" + str(msg['SUB_TYPE'])]
         if_dict["time"] = msg['TIME']
         if_dict["tags"] = tags_dict
         if_dict["fields"] = fields_dict
@@ -142,6 +156,21 @@ class AuditListener:
         if_dict["measurement":msg['SUB_TYPE']]
         if_dict["time"] = msg['TIME']
         if_dict["tags"] = tags_dict
+        if_dict["fields"] = fields_dict
+        self.influx_client.write_points(if_dict)
+
+
+    def foreman_ack_request(self, msg):
+        tags_dict = {}
+        tags_dict['ack_type'] = msg['SUB_TYPE']
+        tags_dict['component'] = msg['COMPONENT_NAME']
+
+        fields_dict = {}
+        fields_dict['ack_id'] = msg['ACK_ID']
+
+        if_dict = {}
+        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["time"] = msg['TIME']
         if_dict["fields"] = fields_dict
         self.influx_client.write_points(if_dict)
 

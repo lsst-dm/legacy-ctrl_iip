@@ -1,5 +1,6 @@
 import redis
 from toolsmod import get_timestamp
+from toolsmod import get_epoch_timestamp
 import yaml
 import logging
 from const import *
@@ -23,7 +24,8 @@ class AckScoreboard(Scoreboard):
     ### FIX: Put Redis DB numbers in Const
     TIMED_ACKS = 'timed_acks'
     TIMED_ACK_IDS = 'TIMED_ACK_IDS'
-    ACKS = []
+    ACK_FETCH = 'ACK_FETCH'
+    ACKS_IDS = 'ACK_IDS'
   
 
     def __init__(self):
@@ -40,6 +42,13 @@ class AckScoreboard(Scoreboard):
            4) After a timer event elapses, the scoreboard is locked and checked  to see which ACKs were received.
         """
         LOGGER.info('Setting up AckScoreboard')
+        try:
+            Scoreboard.__init__(self, ACK_SCOREBOARD_DB)
+        except L1RabbitConnectionError as e:
+            LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
+            print "No Auditing for YOU"
+            raise L1Error('Calling super.init in AckScoreboard init caused: ', e.arg)
+
         self._redis = self.connect()
         self._redis.flushdb()
         #DEBUG_ONLY:
@@ -82,15 +91,21 @@ class AckScoreboard(Scoreboard):
         """
 
         ack_id_string = ack_msg_body['ACK_ID']
+        ack_component_name = ack_msg_body['COMPONENT_NAME']
+        ack_sub_type = ack_msg_body['MSG_TYPE']
       
         if self.check_connection():
             ack_msg_body['ACK_RETURN_TIME'] = get_timestamp()
-            self._redis.hset(ack_id_string, ack_msg_body['COMPONENT_NAME'], ack_msg_body)
+            self._redis.hset(ack_id_string, ack_component_name, ack_msg_body)
 
-            # This next line builds a list of TIMED_ACK_IDs for use in unit tests and as a general 
-            # component for printing out the entire scoreboard
-            self._redis.lpush(self.TIMED_ACK_IDS, ack_id_string)
-            #self._redis.lpush(self.ACKS, ack_id_string)
+            # ACK_IDS are for unit tests and for printing out entire scoreboard
+            self._redis.lpush(self.ACK_IDS, ack_id_string)
+
+            params = {}
+            params['SUB_TYPE'] = ack_sub_type
+            params['ACK_ID'] = ack_id_string
+            params['COMPONENT_NAME'] = ack_component_name
+            self.persist(self.build_audit_data(params))
             
         else:
             LOGGER.error('Unable to add new ACK; Redis connection unavailable')
@@ -113,68 +128,39 @@ class AckScoreboard(Scoreboard):
                    component_dict[key] = yaml.load(self._redis.hget(timed_ack, key))
 
                 return component_dict
+                params = {}
+                params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
+                params['ACK_ID'] = timed_ack
+                self.persist(self.build_audit_data(params))
 
             else:
                 return None
 
+    def build_audit_data(self, params):
+        audit_data = {}
+        keez = params.keys()
+        for kee in keez:
+            audit_data[kee] = params[kee]
+        audit_data['TIME'] = get_epoch_timestamp()
+        return audit_data
+
+
 
     def print_all(self):
-        acks = self._redis.lrange(self.ACKS, 0, -1)
+        acks = self._redis.lrange(self.ACK_IDS, 0, -1)
         for ack in acks:
             x = self._redis.hgetall(ack)
             print x
             print ("---------")
 
 
-    def charge_database(self):
-        forwarders_dict = {'Forwarder_1': '3', 'Forwarder_2': '6', 'Forwarder_4': '7', 'Forwarder_8': '11'}
-        healthy_distributors = ['Distributor_16', 'Distributor_17', 'Distributor_19', 'Distributor_22']
-        keez = forwarders_dict.keys()
-
-        #build dict...
-        pairs_dict = {}
-
-        number_pairs = len(keez)
-        for i in range (0, number_pairs):
-            tmp_dict = {}
-            distributor = healthy_distributors[i]
-            tmp_dict['FQN'] = distributor
-            tmp_dict['RAFT'] = forwarders_dict[keez[i]]
-            tmp_dict['HOSTNAME'] =  'HOSTNAME'
-            tmp_dict['NAME'] = 'NAME'
-            tmp_dict['IP_ADDR'] = 'IP_ADDR'
-            tmp_dict['TARGET_DIR'] = 'TARGET_DIR'
-            pairs_dict[keez[i]] = tmp_dict
-
-        big_d = {}
-        big_d['COMPONENT_NAME'] = 'NCSA_FOREMAN'
-        big_d['ACK_ID'] = 'NCSA_16'
-        big_d['ACK_BOOL'] = True
-        big_d['PAIRS'] = pairs_dict
-
-        return big_d
-
 
 def main():
     asb = AckScoreboard()
 
-    ncsa_msg = asb.charge_database()
     asb.add_timed_ack(ncsa_msg)
 
     comps = asb.get_components_for_timed_ack('NCSA_16')
 
-    print ("-------------------------------------")
-    print " "
-    asb.print_all()
-    print " "
-    print ("-------------------------------------")
-    print " "
-    print "Here comes Comps"
-    print " "
-    print "+++++++++++++++++++++++++++++++++++++"
-    print " "
-    print comps
-    print " "
-    print "+++++++++++++++++++++++++++++++++++++"
 
 if __name__ == "__main__": main()

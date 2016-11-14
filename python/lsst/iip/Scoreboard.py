@@ -17,7 +17,7 @@ class Scoreboard:
        that continually stores state information about components and jobs.
     """
 
-    MONITOR_QUEUE = 'monitor_consume'
+    AUDIT_QUEUE = 'audit_consume'
     SCBDS = None
     SCOREBOARD_TYPE = None
 
@@ -33,15 +33,17 @@ class Scoreboard:
         self.cdm = yaml.safe_load(f)
         self.SCBDS = self.cdm['ROOT']['SCOREBOARDS']
         self.SCOREBOARD_TYPE = (key for key, value in self.SCBDS.iteritems() if value == scoreboard_type)
-        broker_address = self.cdm['ROOT']['TEST_BROKER_ADDR']
-        name = self.cdm['ROOT']['TEST_BROKER_NAME']
-        passwd = self.cdm['ROOT']['TEST_BROKER_PASSWD']
+        broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
+        name = self.cdm['ROOT']['BASE_BROKER_NAME']
+        passwd = self.cdm['ROOT']['BASE_BROKER_PASSWD']
         self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
-        self.monitor_format = "YAML"
-        if 'MONITOR_MSG_FORMAT' in self.cdm['ROOT']:
-            self.monitor_format = self.cdm['ROOT']['MONITOR_MSG_FORMAT']
+
+        self.audit_format = "YAML"
+        if 'AUDIT_MSG_FORMAT' in self.cdm['ROOT']:
+            self.audit_format = self.cdm['ROOT']['AUDIT_MSG_FORMAT']
+
         try:
-            self.monitor_publisher = SimplePublisher(self.broker_url, self.monitor_format)
+            self.audit_publisher = SimplePublisher(self.broker_url, self.audit_format)
         except L1RabbitConnectionError as e:
             LOGGER.error("Scoreboard Parent Class cannot create SimplePublisher:  ", e.arg)
             print "No Publisher for YOU"
@@ -52,7 +54,7 @@ class Scoreboard:
         params = {}
         params['DATA_TYPE'] = self.SCOREBOARD_TYPE
         params['DATA'] = data
-        self.monitor_publisher.publish_message(self.MONITOR_QUEUE, yaml.dump(params))
+        self.audit_publisher.publish_message(self.AUDIT_QUEUE, yaml.dump(params))
 
 
     def persist_snapshot(self, connection, filename):

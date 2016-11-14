@@ -308,6 +308,12 @@ class BaseForeman:
         
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
         self.JOB_SCBD.set_value_for_job(job_num, "TIME_BASE_RESOURCE_QUERY", get_timestamp())
+        audit_params = {}
+        audit_params['DATA_TYPE'] = 'FOREMAN_ACK_REQUEST'
+        audit_params['SUB_TYPE'] = 'FORWARDER_HEALTH_CHECK_ACK'
+        audit_params['ACK_ID'] = timed_ack
+        audit_parsms['COMPONENT_NAME'] = 'BASE_FOREMAN'
+        audit_params['TIME'] = get_epoch_timestamp()
         for forwarder in forwarders:
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             ack_params)

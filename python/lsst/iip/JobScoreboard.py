@@ -1,5 +1,6 @@
 import redis
 from toolsmod import get_timestamp
+from toolsmod import get_epoch_timestamp
 from toolsmod import L1RedisError
 from toolsmod import L1RabbitConnectionError
 import yaml
@@ -119,7 +120,11 @@ class JobScoreboard(Scoreboard):
             params = {}
             params[self.SUB_TYPE] = self.SESSION
             params[self.SESSION_ID] = session_id
-            self.persist(self.build_monitor_data(params))
+            # skipping build_audit_data, so put TIME in here - see comment below
+            params['TIME'] = get_epoch_timestamp()
+
+            # Send directly without adding fields in 'build_audit_data', as no visit yet
+            self.persist(params)
 
 
     def set_visit(self, visit_id):
@@ -128,8 +133,6 @@ class JobScoreboard(Scoreboard):
             self._redis.rpush(session_id, visit_id)
             params = {}
             params[self.SUB_TYPE] = self.VISIT
-            params[self.VISIT_ID] = visit_id
-            params[self.SESSION_ID] = session_id
             self.persist(self.build_monitor_data(params))
 
 
