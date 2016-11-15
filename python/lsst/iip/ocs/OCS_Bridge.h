@@ -7,17 +7,18 @@
 
 class OCS_Bridge { 
     public: 
+	OCS_Bridge(string); 
+    private: 
 	string base_broker_addr; 
 	string DMCS_PUBLISH; 
 	string DMCS_CONSUME; 
 	boost::python::object dmcs_publisher; 
 	boost::python::object dmcs_consumer; 
-	OCS_Bridge(string base_broker_addr); 
+
 	void setup_publisher(); 
 	void setup_rabbit_consumer(); 
 	void setup_ocs_consumer(); 	
 	static void *run_dmcs_consumer(void *); 
 	static void *run_ocs_consumer(void *); 
-	static void on_dmcs_message(boost::python::object, boost::python::object, boost::python::object, string); 
-	void run(); 
+	static void on_dmcs_message(boost::python::object, boost::python::object, boost::python::object, boost::python::dict); 
 }; 
