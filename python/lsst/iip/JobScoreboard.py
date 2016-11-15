@@ -138,7 +138,7 @@ class JobScoreboard(Scoreboard):
 
 
 
-    def add_job(self, job_number, rafts):
+    def add_job(self, job_number, image_id, rafts):
         """All job rows created in the scoreboard begin with this method
            where initial attributes are inserted.
 
@@ -151,6 +151,7 @@ class JobScoreboard(Scoreboard):
             self._redis.hset(job_num, self.RAFTS, rafts)
             self._redis.hset(job_num, self.STATE, 'NEW')
             self._redis.hset(job_num, self.STATUS, 'ACTIVE')
+            self._redis.hset(job_num, 'IMAGE_ID', image_id)
             self._redis.hset(job_num, 'JOB_CREATION_TIME', get_timestamp())
             self._redis.lpush(self.JOBS, job_num)
             params = {}
@@ -162,6 +163,7 @@ class JobScoreboard(Scoreboard):
             params = {}
             params[self.SUB_TYPE] = self.JOB_STATUS
             params[JOB_NUM] = job_num
+            params['IMAGE_ID'] = image_id
             params[self.STATUS] = 'active'
             self.persist(self.build_monitor_data(params))
         else:
@@ -182,6 +184,7 @@ class JobScoreboard(Scoreboard):
             params[JOB_NUM] = job_number
             params['SUB_TYPE'] = self.JOB_STATE
             params['STATE'] = in_params['STATE']
+            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
         else:
             return False
@@ -193,6 +196,7 @@ class JobScoreboard(Scoreboard):
             params = {}
             params[JOB_NUM] = job
             params[self.STATUS] = status
+            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
 
     def set_value_for_job(self, job_number, kee, val):

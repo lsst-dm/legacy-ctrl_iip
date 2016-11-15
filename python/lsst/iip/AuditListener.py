@@ -109,6 +109,7 @@ class AuditListener:
         tags_dict['job'] = msg['JOB_NUM']
         tags_dict['session'] = msg['SESSION_ID']
         tags_dict['visit'] = msg['VISIT_ID']
+        tags_dict['image_id'] = msg['IMAGE_ID']
 
         fields_dict = {}
         fields_dict['state'] = msg['STATE']
@@ -128,6 +129,7 @@ class AuditListener:
         tags_dict['job'] = msg['JOB_NUM']
         tags_dict['session'] = msg['SESSION_ID']
         tags_dict['visit'] = msg['VISIT_ID']
+        tags_dict['image_id'] = msg['IMAGE_ID']
 
         fields_dict = {}
         fields_dict['status'] = msg['STATUS']

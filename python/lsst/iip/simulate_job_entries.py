@@ -22,7 +22,7 @@ class SimJobs:
         sleep(0.2)
 
 #J1
-        self.jscbd.add_job("PP_14006", 161)
+        self.jscbd.add_job("PP_14006", "IM4109", 161)
         sleep(0.4)
 
         self.jscbd.set_job_params("PP_14006", {'STATE':'BASE_RESOURCES_QUERY'})
@@ -56,7 +56,7 @@ class SimJobs:
         sleep(0.2)
 
 #J2
-        self.jscbd.add_job("PP_14007", 189)
+        self.jscbd.add_job("PP_14007", "IM_4110", 189)
         sleep(0.4)
 
         self.jscbd.set_job_params("PP_14007", {'STATE':'BASE_RESOURCES_QUERY'})
@@ -86,7 +86,7 @@ class SimJobs:
         self.jscbd.set_job_status("PP_14007", 'COMPLETE')
 
 #J3
-        self.jscbd.add_job("PP_14008", 189)
+        self.jscbd.add_job("PP_14008", "IM_4111", 189)
         sleep(0.4)
 
         self.jscbd.set_job_params("PP_14008", {'STATE':'BASE_RESOURCES_QUERY'})
@@ -112,7 +112,7 @@ class SimJobs:
         sleep(0.2)
 
 
-        self.jscbd.add_job("PP_14009", 161)
+        self.jscbd.add_job("PP_14009", "IM_4112", 161)
         sleep(0.4)
 
         self.jscbd.set_job_params("PP_14009", {'STATE':'BASE_RESOURCES_QUERY'})
