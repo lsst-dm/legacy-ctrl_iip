@@ -87,7 +87,6 @@ class AckScoreboard(Scoreboard):
 
 
     def add_timed_ack(self, ack_msg_body):
-        print "IN ADD_TIMED_ACK"
         """The first time that a new ACK_ID is encountered, the ACK row is created.
            From then on, new ACKS for a particular ACK_ID are added here. 
             
