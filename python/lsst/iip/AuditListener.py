@@ -86,11 +86,11 @@ class AuditListener:
         fields_dict['ack_id'] = msg['ACK_ID']
 
         if_dict = {}
-        if_dict["measurement:" + str(msg['ACK_ID'])]
+        if_dict["measurement:"] = msg['ACK_ID']
         if_dict["time"] = msg['TIME']
         if_dict["tags"] = tags_dict
         if_dict["fields"] = fields_dict
-        self.influx_client.write_points(if_dict)
+        self.influx_client.write(if_dict)
 
     def process_dist_scbd(self, body):
         pass
@@ -100,7 +100,7 @@ class AuditListener:
 
 
     def process_job_scbd(self, msg):
-        handler = self.job_sub_actions(msg['SUB_TYPE'])
+        handler = self.job_sub_actions.get(msg['SUB_TYPE'])
         result = handler(msg)
 
 
@@ -114,11 +114,11 @@ class AuditListener:
         fields_dict['state'] = msg['STATE']
 
         if_dict = {}
-        if_dict["measurement:" + str(msg['SUB_TYPE'])]
+        if_dict["measurement"] = msg['SUB_TYPE']
         if_dict["time"] = msg['TIME']
         if_dict["tags"] = tags_dict
         if_dict["fields"] = fields_dict
-        self.influx_client.write_points(if_dict)
+        self.influx_client.write(if_dict)
 
 
     def process_job_status(self, msg):
@@ -131,22 +131,26 @@ class AuditListener:
         fields_dict['status'] = msg['STATUS']
 
         if_dict = {}
-        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["measurement"] = msg['SUB_TYPE']
         if_dict["time"] = msg['TIME']
         if_dict["tags"] = tags_dict
         if_dict["fields"] = fields_dict
-        self.influx_client.write_points(if_dict)
+        self.influx_client.write(if_dict)
 
 
     def process_job_session(self, msg):
+        tags_dict = {}
+        tags_dict['sessions'] = "wha?"
+
         fields_dict = {}
-        fields_dict['session'] = msg['SESSION']
+        fields_dict['session'] = msg['SESSION_ID']
 
         if_dict = {}
-        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["measurement"] = msg['SUB_TYPE']
         if_dict["time"] = msg['TIME']
         if_dict["fields"] = fields_dict
-        self.influx_client.write_points(if_dict)
+        if_dict["tags"] = tags_dict
+        self.influx_client.write(if_dict)
 
 
     def process_job_visit(self, msg):
@@ -157,11 +161,11 @@ class AuditListener:
         fields_dict['visit'] = msg['VISIT']
 
         if_dict = {}
-        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["measurement"]= msg['SUB_TYPE']
         if_dict["time"] = msg['TIME']
         if_dict["tags"] = tags_dict
         if_dict["fields"] = fields_dict
-        self.influx_client.write_points(if_dict)
+        self.influx_client.write(if_dict)
 
 
     def process_foreman_ack_request(self, msg):
@@ -173,10 +177,10 @@ class AuditListener:
         fields_dict['ack_id'] = msg['ACK_ID']
 
         if_dict = {}
-        if_dict["measurement":msg['SUB_TYPE']]
+        if_dict["measurement"] = msg['SUB_TYPE']
         if_dict["time"] = msg['TIME']
         if_dict["fields"] = fields_dict
-        self.influx_client.write_points(if_dict)
+        self.influx_client.write(if_dict)
 
 
     def process_job_pairs(self, msg):
