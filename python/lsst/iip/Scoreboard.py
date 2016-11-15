@@ -63,14 +63,11 @@ class Scoreboard:
 
 
     def persist(self, data):
-        print "IN PERSIST - data is %s" % data
         params = {}
         params['DATA_TYPE'] = self.SCOREBOARD_TYPE
         keez = data.keys()
         for k in keez:
             params[k] = data[k]
-        print "IN PERSIST - NOW, data is %s" % data
-        print "---------------------------"
         self.audit_publisher.publish_message(self.AUDIT_QUEUE, params)
 
 

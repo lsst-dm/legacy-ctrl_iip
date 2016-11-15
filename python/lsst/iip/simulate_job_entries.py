@@ -51,7 +51,6 @@ class SimJobs:
 
         self.jscbd.set_job_status("PP_14006", 'COMPLETE')
 
-
 #V2
         self.jscbd.set_visit("V_1002")
         sleep(0.2)
