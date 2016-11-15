@@ -69,6 +69,7 @@ class AuditListener:
 
 
     def on_influx_message(self, ch, method, properties, msg):
+        #print "In audit, msg contents is:  %s" % msg
         handler = self.msg_actions.get(msg['DATA_TYPE'])
         result = handler(msg)
 
@@ -79,12 +80,15 @@ class AuditListener:
         tags_dict = {}
         tags_dict['ack_type'] = msg['SUB_TYPE']
         tags_dict['component'] = msg['COMPONENT_NAME']
+        tags_dict['job'] = msg['JOB_NUM']
+        tags_dict['ack_id'] = msg['ACK_ID']
+        tags_dict['image_id'] = msg['IMAGE_ID']
 
         fields_dict = {}
-        fields_dict['ack_id'] = msg['ACK_ID']
+        fields_dict['ack_result'] = msg['ACK_BOOL']
 
         if_dict = {}
-        if_dict["measurement:"] = msg['ACK_ID']
+        if_dict["measurement"] = 'acks'
         if_dict["time"] = msg['TIME']
         if_dict["tags"] = tags_dict
         if_dict["fields"] = fields_dict
