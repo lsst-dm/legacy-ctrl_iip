@@ -157,6 +157,7 @@ class JobScoreboard(Scoreboard):
             params = {}
             params[self.SUB_TYPE] = self.JOB_STATE
             params[JOB_NUM] = job_num
+            params['IMAGE_ID'] = image_id
             params[self.STATE] = 'NEW'
             self.persist(self.build_monitor_data(params))
 
@@ -185,6 +186,8 @@ class JobScoreboard(Scoreboard):
             params['SUB_TYPE'] = self.JOB_STATE
             params['STATE'] = in_params['STATE']
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            print "In Job scbd, image id is: "
+            print self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
         else:
             return False
