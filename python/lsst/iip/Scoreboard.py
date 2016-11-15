@@ -18,10 +18,8 @@ class Scoreboard:
     """
 
     AUDIT_QUEUE = 'audit_consume'
-    SCBDS = None
-    SCOREBOARD_TYPE = None
 
-    def __init__(self, scoreboard_type, file=None):
+    def __init__(self, file=None):
         if file == None:
             file = 'ForemanCfgTest.yaml'
         try:
@@ -31,14 +29,7 @@ class Scoreboard:
             raise L1Error
 
         self.cdm = yaml.safe_load(f)
-        scbds = self.cdm['ROOT']['SCOREBOARDS']
-        keez = scbds.keys()
-        for k in keez:
-            if scbds[k] == scoreboard_type:
-                self.SCOREBOARD_TYPE = k
-                break
 
-#        self.SCOREBOARD_TYPE = (key for key, value in self.SCBDS.iteritems() if value == scoreboard_type)
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
         name = self.cdm['ROOT']['BASE_BROKER_NAME']
         passwd = self.cdm['ROOT']['BASE_BROKER_PASSWD']
@@ -57,12 +48,7 @@ class Scoreboard:
 
 
     def persist(self, data):
-        params = {}
-        params['DATA_TYPE'] = self.SCOREBOARD_TYPE
-        keez = data.keys()
-        for k in keez:
-            params[k] = data[k]
-        self.audit_publisher.publish_message(self.AUDIT_QUEUE, params)
+        self.audit_publisher.publish_message(self.AUDIT_QUEUE, data)
 
 
     def persist_snapshot(self, connection, filename):

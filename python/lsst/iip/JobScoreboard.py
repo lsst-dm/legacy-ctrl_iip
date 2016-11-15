@@ -24,6 +24,7 @@ class JobScoreboard(Scoreboard):
        assigned to Redis's rdDatabase instance 8. Redis launches with a default 
        15 separate database instances.
     """
+    DBTYPE = 'JOB_SCOREBOARD_DB'
     JOBS = 'JOBS'
     SESSIONS = 'SESSIONS'
     VISITS = 'VISITS'
@@ -66,7 +67,7 @@ class JobScoreboard(Scoreboard):
         LOGGER.info('Setting up JobScoreboard')
         self._session_id = str(1)
         try:
-            Scoreboard.__init__(self, JOB_SCOREBOARD_DB)
+            Scoreboard.__init__(self)
         except L1RabbitConnectionError as e:
             LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
             print "No Monitoring for YOU"
@@ -121,6 +122,7 @@ class JobScoreboard(Scoreboard):
             params = {}
             params['SUB_TYPE'] = 'SESSION'
             params['SESSION_ID'] = session_id
+            params['DATA_TYPE'] = self.DBTYPE
             # skipping build_audit_data, so put TIME in here - see comment below
             params['TIME'] = get_epoch_timestamp()
 
@@ -134,6 +136,7 @@ class JobScoreboard(Scoreboard):
             self._redis.rpush(session_id, visit_id)
             params = {}
             params['SUB_TYPE'] = 'VISIT'
+            params['DATA_TYPE'] = self.DBTYPE
             self.persist(self.build_monitor_data(params))
 
 
@@ -186,8 +189,6 @@ class JobScoreboard(Scoreboard):
             params['SUB_TYPE'] = self.JOB_STATE
             params['STATE'] = in_params['STATE']
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            print "In Job scbd, image id is: "
-            print self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
         else:
             return False
@@ -286,7 +287,9 @@ class JobScoreboard(Scoreboard):
         monitor_data['SESSION_ID'] = self.get_current_session()
         monitor_data['VISIT_ID'] = self.get_current_visit()
         monitor_data['TIME'] = get_epoch_timestamp()
+        monitor_data['DATA_TYPE'] = self.DBTYPE
         return monitor_data
+
 
 
     def set_session_id(self, session_id):

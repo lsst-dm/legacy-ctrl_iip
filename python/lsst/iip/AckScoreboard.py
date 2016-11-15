@@ -1,6 +1,8 @@
 import redis
 from toolsmod import get_timestamp
 from toolsmod import get_epoch_timestamp
+from toolsmod import L1RedisError
+from toolsmod import L1RabbitConnectionError
 import yaml
 import logging
 from time import sleep
@@ -26,7 +28,8 @@ class AckScoreboard(Scoreboard):
     TIMED_ACKS = 'timed_acks'
     TIMED_ACK_IDS = 'TIMED_ACK_IDS'
     ACK_FETCH = 'ACK_FETCH'
-    ACKS_IDS = 'ACK_IDS'
+    ACK_IDS = 'ACK_IDS'
+    DBTYPE = 'ACK_SCOREBOARD_DB'
   
 
     def __init__(self):
@@ -44,7 +47,7 @@ class AckScoreboard(Scoreboard):
         """
         LOGGER.info('Setting up AckScoreboard')
         try:
-            Scoreboard.__init__(self, ACK_SCOREBOARD_DB)
+            Scoreboard.__init__(self)
         except L1RabbitConnectionError as e:
             LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
             print "No Auditing for YOU"
@@ -84,6 +87,7 @@ class AckScoreboard(Scoreboard):
 
 
     def add_timed_ack(self, ack_msg_body):
+        print "IN ADD_TIMED_ACK"
         """The first time that a new ACK_ID is encountered, the ACK row is created.
            From then on, new ACKS for a particular ACK_ID are added here. 
             
@@ -105,7 +109,10 @@ class AckScoreboard(Scoreboard):
             params = {}
             params['SUB_TYPE'] = ack_sub_type
             params['ACK_ID'] = ack_id_string
+            params['JOB_NUM'] = ack_msg_body['JOB_NUM']
             params['COMPONENT_NAME'] = ack_component_name
+            params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
+            params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
             self.persist(self.build_audit_data(params))
             
         else:
@@ -138,11 +145,13 @@ class AckScoreboard(Scoreboard):
                 return None
 
     def build_audit_data(self, params):
+        
         audit_data = {}
         keez = params.keys()
         for kee in keez:
             audit_data[kee] = params[kee]
         audit_data['TIME'] = get_epoch_timestamp()
+        audit_data['DATA_TYPE'] = self.DBTYPE
         return audit_data
 
 
