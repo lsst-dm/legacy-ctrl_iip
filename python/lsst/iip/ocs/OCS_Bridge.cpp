@@ -1,15 +1,16 @@
 #include <pthread.h>
 #include <stdio.h> 
 #include <string.h>
-#include <sstream>
 #include <iostream>
 #include <map>
 #include "OCS_Bridge.h"
+#include <SimpleAmqpClient/SimpleAmqpClient.h>
 
 using namespace DDS;
 using namespace dm;
 using namespace std; 
 using namespace boost::python;
+using namespace AmqpClient; 
 
 /* entry point exported and demangled so symbol can be found in shared library */
 extern "C" { 
@@ -17,55 +18,53 @@ extern "C" {
     void *run_ocs_consumer(void *);
 }
 
-struct thread_args { 
-    object pyObj; 
-    string broker_addr; 
-    string queue_name; 
-}; 
 
 OCS_Bridge::OCS_Bridge(string base_addr) { 
     base_broker_addr = base_addr; 
-    DMCS_PUBLISH = "dmcs_publish"; 
-    DMCS_CONSUME = "dmcs_consume"; 
+    OCS_PUBLISH = "ocs_publish"; 
+    OCS_CONSUME = "ocs_consume"; 
     Py_Initialize(); 
-    setup_publisher(); 
+    cout << "RUNNING THREADS >>>> " << endl; 
+
+    object pyimport = import("Consumer"); 
+    ocs_consumer = pyimport.attr("Consumer")(base_broker_addr, OCS_CONSUME); 
+    object pymethod = make_function(OCS_Bridge::on_dmcs_message); 
+
+    rabbit_consume_args = new thread_args; 
+    rabbit_consume_args->pyObj = ocs_consumer; 
+    rabbit_consume_args->func = pymethod; 
+    
+    ocs_consume_args = new thread_args; 
+    ocs_consume_args->amqpObj = ocs_publisher; 
+    ocs_consume_args->broker_addr = base_broker_addr; 
+    ocs_consume_args->queue_name = OCS_PUBLISH; 
+
     setup_rabbit_consumer(); 
+    setup_publisher(); 
     setup_ocs_consumer(); 
 }
 
+OCS_Bridge::~OCS_Bridge() {
+    delete(ocs_consume_args); 
+    delete(rabbit_consume_args); 
+} 
+
 void OCS_Bridge::setup_publisher() { 
-    try { 
-	object pyimport = import("SimplePublisher"); 
-	dmcs_publisher = pyimport.attr("SimplePublisher")(base_broker_addr); 
-    } 
-    catch (error_already_set const &) {
-	PyErr_Print(); 
-    }
+    cout << "Setting up RABBIT publisher" << endl; 
+    ocs_publisher =  Channel::CreateFromUri(base_broker_addr); 
 } 
 
 void OCS_Bridge::setup_rabbit_consumer() {
-    try {
-	pthread_t thread1; 
-	struct thread_args p1; 
-	p1.broker_addr = this->base_broker_addr; 
-	p1.queue_name = this->DMCS_CONSUME; 
-	pthread_create(&thread1, NULL, &OCS_Bridge::run_dmcs_consumer, &p1); 
-    }
-    catch (error_already_set const &) {
-	PyErr_Print(); 
-    } 
-    pthread_exit(NULL); 
+    cout << "Setting up RABBIT consumer" << endl; 
+    pthread_create(&consume_thread, NULL, &OCS_Bridge::run_dmcs_consumer, rabbit_consume_args); 
 }
 
 void *OCS_Bridge::run_dmcs_consumer(void *params) {
     try { 
-        thread_args p = *((thread_args *)params);
-	string a = p.broker_addr; 
-	string b = p.queue_name;  	
-	object pyimport = import("Consumer"); 
-	object dmcs = pyimport.attr("Consumer")(a, b); 
-	object pymethod = make_function(OCS_Bridge::on_dmcs_message); 
-	dmcs.attr("run")(pymethod); 
+        thread_args *p = ((thread_args *)params);
+	object consumer = p->pyObj; 
+	object callback = p->func; 
+	consumer.attr("run")(callback); 
     } 
     catch(error_already_set const &) { 
 	PyErr_Print(); 
@@ -75,12 +74,13 @@ void *OCS_Bridge::run_dmcs_consumer(void *params) {
 
 void OCS_Bridge::on_dmcs_message(object ch, object method, object properties, dict body) {
     try { 
+	cout << "###########  RECEIVING MESSAGE ############" << endl; 
 	int l = len(body); 
 	list keys = body.keys(); 
 	for (int i = 0; i < l; i++) { 
 	    string key = extract<string>(keys[i]); 
 	    string value = extract<string>(body[keys[i]]); 
-	    cout << key << " " << value << endl;
+	    cout << key + ": " + value << endl; 
 	} 
     } 
     catch (error_already_set const &) { 
@@ -89,20 +89,22 @@ void OCS_Bridge::on_dmcs_message(object ch, object method, object properties, di
 }
 
 void OCS_Bridge::setup_ocs_consumer() { 
-    thread_args pargs; 
-    pargs.pyObj = dmcs_publisher; 
-    pargs.broker_addr = base_broker_addr; 
-    pargs.queue_name = DMCS_PUBLISH; 
-    pthread_t ocsthread; 
-    pthread_create(&ocsthread, NULL, run_ocs_consumer, &pargs); 
-    pthread_exit(NULL); 
+    cout << "Setting up OCS consumer" << endl; 
+    pthread_create(&ocsthread, NULL, run_ocs_consumer, ocs_consume_args); 
 } 
 
+void OCS_Bridge::process_ocs_message(Channel::ptr_t publisher, string queue, string message) { 
+    cout << "INSIDE PROCESS_OCS" << endl; 
+    BasicMessage::ptr_t msg = BasicMessage::Create(message); 
+    publisher->BasicPublish("", queue, msg, true, false); 
+}
+
 void *OCS_Bridge::run_ocs_consumer(void *pargs) {
-    thread_args params = *((thread_args *)pargs); 
-    object publisher = params.pyObj; 
-    string addr = params.broker_addr; 
-    string queue = params.queue_name; 
+    cout << "INSIDE RUN_OCS" << endl; 
+    thread_args *params = ((thread_args *)pargs); 
+    Channel::ptr_t publisher = params->amqpObj; 
+    string addr = params->broker_addr; 
+    string queue = params->queue_name; 
     
     os_time delay_2ms = { 0, 2000000 };
     os_time delay_200ms = { 0, 200000000 };
@@ -123,8 +125,7 @@ void *OCS_Bridge::run_ocs_consumer(void *pargs) {
 	if (status == SAL__OK) {
 	    string ocs_msg = SALInstance.message; 
 	    try { 
-		cout << ocs_msg << endl; 
-		publisher.attr("publish_message")(queue, ocs_msg); 
+		process_ocs_message(publisher, queue, ocs_msg); 
 	    }
 	    catch (error_already_set const &) {
 		PyErr_Print();
@@ -136,5 +137,11 @@ void *OCS_Bridge::run_ocs_consumer(void *pargs) {
 
     os_nanoSleep(delay_2ms);
     mgr.salShutdown();
-    pthread_exit(NULL); 
+    return 0;
+} 
+
+int main() { 
+    OCS_Bridge ocs("amqp://ocs:ocs@141.142.208.241/%2fbridge"); 
+    pthread_exit(NULL);
+    return 0;
 } 
