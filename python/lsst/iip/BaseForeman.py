@@ -40,11 +40,11 @@ class BaseForeman:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self._default_cfg_file = 'ForemanCfg.yaml'
-        if filename == None:
-            filename = self._default_cfg_file
+        self._config_file = 'ForemanCfg.yaml'
+        if filename != None:
+            self._config_file = filename
 
-        cdm = self.intake_yaml_file(filename)
+        cdm = self.intake_yaml_file(self._config_file)
 
         try:
             self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
