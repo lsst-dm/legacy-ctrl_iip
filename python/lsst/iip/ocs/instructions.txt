@@ -1,0 +1,10 @@
+OCS_Bridge and CommandListener are dependent on 
+* Rabbitmq-c <https://github.com/alanxz/rabbitmq-c> 
+* AmqpClient <https://github.com/alanxz/SimpleAmqpClient> 
+
+After installing the libraries, 
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
+Then, 
+    make -f makefile // to generate obj file for OCS_Bridge
+    make -f makefile.CommandListener // to generate executable CommandListener
