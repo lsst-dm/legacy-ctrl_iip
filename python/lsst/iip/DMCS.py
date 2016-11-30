@@ -94,6 +94,7 @@ class DMCS:
 
 
     def get_session_id(self, filename):
+        ### XXX FIX - handle case where no file exists
         last_session = self.intake_yaml(filename)
         current_session = int(last_session[SESSION_ID]) + 1
         session_dict = {}

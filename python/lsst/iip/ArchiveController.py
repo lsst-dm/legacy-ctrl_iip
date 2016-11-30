@@ -1,4 +1,6 @@
 import pika
+import os.path
+import hashlib
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from const import *
@@ -14,10 +16,11 @@ LOGGER = logging.getLogger(__name__)
 
 class ArchiveController:
 
-    ARCHIVE_PUBLISH = "archive_publish"
-    ARCHIVE_CONSUME = "archive_consume"
+    ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
+    ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
     ACK_PUBLISH = "ack_publish"
     YAML = 'YAML'
+    RECEIPT_FILE = "/var/archive_controller_receipt"
 
 
 
@@ -62,7 +65,7 @@ class ArchiveController:
         LOGGER.info('Setting up archive consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread for archive consumer')
 
-        self._archive_consumer = Consumer(self._base_broker_url, self.ARCHIVE_CONSUME, self._base_msg_format)
+        self._archive_consumer = Consumer(self._base_broker_url, self.ARCHIVE_CTRL_CONSUME, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_archive_consumer, ("thread-archive-consumer", 2,) )
         except:
@@ -101,8 +104,15 @@ class ArchiveController:
         
 
     def process_new_archive_item(self, params):
-        self.send_audit_message("received_")
+        self.send_audit_message("received_", params)
         target_dir = self.construct_send_target_dir(params)
+
+
+    def process_transfer_complete(self, params):
+        pathway = params['TARGET']
+        csum = params['CHECKSUM']
+        transfer_result = self.check_transferred_file(pathway, csum)
+        self.send_transfer_complete_ack(False, transfer_result, params)
 
 
     def send_health_ack_response(self, type, params):
@@ -126,7 +136,7 @@ class ArchiveController:
         self._publisher.publish_message(self.ACK_PUBLISH, msg_params)
 
 
-    def send_audit_message(self, prefix):
+    def send_audit_message(self, prefix, params):
         audit_params = {}
         audit_params['SUB_TYPE'] = str(prefix) + str(params['MSG_TYPE']) + "_msg"
         audit_params['DATA_TYPE'] = self._name
@@ -135,7 +145,7 @@ class ArchiveController:
 
 
 
-    def construct_send_target_dir_ack(self, params):
+    def construct_send_target_dir(self, params):
         mtype = "NEW_ARCHIVE_ITEM_ACK"
         image_type = params['IMAGE_TYPE']
         session = params['SESSION_ID']
@@ -166,7 +176,48 @@ class ArchiveController:
         return target_dir
 
 
-    def process_transfer_complete(self, params):
-        pass
+    def check_transferred_file(self, pathway, csum):
+        if not os.path.isfile(pathway):
+            return (-1)
+
+        with open(pathway) as file_to_calc:
+            data = file_to_calc.read()
+            resulting_md5 = hashlib.md5(data).hexdigest()
+
+        if resulting_md5 != csum:
+            return (0)
+
+        return self.next_receipt_number()
+
+
+    def next_receipt_number(self):
+        last_receipt = self.intake_yaml(self.RECEIPT_FILE)
+        current_receipt = int(last_receipt[RECEIPT_ID]) + 1
+        session_dict = {}
+        session_dict[RECEIPT_ID] = current_receipt
+        self.export_yaml(self.RECEIPT_FILE, session_dict)
+        return current_receipt
+
+
+    def send_transfer_complete_ack(self, transfer_result, params):
+        ack_params = {}
+        keez = params.keys()
+        for kee in keez:
+            aux_params[kee] = params[kee]
+
+        ack_params['COMPONENT_NAME'] = self._name
+
+        if transfer_result < 0:
+            ack_params['ACK_BOOL'] = False
+            ack_params['FAIL_DETAILS'] = 'FILE_MISSING']
+        elif transfer_result == 0:
+            ack_params['ACK_BOOL'] = False
+            ack_params['FAIL_DETAILS'] = 'BAD_CHECKSUM']
+        else:
+            ack_params['ACK_BOOL'] = True
+            ack_params['RECEIPT'] = transfer_result
+            self._publisher.publish_message(self.ACK_PUBLISH, ack_params)
+
+
 
 
