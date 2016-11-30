@@ -5,7 +5,7 @@ SALPATH	 = /opt/sal/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux
 LIBSAL	 = /opt/sal/lsstsal/lib
 CC	 = g++
 SOPATH   = /opt/sal/test/dm/cpp/src/.obj
-TARGET	 = OCS_Bridge
+TARGET   = CommandListener
 LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config -L/usr/local/lib
 LDLIBS   = -l"sacpp_dm_types$(LIBSUFFIX)" -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
 -l"ddskernel" -l"ddsserialization" -l"ddsconfparser" -l"ddsconf" -l"ddsdatabase" \
@@ -15,5 +15,4 @@ CFLAGS   = -g -Wall
 
 all: $(TARGET)
 $(TARGET): $(TARGET).cpp
-	$(CC) $(INC) $(LDFLAGS) $(LDLIBS) $(SOPATH)/CheckStatus.o $(SOPATH)/SAL_dm.o $(CFLAGS) -o $(TARGET) $(TARGET).cpp
-	#$(CC) $(INC) $(LDFLAGS) $(LDLIBS) $(CFLAGS) -o $(TARGET) $(TARGET).cpp
+	$(CC) $(INC) $(LDFLAGS) $(LDLIBS) $(SOPATH)/CheckStatus.o $(SOPATH)/SAL_dm.o OCS_Bridge.o $(CFLAGS) -o $(TARGET) $(TARGET).cpp
