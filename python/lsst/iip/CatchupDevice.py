@@ -22,25 +22,14 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
 LOGGER = logging.getLogger(__name__)
 
 
-class BaseForeman:
-    FWD_SCBD = None
-    JOB_SCBD = None
-    ACK_SCBD = None
-    DMCS_PUBLISH = "dmcs_publish"
-    DMCS_CONSUME = "dmcs_consume"
-    NCSA_PUBLISH = "ncsa_publish"
-    NCSA_CONSUME = "ncsa_consume"
-    FORWARDER_PUBLISH = "forwarder_publish"
-    ACK_PUBLISH = "ack_publish"
-    YAML = 'YAML'
-    EXCHANGE = 'message'
-    EXCHANGE_TYPE = 'direct'
+class ArchiveDevice:
+    AR_FWD_SCBD = None
+    AR_JOB_SCBD = None
+    AR_ACK_SCBD = None
+    COMPONENT_NAME = 'ARCHIVE_FOREMAN'
 
-######################################################
-##  READ TYPE.YAML FIRST
-######################################################
 
-    def __init__(self, filename=None):
+    def __init__(self, filenam=None):
         toolsmod.singleton(self)
 
         self._config_file = 'ForemanCfg.yaml'
@@ -56,7 +45,8 @@ class BaseForeman:
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
+            self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS][ARCHIVE_FORWARDERS]
+            self._scbd_dict = cdm[ROOT][SCOREBOARDS]
         except KeyError as e:
             print "Dictionary error"
             print "Bailing out..."
@@ -66,29 +56,23 @@ class BaseForeman:
             self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
         self._base_msg_format = self.YAML
-        self._ncsa_msg_format = self.YAML
 
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
 
-        if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
-            self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
 
         self._base_broker_url = 'amqp_url'
-        self._ncsa_broker_url = 'amqp_url'
         self._next_timed_ack_id = 0
 
 
         # Create Redis Forwarder table with Forwarder info
 
-        self.FWD_SCBD = ForwarderScoreboard(forwarder_dict)
-        self.JOB_SCBD = JobScoreboard()
-        self.ACK_SCBD = AckScoreboard()
+        self.FWD_SCBD = ForwarderScoreboard(self.COMPONENT_NAME, self._scbd_dict, self._forwarder_dict)
+        self.JOB_SCBD = JobScoreboard(self.COMPONENT_NAME, self._scbd_dict )
+        self.ACK_SCBD = AckScoreboard(self.COMPONENT_NAME, self._scbd_dict )
+
         self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
                               'READOUT': self.process_dmcs_readout,
-                              'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
-                              'NCSA_STANDBY_ACK': self.process_ack,
-                              'NCSA_READOUT_ACK': self.process_ack,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack,
@@ -96,7 +80,11 @@ class BaseForeman:
 
 
         self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
-        self._ncsa_broker_url = "amqp://" + self._ncsa_name + ":" + self._ncsa_passwd + "@" + str(self._ncsa_broker_addr)
+
+
+
+
+================================================================================================
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
         LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
 

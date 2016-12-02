@@ -5,6 +5,8 @@ ROOT:
   BASE_BROKER_PASSWD: BASE
   ARCHIVE_BROKER_NAME: ARCHIE
   ARCHIVE_BROKER_PASSWD: ARCHIE
+  AUDIT_BROKER_NAME: AUDIT
+  AUDIT_BROKER_PASSWD: AUDIT
   NCSA_BROKER_NAME: NCSA
   NCSA_BROKER_PASSWD: NCSA
   BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
@@ -98,6 +100,42 @@ ROOT:
         IP_ADDR: 141.142.238.170
         STATE: IDLE
         CONSUME_QUEUE: F10_consume
+        PUBLISH_QUEUE: forwarder_publish
+
+
+    ARCHIVE_FORWARDERS:
+      FORWARDER_11:
+        NAME: F11
+        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
+        IP_ADDR: 141.142.238.170
+        STATE: IDLE
+        CONSUME_QUEUE: F11_consume
+        PUBLISH_QUEUE: forwarder_publish
+
+      FORWARDER_12:
+        NAME: F12
+        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
+        IP_ADDR: 141.142.238.170
+        STATE: IDLE
+        CONSUME_QUEUE: F12_consume
+        PUBLISH_QUEUE: forwarder_publish
+
+
+    CATCHUP_FORWARDERS:
+      FORWARDER_13:
+        NAME: F13
+        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
+        IP_ADDR: 141.142.238.170
+        STATE: IDLE
+        CONSUME_QUEUE: F13_consume
+        PUBLISH_QUEUE: forwarder_publish
+
+      FORWARDER_14:
+        NAME: F14
+        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
+        IP_ADDR: 141.142.238.170
+        STATE: IDLE
+        CONSUME_QUEUE: F14_consume
         PUBLISH_QUEUE: forwarder_publish
 
 
