@@ -43,7 +43,7 @@ class DMCS:
         if filename == None:
             filename = self._default_cfg_file
 
-        cdm = self.intake_yaml_file(filename)
+        cdm = toolsmod.intake_yaml_file(filename)
 
         try:
             self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
@@ -284,29 +284,6 @@ class DMCS:
         
     def increment_job_num(self):
        self._current_job = str(self._session_id) + "_" + str(self.JOB_SCBD.get_next_job_num())
-
-
-    def intake_yaml_file(self, filename):
-        """This method reads the ForemanCfg.yaml config file
-           found in the same directory as the BaseForeman class.
-           The config file can list an initial set of forwarders and/or
-           distributors, as well as the message broker address, default 
-           file transfer values, etc.
-    
-        """
-        try:
-            f = open(filename)
-        except IOError:
-            print "Cant open %s" % filename
-            print "Bailing out..."
-            sys.exit(99)
-
-        #cfg data map...
-        cdm = yaml.safe_load(f)
-
-        f.close()
-
-        return cdm
 
 
     def export_yaml_file(self, filename, params):

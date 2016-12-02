@@ -1,4 +1,5 @@
 import subprocess
+import yaml
 
 #def get_timestamp():
 #    return subprocess.check_output('date +"%Y-%m-%dT%H:%M:%S.%5N"', shell=True)
@@ -45,4 +46,16 @@ class L1RabbitConnectionError(L1Exception):
     """ Raise when unable to connect to rabbit """
     def __init__(self, arg): 
         self.errormsg = arg
+
+def intake_yaml_file(filename):
+    try:
+        f = open(filename)
+    except IOError:
+        raise L1Error("Cant open %s" % filename)
+
+    #cfg data map...
+    cdm = yaml.safe_load(f)
+    f.close()
+    return cdm
+
 

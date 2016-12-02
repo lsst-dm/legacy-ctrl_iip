@@ -1,91 +1,164 @@
 import pika
+import time
 
-EXCHANGE='message'
-EXCHANGE_TYPE='direct'
+#EXCHANGE='message'
+#EXCHANGE_TYPE='direct'
+
 
 class Setup:
 
-    #connection = pika.BlockingConnection(pika.URLParameters('amqp://DMCS:DMCS@141.142.208.191:5672/%2fbunny'))
-
-
     def __init__(self):
-        connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
-        channel = connection.channel()
 
-#        channel.exchange_declare(self.on_exchange_declare_ok,'message', 'direct')
+        #Choose a connection...
+#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2ftester'))
+        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2fbunny'))
+        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
+        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2ftester'))
 
-        channel.queue_declare(queue='F1_consume')
-        channel.queue_declare(queue='F2_consume')
-        channel.queue_declare(queue='F3_consume')
-        channel.queue_declare(queue='F4_consume')
-        channel.queue_declare(queue='F5_consume')
-        channel.queue_declare(queue='F6_consume')
-        channel.queue_declare(queue='F7_consume')
-        channel.queue_declare(queue='F8_consume')
-        channel.queue_declare(queue='F9_consume')
-        channel.queue_declare(queue='F10_consume')
-        channel.queue_declare(queue='F11_consume')
-
-        channel.queue_declare(queue='D1_consume')
-        channel.queue_declare(queue='D2_consume')
-        channel.queue_declare(queue='D3_consume')
-        channel.queue_declare(queue='D4_consume')
-        channel.queue_declare(queue='D5_consume')
-        channel.queue_declare(queue='D6_consume')
-        channel.queue_declare(queue='D7_consume')
-        channel.queue_declare(queue='D8_consume')
-        channel.queue_declare(queue='D9_consume')
-        channel.queue_declare(queue='D10_consume')
-        channel.queue_declare(queue='D11_consume')
-
-        channel.queue_declare(queue='forwarder_publish')
-        channel.queue_declare(queue='distributor_publish')
-
-        channel.queue_declare(queue='dmcs_consume')
-        channel.queue_declare(queue='dmcs_publish')
-
-        channel.queue_declare(queue='ncsa_publish')
-
-        channel.queue_declare(queue='reports')
-
-        connection.close()
+        self.channel = self.connection.channel()
 
 
-        connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2ftester'))
-        channel = connection.channel()
-        channel.queue_declare(queue='f_consume')
-        channel.queue_declare(queue='forwarders_publish')
-        connection.close()
+        ## Bind signature details
+        ## queue_bind(callback, queue, exchange, routing_key=None, nowait=False, arguments=None)
+        
+        ### Exchange Declares - message' is primary exchange for lsst 
+        self.channel.exchange_declare(exchange='message', type='direct', durable=True)
+        #self.channel.exchange_delete(exchange='message')
+        time.sleep(2)
+                 
+        ## Set up queues for each forwarder and distributor...
+        ## start with pool of queues for 40 forwarders and 24 distributors
+        #self.delete_forwarder_queues(30)
+        #self.delete_distributor_queues(24)
+        
+        self.setup_forwarders(30)        
+        self.setup_distributors(24)        
+        
+        
+        ### Queue Declares and Bindings
+        
+        ## Queue for foreman test suite
+        self.channel.queue_declare(queue='f_consume',durable=True)
+        self.channel.queue_bind(queue='f_consume', exchange='message', routing_key='f_consume' )
+        
+        
+        ## These queues are how the DMCS messages each of its foremen
+        self.channel.queue_declare(queue='ar_foreman_consume',durable=True)
+        self.channel.queue_bind(queue='ar_foreman_consume', exchange='message', routing_key='ar_foreman_consume' )
+        
+        self.channel.queue_declare(queue='pp_foreman_consume',durable=True)
+        self.channel.queue_bind(queue='pp_foreman_consume', exchange='message', routing_key='pp_foreman_consume' )
+        
+        self.channel.queue_declare(queue='cu_foreman_consume',durable=True)
+        self.channel.queue_bind(queue='cu_foreman_consume', exchange='message', routing_key='cu_foreman_consume' )
+        
+        
+        ## DMCS queues
+        self.channel.queue_declare(queue='dmcs_consume',durable=True)
+        self.channel.queue_bind(queue='dmcs_consume', exchange='message', routing_key='dmcs_consume' )
+        
+        self.channel.queue_declare(queue='dmcs_ack_consume',durable=True)
+        self.channel.queue_bind(queue='dmcs_ack_consume', exchange='message', routing_key='dmcs_ack_consume' )
+        
+        self.channel.queue_declare(queue='ocs_dmcs_consume',durable=True)
+        self.channel.queue_bind(queue='ocs_dmcs_consume', exchange='message', routing_key='ocs_dmcs_consume' )
+        
+        self.channel.queue_declare(queue='event_dmcs_consume',durable=True)
+        self.channel.queue_bind(queue='event_dmcs_consume', exchange='message', routing_key='event_dmcs_consume' )
+        
+        
+        ## Catch all queues for forwarders messaging non-ack info to foremen
+        self.channel.queue_declare(queue='ar_forwarder_publish',durable=True)
+        self.channel.queue_bind(queue='ar_forwarder_publish', exchange='message',routing_key='ar_forwarder_publish')
+        
+        self.channel.queue_declare(queue='pp_forwarder_publish',durable=True)
+        self.channel.queue_bind(queue='pp_forwarder_publish', exchange='message',routing_key='pp_forwarder_publish')
+        
+        self.channel.queue_declare(queue='cu_forwarder_publish',durable=True)
+        self.channel.queue_bind(queue='cu_forwarder_publish', exchange='message',routing_key='cu_forwarder_publish')
+        
+        
+        ## Acks to foremen
+        self.channel.queue_declare(queue='ar_foreman_ack_publish',durable=True)
+        self.channel.queue_bind(queue='ar_foreman_ack_publish', exchange='message', routing_key='ar_foreman_ack_publish' )
+        
+        self.channel.queue_declare(queue='pp_foreman_ack_publish',durable=True)
+        self.channel.queue_bind(queue='pp_foreman_ack_publish', exchange='message', routing_key='pp_foreman_ack_publish' )
+        
+        self.channel.queue_declare(queue='cu_foreman_ack_publish',durable=True)
+        self.channel.queue_bind(queue='cu_foreman_ack_publish', exchange='message', routing_key='cu_foreman_ack_publish' )
+        
+        
+        ## Queues for Archive Controller and Auditor
+        self.channel.queue_declare(queue='audit_consume',durable=True)
+        self.channel.queue_bind(queue='audit_consume', exchange='message', routing_key='audit_consume' )
+        
+        self.channel.queue_declare(queue='archive_ctrl_consume',durable=True)
+        self.channel.queue_bind(queue='archive_ctrl_consume', exchange='message',routing_key='archive_ctrl_consume')
+        
+        self.channel.queue_declare(queue='archive_ctrl_publish',durable=True)
+        self.channel.queue_bind(queue='archive_ctrl_publish', exchange='message',routing_key='archive_ctrl_publish')
+         
+         
+        self.connection.close()
 
 
-    def on_exchange_declare_ok(self, frame):
-        pass
+    def setup_forwarders(self, num):
+        for i in range (1, num + 1):
+            q = 'f' + str(i) + '_consume'
+            self.channel.queue_declare(queue=q,durable=True)
+            self.channel.queue_bind(queue=q, exchange='message',routing_key=q)
 
+        
+    def setup_distributors(self, num):
+        for i in range (1, num + 1):
+            q = 'd' + str(i) + '_consume'
+            self.channel.queue_declare(queue=q,durable=True)
+            self.channel.queue_bind(queue=q, exchange='message',routing_key=q)
+
+    
+    def delete_forwarder_queues(self, num):
+        for i in range (1, num + 1):
+            q = 'f' + str(i) + '_consume'
+            self.channel.queue_delete(queue=q)
+
+        
+    def delete_distributor_queues(self, num):
+        for i in range (1, num + 1):
+            q = 'd' + str(i) + '_consume'
+            self.channel.queue_delete(queue=q)
+
+    
+    
 def main():
     setup = Setup()
+
+    print "Rabbit setup complete."
+
 
 if __name__ == '__main__':
     main()
 
-"""
-while True:
-  x = int(raw_input("1 = forwarder responses, 2 = dmcs responses, 3 = other component, or 4 - F4: "))
-  if x == 1:
-    #channel.basic_publish(exchange='',routing_key='forwarder_responses',body='Are you being forward?')
-    channel.basic_publish(exchange='message',routing_key='forwarder_publish',body='Are you being forward?')
-  elif x == 2:
-    #channel2.basic_publish(exchange='',routing_key='from_dmcs',body='From the ding dang DMCS')
-    #channel.basic_publish(exchange='',routing_key='example.text',body='From the ding dang DMCS')
-    channel.basic_publish(exchange='message',routing_key='dmcs_publish',body='From the ding dang DMCS')
-  elif x == 3:
-    channel.basic_publish(exchange='message',routing_key='F4_consume',body='Calling F4, calling F4!')
-  elif x == 4:
-    channel.basic_publish(exchange='message',routing_key='F2_consume',body='Calling F4, calling F4!')
-  elif x == 3:
-    channel.basic_publish(exchange='message',routing_key='F4_consume',body='Calling F4, calling F4!')
-  else:
-    channel.basic_publish(exchange='message',routing_key='F11_consume',body='a message to a third party')
-    #channel2.basic_publish(exchange='message',routing_key='mainone',body='a message to a third party')
-"""
-
-
+#"""
+#while True:
+#  x = int(raw_input("1 = forwarder responses, 2 = dmcs responses, 3 = other component, or 4 - F4: "))
+#  if x == 1:
+#
+#self.channel.queue_declare(queue='ack_publish',durable=True)
+#self.channel.queue_declare(queue='dmcs_consume',durable=True)
+#self.channel.queue_declare(queue='dmcs_consume')
+#self.channel.queue_declare(queue='f_consume')
+#self.channel.queue_declare(queue='forwarder_publish')
+#self.channel.queue_declare(queue='audit_consume')
+#self.channel.queue_bind(queue='dmcs_consume', exchange='message', routing_key='dmcs_consume' )
+#self.channel.queue_bind(queue='f_consume', exchange='message', routing_key='f_consume' )
+#self.channel.queue_bind(queue='forwarder_publish', exchange='message', routing_key='forwarder_publish' )
+#self.channel.queue_bind(queue='audit_consume', exchange='message', routing_key='audit_consume' )
+#
+#self.channel.queue_delete(queue='dmcs_consume')
+#self.channel.queue_delete(queue='f_consume')
+#self.channel.queue_delete(queue='forwarder_publish')
+#self.channel.queue_delete(queue='F_consume')
+#time.sleep(2)
+#self.channel.exchange_delete(exchange='amq.rabbitmq.trace')
+#self.channel.queue_declare(queue='firehose')

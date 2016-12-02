@@ -1,9 +1,11 @@
 import pika
 import os.path
 import hashlib
+import yaml
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from const import *
+import toolsmod  # here so reader knows where intake yaml method resides
 from toolsmod import *
 import thread
 import logging
@@ -27,19 +29,18 @@ class ArchiveController:
     def __init__(self, filename=None):
         self._session_id = None
         self._name = "ARCHIVE_CONTROLLER"
-        self._config_file = 'ForemanCfg.yaml'
+        self._config_file = 'ForemanCfgTest.yaml'
         if filename != None:
             self._config_file = filename
 
-        cdm = self.intake_yaml_file(self._config_file)
+        cdm = toolsmod.intake_yaml_file(self._config_file)
 
         try:
-            self._archive_name = cdm[ROOT][ARCHIVE_BROKER_NAME]  # Message broker user/passwd for component
-            self._archive_passwd = cdm[ROOT][ARCHIVE_BROKER_PASSWD]
+            self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']  # Message broker user/passwd for component
+            self._archive_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
         except KeyError as e:
-            print "Yaml config dictionary error, %s" % e
-            raise L1Error
+            raise L1Error(e)
 
 
         self._base_msg_format = self.YAML
@@ -47,8 +48,7 @@ class ArchiveController:
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
 
-        self._base_broker_url = "amqp://" + self._archive_name + ":" + self._archive_passwd + "@" + 
-                                 str(self._base_broker_addr)
+        self._base_broker_url = "amqp://" + self._archive_name + ":" + self._archive_passwd + "@" + str(self._base_broker_addr)
 
         LOGGER.info('Building _base_broker_url connection string for Archive Controller. Result is %s', 
                      self._base_broker_url)
@@ -58,7 +58,7 @@ class ArchiveController:
                               'ARCHIVE_ITEM_TRANFER_COMPLETE': self.process_transfer_complete }
 
         self.setup_consumer()
-        self.setup_publishers()
+        self.setup_publisher()
 
 
     def setup_consumer(self):
@@ -152,11 +152,7 @@ class ArchiveController:
         visit = params['VISIT_ID']
         image = params['IMAGE_ID']
         ack_id = params['ACK_ID']
-        target_dir = self._target_dir_prefix + "_" + 
-                     str(image_type) + "_" + 
-                     str(session) + "_" + 
-                     str(visit) + "_" + 
-                     str(image)
+        target_dir = self._target_dir_prefix + "_" + str(image_type) + "_" + str(session) + "_" + str(visit) + "_" + str(image)
         os.mkdir(target_dir, 0766)
 
         ack_params = {}
@@ -209,10 +205,10 @@ class ArchiveController:
 
         if transfer_result < 0:
             ack_params['ACK_BOOL'] = False
-            ack_params['FAIL_DETAILS'] = 'FILE_MISSING']
+            ack_params['FAIL_DETAILS'] = 'FILE_MISSING'
         elif transfer_result == 0:
             ack_params['ACK_BOOL'] = False
-            ack_params['FAIL_DETAILS'] = 'BAD_CHECKSUM']
+            ack_params['FAIL_DETAILS'] = 'BAD_CHECKSUM'
         else:
             ack_params['ACK_BOOL'] = True
             ack_params['RECEIPT'] = transfer_result
@@ -221,3 +217,19 @@ class ArchiveController:
 
 
 
+def main():
+    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
+    a_c = ArchiveController()
+    print "Beginning ArchiveController event loop..."
+    try:
+        while 1:
+            pass
+    except KeyboardInterrupt:
+        pass
+
+    print ""
+    print "Archive Controller Done."
+
+
+
+if __name__ == "__main__": main()

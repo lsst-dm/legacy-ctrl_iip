@@ -44,7 +44,7 @@ class BaseForeman:
         if filename != None:
             self._config_file = filename
 
-        cdm = self.intake_yaml_file(self._config_file)
+        cdm = toolsmod.intake_yaml_file(self._config_file)
 
         try:
             self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
@@ -517,30 +517,6 @@ class BaseForeman:
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
         
-
-    def intake_yaml_file(self, filename):
-        """This method reads the ForemanCfg.yaml config file
-           found in the same directory as the BaseForeman class.
-           The config file can list an initial set of forwarders and/or
-           distributors, as well as the message broker address, default 
-           file transfer values, etc.
-    
-        """
-        try:
-            f = open(filename)
-        except IOError:
-            print "Cant open %s" % filename
-            print "Bailing out..."
-            sys.exit(99)
-
-        #cfg data map...
-        cdm = yaml.safe_load(f)
-
-        f.close()
-
-        return cdm
-
-
 
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
