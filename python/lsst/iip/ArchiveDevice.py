@@ -36,9 +36,6 @@ class BaseForeman:
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
 
-######################################################
-##  READ TYPE.YAML FIRST
-######################################################
 
     def __init__(self, filename=None):
         toolsmod.singleton(self)
