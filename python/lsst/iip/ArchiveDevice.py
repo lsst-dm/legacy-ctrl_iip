@@ -22,22 +22,15 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
 LOGGER = logging.getLogger(__name__)
 
 
-class BaseForeman:
-    FWD_SCBD = None
-    JOB_SCBD = None
-    ACK_SCBD = None
-    DMCS_PUBLISH = "dmcs_publish"
-    DMCS_CONSUME = "dmcs_consume"
-    NCSA_PUBLISH = "ncsa_publish"
-    NCSA_CONSUME = "ncsa_consume"
-    FORWARDER_PUBLISH = "forwarder_publish"
-    ACK_PUBLISH = "ack_publish"
-    YAML = 'YAML'
-    EXCHANGE = 'message'
-    EXCHANGE_TYPE = 'direct'
+class ArchiveDevice:
+    AR_FWD_SCBD = None
+    AR_JOB_SCBD = None
+    AR_ACK_SCBD = None
+    COMPONENT_NAME = 'ARCHIVE_FOREMAN'
+    AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
 
 
-    def __init__(self, filename=None):
+    def __init__(self, filenam=None):
         toolsmod.singleton(self)
 
         self._config_file = 'ForemanCfg.yaml'
@@ -53,7 +46,8 @@ class BaseForeman:
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
+            self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS][ARCHIVE_FORWARDERS]
+            self._scbd_dict = cdm[ROOT][SCOREBOARDS]
         except KeyError as e:
             print "Dictionary error"
             print "Bailing out..."
@@ -63,37 +57,37 @@ class BaseForeman:
             self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
         self._base_msg_format = self.YAML
-        self._ncsa_msg_format = self.YAML
 
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
 
-        if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
-            self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
 
         self._base_broker_url = 'amqp_url'
-        self._ncsa_broker_url = 'amqp_url'
         self._next_timed_ack_id = 0
 
 
         # Create Redis Forwarder table with Forwarder info
 
-        self.FWD_SCBD = ForwarderScoreboard(forwarder_dict)
-        self.JOB_SCBD = JobScoreboard()
-        self.ACK_SCBD = AckScoreboard()
-        self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
+        self.FWD_SCBD = ForwarderScoreboard(self.COMPONENT_NAME, self._scbd_dict, self._forwarder_dict)
+        self.JOB_SCBD = JobScoreboard(self.COMPONENT_NAME, self._scbd_dict )
+        self.ACK_SCBD = AckScoreboard(self.COMPONENT_NAME, self._scbd_dict )
+
+        self._msg_actions = { 'START_INTEGRATION': self.process_start_integration,
+                              'NEW_SESSION': self.set_session,
+                              'NEXT_VISIT': self.set_current_visit
                               'READOUT': self.process_dmcs_readout,
-                              'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
-                              'NCSA_STANDBY_ACK': self.process_ack,
-                              'NCSA_READOUT_ACK': self.process_ack,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack,
-                              'NEW_JOB_ACK': self.process_ack }
+                              'NEW_ARCHIVE_ITEM_ACK': self.process_ack }
 
 
         self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
-        self._ncsa_broker_url = "amqp://" + self._ncsa_name + ":" + self._ncsa_passwd + "@" + str(self._ncsa_broker_addr)
+
+
+
+
+================================================================================================
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
         LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
 
@@ -176,9 +170,7 @@ class BaseForeman:
 
     def setup_publishers(self):
         LOGGER.info('Setting up Base publisher on %s using %s', self._base_broker_url, self._base_msg_format)
-        LOGGER.info('Setting up NCSA publisher on %s using %s', self._ncsa_broker_url, self._ncsa_msg_format)
-        self._base_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
-        self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url, self._ncsa_msg_format)
+        self._publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
 
 
 #    def setup_federated_exchange(self):
@@ -416,104 +408,87 @@ class BaseForeman:
         self._base_publisher.publish_message("dmcs_consume", dmcs_message)
         return True
 
+    def process_start_integration(self, params):
+        # receive new job_number and image_id; session and visit are current
+        # first, run health check
+        health_check_ack_id = self.get_next_timed_ack('AR_FWDR_HEALTH_ACK')
+        num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
 
-    def insufficient_ncsa_resources(self, ncsa_response):
-        dmcs_params = {}
-        dmcs_params[MSG_TYPE] = "NEW_JOB_ACK"
-        dmcs_params[JOB_NUM] = job_num 
-        dmcs_params[ACK_BOOL] = False
-        dmcs_params[BASE_RESOURCES] = '1'
-        dmcs_params[NCSA_RESOURCES] = '0'
-        dmcs_params[NEEDED_DISTRIBUTORS] = ncsa_response[NEEDED_DISTRIBUTORS]
-        dmcs_params[AVAILABLE_DISTRIBUTORS] = ncsa_response[AVAILABLE_DISTRIBUTORS]
-        #try: FIXME - catch exception
-        self._base_publisher.publish_message("dmcs_consume", dmcs_params )
-        #except L1MessageError e:
-        #    return False
+        job_number = params[JOB_NUM]
+        image_id = params[IMAGE_ID]
+        start_int_ack_id = params[ACK_ID]
+        image_src = params[IMAGE_SRC]
+        ccds = params[CCDS]
+        session_id = self.get_current_session()
+        visit_id = self.get_current_visit()
+        self.JOB_SCBD.add_job(job_number, image_id, ccds)
+        self.JOB_SCBD.set_job_params(job_number, {'IMAGE_SRC': image_src, 
+                                                  'SESSION_ID': session_id, 
+                                                  'VISIT_ID': visit_id})
+        self.ack_timer(1)
 
-        return True
+        healthy_forwarders = self.ACK_SCBD.get_components_for_times_ack(health_check_ack_id)
+        if len(healthy_forwarders) < 1:
+            self.refuse_job("No forwarders available")
+            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
+            self.JOB_SCBD.set_job_params(job_number, scrub_params)
+            return
 
+        # send new_archive_item msg to archive controller
+        ac_timed_ack = self.get_next_timed_ack('AR_CTRL_NEW_ITEM')
+        ar_params = {}
+        ar_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
+        ar_params[SESSION_ID] = session_id
+        ar_params[VISIT_ID] = visit_id
+        ar_params[IMAGE_ID] = image_id
+        ar_params[IMAGE_SRC] = image_src
+        ar_params[ACK_ID] = ac_timed_ack
+        ar_params[REPLY_QUEUE] = AR_FOREMAN_ACK_PUBLISH
+        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_QUERY'})
+        self.publisher.publish_message('ARCHIVE_CTRL_CONSUME', ar_params)
+        self.ack_timer(2)
+        
+        # receive target dir back in ack from AC
+        ar_response = self.ACK_SCBD.get_components_for_timed_ack(ac_timed_ack)
+        if len(ar_response) < 1:
+            self.refuse_job("No response from archive")
+            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
+            self.JOB_SCBD.set_job_params(job_number, scrub_params)
+            return
 
+        if ar_response['AR_CTRL'][ACK_BOOL] == False:
+            self.refuse_job(ar_response['AR_CTRL']['FAIL_DETAILS'])
+            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
+            self.JOB_SCBD.set_job_params(job_number, scrub_params)
+            return
 
-    def ncsa_no_response(self,params):
-        #No answer from NCSA...
-        job_num = str(params[JOB_NUM])
-        raft_list = params[RAFTS]
-        needed_workers = len(raft_list)
-        dmcs_params = {}
-        dmcs_params[MSG_TYPE] = "NEW_JOB_ACK"
-        dmcs_params[JOB_NUM] = job_num 
-        dmcs_params[ACK_BOOL] = False
-        dmcs_params[BASE_RESOURCES] = '1'
-        dmcs_params[NCSA_RESOURCES] = 'NO_RESPONSE'
-        self._base_publisher.publish_message("dmcs_consume", dmcs_params )
+        dir = ['AR_CTRL']['TARGET']
+        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE, 'TARGET_DIR': dir'})
+        # divide image fetch across forwarders
+        # send image_id, target dir, and job, session,visit and work to do to healthy forwarders
+        # receive ack back from forwarders that they have job params
 
+    def fwdr_health_check(self, ack_id):
+        msg_params = {}
+        msg_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
+        msg_params[ACK_ID] = ack_id
+        msg_params[REPLY_QUEUE] = AR_FOREMAN_ACK_PUBLISH
 
+        forwarders = self.FWD_SCBD.return_available_forwarders_list()
+        state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
+        self.FWD_SCBD.set_forwarder_params(forwarders, state_status)
+        for forwarder in forwarders:
+            self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"), msg_params)
+        return len(forwarders)
+
+   
 
     def process_dmcs_readout(self, params):
-        job_number = params[JOB_NUM]
-        pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        date - get_timestamp()
-        self.JOB_SCBD.set_value_for_job(job_number, TIME_START_READOUT, date) 
-        # The following line extracts the distributor FQNs from pairs dict using 
-        # list comprehension values; faster than for loops
-        distributors = [v['FQN'] for v in pairs.values()]
-        forwarders = pairs.keys()
-
-        ack_id = self.get_next_timed_ack_id('NCSA_READOUT')
-### Send READOUT to NCSA with ACK_ID
-        ncsa_params = {}
-        ncsa_params[MSG_TYPE] = 'NCSA_READOUT'
-        ncsa_params[ACK_ID] = ack_id
-        self._ncsa_publisher.publish_message(NCSA_CONSUME, yaml.dump(ncsa_params))
-
-
-        self.ack_timer(4)
-
-        ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-        if ncsa_response:
-            if ncsa_response['ACK_BOOL'] == True:
-                #inform forwarders
-                fwd_ack_id = self.get_next_timed_ack_id('FORWARDER_READOUT')
-                for forwarder in forwarders:
-                    name = self.FWD_SCBD.get_value_for_forwarder(forwarder, NAME)
-                    routing_key = self.FWD_SCBD.get_routing_key(forwarder)
-                    msg_params = {}
-                    msg_params[MSG_TYPE] = 'FORWARDER_READOUT'
-                    msg_params[JOB_NUM] = job_number
-                    msg_params['ACK_ID'] = fwd_ack_id
-                    self.FWD_SCBD.set_forwarder_state(forwarder, START_READOUT)
-                    self._publisher.publish_message(routing_key, yaml.dump(msg_params))
-                self.ack_timer(4)
-                forwarder_responses = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
-                if len(forwarder_responses) == len(forwarders):
-                    dmcs_params = {}
-                    dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
-                    dmcs_params[JOB_NUM] = job_number
-                    dmcs_params['ACK_BOOL'] = True
-                    dmcs_params['COMMENT'] = "Readout begun at %s" % get_timestamp()
-                    self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+        # send readout to forwarders
+        # for each ack from forwarders that is True, tell archive to check file with this checksum and name
+        # store receipets for archived items in scoreboard
+        pass
                     
-            else:
-                #send problem with ncsa to DMCS
-                dmcs_params = {}
-                dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
-                dmcs_params[JOB_NUM] = job_number
-                dmcs_params['ACK_BOOL'] = False
-                dmcs_params['COMMENT'] = 'Readout Failed: Problem at NCSA - Expected Distributor Acks is %s, Number of Distributor Acks received is %s' % (ncsa_response['EXPECTED_DISTRIBUTOR_ACKS'], ncsa_response['RECEIVED_DISTRIBUTOR_ACKS'])
-                self._base_publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
-                    
-        else:
-            #send 'no response from ncsa' to DMCS               )
-            dmcs_params = {}
-            dmcs_params[MSG_TYPE] = 'READOUT_ACK' 
-            dmcs_params[JOB_NUM] = job_number
-            dmcs_params['ACK_BOOL'] = False
-            dmcs_params['COMMENT'] = "Readout Failed: No Response from NCSA"
-            self._base_publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
-                    
-        
-
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
         
@@ -522,6 +497,19 @@ class BaseForeman:
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         return retval 
+
+
+    def get_current_session(self):
+        return self.JOB_SCBD.get_current_session()
+
+    def get_current_visit(self):
+        return self.JOB_SCBD.get_current_visit()
+        
+
+
+
+
+
 
 
     def ack_timer(self, seconds):

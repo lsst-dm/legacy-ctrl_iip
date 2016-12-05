@@ -1,0 +1,6 @@
+# Choose one or all commandable device foremen to run
+ROOT:
+  ARCHIVE_FOREMAN
+#  PROMPT_PROCESS_FOREMAN
+#  CATCHUP_FOREMAN
+
