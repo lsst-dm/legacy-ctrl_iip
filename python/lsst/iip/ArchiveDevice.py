@@ -27,6 +27,7 @@ class ArchiveDevice:
     AR_JOB_SCBD = None
     AR_ACK_SCBD = None
     COMPONENT_NAME = 'ARCHIVE_FOREMAN'
+    AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
 
 
     def __init__(self, filenam=None):
@@ -71,14 +72,14 @@ class ArchiveDevice:
         self.JOB_SCBD = JobScoreboard(self.COMPONENT_NAME, self._scbd_dict )
         self.ACK_SCBD = AckScoreboard(self.COMPONENT_NAME, self._scbd_dict )
 
-        self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
+        self._msg_actions = { 'START_INTEGRATION': self.process_start_integration,
                               'NEW_SESSION': self.set_session,
                               'NEXT_VISIT': self.set_current_visit
                               'READOUT': self.process_dmcs_readout,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack,
-                              'NEW_JOB_ACK': self.process_ack }
+                              'NEW_ARCHIVE_ITEM_ACK': self.process_ack }
 
 
         self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
@@ -169,9 +170,7 @@ class ArchiveDevice:
 
     def setup_publishers(self):
         LOGGER.info('Setting up Base publisher on %s using %s', self._base_broker_url, self._base_msg_format)
-        LOGGER.info('Setting up NCSA publisher on %s using %s', self._ncsa_broker_url, self._ncsa_msg_format)
-        self._base_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
-        self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url, self._ncsa_msg_format)
+        self._publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
 
 
 #    def setup_federated_exchange(self):
@@ -409,10 +408,85 @@ class ArchiveDevice:
         self._base_publisher.publish_message("dmcs_consume", dmcs_message)
         return True
 
+    def process_start_integration(self, params):
+        # receive new job_number and image_id; session and visit are current
+        # first, run health check
+        health_check_ack_id = self.get_next_timed_ack('AR_FWDR_HEALTH_ACK')
+        num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
 
+        job_number = params[JOB_NUM]
+        image_id = params[IMAGE_ID]
+        start_int_ack_id = params[ACK_ID]
+        image_src = params[IMAGE_SRC]
+        ccds = params[CCDS]
+        session_id = self.get_current_session()
+        visit_id = self.get_current_visit()
+        self.JOB_SCBD.add_job(job_number, image_id, ccds)
+        self.JOB_SCBD.set_job_params(job_number, {'IMAGE_SRC': image_src, 
+                                                  'SESSION_ID': session_id, 
+                                                  'VISIT_ID': visit_id})
+        self.ack_timer(1)
 
+        healthy_forwarders = self.ACK_SCBD.get_components_for_times_ack(health_check_ack_id)
+        if len(healthy_forwarders) < 1:
+            self.refuse_job("No forwarders available")
+            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
+            self.JOB_SCBD.set_job_params(job_number, scrub_params)
+            return
+
+        # send new_archive_item msg to archive controller
+        ac_timed_ack = self.get_next_timed_ack('AR_CTRL_NEW_ITEM')
+        ar_params = {}
+        ar_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
+        ar_params[SESSION_ID] = session_id
+        ar_params[VISIT_ID] = visit_id
+        ar_params[IMAGE_ID] = image_id
+        ar_params[IMAGE_SRC] = image_src
+        ar_params[ACK_ID] = ac_timed_ack
+        ar_params[REPLY_QUEUE] = AR_FOREMAN_ACK_PUBLISH
+        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_QUERY'})
+        self.publisher.publish_message('ARCHIVE_CTRL_CONSUME', ar_params)
+        self.ack_timer(2)
+        
+        # receive target dir back in ack from AC
+        ar_response = self.ACK_SCBD.get_components_for_timed_ack(ac_timed_ack)
+        if len(ar_response) < 1:
+            self.refuse_job("No response from archive")
+            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
+            self.JOB_SCBD.set_job_params(job_number, scrub_params)
+            return
+
+        if ar_response['AR_CTRL'][ACK_BOOL] == False:
+            self.refuse_job(ar_response['AR_CTRL']['FAIL_DETAILS'])
+            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
+            self.JOB_SCBD.set_job_params(job_number, scrub_params)
+            return
+
+        dir = ['AR_CTRL']['TARGET']
+        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE, 'TARGET_DIR': dir'})
+        # divide image fetch across forwarders
+        # send image_id, target dir, and job, session,visit and work to do to healthy forwarders
+        # receive ack back from forwarders that they have job params
+
+    def fwdr_health_check(self, ack_id):
+        msg_params = {}
+        msg_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
+        msg_params[ACK_ID] = ack_id
+        msg_params[REPLY_QUEUE] = AR_FOREMAN_ACK_PUBLISH
+
+        forwarders = self.FWD_SCBD.return_available_forwarders_list()
+        state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
+        self.FWD_SCBD.set_forwarder_params(forwarders, state_status)
+        for forwarder in forwarders:
+            self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"), msg_params)
+        return len(forwarders)
+
+   
 
     def process_dmcs_readout(self, params):
+        # send readout to forwarders
+        # for each ack from forwarders that is True, tell archive to check file with this checksum and name
+        # store receipets for archived items in scoreboard
         pass
                     
     def process_ack(self, params):
@@ -423,6 +497,19 @@ class ArchiveDevice:
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         return retval 
+
+
+    def get_current_session(self):
+        return self.JOB_SCBD.get_current_session()
+
+    def get_current_visit(self):
+        return self.JOB_SCBD.get_current_visit()
+        
+
+
+
+
+
 
 
     def ack_timer(self, seconds):
