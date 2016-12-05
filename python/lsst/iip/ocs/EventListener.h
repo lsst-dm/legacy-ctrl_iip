@@ -13,8 +13,8 @@ class EventListener : public OCS_Bridge {
 
 	EventListener(string); 
 	~EventListener();
-	void setup_ocs_consumer(); 
-	static void *run_event_publish(void *); 
-	static void *run_event_archive(void *); 
-	static void *run_event_base(void *); 
+	void run(); 
+	void log_readout(string); 
+	void log_next_visit(string); 
+	void log_start_integration(string); 
 };
