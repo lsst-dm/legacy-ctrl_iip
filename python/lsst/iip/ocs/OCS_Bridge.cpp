@@ -14,9 +14,7 @@ using namespace YAML;
 
 OCS_Bridge::OCS_Bridge(string CommandEntity) { 
     Node config; 
-    if (CommandEntity == "PromptProcessor") config = LoadFile("PromptProcessorCfg.yaml"); 
-    else if (CommandEntity == "Archiver") config = LoadFile("ArchiverCfg.yaml"); 
-    else if (CommandEntity == "CatchupArchiver") config = LoadFile("CatchupArchiverCfg.yaml"); 
+    config = LoadFile("OCSDeviceCfg.yaml");
 
     Node root = config["ROOT"]; 
     string base_name = root["BASE_BROKER_NAME"].as<string>(); 
