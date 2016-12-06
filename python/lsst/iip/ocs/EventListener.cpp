@@ -16,10 +16,9 @@ map<string, funcptr> action_handler = {
     {"NEXT_VISIT", &EventListener::log_next_visit}
 }; 
 
-EventListener::EventListener(string CommandEntity) : OCS_Bridge(CommandEntity) { 
+EventListener::EventListener() : OCS_Bridge() { 
     mgr = SAL_dm(); 
 
-    cmdEntity = CommandEntity; 
     command_args = new ocs_thread_args; 
     command_args->dmgr = mgr; 
     command_args->ocsAmqp = ocs_publisher;
@@ -76,8 +75,7 @@ void EventListener::log_start_integration(string message) {
 }
 
 int main() { 
-    EventListener cmd("PromptProcessor"); 
+    EventListener cmd; 
     cmd.run(); 
-    pthread_exit(NULL); 
     return 0;
 } 

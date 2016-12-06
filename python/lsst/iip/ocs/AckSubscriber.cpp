@@ -22,12 +22,12 @@ map<string, pair<string,funcptr>> action_handler = {
     {"DISABLE_ACK", make_pair("dm_command_disable", &SAL_dm::ackCommand_disable)},
     {"ENTERCONTROL_ACK", make_pair("dm_command_enterControl", &SAL_dm::ackCommand_enterControl)},
     {"STANDBY_ACK", make_pair("dm_command_standby", &SAL_dm::ackCommand_standby)}, 
-    {"EXITCONTROL_ACK", make_pair("dm_command_exitControl", &SAL_dm::ackCommand_exitControl)}, 
-    {"ABORT_ACK", make_pair("dm_command_abort", &SAL_dm::ackCommand_abort)}
+    {"OFFLINE_ACK", make_pair("dm_command_exitControl", &SAL_dm::ackCommand_exitControl)}, 
+    {"FAULT_ACK", make_pair("dm_command_abort", &SAL_dm::ackCommand_abort)}
 }; 
 					
 AckSubscriber::AckSubscriber() { 
-    Node config = LoadFile("AckSubscriberCfg.yaml"); 
+    Node config = LoadFile("OCSDeviceCfg.yaml"); 
 
     string usrname = config["ROOT"]["BASE_BROKER_NAME"].as<string>(); 
     string passwd = config["ROOT"]["BASE_BROKER_PASSWD"].as<string>(); 

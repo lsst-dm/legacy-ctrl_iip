@@ -12,7 +12,7 @@ using namespace std;
 using namespace AmqpClient; 
 using namespace YAML;
 
-OCS_Bridge::OCS_Bridge(string CommandEntity) { 
+OCS_Bridge::OCS_Bridge() { 
     Node config; 
     config = LoadFile("OCSDeviceCfg.yaml");
 
