@@ -69,7 +69,7 @@ class ForwarderScoreboard(Scoreboard):
     def setall_forwarders_status(self, status):
         forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
         for forwarder in forwarders:
-            self._redis.hset(forwarder, 'STATUS', 'UNKNOWN')
+            self._redis.hset(forwarder, 'STATUS', status)
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 

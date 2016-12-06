@@ -22,6 +22,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 class DMCS:
+    """As this set of consumer callbacks cannot block for the lengthy time some tasks (such as readouts)
+       will take, a thread must poll for acks and handle accordingly. Tasks will be issued, and
+       then a cyclical thread will read through acks and update scoreboards accordingly.
+
+       Another thing that must happen here, is that state should be tracked in a hash specific to each
+       device, each 'last state' must be pushed on to the RHS of a list structure for that particular
+       commandable device. 
+    """
+
     JOB_SCBD = None
     ACK_SCBD = None
     STATE_SCBD = None
@@ -63,7 +72,7 @@ class DMCS:
         self.JOB_SCBD = JobScoreboard()
         self.TO_DO_SCBD = ToDoScoreboard()
         self.ACK_SCBD = AckScoreboard()
-        self.CMD_ST_SCBD = CommandStateScoreboard()
+        self.STATE_SCBD = StateScoreboard()
         # Messages from both Base Foreman AND OCS Bridge
         self._OCS_msg_actions = { 'START': self.process_start_command,
                               'ENABLE': self.process_enable_command,
@@ -214,11 +223,18 @@ class DMCS:
         """
         self._session_id = self.get_session_id(self._session_id_file)
 
+        # Extract device arg
+        # Set divice state in state table
+        # Set config key in state table
+        # Send this state change to auditor
+        # Ack back?
         pass
 
 
-    def process_start_command(self, msg):
-        """Transition from StandbyState to DisableState. Includes configuration data for DM. 
+    def process_disable_command(self, msg):
+        """Transition from EnableState to DisableState. Limited operation only is capable after 
+           this transition; for example, transfer of 'catch up' work from camera buffer to archive 
+           is possible, but no NextVisit events will be received while in this state.
 
         """
         pass
@@ -230,14 +246,6 @@ class DMCS:
         """
         pass
 
-
-    def process_disable_command(self, msg):
-        """Transition from EnableState to DisableState. Limited operation only is capable after 
-           this transition; for example, transfer of 'catch up' work from camera buffer to archive 
-           is possible, but no NextVisit events will be received while in this state.
-
-        """
-        pass
 
 
     def process_exit_command(self, msg):
