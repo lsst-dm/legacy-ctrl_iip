@@ -24,7 +24,6 @@ class JobScoreboard(Scoreboard):
        assigned to Redis's rdDatabase instance 8. Redis launches with a default 
        15 separate database instances.
     """
-    DBTYPE = 'JOB_SCOREBOARD_DB'
     JOBS = 'JOBS'
     SESSIONS = 'SESSIONS'
     VISITS = 'VISITS'
@@ -37,9 +36,10 @@ class JobScoreboard(Scoreboard):
     STATUS = 'STATUS'
     SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
+    DB_INSTANCE = None
   
 
-    def __init__(self):
+    def __init__(self, db_instance):
         """After connecting to the Redis database instance 
            JOB_SCOREBOARD_DB, this redis database is flushed 
            for a clean start. A 'charge_database' method is 
@@ -65,6 +65,7 @@ class JobScoreboard(Scoreboard):
            TERMINATED
         """
         LOGGER.info('Setting up JobScoreboard')
+        self.DB_INSTANCE = db_instance
         self._session_id = str(1)
         try:
             Scoreboard.__init__(self)
@@ -90,7 +91,7 @@ class JobScoreboard(Scoreboard):
     
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=JOB_SCOREBOARD_DB)
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
         return redis.Redis(connection_pool=pool) 
 
 
@@ -114,30 +115,6 @@ class JobScoreboard(Scoreboard):
             LOGGER.info('In add_job, could not reconnect to Redis after 3 attempts')
             raise L1RedisError
             return False
-
-
-    def set_session(self, session_id):
-        if self.check_connection():
-            self._redis.rpush(self.SESSIONS, session_id)
-            params = {}
-            params['SUB_TYPE'] = 'SESSION'
-            params['SESSION_ID'] = session_id
-            params['DATA_TYPE'] = self.DBTYPE
-            # skipping build_audit_data, so put TIME in here - see comment below
-            params['TIME'] = get_epoch_timestamp()
-
-            # Send directly without adding fields in 'build_audit_data', as no visit yet
-            self.persist(params)
-
-
-    def set_visit(self, visit_id):
-        if self.check_connection():
-            session_id = self.get_current_session()
-            self._redis.rpush(session_id, visit_id)
-            params = {}
-            params['SUB_TYPE'] = 'VISIT'
-            params['DATA_TYPE'] = self.DBTYPE
-            self.persist(self.build_monitor_data(params))
 
 
 
@@ -291,18 +268,38 @@ class JobScoreboard(Scoreboard):
             return None
 
 
+    def set_session(self, session_id):
+        if self.check_connection():
+            self._redis.rpush(self.SESSIONS, session_id)
+            params = {}
+            params['SUB_TYPE'] = 'SESSION'
+            params['SESSION_ID'] = session_id
+            params['DATA_TYPE'] = self.DBTYPE
+            # skipping build_audit_data, so put TIME in here - see comment below
+            params['TIME'] = get_epoch_timestamp()
+
+            # Send directly without adding fields in 'build_audit_data', as no visit yet
+            self.persist(params)
+
+
+    def set_visit(self, visit_id):
+        if self.check_connection():
+            session_id = self.get_current_session()
+            self._redis.rpush(session_id, visit_id)
+            params = {}
+            params['SUB_TYPE'] = 'VISIT'
+            params['DATA_TYPE'] = self.DBTYPE
+            self.persist(self.build_monitor_data(params))
+
+
     def get_current_session(self):
         if self.check_connection():
             return self._redis.lindex(self.SESSIONS, 0)
 
     def get_current_visit(self):
         if self.check_connection():
-            if self._redis.exists(self.get_current_session()):
-                return self._redis.lindex(self.get_current_session(), 0)
-            else:
-                return None
-
-
+            return self._redis.lindex(self.get_current_session(), 0)
+             
     def delete_job(self, job_number):
         #self._redis.hdel(self.JOBS, str(job_number))
         self._redis.lrem(self.JOBS, 0, str(job_number))
@@ -320,9 +317,6 @@ class JobScoreboard(Scoreboard):
         return monitor_data
 
 
-
-    def set_session_id(self, session_id):
-        self._session_id = str(session_id)
 
 
     def get_next_job_num(self):

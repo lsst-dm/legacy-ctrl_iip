@@ -29,14 +29,13 @@ class AckScoreboard(Scoreboard):
     TIMED_ACK_IDS = 'TIMED_ACK_IDS'
     ACK_FETCH = 'ACK_FETCH'
     ACK_IDS = 'ACK_IDS'
-    DBTYPE = 'ACK_SCOREBOARD_DB'
+    DB_INSTANCE = None
   
 
-    def __init__(self):
+    def __init__(self, db_instance):
         """After connecting to the Redis database instance 
            ACK_SCOREBOARD_DB, this redis database is flushed 
-           for a clean start. A 'charge_database' method is 
-           included for testing the module.
+           for a clean start. 
 
            A new row will be added for each TIMED_ACK_ID. This will be
            done as follows:
@@ -46,6 +45,7 @@ class AckScoreboard(Scoreboard):
            4) After a timer event elapses, the scoreboard is locked and checked  to see which ACKs were received.
         """
         LOGGER.info('Setting up AckScoreboard')
+        self.DB_INSTANCE = db_instance
         try:
             Scoreboard.__init__(self)
         except L1RabbitConnectionError as e:
@@ -60,7 +60,7 @@ class AckScoreboard(Scoreboard):
     
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=ACK_SCOREBOARD_DB)
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
         return redis.Redis(connection_pool=pool) 
 
 

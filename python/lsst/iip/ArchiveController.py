@@ -55,7 +55,7 @@ class ArchiveController:
 
         self._msg_actions = { 'ARCHIVE_HEALTH_CHECK': self.process_health_check,
                               'NEW_ARCHIVE_ITEM': self.process_new_archive_item,
-                              'ARCHIVE_ITEM_TRANFER_COMPLETE': self.process_transfer_complete }
+                              'AR_ITEMS_XFERD': self.process_transfer_complete }
 
         self.setup_consumer()
         self.setup_publisher()
@@ -109,10 +109,37 @@ class ArchiveController:
 
 
     def process_transfer_complete(self, params):
-        pathway = params['TARGET']
-        csum = params['CHECKSUM']
-        transfer_result = self.check_transferred_file(pathway, csum)
+        results = {}
+        ccd_list = params['CCD_LIST']
+        ccds = ccd_list.keys()
+        for ccd in ccds:
+            pathway = params['TARGET']
+            csum = params['CHECKSUM']
+            transfer_results[ccd] = self.check_transferred_file(pathway, csum)
         self.send_transfer_complete_ack(False, transfer_result, params)
+
+
+    def check_transferred_file(self, pathway, csum):
+        if not os.path.isfile(pathway):
+            return (-1)
+
+        with open(pathway) as file_to_calc:
+            data = file_to_calc.read()
+            resulting_md5 = hashlib.md5(data).hexdigest()
+
+        if resulting_md5 != csum:
+            return (0)
+
+        return self.next_receipt_number()
+
+
+    def next_receipt_number(self):
+        last_receipt = self.intake_yaml(self.RECEIPT_FILE)
+        current_receipt = int(last_receipt[RECEIPT_ID]) + 1
+        session_dict = {}
+        session_dict[RECEIPT_ID] = current_receipt
+        self.export_yaml(self.RECEIPT_FILE, session_dict)
+        return current_receipt
 
 
     def send_health_ack_response(self, type, params):
@@ -172,47 +199,23 @@ class ArchiveController:
         return target_dir
 
 
-    def check_transferred_file(self, pathway, csum):
-        if not os.path.isfile(pathway):
-            return (-1)
 
-        with open(pathway) as file_to_calc:
-            data = file_to_calc.read()
-            resulting_md5 = hashlib.md5(data).hexdigest()
-
-        if resulting_md5 != csum:
-            return (0)
-
-        return self.next_receipt_number()
-
-
-    def next_receipt_number(self):
-        last_receipt = self.intake_yaml(self.RECEIPT_FILE)
-        current_receipt = int(last_receipt[RECEIPT_ID]) + 1
-        session_dict = {}
-        session_dict[RECEIPT_ID] = current_receipt
-        self.export_yaml(self.RECEIPT_FILE, session_dict)
-        return current_receipt
-
-
-    def send_transfer_complete_ack(self, transfer_result, params):
+    def send_transfer_complete_ack(self, transfer_results, params):
         ack_params = {}
         keez = params.keys()
         for kee in keez:
+            if kee == 'MSG_TYPE' or kee == 'CCD_LIST':
+                continue
             aux_params[kee] = params[kee]
 
+        
+        ack_params['MSG_TYPE'] = 'AR_ITEMS_XFERD_ACK'
         ack_params['COMPONENT_NAME'] = self._name
+        ack_params['ACK_ID'] = params['ACK_ID']
+        ack_params['ACK_BOOL'] = True
+        ack_params['RESULTS_LIST'] = transfer_results
 
-        if transfer_result < 0:
-            ack_params['ACK_BOOL'] = False
-            ack_params['FAIL_DETAILS'] = 'FILE_MISSING'
-        elif transfer_result == 0:
-            ack_params['ACK_BOOL'] = False
-            ack_params['FAIL_DETAILS'] = 'BAD_CHECKSUM'
-        else:
-            ack_params['ACK_BOOL'] = True
-            ack_params['RECEIPT'] = transfer_result
-            self._publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        self._publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
 
 

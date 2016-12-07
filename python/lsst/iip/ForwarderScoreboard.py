@@ -11,10 +11,12 @@ LOGGER = logging.getLogger(__name__)
 class ForwarderScoreboard(Scoreboard):
     FORWARDER_ROWS = 'forwarder_rows'
     PUBLISH_QUEUE = 'forwarder_publish'
+    DB_INSTANCE = None
   
 
-    def __init__(self, fdict):
+    def __init__(self, db_instance, fdict):
         LOGGER.info('Setting up ForwarderScoreboard')
+        self.DB_INSTANCE = db_instance
         self._redis = self.connect()
         self._redis.flushdb()
 
@@ -37,7 +39,7 @@ class ForwarderScoreboard(Scoreboard):
 
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=FWD_SCOREBOARD_DB)
+        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
         return redis.Redis(connection_pool=pool)
 
 

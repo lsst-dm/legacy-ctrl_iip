@@ -24,17 +24,18 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ArchiveDevice:
-    AR_FWD_SCBD = None
     AR_JOB_SCBD = None
+    AR_FWD_SCBD = None
     AR_ACK_SCBD = None
     COMPONENT_NAME = 'ARCHIVE_FOREMAN'
     AR_FOREMAN_CONSUME = "ar_foreman_consume"
     AR_CTRL_PUBLISH = "ar_ctrl_publish"
     AR_CTRL_CONSUME = "ar_ctrl_consume"
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
+    YAML = 'YAML'
 
 
-    def __init__(self, filenam=None):
+    def __init__(self, filename=None):
         toolsmod.singleton(self)
 
         self._config_file = 'ForemanCfg.yaml'
@@ -50,8 +51,8 @@ class ArchiveDevice:
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS][ARCHIVE_FORWARDERS]
-            self._scbd_dict = cdm[ROOT][SCOREBOARDS]
+            self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['ARCHIVE_FORWARDERS']
+            self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
         except KeyError as e:
             print "Dictionary error"
             print "Bailing out..."
@@ -71,14 +72,13 @@ class ArchiveDevice:
 
 
         # Create Redis Forwarder table with Forwarder info
-
-        self.FWD_SCBD = ForwarderScoreboard(self.COMPONENT_NAME, self._scbd_dict, self._forwarder_dict)
-        self.JOB_SCBD = JobScoreboard(self.COMPONENT_NAME, self._scbd_dict )
-        self.ACK_SCBD = AckScoreboard(self.COMPONENT_NAME, self._scbd_dict )
+        self.FWD_SCBD = ForwarderScoreboard(self._scbd_dict['AR_FWD_SCBD'], self._forwarder_dict)
+        self.JOB_SCBD = JobScoreboard(self._scbd_dict['AR_JOB_SCBD'])
+        self.ACK_SCBD = AckScoreboard(self._scbd_dict['AR_ACK_SCBD'])
 
         self._msg_actions = { 'START_INTEGRATION': self.process_start_integration,
                               'NEW_SESSION': self.set_session,
-                              'NEXT_VISIT': self.set_current_visit
+                              'NEXT_VISIT': self.set_visit,
                               'READOUT': self.process_dmcs_readout,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
@@ -124,21 +124,21 @@ class ArchiveDevice:
         except:
             LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
             sys.exit(99)
-
+        
         self._ar_ctrl_consumer = Consumer(self._base_broker_url, self.AR_CTRL_PUBLISH, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_ar_ctrl_consumer, ("thread-forwarder-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start Archive Ctrl consumer thread, exiting...')
             sys.exit(100)
-
+        
         self._ar_ack_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_ACK_PUBLISH, self._base_msg_format)
         try:
-            thread.start_new_thread( self.ar_ack_consumer, ("thread-ncsa-consumer", 2,) )
+            thread.start_new_thread( self.run_ar_ack_consumer, ("thread-ncsa-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
             sys.exit(101)
-
+        
 
     def run_dmcs_consumer(self, threadname, delay):
         self._dmcs_consumer.run(self.on_dmcs_message)
@@ -253,7 +253,7 @@ class ArchiveDevice:
             return
 
         target_dir = ['AR_CTRL']['TARGET']
-        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE, 'TARGET_DIR': dir'})
+        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 'TARGET_DIR': dir})
         
 
         # divide image fetch across forwarders
@@ -275,14 +275,14 @@ class ArchiveDevice:
         # receive ack back from forwarders that they have job params
         self.ack_timer(2)
         params_acks = self.ACK_SCBD.get_components_for_timed_ack(xfer_params_ack_id)
-        if len(params_acks) != len(healthy_fwdrs)
+        if len(params_acks) != len(healthy_fwdrs):
             #do something...refuse_job?
             pass
 
         self.JOB_SCBD.set_value_for_job({'STATE':'XFER_PARAMS_SENT'})
 
         ##################ACCEPT_JOB
-        st_int_params["ACK_ID'] = st_int_ack_id
+        st_int_params['ACK_ID'] = st_int_ack_id
         st_int_params['COMPONENT_NAME'] = 'AR_FOREMAN'
         self.accept_job(st_int_params)
         self.JOB_SCBD.set_value_for_job(job_num, STATE, "JOB_ACCEPTED")
@@ -313,7 +313,7 @@ class ArchiveDevice:
         schedule = {}
         if num_ccds <= num_fwdrs:
             for k in range (0, num_ccds):
-                schedule[fwdrs_list[k]] = ccd_list[k}
+                schedule[fwdrs_list[k]] = ccd_list[k]
         else:
             ccds_per_fwdr = len(ccd_list) / (num_fwdrs - 1)
             offset = 0
@@ -422,7 +422,7 @@ class ArchiveDevice:
         results = xfer_check_responses['ARCHIVE_CONTROLLER']
 
         ack_msg = {}
-        ack_msg['READOUT_ACK'] = 'START_INTRGRATION_ACK'
+        ack_msg['MSG_TYPE'] = 'READOUT_ACK'
         ack_msg['JOB_NUM'] = job_number
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['RESULTS_LIST'] = results
@@ -455,12 +455,18 @@ class ArchiveDevice:
 
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
-        retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
-        return retval 
+        return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
 
+
+    def set_session(self, session):
+        self.JOB_SCBD.set_session(session)
 
     def get_current_session(self):
         return self.JOB_SCBD.get_current_session()
+
+
+    def set_visit(self, visit):
+        self.JOB_SCBD.set_visit(visit)
 
     def get_current_visit(self):
         return self.JOB_SCBD.get_current_visit()
@@ -484,8 +490,8 @@ class ArchiveDevice:
 
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
-    b_fm = BaseForeman()
-    print "Beginning BaseForeman event loop..."
+    a_fm = ArchiveDevice()
+    print "Beginning ArchiveForeman event loop..."
     try:
         while 1:
             pass
@@ -493,7 +499,7 @@ def main():
         pass
 
     print ""
-    print "Base Foreman Done."
+    print "Archive Device Done."
 
 
 
