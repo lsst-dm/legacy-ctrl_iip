@@ -6,12 +6,9 @@ class EventListener : public OCS_Bridge {
 	    string q; 
 	}; 
 	ocs_thread_args *command_args;
-	pthread_t publishT; 
-	pthread_t archiveT;
-	string cmdEntity;
 	SAL_dm mgr; 
 
-	EventListener(string); 
+	EventListener(); 
 	~EventListener();
 	void run(); 
 	void log_readout(string); 

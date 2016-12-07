@@ -12,7 +12,7 @@ class OCS_Bridge {
 	string OCS_CONSUME; 
 	AmqpClient::Channel::ptr_t ocs_publisher; 
 
-	OCS_Bridge(string); 
+	OCS_Bridge(); 
 	~OCS_Bridge(); 
 	static void process_ocs_message(AmqpClient::Channel::ptr_t, string, string); 
 	void setup_publisher(); 
