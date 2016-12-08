@@ -100,11 +100,11 @@ class AckScoreboard(Scoreboard):
       
         if self.check_connection():
             ack_msg_body['ACK_RETURN_TIME'] = get_timestamp()
-            self._redis.hset(ack_id_string, ack_component_name, ack_msg_body)
+            self._redis.hset(ack_id_string, ack_component_name, yaml.dump(ack_msg_body))
 
             # ACK_IDS are for unit tests and for printing out entire scoreboard
             self._redis.lpush(self.ACK_IDS, ack_id_string)
-
+            
             params = {}
             params['SUB_TYPE'] = ack_sub_type
             params['ACK_ID'] = ack_id_string
@@ -135,11 +135,12 @@ class AckScoreboard(Scoreboard):
                    component_dict[key] = yaml.load(self._redis.hget(timed_ack, key))
 
                 return component_dict
+                
                 params = {}
                 params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
                 params['ACK_ID'] = timed_ack
                 self.persist(self.build_audit_data(params))
-
+                
             else:
                 return None
 
@@ -165,7 +166,21 @@ class AckScoreboard(Scoreboard):
 
 
 def main():
-    asb = AckScoreboard()
+#    dull = {'MSG_TYPE':'ZZZ','ACK_ID':'ACK_222','COMPONENT_NAME':'BIG_BOB','JOB_NUM':'J444','RESULTS': {'HAY':'Haw','HOW':'Now','PRETTY':'Weird'}}
+#    duller = {'MSG_TYPE':'ZZZ','ACK_ID':'ACK_222','COMPONENT_NAME':'BIG_BARBARA','JOB_NUM':'J444','RESULTS': {'STRAW':'Soda','Why':'High','PRETTY':'Crazy'}}
+#    print "Printing dull and duller..."
+#    print dull
+#    print "--------"
+#    print duller
+##    print "==========================="
+    asb = AckScoreboard(3)
+#    asb.add_timed_ack(dull)
+#    asb.add_timed_ack(duller)
+#    x = asb.get_components_for_timed_ack('ACK_222')
+#    print "Printing entire ACK_222"
+#    print x
+#    print "============================"
+#    print "All finished."
 
 #    asb.add_timed_ack(ncsa_msg)
 
