@@ -33,6 +33,7 @@ class ArchiveDevice:
     AR_CTRL_CONSUME = "ar_ctrl_consume"
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
     YAML = 'YAML'
+    START_INTEGRATION_XFER_PARAMS = {}
 
 
     def __init__(self, filename=None):
@@ -57,6 +58,16 @@ class ArchiveDevice:
             print "Dictionary error"
             print "Bailing out..."
             sys.exit(99)
+
+        self.START_INTEGRATION_XFER_PARAMS[MSG_TYPE] = 'AR_FWDR_XFER_PARAMS'
+        try:
+            self.START_INTEGRATION_XFER_PARAMS[FQN] = cdm[ROOT]['ARCHIVE_NAME']
+            self.START_INTEGRATION_XFER_PARAMS[NAME] = cdm[ROOT]['ARCHIVE_LOGIN']
+            self.START_INTEGRATION_XFER_PARAMS[HOSTNAME] = cdm[ROOT]['ARCHIVE_HOSTNAME']
+            self.START_INTEGRATION_XFER_PARAMS[IP_ADDR] = cdm[ROOT]['ARCHIVE_IP']
+        except KeyError as e:
+            pass
+
 
         if 'QUEUE_PURGES' in cdm[ROOT]:
             self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
@@ -191,12 +202,8 @@ class ArchiveDevice:
     def process_start_integration(self, params):
         # receive new job_number and image_id; session and visit are current
         # and deep copy it with some additions such as aseesion and visit
-        start_int_params = copy.deepcopy(params)
         session_id = self.get_current_session()
         visit_id = self.get_current_visit()
-        start_int_params['SESSION_ID'] = session_id
-        start_int_params['VISIT_ID'] = visit_id
-
         job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
         image_src = params[IMAGE_SRC]
@@ -264,10 +271,15 @@ class ArchiveDevice:
         self.set_ccds_for_job(job_number, work_schedule)
        
         xfer_params_ack_id = self.get_next_timed_ack_id("AR_FWDR_PARAMS_ACK") 
-        start_int_params[MSG_TYPE] = 'AR_FWDR_XFER_PARAAMS'
+        start_int_params = copy.deepcopy(self.START_INTEGRATION_XFER_PARAMS)
         start_int_params[TARGET] = target_dir
         start_int_params[ACK_ID] = xfer_params_ack_id
         start_int_params[REPLY_QUEUE] = 'AR_FOREMAN_ACK_PUBLISH'
+        start_int_params[JOB_NUM] = 'job_number'
+        start_int_params['IMAGE_ID'] = image_id
+        start_int_params['SESSION_ID'] = session_id
+        start_int_params['VISIT_ID'] = visit_id
+        start_int_params['IMAGE_SRC'] = image_src
         self.send_xfer_params(start_int_params, work_schedule)
 
 
@@ -303,6 +315,7 @@ class ArchiveDevice:
         for forwarder in forwarders:
             self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"), msg_params)
         return len(forwarders)
+
 
     def divide_work(self, fwdrs_list, ccd_list):
         num_fwdrs = len(fwdrs_list)

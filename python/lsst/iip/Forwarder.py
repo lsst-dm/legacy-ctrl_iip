@@ -97,8 +97,21 @@ class Forwarder:
 
 
     def process_job_params(self, params):
+        """ The structure of the incoming job params is identical to the way job params 
+            are sent to prompt processing forwarders:
+               MSG_TYPE: AR_FWDR_XFER_PARAMS
+               ACK_ID: x1
+               REPLY_QUEUE: .....
+               TRANSFER_PARAMS:
+                    FQN: Name of entity receivine file
+                    NAME: login name for receiving entity
+                    HOSTNAME: Full host name for receiving entity
+                    IP_ADDR: ip addr of archive
+                    TARGET_DIR: Where to put file
+                    CCD_LIST: for example...[1,2,3,7,10,14]
+        """
         transfer_params = params[TRANSFER_PARAMS]
-        self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], transfer_params)
+        self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], params)
         self._job_scratchpad.set_job_value(job_number, "STATE", "READY_WITH_PARAMS")
         self._job_scratchpad.set_job_value(job_number, "READY_WITH_PARAMS_TIME", get_timestamp())
         self.send_ack_response(FORWARDER_JOB_PARAMS_ACK, params)
