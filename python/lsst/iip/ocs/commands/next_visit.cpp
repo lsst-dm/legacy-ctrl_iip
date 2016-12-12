@@ -51,13 +51,13 @@ int dm_Event(char *alias, char *message)
 
 int OSPL_MAIN (int argc, char *argv[])
 {
-  if (argc < 3) {
+  if (argc < 2) {
      cout << "A alias + message text is required at a minimum" << endl;
      exit(1);
   }
   ostringstream message; 
-  message << "{MSG_TYPE: NEXT_VISIT, VISIT_ID: " << argv[2] << ", BORE_SIGHT: TBD}"; 
-  return dm_Event (argv[1], const_cast<char *>(message.str().c_str()));
+  message << "{MSG_TYPE: NEXT_VISIT, VISIT_ID: " << argv[1] << ", BORE_SIGHT: TBD}"; 
+  return dm_Event ("None", const_cast<char *>(message.str().c_str()));
 }
 
 
