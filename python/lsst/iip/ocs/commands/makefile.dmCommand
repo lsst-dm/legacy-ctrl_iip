@@ -5,7 +5,7 @@ SALPATH	 = /opt/sal/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux
 LIBSAL	 = /opt/sal/lsstsal/lib
 CC	 = g++
 SOPATH   = /opt/sal/test/dm/cpp/src/.obj
-TARGET   = sacpp_dm_abort_commander
+TARGET   = start_commander
 LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/local/lib
 LDLIBS   = -l"sacpp_dm_types$(LIBSUFFIX)" -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
 -l"ddskernel" -l"ddsserialization" -l"ddsconfparser" -l"ddsconf" -l"ddsdatabase" \
