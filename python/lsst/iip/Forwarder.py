@@ -8,6 +8,8 @@ import logging
 import os
 import subprocess
 import thread
+import pyfits 
+import numpy as np
 from const import *
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -176,7 +178,23 @@ class Forwarder:
 
 
     def format(self, meta, params, path):
-        pass
+        data_array = np.fromfile(path, dtype=np.int32)
+        
+        not_write = ["BITPIX", "NAXIS", "NAXIS1", "NAXIS2"]
+
+        header = meta.copy()
+        header.update(params)
+
+        hdu = pyfits.PrimaryHDU(data_array)
+        hdu_header = hdu.header
+
+        for key, value in header.iteritems(): 
+            if key not in not_write: 
+                hdu_header[key] = value 
+        
+        fitsname = "RAWCCD-" + str(header["CCDN"]) + "." + str(header["IMAGE_ID"]) \
+                   + "." + str(header["VISIT_ID"]) + ".fits" 
+        hdu.writeto(fitsname)
 
 
     def forward(self):
