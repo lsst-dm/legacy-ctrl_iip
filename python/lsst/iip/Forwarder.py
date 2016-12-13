@@ -42,6 +42,7 @@ class Forwarder:
             print "Missing base keywords in yaml file... Bailing out..."
             sys.exit(99)
 
+        self._DAQ_PATH = "/mnt/daq_buffer/"
         self._home_dir = "/home/" + self._name + "/"
         self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
 
@@ -91,8 +92,6 @@ class Forwarder:
 
     def process_health_check(self, params):
         job_number = params[JOB_NUM]
-        self._job_scratchpad.set_job_value(job_number, "STATE", "ADD_JOB")
-        self._job_scratchpad.set_job_value(job_number, "ADD_JOB_TIME", get_timestamp())
         self.send_ack_response("FORWARDER_HEALTH_ACK", params)
 
 
@@ -143,6 +142,12 @@ class Forwarder:
         """
 ###########XXXXXXXXXXXXXXX##############
 #### 3 F's go here...Fetch, Format and Forward
+
+        # Fetch
+        # Check presence of file
+        ## If not there, ack false
+        ## If there, pull file and break into arrays
+
         # Still one conection for both files, but files are sent to scp in proper xfer order
         #FIX ':xfer_dir' must be changed to a mutable target dir...
         cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
