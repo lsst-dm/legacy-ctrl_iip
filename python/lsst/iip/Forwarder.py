@@ -171,6 +171,19 @@ class Forwarder:
         """
 
 
+    def fetch(self):
+        pass
+
+
+    def format(self, meta, params, path):
+        pass
+
+
+    def forward(self):
+        cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
+        pass
+
+
 
     def send_ack_response(self, type, params):
         timed_ack = params.get("TIMED_ACK_ID")
