@@ -5,13 +5,13 @@ import gtk
 class GraphicalOCS:
 
     def __init__(self):
-        self.command_list = { "standby":"standby_commander",
-                              "disable":"disable_commander",
-                              "enable":"enable_commander",
-                              "exit":"exit_commander" }
-        self.event_list = { "next_visit":"dm_event_next_visit",
-                              "start_int":"dm_event_start_integration",
-                              "readout":"dm_event_readout" }
+        self.command_list = { "standby":"./commands/standby_commander",
+                              "disable":"./commands/disable_commander",
+                              "enable":"./commands/enable_commander",
+                              "exit":"./commands/exit_commander" }
+        self.event_list = { "next_visit":"./commands/next_visit",
+                              "start_int":"./commands/start_integration",
+                              "readout":"./commands/readout" }
         self.device_param = None
 
         self.win = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -221,6 +221,7 @@ class GraphicalOCS:
         self.textview = gtk.TextView()
         #self.textview.set_size_request(100, 200)
         self.textbuffer = self.textview.get_buffer()
+        self.r_tag = self.textbuffer.create_tag( "colored", foreground="#FF0000", background="#FFFFFF")
         sw.add(self.textview)
         sw.show()
         self.textview.show()
@@ -234,34 +235,32 @@ class GraphicalOCS:
 
          
         overall_vbox.show()
-
         self.win.add(overall_vbox)
         self.win.show()
 
 
     def run_standby_command(self, widget, data=None):
-        print "Standby clicked"
+        pass
 
     def run_disable_command(self, widget, data=None):
-        print "Disable clicked"
+        pass
 
     def run_enable_command(self, widget, data=None):
-        print "Enable clicked"
+        pass
 
     def run_exit_command(self, widget, data=None):
-        print "Exit clicked"
+        pass
 
     def run_ar_command(self, widget, data=None):
-        print "Archive selected"
+        pass
 
     def run_pp_command(self, widget, data=None):
-        print "Prompt Process selected"
+        pass
 
     def run_cu_command(self, widget, data=None):
-        print "Catch Up selected"
+        pass
 
     def process_send_command(self, widget, data=None):
-
         st_str = ""
         c_list = self.standby.get_group()
         dex = None
@@ -305,14 +304,17 @@ class GraphicalOCS:
                 self.device_param = "CatchupArchiver"
 
         command = cmd + " " + self.device_param
-        print "Command to be run is: %s" % command
         status_str = "\nSending %s command to the %s device" % (st_str,self.device_param)
         cmd_str =  "\nShell command to be run is: %s\n" % command
-        #os.system(cmd)
         
         insert_point = self.textbuffer.get_end_iter()
-        self.textbuffer.insert(insert_point, status_str)
+        self.textbuffer.insert_with_tags(insert_point, status_str, self.r_tag)
+        insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, cmd_str)
+
+        #veritek = os.system(cmd)
+        #insert_point = self.textbuffer.get_end_iter()
+        #self.textbuffer.insert(insert_point, veritek)
 
 
     def process_event_send_command(self, eidget, data=None):
@@ -350,11 +352,17 @@ class GraphicalOCS:
         else:
             status_str = "\nSending %s Event with Image ID: %s" % (ev_str,data)
         cmd_str =  "\nShell command to be run is: %s\n" % command
-        #os.system(cmd)
         
         insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, status_str)
+        insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, cmd_str)
+
+        #veritek = os.system(cmd)
+
+        #insert_point = self.textbuffer.get_end_iter()
+        #self.textbuffer.insert(insert_point, veritek)
+
 
 
 
