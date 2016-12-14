@@ -87,7 +87,7 @@ void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, Channe
     if (cmdId > 0) { 
 	cout << "== STOP Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: EXIT, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: STOP, DEVICE: " << SALInstance.device << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -171,7 +171,7 @@ void CommandListener::dm_abort(int cmdId, int timeout, os_time delay_10ms, Chann
     if (cmdId > 0) { 
 	cout << "== FAULT Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: FAULT, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: EXIT, DEVICE: " << SALInstance.device << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
