@@ -13,6 +13,7 @@ from const import *
 from Scoreboard import Scoreboard
 from JobScoreboard import JobScoreboard
 from AckScoreboard import AckScoreboard
+from StateScoreboard import StateScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
@@ -70,7 +71,7 @@ class DMCS:
 
 
         self.JOB_SCBD = JobScoreboard()
-        self.TO_DO_SCBD = ToDoScoreboard()
+        #self.TO_DO_SCBD = ToDoScoreboard()
         self.ACK_SCBD = AckScoreboard()
         self.STATE_SCBD = StateScoreboard()
         # Messages from both Base Foreman AND OCS Bridge
@@ -96,23 +97,10 @@ class DMCS:
         self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
-        self._session_id = self.get_session_id(self._session_id_file)
         self.setup_publishers()
         self.setup_consumers()
 
 
-
-    def get_session_id(self, filename):
-        ### XXX FIX - handle case where no file exists
-        last_session = self.intake_yaml(filename)
-        current_session = int(last_session[SESSION_ID]) + 1
-        session_dict = {}
-        session_dict[SESSION_ID] = current_session
-        session_dict[SESSION_START_TIMESTAMP] = get_timestamp()
-        self.export_yaml(filename, session_dict)
-        return current_session
-
-        
 
     def setup_consumers(self):
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
@@ -169,7 +157,6 @@ class DMCS:
 
 
 
-
     def on_ocs_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
         msg_dict = body 
@@ -221,10 +208,22 @@ class DMCS:
                2) Exit - effectively ends session by moving state to OfflineState which 
                   has only one 'out'  state transition - to FinalState.
         """
-        self._session_id = self.get_session_id(self._session_id_file)
-
         # Extract device arg
-        # Set divice state in state table
+        device = msg['DEVICE']
+
+        session_id = self.STATE_SCBD.get_next_session_id(device)
+        ack_id = self.send_new_session_msg(device, session_id)
+        self.ack_timer(1)
+        # Check ack response
+        # Send return ack queue in new_session message
+
+        if device == "AR":
+            self.STATE_SCBD.set_archive_state("STANDBY")
+        if device == "PP":
+            self.STATE_SCBD.set_prompt_process_state("STANDBY")
+        if device == "CU":
+            self.STATE_SCBD.set_catchup_archive_state("STANDBY")
+
         # Set config key in state table
         # Send this state change to auditor
         # Ack back?
@@ -237,14 +236,28 @@ class DMCS:
            is possible, but no NextVisit events will be received while in this state.
 
         """
-        pass
+        # Extract device arg
+        device = msg['DEVICE']
+        if device == "AR":
+            self.STATE_SCBD.set_archive_state("DISABLE")
+        if device == "PP":
+            self.STATE_SCBD.set_prompt_process_state("DISABLE")
+        if device == "CU":
+            self.STATE_SCBD.set_catchup_archive_state("DISABLE")
 
 
     def process_enable_command(self, msg):
         """Transition from DisableState to EnableState. Full operation is capable after this transition.
 
         """
-        pass
+        # Extract device arg
+        device = msg['DEVICE']
+        if device == "AR":
+            self.STATE_SCBD.set_archive_state("ENABLE")
+        if device == "PP":
+            self.STATE_SCBD.set_prompt_process_state("ENABLE")
+        if device == "CU":
+            self.STATE_SCBD.set_catchup_archive_state("ENABLE")
 
 
 
@@ -263,11 +276,19 @@ class DMCS:
            the system returns to StandbyState.
         
         """
-        pass
+        # Extract device arg
+        device = msg['DEVICE']
+        if device == "AR":
+            self.STATE_SCBD.set_archive_state("EXIT")
+        if device == "PP":
+            self.STATE_SCBD.set_prompt_process_state("EXIT")
+        if device == "CU":
+            self.STATE_SCBD.set_catchup_archive_state("EXIT")
 
 
 
     def process_next_visit_event(self, msg):
+        # Send next visit info to any devices in enable state
         pass
 
 
