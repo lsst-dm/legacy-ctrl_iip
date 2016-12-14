@@ -32,13 +32,13 @@ int main (int argc, char *argv[])
   mgr.salCommand("dm_command_abort");
 
   myData.device   = argv[1];
-  myData.property = "abort";
+  myData.property = "exit";
   myData.action   = "";
     myData.state="";
 
   // generate command
   cmdId = mgr.issueCommand_abort(&myData);
-  cout << "=== command abort issued = " << endl;
+  cout << "=== command exit issued = " << endl;
   status = mgr.waitForCompletion_abort(cmdId, timeout);
 
   /* Remove the DataWriters etc */
