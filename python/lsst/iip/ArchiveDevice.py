@@ -230,6 +230,7 @@ class ArchiveDevice:
 
         fscbd_params = {'STATE':'BUSY', 'STATUS':'HEALTHY'}
         self.FWD_SCBD.set_forwarder_params(forwarders, fscbd_params)
+
         # send new_archive_item msg to archive controller
         ac_timed_ack = self.get_next_timed_ack('AR_CTRL_NEW_ITEM')
         start_int_params['NEW_ARCHIVE_ITEM'] = ac_timed_ack

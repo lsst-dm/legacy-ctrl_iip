@@ -29,7 +29,7 @@ class ArchiveController:
     def __init__(self, filename=None):
         self._session_id = None
         self._name = "ARCHIVE_CONTROLLER"
-        self._config_file = 'ForemanCfgTest.yaml'
+        self._config_file = 'ForemanCfg.yaml'
         if filename != None:
             self._config_file = filename
 
@@ -39,6 +39,7 @@ class ArchiveController:
             self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']  # Message broker user/passwd for component
             self._archive_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
+            self._archive_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_XFER_ROOT']
         except KeyError as e:
             raise L1Error(e)
 
@@ -106,6 +107,7 @@ class ArchiveController:
     def process_new_archive_item(self, params):
         self.send_audit_message("received_", params)
         target_dir = self.construct_send_target_dir(params)
+        self.send_new_item_ack(target_dir, params)
 
 
     def process_transfer_complete(self, params):
@@ -179,7 +181,7 @@ class ArchiveController:
         visit = params['VISIT_ID']
         image = params['IMAGE_ID']
         ack_id = params['ACK_ID']
-        target_dir = self._target_dir_prefix + "_" + str(image_type) + "_" + str(session) + "_" + str(visit) + "_" + str(image)
+        target_dir = self._archive_xfer_root + "_" + str(image_type) + "_" + str(session) + "_" + str(visit) + "_" + str(image)
         os.mkdir(target_dir, 0766)
 
         ack_params = {}
@@ -198,6 +200,15 @@ class ArchiveController:
 
         return target_dir
 
+
+    def send_new_item_ack(self, target_dir, params):
+        ack_params = {}
+        ack_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM_ACK'
+        ack_params['TARGET_DIR'] = target_dir
+        ack_params['ACK_ID'] = params['ACK_ID']
+        ack_params['COMPONENT_NAME'] = self._name
+        ack_params['ACK_BOOL'] = True
+        self._publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
 
     def send_transfer_complete_ack(self, transfer_results, params):
