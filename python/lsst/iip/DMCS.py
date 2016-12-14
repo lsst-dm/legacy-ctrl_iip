@@ -289,6 +289,9 @@ class DMCS:
 
     def process_next_visit_event(self, msg):
         # Send next visit info to any devices in enable state
+        # Keep track of current Next Visit for each device.
+
+        # First, get dict of devices in Enable state with their consume queues
         pass
 
 

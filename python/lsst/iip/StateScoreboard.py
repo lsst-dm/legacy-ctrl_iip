@@ -15,6 +15,12 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
 LOGGER = logging.getLogger(__name__)
 
 
+###################################################
+## This Scoreboard keeps track of the state of each device.
+## It also generate Session IDs and Job Numbers, and keeps
+## track of them.
+
+
 class StateScoreboard(Scoreboard):
     JOBS = 'JOBS'
     SESSIONS = 'SESSIONS'
@@ -112,90 +118,6 @@ class StateScoreboard(Scoreboard):
     def get_catchup_archive_state(self):
         if self.check_connection():
             return self._redis.hget(self.CU, STATE)
-
-
-
-
-
-
-
-    def get_value_for_job(self, job_number, kee):
-        """Return a value for a specific field.
-  
-           :param str job_number: The job in which field value is needed.
-           :param str kee: The name of the field to retrieve desired data.
-        """
-        if self.check_connection():
-            return self._redis.hget(str(job_number), kee)
-        else:
-            return None
-
-
-    def set_pairs_for_job(self, job_number, pairs):
-        """Pairs is a temporary relationship between Forwarders 
-           and Distributors that lasts for one job. Note the use of yaml...
-           Unlike python dicts, Redis is not a nested level database. For a 
-           field to have a dict attached to it, it is necessary to serialize 
-           the dict using yaml, json, or pickle. Pyyaml is already in use 
-           for conf files.
-
-           :param str job_number: cast as str below just to make certain.
-           :param  dict pairs: Forwarders and Distributors arranged in a
-           dictionary.
-        """
-        if self.check_connection():
-            self._redis.hset(str(job_number), 'PAIRS', yaml.dump(pairs))
-            return True
-        else:
-            return False
-
-
-    def get_pairs_for_job(self, job_number):
-        """Return Forwarder-Distributor pairs for a specific job number.
-
-           :param str job_number: The job associated with the pairs.
-           :rtype dict
-        """
-        if self.check_connection():
-            pairs =  self._redis.hget(str(job_number), 'PAIRS')
-        ### XXX FIX - Check for existence of pairs...
-        if pairs:
-            return yaml.load(pairs)
-        else:
-            return None
-
-    def set_ccds_for_job(self, job_number, ccds):
-        """Pairs is a temporary relationship between Forwarders 
-           and Distributors that lasts for one job. Note the use of yaml...
-           Unlike python dicts, Redis is not a nested level database. For a 
-           field to have a dict attached to it, it is necessary to serialize 
-           the dict using yaml, json, or pickle. Pyyaml is already in use 
-           for conf files.
-
-           :param str job_number: cast as str below just to make certain.
-           :param  dict pairs: Forwarders and Distributors arranged in a
-           dictionary.
-        """
-        if self.check_connection():
-            self._redis.hset(str(job_number), 'CCDS', yaml.dump(ccds))
-            return True
-        else:
-            return False
-
-
-    def get_ccds_for_job(self, job_number):
-        if self.check_connection():
-            ccds =  self._redis.hget(str(job_number), 'CCDS')
-        ### XXX FIX - Check for existence of pairs...
-        if ccds:
-            return yaml.load(ccds)
-        else:
-            return None
-
-
-    def delete_job(self, job_number):
-        #self._redis.hdel(self.JOBS, str(job_number))
-        self._redis.lrem(self.JOBS, 0, str(job_number))
 
 
     def build_monitor_data(self, params):
