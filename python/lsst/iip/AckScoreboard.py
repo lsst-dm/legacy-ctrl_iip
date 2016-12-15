@@ -99,8 +99,17 @@ class AckScoreboard(Scoreboard):
         ack_sub_type = ack_msg_body['MSG_TYPE']
       
         if self.check_connection():
-            ack_msg_body['ACK_RETURN_TIME'] = get_timestamp()
             self._redis.hset(ack_id_string, ack_component_name, yaml.dump(ack_msg_body))
+            if self._redis.hget(ack_id_string, 'COMPONENTS') == None:
+                # Make the list structure and add component name to list and yaml
+                l = []
+                l.append(ack_component_name)
+                self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
+            else:
+                # un yaml list, ad component nae, then re - yaml
+                l = yaml.load(self._redis.hget(ack_id_string, 'COMPONENTS')
+                l.append(ack_component_name)
+                self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
 
             # ACK_IDS are for unit tests and for printing out entire scoreboard
             self._redis.lpush(self.ACK_IDS, ack_id_string)

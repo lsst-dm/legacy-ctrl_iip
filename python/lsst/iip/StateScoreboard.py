@@ -34,12 +34,12 @@ class StateScoreboard(Scoreboard):
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM'
     DB_INSTANCE = None
-    AR = "archive"
-    PP = "prompt_process"
-    CU = "catchup_archive"
+    AR = "AR"
+    PP = "PP"
+    CU = "CU"
   
 
-    def __init__(self, db_instance):
+    def __init__(self, db_instance, ddict):
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
         try:
@@ -63,7 +63,8 @@ class StateScoreboard(Scoreboard):
         #set up auto sequence
         self._redis.set(self.JOB_SEQUENCE_NUM, int(job_num_seed))
         self._redis.set(self.SESSION_SEQUENCE_NUM, 1000)
-      
+
+        self.init_redis(ddict)
     
 
     def connect(self):
@@ -93,6 +94,14 @@ class StateScoreboard(Scoreboard):
             return False
 
 
+    def init_redis(self, ddict):
+        if check_connection():
+            self._redis.hset(self.AR, 'CONSUME_QUEUE', ddict[self.AR])
+            self._redis.hset(self.PP, 'CONSUME_QUEUE', ddict[self.PP])
+            self._redis.hset(self.CU, 'CONSUME_QUEUE', ddict[self.CU])
+
+
+
     def set_archive_state(self, state):
         if self.check_connection():
             self._redis.hset(self.AR, STATE, state)
@@ -118,6 +127,18 @@ class StateScoreboard(Scoreboard):
     def get_catchup_archive_state(self):
         if self.check_connection():
             return self._redis.hget(self.CU, STATE)
+
+
+    def get_enabled_devices(self):
+        edict = {}
+
+        if connection:
+        if self.get_archive_state() == "ENABLED":
+            edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
+        if self.get_prompt_process_state() == "ENABLED":
+            edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
+        if self.get_catchup_archive_state() == "ENABLED":
+            edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
 
 
     def build_monitor_data(self, params):

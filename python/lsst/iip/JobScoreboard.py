@@ -26,7 +26,7 @@ class JobScoreboard(Scoreboard):
     """
     JOBS = 'JOBS'
     SESSIONS = 'SESSIONS'
-    VISITS = 'VISITS'
+    VISIT_ID_LIST = 'VISIT_ID_LIST'
     JOB_NUM = 'JOB_NUM'
     WORKER_NUM = 'worker_num'
     RAFTS = 'RAFTS'
@@ -83,10 +83,10 @@ class JobScoreboard(Scoreboard):
 
         self._redis.flushdb()
 
-        weekday = subprocess.check_output('date +"%u"', shell=True)
-        job_num_seed = str(weekday) + "000"
-        #set up auto sequence
-        self._redis.set(self.JOB_SEQUENCE_NUM, job_num_seed)
+#        weekday = subprocess.check_output('date +"%u"', shell=True)
+#        job_num_seed = str(weekday) + "000"
+#        #set up auto sequence
+#        self._redis.set(self.JOB_SEQUENCE_NUM, job_num_seed)
       
     
 
@@ -118,7 +118,7 @@ class JobScoreboard(Scoreboard):
 
 
 
-    def add_job(self, job_number, image_id, ccds):
+    def add_job(self, job_number, image_id, visit_id, ccds):
         """All job rows created in the scoreboard begin with this method
            where initial attributes are inserted.
 
@@ -128,11 +128,12 @@ class JobScoreboard(Scoreboard):
         job_num = str(job_number)
         # XXX Needs try, catch block
         if self.check_connection():
-            self._redis.hset(job_num, self.CCDS, yaml.dump(ccds))
+            #self._redis.hset(job_num, self.CCDS, yaml.dump(ccds))
+            self.set_ccds_for_job(job_num, ccds)
             self._redis.hset(job_num, self.STATE, 'NEW')
             self._redis.hset(job_num, self.STATUS, 'ACTIVE')
             self._redis.hset(job_num, 'IMAGE_ID', image_id)
-            self._redis.hset(job_num, 'JOB_CREATION_TIME', get_timestamp())
+            self._redis.hset(job_num, 'VISIT_ID', visit_id)
             self._redis.lpush(self.JOBS, job_num)
 
             params = {}
@@ -268,37 +269,37 @@ class JobScoreboard(Scoreboard):
             return None
 
 
-    def set_session(self, session_id):
+#    def set_session(self, session_id):
+#        if self.check_connection():
+#            self._redis.rpush(self.SESSIONS, session_id)
+#            params = {}
+#            params['SUB_TYPE'] = 'SESSION'
+#            params['SESSION_ID'] = session_id
+#            params['DATA_TYPE'] = self.DBTYPE
+#            # skipping build_audit_data, so put TIME in here - see comment below
+#            params['TIME'] = get_epoch_timestamp()
+#
+#            # Send directly without adding fields in 'build_audit_data', as no visit yet
+#            self.persist(params)
+
+
+    def set_visit_id(self, visit_id):
         if self.check_connection():
-            self._redis.rpush(self.SESSIONS, session_id)
-            params = {}
-            params['SUB_TYPE'] = 'SESSION'
-            params['SESSION_ID'] = session_id
-            params['DATA_TYPE'] = self.DBTYPE
-            # skipping build_audit_data, so put TIME in here - see comment below
-            params['TIME'] = get_epoch_timestamp()
-
-            # Send directly without adding fields in 'build_audit_data', as no visit yet
-            self.persist(params)
-
-
-    def set_visit(self, visit_id):
-        if self.check_connection():
-            session_id = self.get_current_session()
-            self._redis.rpush(session_id, visit_id)
+            self._redis.rpush(self.VISIT_ID_LIST, visit_id)
             params = {}
             params['SUB_TYPE'] = 'VISIT'
             params['DATA_TYPE'] = self.DBTYPE
+            params['VISIT_ID'] = visit_id
             self.persist(self.build_monitor_data(params))
 
 
-    def get_current_session(self):
-        if self.check_connection():
-            return self._redis.lindex(self.SESSIONS, 0)
+#    def get_current_session(self):
+#        if self.check_connection():
+#            return self._redis.lindex(self.SESSIONS, 0)
 
     def get_current_visit(self):
         if self.check_connection():
-            return self._redis.lindex(self.get_current_session(), 0)
+            return self._redis.lindex(self.VISIT_ID_LIST, 0)
              
     def delete_job(self, job_number):
         #self._redis.hdel(self.JOBS, str(job_number))
@@ -317,17 +318,47 @@ class JobScoreboard(Scoreboard):
         return monitor_data
 
 
+#    def get_next_job_num(self, prefix):
+#        if self.check_connection():
+#            self._redis.incr(self.JOB_SEQUENCE_NUM)
+#            job_num_str = prefix + str( self._redis.hget(self.JOB_SEQUENCE_NUM))
+#            return job_num_str
+#        else:
+#            LOGGER.error('Unable to increment job number due to lack of redis connection')
+#            #RAISE exception to catch in DMCS.py
 
 
-    def get_next_job_num(self):
-        if self.check_connection():
-            self._redis.incr(self.JOB_SEQUENCE_NUM)
-            return self._redis.get(self.JOB_SEQUENCE_NUM)
-        else:
-            LOGGER.error('Unable to increment job number due to lack of redis connection')
-            #RAISE exception to catch in DMCS.py
+#    def get_next_job_num(self):
+#        if self.check_connection():
+#            self._redis.incr(self.JOB_SEQUENCE_NUM)
+#            return self._redis.get(self.JOB_SEQUENCE_NUM)
+#        else:
+#            LOGGER.error('Unable to increment job number due to lack of redis connection')
+#            #RAISE exception to catch in DMCS.py
 
+    def set_current_archive_job(self, job_number):
+        if connection():
+            self._redis.rpush('AR_JOBS' job_number)
 
+    def get_current_archive_job(self):
+        if connection():
+            self._redis.lindex('AR_JOBS', 0) 
+
+    def set_current_prompt_process_job(self, job_number):
+        if connection():
+            self._redis.rpush('PP_JOBS' job_number)
+
+    def get_current_prompt_process_job(self):
+        if connection():
+            self._redis.lindex('PP_JOBS', 0) 
+
+    def set_current_catchup_archive_job(self, job_number):
+        if connection():
+            self._redis.rpush('CU_JOBS' job_number)
+
+    def get_current_catchup_archive_job(self):
+        if connection():
+            self._redis.lindex('CU_JOBS', 0) 
 
     def print_all(self):
         dump_dict = {}

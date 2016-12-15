@@ -60,6 +60,11 @@ class DMCS:
             self._base_passwd = cdm[ROOT][BASE_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._session_id_file = cdm[ROOT][SESSION_ID_FILE]
+            ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
+            state_db_instance = cdm[ROOT]['DMCS_STATE_SCBD']
+            job_db_instance = cdm[ROOT]['DMCS_JOB_SCBD']
+            ack_db_instance = cdm[ROOT]['DMCS_ACK_SCBD']
+            backlog_db_instance = cdm[ROOT]['DMCS_BACKLOG_SCBD']
         except KeyError as e:
             print "Dictionary error"
             print "Bailing out..."
@@ -70,10 +75,11 @@ class DMCS:
 
 
 
-        self.JOB_SCBD = JobScoreboard()
-        #self.TO_DO_SCBD = ToDoScoreboard()
-        self.ACK_SCBD = AckScoreboard()
-        self.STATE_SCBD = StateScoreboard()
+        self.JOB_SCBD = JobScoreboard(job_db_instance)
+        #self.TO_DO_SCBD = ToDoScoreboard(backlog_db_instance)
+        self.ACK_SCBD = AckScoreboard(ack_db_instance)
+        self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
+
         # Messages from both Base Foreman AND OCS Bridge
         self._OCS_msg_actions = { 'START': self.process_start_command,
                               'ENABLE': self.process_enable_command,
@@ -227,7 +233,6 @@ class DMCS:
         # Set config key in state table
         # Send this state change to auditor
         # Ack back?
-        pass
 
 
     def process_disable_command(self, msg):
@@ -287,20 +292,113 @@ class DMCS:
 
 
 
-    def process_next_visit_event(self, msg):
+    def process_next_visit_event(self, params):
         # Send next visit info to any devices in enable state
         # Keep track of current Next Visit for each device.
 
         # First, get dict of devices in Enable state with their consume queues
-        pass
+        visit_id = params['VISIT_ID']
+        self.JOB_SCBD.set_visit_id(visit_id)
+        enabled_devices = self.STATE_SCBD.get_enabled_devices()
+
+        acks = {}
+        for k in enabled_devices.keys():
+            consume_queue = enabled_devices[k]
+            ack = self.get_next_timed_ack("NEXT_VISIT_ACK")
+            acks.append(ack)
+            msg = {}
+            msg[MSG_TYPE] = "NEXT_VISIT"
+            msg[ACK_ID] = ack
+            msg['VISIT_ID'] = params['VISIT_ID']
+            msg['BORE_SIGHT'] = params['BORE_SIGHT']
+            self._publisher.publish_message(consume_queue, msg)
+
+        self.ack_timer(2)
+        for a in acks:
+            ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
+
+            if ack_responses != None:
+                responses = ack_responses.keys()
+                for response in responses:
+                if response[ACK_BOOL] == False:
+                    # Mark this device as messed up...maybe enter fault.
+                    pass 
+            else:
+                #Enter a fault state, as no devices are responding
+                pass
+            
+            
 
 
-    def process_start_integration_event(self, msg):
-        pass
+    def process_start_integration_event(self, params):
+        # Send start int message to all enabled devices, with details of job...include new job_num
+        # Msg should have session, latest visit_id, job_num, ccd lists and image_id
+
+        image_id = params['IMAGE_ID']
+        ## Setting to Archive for now...
+        #device = params['DEVICE']
+        device = 'AR'
+        job_num = self.STATE_SCBD.get_next_job_num(device)
+        self.JOB_SCBD.set_current_archive_job(job_num)
+
+        ## CCD List will eventually be derived from config key. For now, using a list set in this class
+        ccd_list = self.CCD_LIST
+        visit_id = self.JOB_SCBD.get_current_visit()
+        self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
+
+        ack_id = self.get_next_timed_ack_id("START_INT_ACK")
+
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'START_INTEGRATION'
+        msg_params[JOB_NUM] = job_num
+        msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session()
+        msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
+        msg_params[IMAGE_ID] = image_id
+        msg_params['IMAGE_SRC'] = 'Blah'
+        msg_params[ACK_ID] = ack_id
+        msg_params['CCDS'] = ccd_list
+        self._publisher.publish_message("AR_FOREMAN_CONSUME", msg_params)
+
+        self.ack_timer(3)
+        ## XXX Don't check for responses right now...
+
+
+####### # Right now, using only Archive...
+#        enabled_devices = self.STATE_SCBD.get_enabled_devices()
+#        ack_prefix = 
+#        acks = {}
+#        for k in enabled_devices.keys():
+#            consume_queue = enabled_devices[k]
+#            ack = self.get_next_timed_ack("NEXT_VISIT_ACK")
+#            acks.append(ack)
+#            self._publisher.publish_message(consume_queue, msg)
+
+
 
 
     def process_readout_event(self, msg):
-        pass
+
+        image_id = params['IMAGE_ID']
+        #device = params['DEVICE']
+        device = 'AR'
+
+        ack_id = self.get_next_timed_ack_id("START_INT_ACK")
+
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'START_INTEGRATION'
+        ## XXX Fix lime below and get rid of working line so device is simple passed in.
+        #msg_params[JOB_NUM] = self.JOB_SCBD.get_open_job_num_for_device(device)
+        msg_params[JOB_NUM] = self.JOB_SCBD.get_current_archive_job()
+        msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session()
+        msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
+        msg_params[IMAGE_ID] = image_id
+        msg_params['IMAGE_SRC'] = 'Blah'
+        msg_params['ACK_ID'] = ack_id
+        self._publisher.publish_message("AR_FOREMAN_CONSUME", msg_params)
+        # Update job scbd
+        # add in two additional acks for format and transfer complete
+        # Figure out how separate devices will be done
+        # How will it know what job num to use???
 
 
     def process_telemetry(self, msg):
@@ -314,23 +412,6 @@ class DMCS:
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
         
-    def increment_job_num(self):
-       self._current_job = str(self._session_id) + "_" + str(self.JOB_SCBD.get_next_job_num())
-
-
-    def export_yaml_file(self, filename, params):
-        try:
-            f = open(filename, 'w')
-        except IOError:
-            print "Cant open %s" % filename
-            print "No YAML File Exported to %s" % filename"
-
-        f.write(yaml.dump(params))
-
-        f.close()
-
-        return cdm
-
 
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
