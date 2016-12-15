@@ -36,11 +36,14 @@ class DMCS:
     ACK_SCBD = None
     STATE_SCBD = None
     BACKLOG_SCBD = None
+    ENABLE = 'ENABLE'
     OCS_BDG_PUBLISH = "ocs_bdg_publish"  #Messages from OCS Bridge
     OCS_BDG_CONSUME = "ocs_bdg_consume"  #Messages to OCS Bridge
     DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
     DMCS_CONSUME = "dmcs_consume" #Used for Foreman comm
+    AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish" #Used for Foreman comm
     ACK_PUBLISH = "ack_publish"
+    OCS_BDG_PUBLISH = "ocs_dmcs_consume"
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
 
@@ -48,8 +51,8 @@ class DMCS:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self.purge_broker()
-        self._default_cfg_file = 'Dmcs_Cfg.yaml'
+        #self.purge_broker()
+        self._default_cfg_file = 'ForemanCfg.yaml'
         if filename == None:
             filename = self._default_cfg_file
 
@@ -59,13 +62,13 @@ class DMCS:
             self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
             self._base_passwd = cdm[ROOT][BASE_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            self._session_id_file = cdm[ROOT][SESSION_ID_FILE]
             ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
-            state_db_instance = cdm[ROOT]['DMCS_STATE_SCBD']
-            job_db_instance = cdm[ROOT]['DMCS_JOB_SCBD']
-            ack_db_instance = cdm[ROOT]['DMCS_ACK_SCBD']
-            backlog_db_instance = cdm[ROOT]['DMCS_BACKLOG_SCBD']
+            state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
+            job_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_JOB_SCBD']
+            ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
+            backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
         except KeyError as e:
+            print e
             print "Dictionary error"
             print "Bailing out..."
             sys.exit(99)
@@ -101,6 +104,7 @@ class DMCS:
 
 
         self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
+        print "Setting up connection to broker: %s" % self._base_broker_url
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
         self.setup_publishers()
@@ -112,39 +116,29 @@ class DMCS:
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread on all consumer methods')
 
-        self._ocs_bdg_consumer = Consumer(self._base_broker_url, self.OCS_BDG_PUBLISH, XML)
+        self._ocs_bdg_consumer = Consumer(self._base_broker_url, self.OCS_BDG_PUBLISH, "YAML")
         try:
-            thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
+            thread.start_new_thread( self.run_ocs_bdg_consumer, ("thread-dmcs-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
-            sys.exit(99)
+            print "Cannot start consumer!"
+            #sys.exit(99)
 
-        self._forwarder_consumer = Consumer(self._base_broker_url, self.FORWARDER_PUBLISH, XML)
-        try:
-            thread.start_new_thread( self.run_forwarder_consumer, ("thread-forwarder-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start FORWARDERS consumer thread, exiting...')
-            sys.exit(100)
 
-        self._ncsa_consumer = Consumer(self._base_broker_url, self.NCSA_PUBLISH, XML)
-        try:
-            thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
-            sys.exit(101)
-
-        self._ack_consumer = Consumer(self._base_broker_url, self.ACK_PUBLISH, XML)
+        self._ack_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_ACK_PUBLISH, "YAML")
         try:
             thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start ACK consumer thread, exiting...')
-            sys.exit(102)
+            print "Cannot start consumer!"
+            #sys.exit(102)
 
         LOGGER.info('Finished starting all three consumer threads')
 
 
-    def run_dmcs_consumer(self, threadname, delay):
-        self._foreman_consumer.run(self.on_dmcs_message)
+    def run_ocs_bdg_consumer(self, threadname, delay):
+        self._ocs_bdg_consumer.run(self.on_ocs_message)
+
 
 
     def run_ocs_consumer(self, threadname, delay):
@@ -157,9 +151,7 @@ class DMCS:
 
     def setup_publishers(self):
         LOGGER.info('Setting up Base publisher on %s', self._base_broker_url)
-        LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_broker_url)
-        self._base_publisher = SimplePublisher(self._base_broker_url)
-        self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url)
+        self._publisher = SimplePublisher(self._base_broker_url, "YAML")
 
 
 
@@ -170,7 +162,7 @@ class DMCS:
         LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
-        handler = self._msg_actions.get(msg_dict[MSG_TYPE])
+        handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
     def on_foreman_message(self, ch, method, properties, body):
@@ -180,7 +172,7 @@ class DMCS:
         LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
-        handler = self._msg_actions.get(msg_dict[MSG_TYPE])
+        handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
 
@@ -190,7 +182,7 @@ class DMCS:
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
-        handler = self._msg_actions.get(msg_dict[MSG_TYPE])
+        handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
    #==================================================================================== 
@@ -214,21 +206,39 @@ class DMCS:
                2) Exit - effectively ends session by moving state to OfflineState which 
                   has only one 'out'  state transition - to FinalState.
         """
+        print "Processing standby command, msg is %s" % msg
         # Extract device arg
         device = msg['DEVICE']
-
-        session_id = self.STATE_SCBD.get_next_session_id(device)
-        ack_id = self.send_new_session_msg(device, session_id)
-        self.ack_timer(1)
-        # Check ack response
-        # Send return ack queue in new_session message
-
         if device == "AR":
             self.STATE_SCBD.set_archive_state("STANDBY")
         if device == "PP":
             self.STATE_SCBD.set_prompt_process_state("STANDBY")
         if device == "CU":
             self.STATE_SCBD.set_catchup_archive_state("STANDBY")
+
+        # send new session id to all
+        session_id = self.STATE_SCBD.get_next_session_id()
+        acks = self.send_new_session_msg(session_id)
+
+        self.ack_timer(2)
+
+        # Check ack response
+        for a in acks:
+            ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
+
+            if ack_responses != None:
+                responses = ack_responses.keys()
+                for response in responses:
+                    if response[ACK_BOOL] == False:
+                        # Mark this device as messed up...maybe enter fault.
+                        # This means component or device 'response' failed
+                        pass 
+            else:
+                #Enter a fault state, as no devices are responding
+                pass
+
+        # Send return ack queue in new_session message
+
 
         # Set config key in state table
         # Send this state change to auditor
@@ -241,6 +251,7 @@ class DMCS:
            is possible, but no NextVisit events will be received while in this state.
 
         """
+        print "Processing disable command, msg is %s" % msg
         # Extract device arg
         device = msg['DEVICE']
         if device == "AR":
@@ -255,6 +266,7 @@ class DMCS:
         """Transition from DisableState to EnableState. Full operation is capable after this transition.
 
         """
+        print "Processing enable command, msg is %s" % msg
         # Extract device arg
         device = msg['DEVICE']
         if device == "AR":
@@ -293,18 +305,21 @@ class DMCS:
 
 
     def process_next_visit_event(self, params):
+        print "Processing next_visit command, msg is %s" % params
         # Send next visit info to any devices in enable state
         # Keep track of current Next Visit for each device.
 
         # First, get dict of devices in Enable state with their consume queues
         visit_id = params['VISIT_ID']
         self.JOB_SCBD.set_visit_id(visit_id)
-        enabled_devices = self.STATE_SCBD.get_enabled_devices()
+        enabled_devices = self.STATE_SCBD.get_devices_by_state(self.ENABLE)
+        print "Enabled devices is %s" % enabled_devices
 
-        acks = {}
+        acks = []
         for k in enabled_devices.keys():
             consume_queue = enabled_devices[k]
-            ack = self.get_next_timed_ack("NEXT_VISIT_ACK")
+            print "Sending to queue: %s" % consume_queue
+            ack = self.get_next_timed_ack_id("NEXT_VISIT_ACK")
             acks.append(ack)
             msg = {}
             msg[MSG_TYPE] = "NEXT_VISIT"
@@ -320,9 +335,9 @@ class DMCS:
             if ack_responses != None:
                 responses = ack_responses.keys()
                 for response in responses:
-                if response[ACK_BOOL] == False:
-                    # Mark this device as messed up...maybe enter fault.
-                    pass 
+                    if response[ACK_BOOL] == False:
+                        # Mark this device as messed up...maybe enter fault.
+                        pass 
             else:
                 #Enter a fault state, as no devices are responding
                 pass
@@ -369,7 +384,7 @@ class DMCS:
 #        acks = {}
 #        for k in enabled_devices.keys():
 #            consume_queue = enabled_devices[k]
-#            ack = self.get_next_timed_ack("NEXT_VISIT_ACK")
+#            ack = self.get_next_timed_ack_id("NEXT_VISIT_ACK")
 #            acks.append(ack)
 #            self._publisher.publish_message(consume_queue, msg)
 
@@ -407,11 +422,37 @@ class DMCS:
     def enter_fault_state(self):
         pass
 
+    def process_start_command(self):
+        pass
+
+    def process_fault_command(self):
+        pass
+
+    def process_offline_command(self):
+        pass
 
 
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
-        
+       
+    def send_new_session_msg(self, session_id):
+        acks = [] 
+        msg = {}
+        msg['MSG_TYPE'] = 'NEW_SESSION'
+        msg['SESSION_ID'] = session_id
+
+        ddict = self.STATE_SCBD.get_devices_by_state(None)
+        for k in ddict.keys():
+            consume_queue = ddict[k]
+            ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
+            msg['ACK_ID'] = ack_id
+            acks.append(ack_id)
+            self._publisher.publish_message(consume_queue, msg)
+
+        return acks
+            
+ 
+
 
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
@@ -458,8 +499,8 @@ class DMCS:
 
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
-    b_fm = BaseForeman()
-    print "Beginning BaseForeman event loop..."
+    dmsc = DMCS()
+    print "Beginning DMCS event loop..."
     try:
         while 1:
             pass
@@ -467,7 +508,7 @@ def main():
         pass
 
     print ""
-    print "Base Foreman Done."
+    print "DMCS Done."
 
 
 if __name__ == "__main__": main()

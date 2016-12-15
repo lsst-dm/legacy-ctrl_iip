@@ -36,6 +36,8 @@ class JobScoreboard(Scoreboard):
     STATUS = 'STATUS'
     SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
+    CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
+    DBTYPE = "Job scoreboard"
     DB_INSTANCE = None
   
 
@@ -82,6 +84,8 @@ class JobScoreboard(Scoreboard):
             raise L1Error('Calling redis connect in JobScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
+
+        self._redis.set(self.CURRENT_SESSION_ID, "session_100")
 
 #        weekday = subprocess.check_output('date +"%u"', shell=True)
 #        job_num_seed = str(weekday) + "000"
@@ -268,6 +272,12 @@ class JobScoreboard(Scoreboard):
         else:
             return None
 
+    def set_session(self, session_id):
+        self._redis.set(self.CURRENT_SESSION_ID, session_id)
+
+    def get_current_session(self):
+        return self._redis.get(self.CURRENT_SESSION_ID)
+
 
 #    def set_session(self, session_id):
 #        if self.check_connection():
@@ -338,7 +348,7 @@ class JobScoreboard(Scoreboard):
 
     def set_current_archive_job(self, job_number):
         if connection():
-            self._redis.rpush('AR_JOBS' job_number)
+            self._redis.rpush('AR_JOBS', job_number)
 
     def get_current_archive_job(self):
         if connection():
@@ -346,7 +356,7 @@ class JobScoreboard(Scoreboard):
 
     def set_current_prompt_process_job(self, job_number):
         if connection():
-            self._redis.rpush('PP_JOBS' job_number)
+            self._redis.rpush('PP_JOBS', job_number)
 
     def get_current_prompt_process_job(self):
         if connection():
@@ -354,7 +364,7 @@ class JobScoreboard(Scoreboard):
 
     def set_current_catchup_archive_job(self, job_number):
         if connection():
-            self._redis.rpush('CU_JOBS' job_number)
+            self._redis.rpush('CU_JOBS', job_number)
 
     def get_current_catchup_archive_job(self):
         if connection():

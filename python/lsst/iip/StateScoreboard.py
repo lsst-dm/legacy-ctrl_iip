@@ -33,6 +33,7 @@ class StateScoreboard(Scoreboard):
     SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM'
+    CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
     DB_INSTANCE = None
     AR = "AR"
     PP = "PP"
@@ -59,10 +60,10 @@ class StateScoreboard(Scoreboard):
         self._redis.flushdb()
 
         weekday = subprocess.check_output('date +"%u"', shell=True)
-        job_num_seed = str(weekday) + "000"
+        job_num_seed = int(weekday) + 1000
         #set up auto sequence
         self._redis.set(self.JOB_SEQUENCE_NUM, int(job_num_seed))
-        self._redis.set(self.SESSION_SEQUENCE_NUM, 1000)
+        self._redis.set(self.SESSION_SEQUENCE_NUM, 70000)
 
         self.init_redis(ddict)
     
@@ -95,7 +96,7 @@ class StateScoreboard(Scoreboard):
 
 
     def init_redis(self, ddict):
-        if check_connection():
+        if self.check_connection():
             self._redis.hset(self.AR, 'CONSUME_QUEUE', ddict[self.AR])
             self._redis.hset(self.PP, 'CONSUME_QUEUE', ddict[self.PP])
             self._redis.hset(self.CU, 'CONSUME_QUEUE', ddict[self.CU])
@@ -129,16 +130,28 @@ class StateScoreboard(Scoreboard):
             return self._redis.hget(self.CU, STATE)
 
 
-    def get_enabled_devices(self):
+    def get_devices_by_state(self, state):
+        print "In get_devices_by_state, state arg is %s" % state
         edict = {}
-
-        if connection:
-        if self.get_archive_state() == "ENABLED":
-            edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
-        if self.get_prompt_process_state() == "ENABLED":
-            edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
-        if self.get_catchup_archive_state() == "ENABLED":
-            edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
+        if self.check_connection:
+            if state == None:
+                print "IN state == None"
+                edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
+                edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
+                edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
+                print "IN state == None, edict is %s" % edict
+            else:
+                print "Here is the issue - self.get_archive_state is returning %s" % self.get_archive_state()
+                if self.get_archive_state() == state:
+                    edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
+                if self.get_prompt_process_state() == state:
+                    edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
+                if self.get_catchup_archive_state() == state:
+                    edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
+                print "State is NOT None, edict is %s" % edict
+        else:
+            print "BIG TROUBLE IN LITTLE CHINA"
+        return edict
 
 
     def build_monitor_data(self, params):
@@ -153,17 +166,19 @@ class StateScoreboard(Scoreboard):
         return monitor_data
 
 
-    def get_next_session_(self, device):
+    def get_next_session_id(self):
         if self.check_connection():
             self._redis.incr(self.SESSION_SEQUENCE_NUM)
-            session_id = self._redis.hget(self.SESSION_SEQUENCE_NUM)
-            if device == "AR":
-                self._redis.hset(self.AR, 'SESSION_ID', session_id)
-            if device == "PP":
-                self._redis.hset(self.PP, 'SESSION_ID', session_id)
-            if device == "CU":
-                self._redis.hset(self.CU, 'SESSION_ID', session_id)
-            return session_id
+            session_id = self._redis.get(self.SESSION_SEQUENCE_NUM)
+            #if device == "AR":
+            #    self._redis.hset(self.AR, 'SESSION_ID', session_id)
+            #if device == "PP":
+            #    self._redis.hset(self.PP, 'SESSION_ID', session_id)
+            #if device == "CU":
+            #    self._redis.hset(self.CU, 'SESSION_ID', session_id)
+            id = "Session_" + str(session_id)
+            self._redis.set(self.CURRENT_SESSION_ID, id)
+            return id
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
@@ -171,7 +186,7 @@ class StateScoreboard(Scoreboard):
 
     def get_current_session_id(self):
         if self.check_connection():
-            return self._redis.hget(self.SESSION_SEQUENCE_NUM)
+            return self._redis.get(self.CURRENT_SESSION_ID)
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py

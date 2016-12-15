@@ -179,10 +179,12 @@ class Consumer(object):
         :param str|unicode exchange_name: The name of the exchange to declare
 
         """
-        LOGGER.info('Declaring exchange %s', exchange_name)
-        self._channel.exchange_declare(self.on_exchange_declareok,
-                                       exchange_name,
-                                       self.EXCHANGE_TYPE)
+        self.start_consuming()
+        #self.setup_queue(self.QUEUE)
+        #LOGGER.info('Declaring exchange %s', exchange_name)
+        #self._channel.exchange_declare(self.on_exchange_declareok,
+        #                               exchange_name,
+        #                               self.EXCHANGE_TYPE)
 
     def on_exchange_declareok(self, unused_frame):
         """Invoked by pika when RabbitMQ has finished the Exchange.Declare RPC

@@ -100,14 +100,14 @@ class AckScoreboard(Scoreboard):
       
         if self.check_connection():
             self._redis.hset(ack_id_string, ack_component_name, yaml.dump(ack_msg_body))
+            l = []
             if self._redis.hget(ack_id_string, 'COMPONENTS') == None:
                 # Make the list structure and add component name to list and yaml
-                l = []
                 l.append(ack_component_name)
                 self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
             else:
-                # un yaml list, ad component nae, then re - yaml
-                l = yaml.load(self._redis.hget(ack_id_string, 'COMPONENTS')
+                # un yaml list, and component name, then re - yaml
+                l = yaml.load(self._redis.hget(ack_id_string, 'COMPONENTS'))
                 l.append(ack_component_name)
                 self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
 

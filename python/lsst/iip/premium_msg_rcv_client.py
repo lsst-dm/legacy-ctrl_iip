@@ -13,11 +13,11 @@ class Premium:
     logging.basicConfig()
     #os.system('rabbitmqctl -p /tester purge_queue firehose')
     #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
-    #broker_url = 'amqp://TesT:TesT@141.142.208.191:5672/%2Ftester'
-    broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
+    broker_url = 'amqp://BASE:BASE@141.142.208.191:5672/%2Fbunny'
+    #broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
     #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
     #self._cons = FirehoseConsumer(broker_url, 'firehose', "YAML")
-    self._cons = Consumer(broker_url, 'ncsa_consume', "YAML")
+    self._cons = Consumer(broker_url, 'ar_foreman_consume', "YAML")
     try:
       thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
     except e:
@@ -44,7 +44,7 @@ class Premium:
 
 def main():
   premium = Premium()
-  sp1 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
+  #sp1 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
   #sp2 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
   #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
   #cons = Consumer(broker_url, 'F8_consume')
@@ -53,10 +53,12 @@ def main():
   #except:
   #  print "Cannot start thread"
 
+  while 1:
+    pass
 
   #  while 1:
-  sp1.publish_message("ncsa_consume", "It's hot")
-  time.sleep(2)
+  #sp1.publish_message("ncsa_consume", "It's hot")
+  #time.sleep(2)
     #sp2.publish_message("ack_publish", "No, It's COLD")
     #time.sleep(2)
     #pass
