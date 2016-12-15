@@ -39,6 +39,9 @@ class JobScoreboard(Scoreboard):
     CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
     DBTYPE = "Job scoreboard"
     DB_INSTANCE = None
+    AR = 'AR'
+    PP = 'PP'
+    CU = 'CU'
   
 
     def __init__(self, db_instance):
@@ -346,29 +349,24 @@ class JobScoreboard(Scoreboard):
 #            LOGGER.error('Unable to increment job number due to lack of redis connection')
 #            #RAISE exception to catch in DMCS.py
 
-    def set_current_archive_job(self, job_number):
-        if connection():
-            self._redis.rpush('AR_JOBS', job_number)
+    def set_current_device_job(self, job_number, device):
+        if self.check_connection():
+            if device == self.AR:
+                self._redis.set('AR_JOBS', job_number)
+            if device == self.PP:
+                self._redis.set('PP_JOBS', job_number)
+            if device == self.CU:
+                self._redis.set('CU_JOBS', job_number)
 
-    def get_current_archive_job(self):
-        if connection():
-            self._redis.lindex('AR_JOBS', 0) 
+    def get_current_device_job(self, device):
+        if self.check_connection():
+            if device == self.AR:
+                return self._redis.get('AR_JOBS') 
+            if device == self.PP:
+                return self._redis.get('PP_JOBS') 
+            if device == self.CU:
+                return self._redis.get('CU_JOBS') 
 
-    def set_current_prompt_process_job(self, job_number):
-        if connection():
-            self._redis.rpush('PP_JOBS', job_number)
-
-    def get_current_prompt_process_job(self):
-        if connection():
-            self._redis.lindex('PP_JOBS', 0) 
-
-    def set_current_catchup_archive_job(self, job_number):
-        if connection():
-            self._redis.rpush('CU_JOBS', job_number)
-
-    def get_current_catchup_archive_job(self):
-        if connection():
-            self._redis.lindex('CU_JOBS', 0) 
 
     def print_all(self):
         dump_dict = {}

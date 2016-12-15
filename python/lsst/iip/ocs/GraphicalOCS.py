@@ -312,9 +312,9 @@ class GraphicalOCS:
         insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, cmd_str)
 
-        #veritek = os.system(cmd)
-        #insert_point = self.textbuffer.get_end_iter()
-        #self.textbuffer.insert(insert_point, veritek)
+        veritek = os.system(cmd)
+        insert_point = self.textbuffer.get_end_iter()
+        self.textbuffer.insert(insert_point, veritek)
 
 
     def process_event_send_command(self, eidget, data=None):
@@ -358,10 +358,10 @@ class GraphicalOCS:
         insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, cmd_str)
 
-        #veritek = os.system(cmd)
+        veritek = os.system(cmd)
 
-        #insert_point = self.textbuffer.get_end_iter()
-        #self.textbuffer.insert(insert_point, veritek)
+        insert_point = self.textbuffer.get_end_iter()
+        self.textbuffer.insert(insert_point, veritek)
 
 
 

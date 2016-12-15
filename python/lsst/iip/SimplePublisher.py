@@ -8,7 +8,6 @@ from toolsmod import L1Exception
 from toolsmod import L1MessageError
 from XMLHandler import * 
 from YamlHandler import * 
-from Exceptions import * 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

@@ -129,26 +129,30 @@ class StateScoreboard(Scoreboard):
         if self.check_connection():
             return self._redis.hget(self.CU, STATE)
 
+    def get_device_consume_queue(self, device):
+        if self.check_connection():
+            if device == self.AR:
+                return self._redis.hget(self.AR, "CONSUME_QUEUE")
+            if device == self.PP:
+                return self._redis.hget(self.PP, "CONSUME_QUEUE")
+            if device == self.CU:
+                return self._redis.hget(self.CU, "CONSUME_QUEUE")
+
 
     def get_devices_by_state(self, state):
-        print "In get_devices_by_state, state arg is %s" % state
         edict = {}
         if self.check_connection:
             if state == None:
-                print "IN state == None"
                 edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
                 edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
                 edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
-                print "IN state == None, edict is %s" % edict
             else:
-                print "Here is the issue - self.get_archive_state is returning %s" % self.get_archive_state()
                 if self.get_archive_state() == state:
                     edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
                 if self.get_prompt_process_state() == state:
                     edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
                 if self.get_catchup_archive_state() == state:
                     edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
-                print "State is NOT None, edict is %s" % edict
         else:
             print "BIG TROUBLE IN LITTLE CHINA"
         return edict
@@ -195,7 +199,7 @@ class StateScoreboard(Scoreboard):
     def get_next_job_num(self, prefix):
         if self.check_connection():
             self._redis.incr(self.JOB_SEQUENCE_NUM)
-            job_num_str = prefix + str( self._redis.hget(self.JOB_SEQUENCE_NUM))
+            job_num_str = prefix + str( self._redis.get(self.JOB_SEQUENCE_NUM))
             return job_num_str
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')

@@ -44,8 +44,7 @@ class DMCS:
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish" #Used for Foreman comm
     ACK_PUBLISH = "ack_publish"
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"
-    EXCHANGE = 'message'
-    EXCHANGE_TYPE = 'direct'
+    CCD_LIST = [] 
 
 
     def __init__(self, filename=None):
@@ -67,6 +66,7 @@ class DMCS:
             job_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_JOB_SCBD']
             ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
             backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
+            self.CCD_LIST = cdm[ROOT]['CCD_LIST']
         except KeyError as e:
             print e
             print "Dictionary error"
@@ -75,6 +75,10 @@ class DMCS:
 
         self._base_broker_url = 'amqp_url'
         self._next_timed_ack_id = 0
+
+        # Build ccd_list as if a config key is being used...
+        for i in range (1, 21):
+            self.CCD_LIST
 
 
 
@@ -104,7 +108,6 @@ class DMCS:
 
 
         self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
-        print "Setting up connection to broker: %s" % self._base_broker_url
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
         self.setup_publishers()
@@ -206,7 +209,6 @@ class DMCS:
                2) Exit - effectively ends session by moving state to OfflineState which 
                   has only one 'out'  state transition - to FinalState.
         """
-        print "Processing standby command, msg is %s" % msg
         # Extract device arg
         device = msg['DEVICE']
         if device == "AR":
@@ -251,7 +253,6 @@ class DMCS:
            is possible, but no NextVisit events will be received while in this state.
 
         """
-        print "Processing disable command, msg is %s" % msg
         # Extract device arg
         device = msg['DEVICE']
         if device == "AR":
@@ -266,7 +267,6 @@ class DMCS:
         """Transition from DisableState to EnableState. Full operation is capable after this transition.
 
         """
-        print "Processing enable command, msg is %s" % msg
         # Extract device arg
         device = msg['DEVICE']
         if device == "AR":
@@ -305,7 +305,6 @@ class DMCS:
 
 
     def process_next_visit_event(self, params):
-        print "Processing next_visit command, msg is %s" % params
         # Send next visit info to any devices in enable state
         # Keep track of current Next Visit for each device.
 
@@ -313,12 +312,10 @@ class DMCS:
         visit_id = params['VISIT_ID']
         self.JOB_SCBD.set_visit_id(visit_id)
         enabled_devices = self.STATE_SCBD.get_devices_by_state(self.ENABLE)
-        print "Enabled devices is %s" % enabled_devices
 
         acks = []
         for k in enabled_devices.keys():
             consume_queue = enabled_devices[k]
-            print "Sending to queue: %s" % consume_queue
             ack = self.get_next_timed_ack_id("NEXT_VISIT_ACK")
             acks.append(ack)
             msg = {}
@@ -351,10 +348,9 @@ class DMCS:
 
         image_id = params['IMAGE_ID']
         ## Setting to Archive for now...
-        #device = params['DEVICE']
-        device = 'AR'
+        device = params['DEVICE']
         job_num = self.STATE_SCBD.get_next_job_num(device)
-        self.JOB_SCBD.set_current_archive_job(job_num)
+        self.JOB_SCBD.set_current_device_job(job_num, device)
 
         ## CCD List will eventually be derived from config key. For now, using a list set in this class
         ccd_list = self.CCD_LIST
@@ -366,13 +362,13 @@ class DMCS:
         msg_params = {}
         msg_params[MSG_TYPE] = 'START_INTEGRATION'
         msg_params[JOB_NUM] = job_num
-        msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session()
+        msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session_id()
         msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
         msg_params[IMAGE_ID] = image_id
         msg_params['IMAGE_SRC'] = 'Blah'
         msg_params[ACK_ID] = ack_id
         msg_params['CCDS'] = ccd_list
-        self._publisher.publish_message("AR_FOREMAN_CONSUME", msg_params)
+        self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(device), msg_params)
 
         self.ack_timer(3)
         ## XXX Don't check for responses right now...
@@ -391,28 +387,26 @@ class DMCS:
 
 
 
-    def process_readout_event(self, msg):
-
+    def process_readout_event(self, params):
         image_id = params['IMAGE_ID']
-        #device = params['DEVICE']
-        device = 'AR'
+        device = params['DEVICE']
 
-        ack_id = self.get_next_timed_ack_id("START_INT_ACK")
+        ack_id = self.get_next_timed_ack_id("READOUT_ACK")
 
         msg_params = {}
-        msg_params[MSG_TYPE] = 'START_INTEGRATION'
+        msg_params[MSG_TYPE] = 'READOUT'
         ## XXX Fix lime below and get rid of working line so device is simple passed in.
         #msg_params[JOB_NUM] = self.JOB_SCBD.get_open_job_num_for_device(device)
-        msg_params[JOB_NUM] = self.JOB_SCBD.get_current_archive_job()
-        msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session()
+        msg_params[JOB_NUM] = self.JOB_SCBD.get_current_device_job(device)
+        msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session_id()
         msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
         msg_params[IMAGE_ID] = image_id
         msg_params['IMAGE_SRC'] = 'Blah'
-        msg_params['ACK_ID'] = ack_id
-        self._publisher.publish_message("AR_FOREMAN_CONSUME", msg_params)
+        msg_params[ACK_ID] = ack_id
+        self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(device), msg_params)
         # Update job scbd
         # add in two additional acks for format and transfer complete
-        # Figure out how separate devices will be done
+        # Figure out how separate devices will be done using a device param in incoming msg
         # How will it know what job num to use???
 
 
