@@ -1,5 +1,6 @@
 import pygtk
 import gtk
+import subprocess
 
 
 class GraphicalOCS:
@@ -312,7 +313,8 @@ class GraphicalOCS:
         insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, cmd_str)
 
-        veritek = os.system(cmd)
+        #veritek = os.system(cmd)
+        veritek = subprocess.check_output(command, shell=True)
         insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, veritek)
 
@@ -358,7 +360,8 @@ class GraphicalOCS:
         insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, cmd_str)
 
-        veritek = os.system(cmd)
+        #veritek = os.system(cmd)
+        veritek = subprocess.check_output(command, shell=True)
 
         insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, veritek)
