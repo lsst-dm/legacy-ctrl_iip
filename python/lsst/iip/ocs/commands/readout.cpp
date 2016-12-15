@@ -59,7 +59,7 @@ int OSPL_MAIN (int argc, char *argv[])
   
   // arg2 must be image_id
   ostringstream message; 
-  message << "{MSG_TYPE: READOUT, IMAGE_ID: " << argv[1] << "}"; 
+  message << "{MSG_TYPE: READOUT, IMAGE_ID: " << argv[1] << ", DEVICE: AR}"; 
   return dm_Event ("None", const_cast<char *>(message.str().c_str()));
 }
 
