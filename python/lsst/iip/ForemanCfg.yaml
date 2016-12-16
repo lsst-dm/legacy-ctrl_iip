@@ -16,7 +16,7 @@ ROOT:
   INFLUX_DB: L1_Test
   AUDIT_MSG_FORMAT: YAML
   RAFT_LIST:  ['4','6','18','2','1','20','15','16','3','12','5','10','9','14','19','7','13','8','21','17','11']
-  CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115','136','3','12','50','101','79','144','19','7','139','8','21','172','11']
+  CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115','136','3','12','50','101','79','144','19','7','139','8','21','172','11','121','122','123'.'124','125','126','127','128','129','130','131','132','133','134','135','137','138,'143']  #43
   FOREMAN_CONSUME_QUEUES:
     AR: ar_foreman_consume
     PP: pp_foreman_consume
@@ -133,7 +133,7 @@ ROOT:
         HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.170
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_2:
@@ -141,7 +141,7 @@ ROOT:
         HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.170
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
 
@@ -150,7 +150,7 @@ ROOT:
         HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.170
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_4:
@@ -158,7 +158,7 @@ ROOT:
         HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.170
         STATE: IDLE
-        CONSUME_QUEUE: F_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
     CATCHUP_FORWARDERS:

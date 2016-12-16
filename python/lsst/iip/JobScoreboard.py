@@ -132,27 +132,26 @@ class JobScoreboard(Scoreboard):
            :param str job_number: Necessary for all CRUDs on this new row.
            :param int rafts: The number of 'sub-jobs' to be handled within a job.
         """
-        job_num = str(job_number)
         # XXX Needs try, catch block
         if self.check_connection():
-            #self._redis.hset(job_num, self.CCDS, yaml.dump(ccds))
-            self.set_ccds_for_job(job_num, ccds)
-            self._redis.hset(job_num, self.STATE, 'NEW')
-            self._redis.hset(job_num, self.STATUS, 'ACTIVE')
-            self._redis.hset(job_num, 'IMAGE_ID', image_id)
-            self._redis.hset(job_num, 'VISIT_ID', visit_id)
-            self._redis.lpush(self.JOBS, job_num)
+            #self._redis.hset(job_number, self.CCDS, yaml.dump(ccds))
+            self.set_ccds_for_job(job_number, ccds)
+            self.set_job_state(job_number, 'NEW')
+            self.set_job_status(job_number, 'ACTIVE')
+            self._redis.hset(job_number, 'IMAGE_ID', image_id)
+            self._redis.hset(job_number, 'VISIT_ID', visit_id)
+            self._redis.lpush(self.JOBS, job_number)
 
-            params = {}
-            params[self.SUB_TYPE] = self.JOB_STATE
-            params[JOB_NUM] = job_num
-            params['IMAGE_ID'] = image_id
-            params[self.STATE] = 'NEW'
-            self.persist(self.build_monitor_data(params))
+            #params = {}
+            #params[self.SUB_TYPE] = self.JOB_STATE
+            #params[JOB_NUM] = job_number
+            #params['IMAGE_ID'] = image_id
+            #params[self.STATE] = 'NEW'
+            #self.persist(self.build_monitor_data(params))
 
             #params = {}
             #params[self.SUB_TYPE] = self.JOB_STATUS
-            #params[JOB_NUM] = job_num
+            #params[JOB_NUM] = job_number
             #params['IMAGE_ID'] = image_id
             #params[self.STATUS] = 'active'
             #self.persist(self.build_monitor_data(params))
@@ -167,17 +166,26 @@ class JobScoreboard(Scoreboard):
            :param dict params: A python dict of key/value pairs.
         """  
         if self.check_connection():
-            job = str(job_number)
             for kee in in_params.keys():
-                self._redis.hset(str(job), kee, in_params[kee])
-            params = {}
-            params[JOB_NUM] = job_number
-            params['SUB_TYPE'] = self.JOB_STATE
-            params['STATE'] = in_params['STATE']
-            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+                self._redis.hset(job_number, kee, in_params[kee])
+            #params = {}
+            #params[JOB_NUM] = job_number
+            #params['SUB_TYPE'] = self.JOB_STATE
+            #params['STATE'] = in_params['STATE']
+            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            #self.persist(self.build_monitor_data(params))
         else:
             return False
+
+    def set_job_state(self, job_number, state):
+        if self.check_connection():
+            self._redis.hset(job_number, STATE, state)
+
+
+    def get_job_state(self, job_number):
+        if self.check_connection():
+            return self._redis.hget(job_number, STATE)
+
 
     def set_job_status(self, job_number, status):
         if self.check_connection():

@@ -96,7 +96,7 @@ class ForwarderScoreboard(Scoreboard):
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
-    def set_forwarder_status(self, forwarder, status):
+    def set_forwarder_status(self, forwarders, status):
         self._redis.hset(forwarder, 'STATUS', status)
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 

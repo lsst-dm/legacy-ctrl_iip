@@ -264,6 +264,7 @@ class DMCS:
 
 
     def process_enable_command(self, msg):
+        print "Processing Enable Command"
         """Transition from DisableState to EnableState. Full operation is capable after this transition.
 
         """

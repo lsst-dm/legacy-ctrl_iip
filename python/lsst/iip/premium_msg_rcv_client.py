@@ -1,4 +1,5 @@
 import pika
+import toolsmod
 from FirehoseConsumer import FirehoseConsumer
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -11,13 +12,21 @@ import thread
 class Premium:
   def __init__(self):
     logging.basicConfig()
+    self.ack_test = True
     #os.system('rabbitmqctl -p /tester purge_queue firehose')
     #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
     broker_url = 'amqp://BASE:BASE@141.142.208.191:5672/%2Fbunny'
     #broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
     #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
     #self._cons = FirehoseConsumer(broker_url, 'firehose', "YAML")
-    self._cons = Consumer(broker_url, 'ar_foreman_consume', "YAML")
+    self.sp1 = SimplePublisher('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
+
+    cdm = toolsmod.intake_yaml_file('ForemanCfg.yaml')
+    self.fdict = cdm[ROOT]['XFER_COMPONENTS']['ARCHIVE_FORWARDERS']
+    self.fwdrs = self.fdict.keys()
+
+    self._cons = Consumer(broker_url, 'f_consume', "YAML")
+    #self._cons = Consumer(broker_url, 'ar_foreman_consume', "YAML")
     try:
       thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
     except e:
@@ -30,6 +39,10 @@ class Premium:
     print(" [x] method Received %r" % methon)
     print(" [y] properties Received %r" % properties)
     print(" [z] body Received %r" % body)
+
+    if self.ack_test:
+        #grab name of fwdr from list, and ack respond as it...
+        pass
 
     print("Message done")
     print("Still listening...")

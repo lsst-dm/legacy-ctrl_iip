@@ -215,28 +215,29 @@ class ArchiveDevice:
         num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
 
         # Add job scbd entry
-        self.JOB_SCBD.add_job(job_number, image_id, ccds)
+        self.JOB_SCBD.add_job(job_number, image_id, visit_id, ccds)
         self.JOB_SCBD.set_job_params(job_number, {'IMAGE_SRC': image_src, 
                                                   'SESSION_ID': session_id, 
                                                   'VISIT_ID': visit_id})
-        self.ack_timer(1)
+        self.ack_timer(1.5)
 
         healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
-        if len(healthy_fwdrs) < 1:
-            self.refuse_job(start_int_params, "No forwarders available")
-            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
-            self.JOB_SCBD.set_job_params(job_number, scrub_params)
+        if healthy_fwdrs == None:
+            self.refuse_job(params, "No forwarders available")
+            self.JOB_SCBD.set_job_state(job_number, 'SCRUBBED')
+            self.JOB_SCBD.set_job_status(job_number, 'INACTIVE')
             return
 
-        fscbd_params = {'STATE':'BUSY', 'STATUS':'HEALTHY'}
-        self.FWD_SCBD.set_forwarder_params(forwarders, fscbd_params)
+        for forwarder in forwarders:
+            self.FWD_SCBD.set_forwarder_state(forwarder, 'BUSY')
+            self.FWD_SCBD.set_forwarder_status(forwarder, 'HEALTHY')
 
         # send new_archive_item msg to archive controller
         ac_timed_ack = self.get_next_timed_ack('AR_CTRL_NEW_ITEM')
         start_int_params['NEW_ARCHIVE_ITEM'] = ac_timed_ack
         start_int_params['ACK_ID'] = ac_timed_ack
         start_int_params['REPLY_QUEUE'] = AR_FOREMAN_ACK_PUBLISH
-        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_QUERY'})
+        self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
         self.publisher.publish_message('ARCHIVE_CTRL_CONSUME', start_int_params)
         self.ack_timer(2)
         
@@ -265,7 +266,7 @@ class ArchiveDevice:
         
 
         # divide image fetch across forwarders
-        work_schedule = self.divide_work(healthy_fwdrs, ccds)
+        work_schedule = self.divide_work(healthy_fwdrs.keys(), ccds)
 
         # send image_id, target dir, and job, session,visit and work to do to healthy forwarders
         self.JOB_SCBD.set_value_for_job(job_number, { 'STATE':'SENDING_XFER_PARAMS'})
@@ -467,7 +468,7 @@ class ArchiveDevice:
         self.ACK_SCBD.add_timed_ack(params)
         
 
-    def get_next_timed_ack_id(self, ack_type):
+    def get_next_timed_ack(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
 
@@ -480,17 +481,11 @@ class ArchiveDevice:
 
 
     def set_visit(self, visit):
-        self.JOB_SCBD.set_visit(visit)
+        self.JOB_SCBD.set_visit_id(visit)
 
     def get_current_visit(self):
         return self.JOB_SCBD.get_current_visit()
         
-
-
-
-
-
-
 
     def ack_timer(self, seconds):
         sleep(seconds)
