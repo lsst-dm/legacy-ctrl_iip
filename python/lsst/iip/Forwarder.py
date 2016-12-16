@@ -194,7 +194,7 @@ class Forwarder:
         
         fitsname = "RAWCCD-" + str(header["CCDN"]) + "." + str(header["IMAGE_ID"]) \
                    + "." + str(header["VISIT_ID"]) + ".fits" 
-        hdu.writeto(fitsname)
+        hdu.writeto("/home/" + str(self._name) + "/xfer_dir/" + fitsname)
 
 
     def forward(self):
