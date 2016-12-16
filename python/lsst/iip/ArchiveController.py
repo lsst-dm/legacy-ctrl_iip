@@ -20,9 +20,10 @@ class ArchiveController:
 
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
-    ACK_PUBLISH = "ack_publish"
+    ACK_PUBLISH = "ar_foreman_ack_publish"
+    AUDIT_CONSUME = "audit_consume"
     YAML = 'YAML'
-    RECEIPT_FILE = "/var/archive_controller_receipt"
+    RECEIPT_FILE = "/var/archive/archive_controller_receipt"
 
 
 
@@ -81,7 +82,7 @@ class ArchiveController:
     def setup_publisher(self):
         LOGGER.info('Setting up Archive publisher on %s using %s', self._base_broker_url, self._base_msg_format)
         self._archive_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
-        self._audit_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
+        #self._audit_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
 
 
     def on_archive_message(self, ch, method, properties, msg_dict):
@@ -111,14 +112,19 @@ class ArchiveController:
 
 
     def process_transfer_complete(self, params):
-        results = {}
+        transfer_results = {}
         ccd_list = params['CCD_LIST']
+        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        print "The CCD_LIST is %s" % ccd_list
+        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         ccds = ccd_list.keys()
+        print "The ccds are %s" % ccds
+        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         for ccd in ccds:
-            pathway = params['TARGET']
-            csum = params['CHECKSUM']
+            pathway = ccd_list[ccd]['FILENAME']
+            csum = ccd_list[ccd]['CHECKSUM']
             transfer_results[ccd] = self.check_transferred_file(pathway, csum)
-        self.send_transfer_complete_ack(False, transfer_result, params)
+        self.send_transfer_complete_ack(transfer_results, params)
 
 
     def check_transferred_file(self, pathway, csum):
@@ -136,11 +142,11 @@ class ArchiveController:
 
 
     def next_receipt_number(self):
-        last_receipt = self.intake_yaml(self.RECEIPT_FILE)
-        current_receipt = int(last_receipt[RECEIPT_ID]) + 1
+        last_receipt = toolsmod.intake_yaml_file(self.RECEIPT_FILE)
+        current_receipt = int(last_receipt['RECEIPT_ID']) + 1
         session_dict = {}
-        session_dict[RECEIPT_ID] = current_receipt
-        self.export_yaml(self.RECEIPT_FILE, session_dict)
+        session_dict['RECEIPT_ID'] = current_receipt
+        toolsmod.export_yaml_file(self.RECEIPT_FILE, session_dict)
         return current_receipt
 
 
@@ -162,7 +168,7 @@ class ArchiveController:
         msg_params[ACK_BOOL] = "TRUE"
         msg_params['ACK_ID'] = ack_id
         LOGGER.info('%s sent for ACK ID: %s', type, timed_ack)
-        self._publisher.publish_message(self.ACK_PUBLISH, msg_params)
+        self._archive_publisher.publish_message(self.ACK_PUBLISH, msg_params)
 
 
     def send_audit_message(self, prefix, params):
@@ -170,7 +176,7 @@ class ArchiveController:
         audit_params['SUB_TYPE'] = str(prefix) + str(params['MSG_TYPE']) + "_msg"
         audit_params['DATA_TYPE'] = self._name
         audit_params['TIME'] = get_epoch_timestamp()
-        self._publisher(self.AUDIT_CONSUME, audit_params)
+        self._archive_publisher.publish_message(self.AUDIT_CONSUME, audit_params)
 
 
 
@@ -196,7 +202,7 @@ class ArchiveController:
         ack_params['IMAGE_TYPE'] = image_type
         
         LOGGER.info('%s sent for ACK ID: %s', mtype, ack_id)
-        self._publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
         return target_dir
 
@@ -208,7 +214,7 @@ class ArchiveController:
         ack_params['ACK_ID'] = params['ACK_ID']
         ack_params['COMPONENT_NAME'] = self._name
         ack_params['ACK_BOOL'] = True
-        self._publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
 
     def send_transfer_complete_ack(self, transfer_results, params):
@@ -217,7 +223,8 @@ class ArchiveController:
         for kee in keez:
             if kee == 'MSG_TYPE' or kee == 'CCD_LIST':
                 continue
-            aux_params[kee] = params[kee]
+            ### XXX FIXME Dump loop and just pull the correct values from the input params
+            ack_params[kee] = params[kee]
 
         
         ack_params['MSG_TYPE'] = 'AR_ITEMS_XFERD_ACK'
@@ -226,7 +233,7 @@ class ArchiveController:
         ack_params['ACK_BOOL'] = True
         ack_params['RESULTS_LIST'] = transfer_results
 
-        self._publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
 
 
