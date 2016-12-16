@@ -58,4 +58,14 @@ def intake_yaml_file(filename):
     f.close()
     return cdm
 
+def export_yaml_file(filename, params):
+    try:
+        f = open(filename, "w")
+    except IOError:
+        raise L1Error("Cant open %s" % filename)
+
+    #cfg data map...
+    f.write(yaml_dump(params))
+    f.close()
+
 
