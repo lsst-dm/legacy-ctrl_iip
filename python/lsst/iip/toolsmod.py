@@ -65,7 +65,7 @@ def export_yaml_file(filename, params):
         raise L1Error("Cant open %s" % filename)
 
     #cfg data map...
-    f.write(yaml_dump(params))
+    f.write(yaml.dump(params))
     f.close()
 
 
