@@ -22,11 +22,23 @@ class Scratchpad:
 
 
     def set_job_value(self, job_number, kee, val):
-        tmp_dict = {}
-        tmp_dict[kee] = val
-        self._pad[job_number] = tmp_dict
+        #tmp_dict = {}
+        #tmp_dict[kee] = val
+        self._pad[job_number][kee] = val 
 
-
+    def get_job_value(self, job_number, kee):
+        return self._pad[job_number]['XFER_PARAMS'][kee]
 
     def set_job_transfer_params(self, job_number, params):
-        self._pad[job_number][TRANSFER_PARAMS] = params
+        tmp_dict = {}
+        tmp_dict['XFER_PARAMS'] = params
+        self._pad[job_number] = tmp_dict
+
+    def set_job_state(self, job_number, state):
+        self._pad[job_number]['STATE'] = state 
+
+    def keys(self):
+        return self._pad.keys()
+
+
+

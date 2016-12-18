@@ -12,7 +12,7 @@
 NAME: F1
 DAQ_PATH: /home/F1/xfer_dir/
 BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
-CONSUME_QUEUE: F1_consume
+CONSUME_QUEUE: f1_consume
 PUBLISH_QUEUE: ar_forwarder_publish
 
 # valid apps - rsync, ftp, gridftp, scp -- should have a default value set...

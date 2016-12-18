@@ -17,9 +17,6 @@ from const import *
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-             '-35s %(lineno) -5d: %(message)s')
-LOGGER = logging.getLogger(__name__)
 
 class Forwarder:
     """Presents a vanilla L1 Forwarder personality. In
@@ -28,7 +25,6 @@ class Forwarder:
     """
 
     def __init__(self):
-        LOGGER.info("Initializing Forwarder")
         self._registered = False
         f = open('ForwarderCfg.yaml')
         #cfg data map...
@@ -44,7 +40,6 @@ class Forwarder:
             self._ip_addr = cdm[IP_ADDR]
             self._DAQ_PATH = cdm['DAQ_PATH']
         except KeyError as e:
-            LOGGER.critical(e)
             print "Missing base keywords in yaml file... Bailing out..."
             sys.exit(99)
 
@@ -54,7 +49,8 @@ class Forwarder:
 
         self._msg_actions = { FORWARDER_HEALTH_CHECK: self.process_health_check,
                               FORWARDER_JOB_PARAMS: self.process_job_params,
-                              AR_XFER_PARAMS: self.process_job_params,  # Here if AR case needs different handler
+                              'AR_XFER_PARAMS': self.process_job_params,  # Here if AR case needs different handler
+                              'AR_READOUT': self.process_foreman_readout,
                               FORWARDER_READOUT: self.process_foreman_readout }
 
         self.setup_publishers()
@@ -63,23 +59,18 @@ class Forwarder:
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up publisher on %s', self._base_broker_url)
         self._publisher = SimplePublisher(self._base_broker_url)
 
  
     def setup_consumers(self):
-        LOGGER.info('Setting up consumers on %s', self._base_broker_url)
-        LOGGER.info('Running start_new_thread on all consumer methods')
         threadname = "thread-" + self._consume_queue
         print "Threadname is %s" % threadname
 
         self._consumer = Consumer(self._base_broker_url, self._consume_queue)
         try:
             thread.start_new_thread( self.run_consumer, (threadname, 2,) )
-            LOGGER.info('Started forwarder consumer thread %s', threadname)
             print "Started Consumer Thread"
         except:
-            LOGGER.critical('Cannot start forwarder consumer thread, exiting...')
             sys.exit(99)
 
 
@@ -88,17 +79,13 @@ class Forwarder:
 
 
     def on_message(self, ch, method, properties, body):
-        msg_dict = yaml.load(body)
-        LOGGER.info('In %s  message callback', self._name)
-        LOGGER.debug('Thread in %s callback is %s', self._name, thread.get_ident())
-        LOGGER.debug('%s callback message body is: %s', self._name, str(msg_dict))
+        msg_dict = body
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
 
     def process_health_check(self, params):
-        job_number = params[JOB_NUM]
         self.send_ack_response("FORWARDER_HEALTH_ACK", params)
 
 
@@ -145,13 +132,14 @@ class Forwarder:
         
         # Now, s_params should have all we need for job. Place as value for job_num key 
         self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], s_params)
-        self._job_scratchpad.set_job_value(job_number, "STATE", "READY_WITH_PARAMS")
+        self._job_scratchpad.set_job_state(params['JOB_NUM'], "READY_WITH_PARAMS")
 
         self.send_ack_response('AR_XFER_PARAMS_ACK', params)
 
 
     def process_foreman_readout(self, params):
         # self.send_ack_response("FORWARDER_READOUT_ACK", params)
+        reply_queue = params['REPLY_QUEUE']
 
         job_number = params[JOB_NUM]
         # Check and see if scratchpad has this job_num
@@ -164,7 +152,7 @@ class Forwarder:
 
         final_filenames = self.format(job_number, raw_files_dict)
 
-        results = self.forward(job_num, final_filenames)
+        results = self.forward(job_number, final_filenames)
 
         msg = {}
         msg['MSG_TYPE'] = 'AR_READOUT_ACK'
@@ -174,7 +162,7 @@ class Forwarder:
         msg['ACK_ID'] = params['ACK_ID']
         msg['ACK_BOOL'] = True  # See if num keys of results == len(ccd_list) from orig msg params
         msg['RESULTS'] = results
-        self._publisher.publish_message("reports", yaml.dump(msg_params))
+        self._publisher.publish_message(reply_queue, msg)
 
 
 
@@ -266,19 +254,14 @@ class Forwarder:
     def send_ack_response(self, type, params):
         timed_ack = params.get("ACK_ID")
         job_num = params.get(JOB_NUM)
-        if timed_ack is None:
-            LOGGER.info('%s failed, missing TIMED_ACK_ID', type)
-        elif job_num is None:
-            LOGGER.info('%s failed, missing JOB_NUM for ACK ID: %s', type)
-        else:
-            msg_params = {}
-            msg_params[MSG_TYPE] = type
-            msg_params[JOB_NUM] = job_num
-            msg_params[NAME] = self._fqn
-            msg_params[ACK_BOOL] = "TRUE"
-            msg_params[ACK_ID] = timed_ack
-            self._publisher.publish_message("reports", yaml.dump(msg_params))
-            LOGGER.info('%s sent for ACK ID: %s and JOB_NUM: %s', type, timed_ack, job_num)
+        reply_queue = params['REPLY_QUEUE']
+        msg_params = {}
+        msg_params[MSG_TYPE] = type
+        msg_params[JOB_NUM] = job_num
+        msg_params[NAME] = self._fqn
+        msg_params[ACK_BOOL] = "TRUE"
+        msg_params[ACK_ID] = timed_ack
+        self._publisher.publish_message(reply_queue, msg_params)
 
 
     def register(self):
@@ -292,7 +275,6 @@ class Forwarder:
 
 
 def main():
-    logging.basicConfig(filename='logs/forwarder.log', level=logging.INFO, format=LOG_FORMAT)
     fwd = Forwarder()
     try:
         while 1:
