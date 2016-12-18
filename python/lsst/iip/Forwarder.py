@@ -130,12 +130,9 @@ class Forwarder:
         xfer_params = job_params['XFER_PARAMS']
 
 
-        filename_stub = str(job_params['JOB_NUM']) + 
-                        "_" + str(job_params['VISIT_ID']) + 
-                        "_" + str(job_params['IMAGE_ID']) + "_"
+        filename_stub = str(job_params['JOB_NUM']) + "_" + str(job_params['VISIT_ID']) + "_" + str(job_params['IMAGE_ID']) + "_"
 
-        login_str = str(xfer_params['NAME']) + "@" + 
-                    str(xfer_params['IP_ADDR'] + ":"
+        login_str = str(xfer_params['NAME']) + "@" + str(xfer_params['IP_ADDR']) + ":"
 
         target_dir = str(job_params['TARGET_DIR'])
 
@@ -165,7 +162,7 @@ class Forwarder:
         # raw_files_dict is of the form { ccd: filename} like { 2: /home/F1/xfer_dir/ccd_2.data
         raw_files_dict = self.fetch(job_number)
 
-        files = self.format(job_number, raw_files_dict
+        final_filenames = self.format(job_number, raw_files_dict)
 
         results = self.forward(job_num, final_filenames)
 
@@ -185,21 +182,22 @@ class Forwarder:
         raw_files_dict = {}
         ccd_list = self._job_scratchpad.get_job_value(job_num, 'CCD_LIST')
         for ccd in ccd_list:
-            filename = self._DAQ_PATH + "ccd_" + str(ccd) + ".data"
+            filename = "ccd_" + str(ccd) + ".data"
             raw_files_dict[ccd] = filename
 
         return raw_files_dict
 
 
 
-    def format(self, job_num, raw_files_dict)
+    def format(self, job_num, raw_files_dict):
         keez = raw_files_dict.keys()
         filename_stub = self._job_scratchpad.get_job_value(job_num, 'FILENAME_STUB')
         final_filenames = {}
         for kee in keez:
-            target = filename_stub + "_" + kee + ".fits"
-            #ff = self._DAQ_PATH + target
-            print "Final filename is %s" % 
+            final_filename = filename_stub + "_" + kee + ".fits"
+            target = self._DAQ_PATH + final_filename
+            print "Final filename is %s" % final_filename 
+            print "target is %s" % target 
             cmd1 = 'cat ' + self._DAQ_PATH + "ccd.header" + " >> " + target
             cmd2 = 'cat ' + self._DAQ_PATH + raw_files_dict[kee] + " >> " + target
             dte = get_timestamp()
@@ -209,7 +207,7 @@ class Forwarder:
             os.system(cmd1)
             os.system(cmd2)
             os.system(cmd3)
-            final_filenames[kee] = target 
+            final_filenames[kee] = final_filename 
             
             print "Done in format()...file list is: %s" % final_filenames
 
