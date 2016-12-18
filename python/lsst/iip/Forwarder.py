@@ -4,8 +4,11 @@ from toolsmod import get_timestamp
 import yaml
 import sys
 import time
+import hashlib
+import os.path
 import logging
 import os
+import copy
 import subprocess
 import thread
 import pyfits 
@@ -33,23 +36,25 @@ class Forwarder:
         try:
             self._name = cdm[NAME]
             self._passwd = cdm[PASSWD]
-            self._fqn_name = cdm[FQN]
+            self._fqn = cdm[FQN]
             self._base_broker_addr = cdm[BASE_BROKER_ADDR]
             self._consume_queue = cdm[CONSUME_QUEUE]
             self._publish_queue = cdm[PUBLISH_QUEUE]
             self._hostname = cdm[HOSTNAME]
             self._ip_addr = cdm[IP_ADDR]
+            self._DAQ_PATH = cdm['DAQ_PATH']
         except KeyError as e:
             LOGGER.critical(e)
             print "Missing base keywords in yaml file... Bailing out..."
             sys.exit(99)
 
-        self._DAQ_PATH = "/mnt/daq_buffer/"
+        #self._DAQ_PATH = "/home/F1/xfer_dir/"
         self._home_dir = "/home/" + self._name + "/"
         self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
 
         self._msg_actions = { FORWARDER_HEALTH_CHECK: self.process_health_check,
                               FORWARDER_JOB_PARAMS: self.process_job_params,
+                              AR_XFER_PARAMS: self.process_job_params,  # Here if AR case needs different handler
                               FORWARDER_READOUT: self.process_foreman_readout }
 
         self.setup_publishers()
@@ -101,47 +106,208 @@ class Forwarder:
         """ The structure of the incoming job params is identical to the way job params 
             are sent to prompt processing forwarders:
                MSG_TYPE: AR_FWDR_XFER_PARAMS
+               JOB_NUM: .....
                ACK_ID: x1
                REPLY_QUEUE: .....
-               TRANSFER_PARAMS:
+               FITS: FITS metadata someday?
+               XFER_PARAMS:
                     FQN: Name of entity receivine file
                     NAME: login name for receiving entity
                     HOSTNAME: Full host name for receiving entity
                     IP_ADDR: ip addr of archive
                     TARGET_DIR: Where to put file
+                    ##  Below might be better as 'xfer_unit_list' for ccds or rafts, or other
                     CCD_LIST: for example...[1,2,3,7,10,14]
+                    XFER_UNIT: CCD
+                    FITS: FITS metadata someday?
+
+              After the xfer params arrive, and ack is returned, we set up some short cut helpers, such as:
+                 1) Make a filename stub for job that leaves out all but the CCD number
+                 2) Put together the scp/bbftp string with login name and ip addr, plus target dir
+                    
         """
-        transfer_params = params[TRANSFER_PARAMS]
-        self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], params)
+        job_params = copy.deepcopy(params)
+        xfer_params = job_params['XFER_PARAMS']
+
+
+        filename_stub = str(job_params['JOB_NUM']) + 
+                        "_" + str(job_params['VISIT_ID']) + 
+                        "_" + str(job_params['IMAGE_ID']) + "_"
+
+        login_str = str(xfer_params['NAME']) + "@" + 
+                    str(xfer_params['IP_ADDR'] + ":"
+
+        target_dir = str(job_params['TARGET_DIR'])
+
+        #xfer_params = transfer_params['XFER_PARAMS']
+        s_params = {}
+        s_params['CCD_LIST'] = xfer_params['CCD_LIST']
+        s_params['LOGIN_STR'] = login_str
+        s_params['TARGET_DIR'] = target_dir
+        s_params['FILENAME_STUB'] = filename_stub
+        
+        # Now, s_params should have all we need for job. Place as value for job_num key 
+        self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], s_params)
         self._job_scratchpad.set_job_value(job_number, "STATE", "READY_WITH_PARAMS")
-        self._job_scratchpad.set_job_value(job_number, "READY_WITH_PARAMS_TIME", get_timestamp())
-        self.send_ack_response(FORWARDER_JOB_PARAMS_ACK, params)
+
+        self.send_ack_response('AR_XFER_PARAMS_ACK', params)
 
 
     def process_foreman_readout(self, params):
-        """There are two approaches for this method below.
-           The first calls a shell script outside the Forwarder
-           process in order to xfer the file.
-          
-           The second approach implements the timing actions for the call within
-           the Forwarder process, and calls scp directly. The second approach is 
-           written so that the timing results can be easily published as a message.
-
-           Two files are transferred each time READOUT is called...the actual data file,
-           and a small sentinel file. Instead of scp'ing each file, the directory where these two
-           files reside is used as the 'transfer file' and is moved with the recursive
-           '-r' switch.
-
-        """
-
-        self.send_ack_response("FORWARDER_READOUT_ACK", params)
+        # self.send_ack_response("FORWARDER_READOUT_ACK", params)
 
         job_number = params[JOB_NUM]
-        #source_dir = self._home_dir + self._xfer_file
-        
-        datetime1 = get_timestamp()
+        # Check and see if scratchpad has this job_num
+        if job_number not in self._job_scratchpad.keys():
+            # Raise holy hell...
+            pass
 
-        """
+        # raw_files_dict is of the form { ccd: filename} like { 2: /home/F1/xfer_dir/ccd_2.data
+        raw_files_dict = self.fetch(job_number)
+
+        files = self.format(job_number, raw_files_dict
+
+        results = self.forward(job_num, final_filenames)
+
+        msg = {}
+        msg['MSG_TYPE'] = 'AR_READOUT_ACK'
+        msg['JOB_NUM'] = job_number
+        msg['IMAGE_ID'] = params['IMAGE_ID']
+        msg['NAME'] = self._fqn
+        msg['ACK_ID'] = params['ACK_ID']
+        msg['ACK_BOOL'] = True  # See if num keys of results == len(ccd_list) from orig msg params
+        msg['RESULTS'] = results
+        self._publisher.publish_message("reports", yaml.dump(msg_params))
+
+
+
+    def fetch(self, job_num):
+        raw_files_dict = {}
+        ccd_list = self._job_scratchpad.get_job_value(job_num, 'CCD_LIST')
+        for ccd in ccd_list:
+            filename = self._DAQ_PATH + "ccd_" + str(ccd) + ".data"
+            raw_files_dict[ccd] = filename
+
+        return raw_files_dict
+
+
+
+    def format(self, job_num, raw_files_dict)
+        keez = raw_files_dict.keys()
+        filename_stub = self._job_scratchpad.get_job_value(job_num, 'FILENAME_STUB')
+        final_filenames = {}
+        for kee in keez:
+            target = filename_stub + "_" + kee + ".fits"
+            #ff = self._DAQ_PATH + target
+            print "Final filename is %s" % 
+            cmd1 = 'cat ' + self._DAQ_PATH + "ccd.header" + " >> " + target
+            cmd2 = 'cat ' + self._DAQ_PATH + raw_files_dict[kee] + " >> " + target
+            dte = get_timestamp()
+            cmd3 = 'cat ' + dte +  " >> " + target
+            print "cmd1 is %s" % cmd1
+            print "cmd2 is %s" % cmd2
+            os.system(cmd1)
+            os.system(cmd2)
+            os.system(cmd3)
+            final_filenames[kee] = target 
+            
+            print "Done in format()...file list is: %s" % final_filenames
+
+        return final_filenames        
+
+
+    def forward(self, job_num, final_filenames):
+        login_str = self._job_scratchpad.get_job_value(job_num, 'LOGIN_STR')
+        target_dir = self._job_scratchpad.get_job_value(job_num, 'TARGET_DIR')
+        results = {}
+        ccds = final_filenames.keys()
+        for ccd in ccds:
+            final_file = final_filenames[ccd]
+            pathway = self._DAQ_PATH + final_file
+            with open(pathway) as file_to_calc:
+                data = file_to_calc.read()
+                resulting_md5 = hashlib.md5(data).hexdigest()
+                minidict = {}
+                minidict['CHECKSUM'] = resulting_md5
+                minidict['FILENAME'] = target_dir + final_filenames[ccd]
+                cmd = 'scp ' + pathway + " " + login_str + target_dir + final_file
+                print "In forward() method, cmd is %s" % cmd
+                os.system(cmd)
+                results[ccd] = minidict
+
+        return results
+            
+        #cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
+        #pass
+
+
+
+    """
+    def format(self, meta, params, path):
+        data_array = np.fromfile(path, dtype=np.int32)
+        
+        not_write = ["BITPIX", "NAXIS", "NAXIS1", "NAXIS2"]
+
+        header = meta.copy()
+        header.update(params)
+
+        hdu = pyfits.PrimaryHDU(data_array)
+        hdu_header = hdu.header
+
+        for key, value in header.iteritems(): 
+            if key not in not_write: 
+                hdu_header[key] = value 
+        
+        fitsname = "RAWCCD-" + str(header["CCDN"]) + "." + str(header["IMAGE_ID"]) \
+                   + "." + str(header["VISIT_ID"]) + ".fits" 
+        hdu.writeto("/home/" + str(self._name) + "/xfer_dir/" + fitsname)
+    """
+
+
+
+    def send_ack_response(self, type, params):
+        timed_ack = params.get("ACK_ID")
+        job_num = params.get(JOB_NUM)
+        if timed_ack is None:
+            LOGGER.info('%s failed, missing TIMED_ACK_ID', type)
+        elif job_num is None:
+            LOGGER.info('%s failed, missing JOB_NUM for ACK ID: %s', type)
+        else:
+            msg_params = {}
+            msg_params[MSG_TYPE] = type
+            msg_params[JOB_NUM] = job_num
+            msg_params[NAME] = self._fqn
+            msg_params[ACK_BOOL] = "TRUE"
+            msg_params[ACK_ID] = timed_ack
+            self._publisher.publish_message("reports", yaml.dump(msg_params))
+            LOGGER.info('%s sent for ACK ID: %s and JOB_NUM: %s', type, timed_ack, job_num)
+
+
+    def register(self):
+        pass
+        # pass in msg to foreman stating cfg settings
+        # pass in name of special one time use queue that will be deleted afterwards
+        # Returm message will have a possible delta...
+        # If return NAME is different, consume queue will need to be changed
+        # and self._home_dir will need repairing, possibly more.
+
+
+
+def main():
+    logging.basicConfig(filename='logs/forwarder.log', level=logging.INFO, format=LOG_FORMAT)
+    fwd = Forwarder()
+    try:
+        while 1:
+            pass
+    except KeyboardInterrupt:
+        pass
+
+    print ""
+    print "Forwarder Finished"
+
+
+"""
+Saved here for temp...
 ###########XXXXXXXXXXXXXXX##############
 #### 3 F's go here...Fetch, Format and Forward
 
@@ -170,78 +336,7 @@ class Forwarder:
         msg_params['COMMAND'] = cmd
         self._publisher.publish_message('reports', yaml.dump(msg_params))
 ###########XXXXXXXXXXXXX###############
-        """
-
-
-    def fetch(self):
-        pass
-
-
-    def format(self, meta, params, path):
-        data_array = np.fromfile(path, dtype=np.int32)
-        
-        not_write = ["BITPIX", "NAXIS", "NAXIS1", "NAXIS2"]
-
-        header = meta.copy()
-        header.update(params)
-
-        hdu = pyfits.PrimaryHDU(data_array)
-        hdu_header = hdu.header
-
-        for key, value in header.iteritems(): 
-            if key not in not_write: 
-                hdu_header[key] = value 
-        
-        fitsname = "RAWCCD-" + str(header["CCDN"]) + "." + str(header["IMAGE_ID"]) \
-                   + "." + str(header["VISIT_ID"]) + ".fits" 
-        hdu.writeto("/home/" + str(self._name) + "/xfer_dir/" + fitsname)
-
-
-    def forward(self):
-        cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
-        pass
-
-
-
-    def send_ack_response(self, type, params):
-        timed_ack = params.get("TIMED_ACK_ID")
-        job_num = params.get(JOB_NUM)
-        if timed_ack is None:
-            LOGGER.info('%s failed, missing TIMED_ACK_ID', type)
-        elif job_num is None:
-            LOGGER.info('%s failed, missing JOB_NUM for ACK ID: %s', type)
-        else:
-            msg_params = {}
-            msg_params[MSG_TYPE] = type
-            msg_params[JOB_NUM] = job_num
-            msg_params[NAME] = "FORWARDER_" + self._name
-            msg_params[ACK_BOOL] = "TRUE"
-            msg_params[TIMED_ACK] = timed_ack
-            self._publisher.publish_message("reports", yaml.dump(msg_params))
-            LOGGER.info('%s sent for ACK ID: %s and JOB_NUM: %s', type, timed_ack, job_num)
-
-
-    def register(self):
-        pass
-        # pass in msg to foreman stating cfg settings
-        # pass in name of special one time use queue that will be deleted afterwards
-        # Returm message will have a possible delta...
-        # If return NAME is different, consume queue will need to be changed
-        # and self._home_dir will need repairing, possibly more.
-
-
-
-def main():
-    logging.basicConfig(filename='logs/forwarder.log', level=logging.INFO, format=LOG_FORMAT)
-    fwd = Forwarder()
-    try:
-        while 1:
-            pass
-    except KeyboardInterrupt:
-        pass
-
-    print ""
-    print "Forwarder Finished"
-
+"""
 
 if __name__ == "__main__": main()
+

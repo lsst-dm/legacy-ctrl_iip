@@ -10,9 +10,10 @@
 # the hostname or IP, plus the vhost like this:
 
 NAME: F1
+DAQ_PATH: /home/F1/xfer_dir/
 BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
 CONSUME_QUEUE: F1_consume
-PUBLISH_QUEUE: forwarder_publish
+PUBLISH_QUEUE: ar_forwarder_publish
 
 # valid apps - rsync, ftp, gridftp, scp -- should have a default value set...
 XFER_APP: scp
@@ -20,7 +21,7 @@ XFER_APP: scp
 XFER_FILE: 16.7meg
 
 # Unique identifiers
-NAME: F1
+#NAME: F1
 PASSWD: F1
 FQN: F1_FORWARDER
 HOSTNAME: lsst-wf-base01.ncsa.illinois.edu
