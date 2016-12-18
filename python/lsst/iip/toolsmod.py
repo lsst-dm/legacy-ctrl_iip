@@ -7,11 +7,11 @@ import yaml
 def get_timestamp():
     return subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
 
-def get_epoch_timestamp():
-    return (int(subprocess.check_output('date +"%s%N"', shell=True)) / 86400)
-
 #def get_epoch_timestamp():
-#    return subprocess.check_output('date +"%s%N"', shell=True)
+#    return (int(subprocess.check_output('date +"%s%N"', shell=True)) / 86400)
+
+def get_epoch_timestamp():
+    return subprocess.check_output('date +"%s%N"', shell=True)
 
 def singleton(object, instantiated=[]):
     assert object.__class__ not in instantiated, \

@@ -1,6 +1,7 @@
 import pika
 from Scratchpad import Scratchpad
 from toolsmod import get_timestamp
+from toolsmod import get_epoch_timestamp
 import yaml
 import sys
 import time
@@ -188,8 +189,9 @@ class Forwarder:
             print "target is %s" % target 
             cmd1 = 'cat ' + self._DAQ_PATH + "ccd.header" + " >> " + target
             cmd2 = 'cat ' + self._DAQ_PATH + raw_files_dict[kee] + " >> " + target
-            dte = get_timestamp()
-            cmd3 = 'cat ' + dte +  " >> " + target
+            dte = get_epoch_timestamp()
+            print "DTE IS %s" % dte
+            cmd3 = 'echo ' + str(dte) +  " >> " + target
             print "cmd1 is %s" % cmd1
             print "cmd2 is %s" % cmd2
             os.system(cmd1)
