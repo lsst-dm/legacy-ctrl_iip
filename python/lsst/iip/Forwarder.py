@@ -12,8 +12,8 @@ import os
 import copy
 import subprocess
 import thread
-import pyfits 
-import numpy as np
+#import pyfits 
+#import numpy as np
 from const import *
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -50,7 +50,7 @@ class Forwarder:
 
         self._msg_actions = { FORWARDER_HEALTH_CHECK: self.process_health_check,
                               FORWARDER_JOB_PARAMS: self.process_job_params,
-                              'AR_XFER_PARAMS': self.process_job_params,  # Here if AR case needs different handler
+                              'AR_FWDR_XFER_PARAMS': self.process_job_params,  # Here if AR case needs different handler
                               'AR_READOUT': self.process_foreman_readout,
                               FORWARDER_READOUT: self.process_foreman_readout }
 
@@ -80,6 +80,7 @@ class Forwarder:
 
 
     def on_message(self, ch, method, properties, body):
+        print "INcoming PARAMS, body is:\n%s" % body
         msg_dict = body
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -87,6 +88,7 @@ class Forwarder:
 
 
     def process_health_check(self, params):
+        print "Incoming fwd_health_chk params:\n %s" % params
         self.send_ack_response("FORWARDER_HEALTH_ACK", params)
 
 
@@ -265,9 +267,10 @@ class Forwarder:
         msg_params = {}
         msg_params[MSG_TYPE] = type
         msg_params[JOB_NUM] = job_num
-        msg_params[NAME] = self._fqn
+        msg_params['COMPONENT_NAME'] = self._fqn
         msg_params[ACK_BOOL] = "TRUE"
         msg_params[ACK_ID] = timed_ack
+        print "Outgoing fwd_health_chk ack: \n%s" % msg_params
         self._publisher.publish_message(reply_queue, msg_params)
 
 
