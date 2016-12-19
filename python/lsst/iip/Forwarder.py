@@ -130,6 +130,8 @@ class Forwarder:
         s_params['LOGIN_STR'] = login_str
         s_params['TARGET_DIR'] = target_dir
         s_params['FILENAME_STUB'] = filename_stub
+
+        print "S_params are: %s" % s_params
         
         # Now, s_params should have all we need for job. Place as value for job_num key 
         self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], s_params)
@@ -174,6 +176,7 @@ class Forwarder:
             filename = "ccd_" + str(ccd) + ".data"
             raw_files_dict[ccd] = filename
 
+        print "In Forwarder Fetch method, raw_files_dict is: \n%s" % raw_files_dict
         return raw_files_dict
 
 
@@ -201,6 +204,7 @@ class Forwarder:
             
             print "Done in format()...file list is: %s" % final_filenames
 
+        print "In format method, final_filenames are:\n%s" % final_filenames
         return final_filenames        
 
 
@@ -223,6 +227,7 @@ class Forwarder:
                 os.system(cmd)
                 results[ccd] = minidict
 
+        print "In forward method, results are: \n%s" % results
         return results
             
         #cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
