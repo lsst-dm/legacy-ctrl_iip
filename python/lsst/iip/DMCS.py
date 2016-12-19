@@ -324,6 +324,7 @@ class DMCS:
             msg[ACK_ID] = ack
             msg['VISIT_ID'] = params['VISIT_ID']
             msg['BORE_SIGHT'] = params['BORE_SIGHT']
+            msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
             self._publisher.publish_message(consume_queue, msg)
 
         self.ack_timer(2)
@@ -434,6 +435,7 @@ class DMCS:
         acks = [] 
         msg = {}
         msg['MSG_TYPE'] = 'NEW_SESSION'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['SESSION_ID'] = session_id
 
         ddict = self.STATE_SCBD.get_devices_by_state(None)

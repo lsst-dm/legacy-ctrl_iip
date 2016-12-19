@@ -473,15 +473,34 @@ class ArchiveDevice:
         return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
 
 
-    def set_session(self, session):
-        self.JOB_SCBD.set_session(session)
+    def set_session(self, params):
+        self.JOB_SCBD.set_session(params['SESSION_ID'])
+        ack_id = params['ACK_ID']
+        msg = {}
+        msg['MSG_TYPE'] = 'NEW_SESSION_ACK'
+        msg['COMPONENT_NAME'] = 'AR_FOREMAN'
+        msg['ACK_ID'] = ack_id
+        msg['ACK_BOOL'] = True
+        route_key = params['RESPONSE_QUEUE'] 
+        self._publisher.publish_message(route_key, msg)
+
 
     def get_current_session(self):
         return self.JOB_SCBD.get_current_session()
 
 
-    def set_visit(self, visit):
-        self.JOB_SCBD.set_visit_id(visit)
+    def set_visit(self, params):
+        self.JOB_SCBD.set_visit_id(params['VISIT_ID'])
+        ack_id = params['ACK_ID']
+        msg = {}
+        ## XXX FIXME Do something with the bore sight in params['BORE_SIGHT']
+        msg['MSG_TYPE'] = 'NEW_VISIT_ACK'
+        msg['COMPONENT_NAME'] = 'AR_FOREMAN'
+        msg['ACK_ID'] = ack_id
+        msg['ACK_BOOL'] = True
+        route_key = params['RESPONSE_QUEUE'] 
+        self._publisher.publish_message(route_key, msg)
+
 
     def get_current_visit(self):
         return self.JOB_SCBD.get_current_visit()
