@@ -425,7 +425,7 @@ class ArchiveDevice:
         #fscbd_params = {'STATE':'READOUT'}
         #self.FWD_SCBD.set_forwarder_params(healthy_forwarders, fscbd_params)
 
-        self.ack_timer(90)
+        self.ack_timer(44)
 
         readout_responses = self.ACK_SCBD.get_components_for_timed_ack(fwdr_readout_ack)
         print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
@@ -476,7 +476,7 @@ class ArchiveDevice:
         
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, xfer_list_msg) 
            
-        self.ack_timer(74) 
+        self.ack_timer(26) 
 
         xfer_check_responses = self.ACK_SCBD.get_components_for_timed_ack(confirm_ack)
         print "xfer_check_responses['ARCHIVE_CTRL'] is %s" % xfer_check_responses
@@ -485,8 +485,10 @@ class ArchiveDevice:
         ack_msg = {}
         ack_msg['MSG_TYPE'] = 'AR_READOUT_ACK'
         ack_msg['JOB_NUM'] = job_number
+        ack_msg['COMPONENT_NAME'] = 'AR_FOREMAN'
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['RESULTS_LIST'] = results
+        print ">>>>>>>>>>>>>  AM I HERE? <<<<<<<<<<<<<<<<<<<"
         self._publisher.publish_message("dmcs_ack_consume", ack_msg)
 
 

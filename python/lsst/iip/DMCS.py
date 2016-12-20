@@ -41,7 +41,8 @@ class DMCS:
     OCS_BDG_CONSUME = "ocs_bdg_consume"  #Messages to OCS Bridge
     DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
     DMCS_CONSUME = "dmcs_consume" #Used for Foreman comm
-    AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish" #Used for Foreman comm
+    #AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish" #Used for Foreman comm
+    AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
     ACK_PUBLISH = "ack_publish"
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"
     CCD_LIST = [] 
@@ -101,6 +102,7 @@ class DMCS:
                               'TELEMETRY': self.process_telemetry }
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
+                              'NEW_SESSION_ACK': self.process_ack,
                               'AR_NEXT_VISIT_ACK': self.process_ack,
                               'AR_START_INTEGRATION_ACK': self.process_ack,
                               'AR_READOUT_ACK': self.process_ack,
@@ -175,17 +177,18 @@ class DMCS:
         LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
-        handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
+        handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
 
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
+        print "ACK MSG BODY is:\n%s" % body
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
-        handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
+        handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
    #==================================================================================== 
@@ -228,16 +231,21 @@ class DMCS:
         for a in acks:
             ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
 
-            if ack_responses != None:
-                responses = ack_responses.keys()
-                for response in responses:
-                    if response[ACK_BOOL] == False:
-                        # Mark this device as messed up...maybe enter fault.
-                        # This means component or device 'response' failed
-                        pass 
-            else:
-                #Enter a fault state, as no devices are responding
-                pass
+        ## XXX FIX  Do error trapping below
+        if ack_responses == None:
+            print "BIG Problem handling new session ack"
+
+
+#            if ack_responses != None:
+#                responses = ack_responses.keys()
+#                for response in responses:
+#                    if response['AR_FOREMAN'][ACK_BOOL] == False:
+#                        # Mark this device as messed up...maybe enter fault.
+#                        # This means component or device 'response' failed
+#                        pass 
+#            else:
+#                #Enter a fault state, as no devices are responding
+#                pass
 
         # Send return ack queue in new_session message
 
@@ -328,18 +336,18 @@ class DMCS:
             self._publisher.publish_message(consume_queue, msg)
 
         self.ack_timer(2)
-        for a in acks:
-            ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
-
-            if ack_responses != None:
-                responses = ack_responses.keys()
-                for response in responses:
-                    if response[ACK_BOOL] == False:
-                        # Mark this device as messed up...maybe enter fault.
-                        pass 
-            else:
-                #Enter a fault state, as no devices are responding
-                pass
+#        for a in acks:
+#            ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
+#
+#            if ack_responses != None:
+#                responses = ack_responses.keys()
+#                for response in responses:
+#                    if response[ACK_BOOL] == False:
+#                        # Mark this device as messed up...maybe enter fault.
+#                        pass 
+#            else:
+#                #Enter a fault state, as no devices are responding
+#                pass
             
             
 
@@ -368,8 +376,9 @@ class DMCS:
         msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
         msg_params[IMAGE_ID] = image_id
         msg_params['IMAGE_SRC'] = 'Blah'
+        msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
         msg_params[ACK_ID] = ack_id
-        msg_params['CCDS'] = ccd_list
+        msg_params['CCD_LIST'] = ccd_list
         self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(device), msg_params)
 
         self.ack_timer(3)
@@ -404,6 +413,7 @@ class DMCS:
         msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
         msg_params[IMAGE_ID] = image_id
         msg_params['IMAGE_SRC'] = 'Blah'
+        msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
         msg_params[ACK_ID] = ack_id
         self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(device), msg_params)
         # Update job scbd

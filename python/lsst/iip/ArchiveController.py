@@ -41,6 +41,10 @@ class ArchiveController:
             self._archive_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._archive_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_XFER_ROOT']
+            if cdm[ROOT]['ARCHIVE']['CHECKSUM_ENABLED'] == 'yes':
+                self.CHECKSUM_ENABLED = True
+            else:
+                self.CHECKSUM_ENABLED = False
         except KeyError as e:
             raise L1Error(e)
 
@@ -136,12 +140,13 @@ class ArchiveController:
         if not os.path.isfile(pathway):
             return (-1)
 
-        with open(pathway) as file_to_calc:
-            data = file_to_calc.read()
-            resulting_md5 = hashlib.md5(data).hexdigest()
+        if self.CHECKSUM_ENABLED:
+            with open(pathway) as file_to_calc:
+                data = file_to_calc.read()
+                resulting_md5 = hashlib.md5(data).hexdigest()
 
-        if resulting_md5 != csum:
-            return (0)
+                if resulting_md5 != csum:
+                    return (0)
 
         return self.next_receipt_number()
 
