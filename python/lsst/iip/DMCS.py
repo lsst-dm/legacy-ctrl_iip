@@ -101,9 +101,9 @@ class DMCS:
                               'TELEMETRY': self.process_telemetry }
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
-                              'FOREMAN_NEXT_VISIT_ACK': self.process_ack,
-                              'FOREMAN_START_INTEGRATION_ACK': self.process_ack,
-                              'FOREMAN_READOUT_ACK': self.process_ack,
+                              'AR_NEXT_VISIT_ACK': self.process_ack,
+                              'AR_START_INTEGRATION_ACK': self.process_ack,
+                              'AR_READOUT_ACK': self.process_ack,
                               'NEW_JOB_ACK': self.process_ack }
 
 

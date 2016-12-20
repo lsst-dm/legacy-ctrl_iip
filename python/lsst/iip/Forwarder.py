@@ -144,7 +144,7 @@ class Forwarder:
 
     def process_foreman_readout(self, params):
         # self.send_ack_response("FORWARDER_READOUT_ACK", params)
-        reply_queue = params['REPLY_QUEUE']
+        reply_queue = params['RESPONSE_QUEUE']
 
         job_number = params[JOB_NUM]
         # Check and see if scratchpad has this job_num
@@ -160,10 +160,10 @@ class Forwarder:
         results = self.forward(job_number, final_filenames)
 
         msg = {}
-        msg['MSG_TYPE'] = 'AR_READOUT_ACK'
+        msg['MSG_TYPE'] = 'AR_ITEMS_XFERD_ACK'
         msg['JOB_NUM'] = job_number
         msg['IMAGE_ID'] = params['IMAGE_ID']
-        msg['NAME'] = self._fqn
+        msg['COMPONENT_NAME'] = self._fqn
         msg['ACK_ID'] = params['ACK_ID']
         msg['ACK_BOOL'] = True  # See if num keys of results == len(ccd_list) from orig msg params
         msg['RESULTS'] = results
@@ -211,6 +211,7 @@ class Forwarder:
 
 
     def forward(self, job_num, final_filenames):
+        print "Start Time of READOUT IS: %s" % get_timestamp()
         login_str = self._job_scratchpad.get_job_value(job_num, 'LOGIN_STR')
         target_dir = self._job_scratchpad.get_job_value(job_num, 'TARGET_DIR')
         results = {}
@@ -223,12 +224,13 @@ class Forwarder:
                 resulting_md5 = hashlib.md5(data).hexdigest()
                 minidict = {}
                 minidict['CHECKSUM'] = resulting_md5
-                minidict['FILENAME'] = target_dir + final_filenames[ccd]
+                minidict['FILENAME'] = target_dir + final_file
                 cmd = 'scp ' + pathway + " " + login_str + target_dir + final_file
                 print "In forward() method, cmd is %s" % cmd
                 os.system(cmd)
                 results[ccd] = minidict
 
+        print "END Time of READOUT XFER IS: %s" % get_timestamp()
         print "In forward method, results are: \n%s" % results
         return results
             

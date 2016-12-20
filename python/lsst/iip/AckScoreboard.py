@@ -100,28 +100,28 @@ class AckScoreboard(Scoreboard):
       
         if self.check_connection():
             self._redis.hset(ack_id_string, ack_component_name, yaml.dump(ack_msg_body))
-            l = []
-            if self._redis.hget(ack_id_string, 'COMPONENTS') == None:
-                # Make the list structure and add component name to list and yaml
-                l.append(ack_component_name)
-                self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
-            else:
-                # un yaml list, and component name, then re - yaml
-                l = yaml.load(self._redis.hget(ack_id_string, 'COMPONENTS'))
-                l.append(ack_component_name)
-                self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
+        #    l = []
+        #    if self._redis.hget(ack_id_string, 'COMPONENTS') == None:
+        #        # Make the list structure and add component name to list and yaml
+        #        l.append(ack_component_name)
+        #        self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
+        #    else:
+        #        # un yaml list, and component name, then re - yaml
+        #        l = yaml.load(self._redis.hget(ack_id_string, 'COMPONENTS'))
+        #        l.append(ack_component_name)
+        #        self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
 
             # ACK_IDS are for unit tests and for printing out entire scoreboard
-            self._redis.lpush(self.ACK_IDS, ack_id_string)
+            #self._redis.lpush(self.ACK_IDS, ack_id_string)
             
-            params = {}
-            params['SUB_TYPE'] = ack_sub_type
-            params['ACK_ID'] = ack_id_string
-            params['JOB_NUM'] = ack_msg_body['JOB_NUM']
-            params['COMPONENT_NAME'] = ack_component_name
-            params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
-            params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
-            self.persist(self.build_audit_data(params))
+            #params = {}
+            #params['SUB_TYPE'] = ack_sub_type
+            #params['ACK_ID'] = ack_id_string
+            #params['JOB_NUM'] = ack_msg_body['JOB_NUM']
+            #params['COMPONENT_NAME'] = ack_component_name
+            #params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
+            #params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
+            #self.persist(self.build_audit_data(params))
             
         else:
             LOGGER.error('Unable to add new ACK; Redis connection unavailable')
@@ -143,12 +143,13 @@ class AckScoreboard(Scoreboard):
                 for key in keys:
                    component_dict[key] = yaml.load(self._redis.hget(timed_ack, key))
 
+                print "WAIT: Component_dict is:\n%s" % component_dict
                 return component_dict
                 
-                params = {}
-                params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
-                params['ACK_ID'] = timed_ack
-                self.persist(self.build_audit_data(params))
+                #params = {}
+                #params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
+                #params['ACK_ID'] = timed_ack
+                #self.persist(self.build_audit_data(params))
                 
             else:
                 return None
@@ -159,8 +160,8 @@ class AckScoreboard(Scoreboard):
         keez = params.keys()
         for kee in keez:
             audit_data[kee] = params[kee]
-        audit_data['TIME'] = get_epoch_timestamp()
-        audit_data['DATA_TYPE'] = self.DBTYPE
+        #audit_data['TIME'] = get_epoch_timestamp()
+        #audit_data['DATA_TYPE'] = self.DBTYPE
         return audit_data
 
 

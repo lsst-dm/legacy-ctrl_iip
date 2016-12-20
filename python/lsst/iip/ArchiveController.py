@@ -29,7 +29,7 @@ class ArchiveController:
 
     def __init__(self, filename=None):
         self._session_id = None
-        self._name = "ARCHIVE_CONTROLLER"
+        self._name = "ARCHIVE_CTRL"
         self._config_file = 'ForemanCfg.yaml'
         if filename != None:
             self._config_file = filename
@@ -85,7 +85,9 @@ class ArchiveController:
         #self._audit_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
 
 
+
     def on_archive_message(self, ch, method, properties, msg_dict):
+        print "INCOMING On_archive_message, msg is:\n%s" % msg_dict
         LOGGER.info('Message from Archive callback message body is: %s', str(msg_dict))
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -106,12 +108,15 @@ class ArchiveController:
         
 
     def process_new_archive_item(self, params):
+        print "Incoming archive ctrl new archive item msg is:\n%s" % params
         self.send_audit_message("received_", params)
         target_dir = self.construct_send_target_dir(params)
         self.send_new_item_ack(target_dir, params)
 
 
     def process_transfer_complete(self, params):
+        print "Incoming process transfer msg is:\n%s" % params
+        print "\n\n" 
         transfer_results = {}
         ccd_list = params['CCD_LIST']
         print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -181,30 +186,25 @@ class ArchiveController:
 
 
     def construct_send_target_dir(self, params):
-        mtype = "NEW_ARCHIVE_ITEM_ACK"
-        image_type = params['IMAGE_TYPE']
-        session = params['SESSION_ID']
+        #session = params['SESSION_ID']
         visit = params['VISIT_ID']
         image = params['IMAGE_ID']
         ack_id = params['ACK_ID']
-        target_dir = self._archive_xfer_root + "_" + str(image_type) + "_" + str(session) + "_" + str(visit) + "_" + str(image)
-        os.mkdir(target_dir, 0766)
+        #target_dir = self._archive_xfer_root + "_" + str(image_type) + "_" + str(session) + "_" + str(visit) + "_" + str(image)
+        target_dir_visit = self._archive_xfer_root + visit + "/"
+        target_dir_image = self._archive_xfer_root + visit + "/" + str(image) + "/"
 
-        ack_params = {}
-        ack_params['MSG_TYPE'] = mtype
-        ack_params['COMPONENT_NAME'] = self._name
-        ack_params['ACK_ID'] = ack_id
-        ack_params['ACK_BOOL'] = True
-        ack_params['TARGET'] = target_dir
-        ack_params['SESSION_ID'] = image
-        ack_params['VISIT_ID'] = image
-        ack_params['IMAGE_ID'] = image
-        ack_params['IMAGE_TYPE'] = image_type
-        
-        LOGGER.info('%s sent for ACK ID: %s', mtype, ack_id)
-        self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        if os.path.isdir(target_dir_visit):
+            pass
+        else:
+            os.mkdir(target_dir_visit, 0766)
 
-        return target_dir
+        if os.path.isdir(target_dir_image):
+            pass
+        else:
+            os.mkdir(target_dir_image, 0766)
+
+        return target_dir_image
 
 
     def send_new_item_ack(self, target_dir, params):
@@ -212,8 +212,11 @@ class ArchiveController:
         ack_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM_ACK'
         ack_params['TARGET_DIR'] = target_dir
         ack_params['ACK_ID'] = params['ACK_ID']
+        ack_params['JOB_NUM'] = params['JOB_NUM']
+        ack_params['IMAGE_ID'] = params['IMAGE_ID']
         ack_params['COMPONENT_NAME'] = self._name
         ack_params['ACK_BOOL'] = True
+        print "Outgoing new archive item ack is:\n%s" % ack_params
         self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
 
@@ -231,7 +234,7 @@ class ArchiveController:
         ack_params['COMPONENT_NAME'] = self._name
         ack_params['ACK_ID'] = params['ACK_ID']
         ack_params['ACK_BOOL'] = True
-        ack_params['RESULTS_LIST'] = transfer_results
+        ack_params['RESULTS'] = transfer_results
 
         self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
