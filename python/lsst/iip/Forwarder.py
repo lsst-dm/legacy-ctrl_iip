@@ -40,6 +40,8 @@ class Forwarder:
             self._hostname = cdm[HOSTNAME]
             self._ip_addr = cdm[IP_ADDR]
             self._DAQ_PATH = cdm['DAQ_PATH']
+            ## XXX FIX: Put in config file
+            self.CHECKSUM_ENABLED = False 
         except KeyError as e:
             print "Missing base keywords in yaml file... Bailing out..."
             sys.exit(99)
@@ -220,12 +222,18 @@ class Forwarder:
             final_file = final_filenames[ccd]
             pathway = self._DAQ_PATH + final_file
             with open(pathway) as file_to_calc:
-                data = file_to_calc.read()
-                resulting_md5 = hashlib.md5(data).hexdigest()
+                print "Start Time of MD5 for %s IS: %s" % (pathway, get_timestamp())
+                if self.CHECKSUM_ENABLED:
+                    data = file_to_calc.read()
+                    resulting_md5 = hashlib.md5(data).hexdigest()
+                    print "Finish Time of MD5 for %s IS: %s" % (pathway, get_timestamp())
+                else:
+                    resulting_md5 = 'none'
                 minidict = {}
                 minidict['CHECKSUM'] = resulting_md5
                 minidict['FILENAME'] = target_dir + final_file
                 cmd = 'scp ' + pathway + " " + login_str + target_dir + final_file
+                print "Finish Time of SCP'ing %s IS: %s" % (pathway, get_timestamp())
                 print "In forward() method, cmd is %s" % cmd
                 os.system(cmd)
                 results[ccd] = minidict
