@@ -121,6 +121,10 @@ class Forwarder:
         job_params = copy.deepcopy(params)
         xfer_params = job_params['XFER_PARAMS']
 
+        # Also RM fits files in xfer_dir
+        cmd = "rm " + self._DAQ_PATH + "*.fits"
+        os.system(cmd)
+
 
         filename_stub = str(job_params['JOB_NUM']) + "_" + str(job_params['VISIT_ID']) + "_" + str(job_params['IMAGE_ID']) + "_"
 
