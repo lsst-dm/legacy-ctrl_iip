@@ -7,7 +7,6 @@ import os
 import time
 import logging
 import thread
-import toolsmod
 
 class Premium:
   def __init__(self):
@@ -24,8 +23,6 @@ class Premium:
     #except e:
     #  print "Cannot start thread"
     #  print e
-    cdm = toolsmod.intake_yaml_file("ForemanCfg.yaml")
-    self.ccd_list = cdm['ROOT']['CCD_LIST']
     
   def mycallback(self, ch, methon, properties, body):
     print "  "
@@ -58,50 +55,18 @@ def main():
 
 
   #  while 1:
+  msg = {}
+  msg['MSG_TYPE'] = "STANDBY"
+  msg['DEVICE'] = 'AR'
+  time.sleep(5)
+  sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
-  msg['MSG_TYPE'] = "NEW_SESSION"
-  msg['SESSION_ID'] = 'SI_469976'
-  msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
-  msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-  time.sleep(3)
-  sp1.publish_message("ar_foreman_consume", msg)
+  msg['MSG_TYPE'] = "DISABLE"
+  msg['DEVICE'] = 'AR'
+  time.sleep(5)
+  sp1.publish_message("ocs_dmcs_consume", msg)
 
-  msg = {}
-  msg['MSG_TYPE'] = "NEXT_VISIT"
-  msg['VISIT_ID'] = 'V_1443'
-  msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-  msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
-  msg['BORE_SIGHT'] = "Up a little more...now back"
-  time.sleep(4)
-  sp1.publish_message("ar_foreman_consume", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "START_INTEGRATION"
-  msg['JOB_NUM'] = 'JAR_66756'
-  msg['IMAGE_ID'] = 'IMG_4276'
-  msg['IMAGE_SRC'] = 'MAIN'
-  msg['SESSION_ID'] = 'SI_469976'
-  msg['VISIT_ID'] = 'V_1443'
-  msg['ACK_ID'] = 'START_INT_ACK_77'
-  msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-  msg['CCD_LIST'] = premium.ccd_list
-  time.sleep(7)
-  sp1.publish_message("ar_foreman_consume", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "READOUT"
-  msg['JOB_NUM'] = 'JAR_66756'
-  msg['SESSION_ID'] = 'SI_469976'
-  msg['VISIT_ID'] = 'V_1443'
-  msg['IMAGE_ID'] = 'IMG_444244'
-  msg['IMAGE_SRC'] = 'MAIN'
-  msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-  msg['ACK_ID'] = 'READOUT_ACK_78'
-  time.sleep(1)
-  sp1.publish_message("ar_foreman_consume", msg)
-
-  """
   msg = {}
   msg['MSG_TYPE'] = "ENABLE"
   msg['DEVICE'] = 'AR'
@@ -128,7 +93,7 @@ def main():
   msg['DEVICE'] = 'AR'
   time.sleep(4)
   sp1.publish_message("ocs_dmcs_consume", msg)
-  """
+
 
   print "Sender done"
 

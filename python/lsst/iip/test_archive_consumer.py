@@ -1,4 +1,5 @@
 import pika
+from const import *
 import toolsmod
 from FirehoseConsumer import FirehoseConsumer
 from Consumer import Consumer
@@ -22,11 +23,11 @@ class Premium:
     self.sp1 = SimplePublisher('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
 
     cdm = toolsmod.intake_yaml_file('ForemanCfg.yaml')
-    self.fdict = cdm['ROOT']['XFER_COMPONENTS']['ARCHIVE_FORWARDERS']
+    self.fdict = cdm[ROOT]['XFER_COMPONENTS']['ARCHIVE_FORWARDERS']
     self.fwdrs = self.fdict.keys()
 
-    #self._cons = Consumer(broker_url, 'ar_foreman_ack_publish', "YAML")
-    self._cons = Consumer(broker_url, 'dmcs_ack_consume', "YAML")
+    self._cons = Consumer(broker_url, 'ar_foreman_ack_publish', "YAML")
+    #self._cons = Consumer(broker_url, 'ar_foreman_consume', "YAML")
     try:
       thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
     except e:
@@ -40,9 +41,6 @@ class Premium:
     print(" [y] properties Received %r" % properties)
     print(" [z] body Received %r" % body)
 
-    if self.ack_test:
-        #grab name of fwdr from list, and ack respond as it...
-        pass
 
     print("Message done")
     print("Still listening...")

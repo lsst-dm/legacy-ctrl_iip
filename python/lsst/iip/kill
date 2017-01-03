@@ -11,7 +11,9 @@
 #ssh F11@141.142.238.171 pkill -f Forwarder.py
 
 
-ssh F1@141.142.208.95 pkill -f Forwarder.py
-ssh F2@141.142.209.8 pkill -f Forwarder.py
-ssh F3@141.142.209.113 pkill -f Forwarder.py
+ssh -i ~fedora/vanchocstraw.pem F1@141.142.208.95 pkill -f Forwarder.py
+ssh -i ~fedora/vanchocstraw.pem F2@141.142.209.8 pkill -f Forwarder.py
+ssh -i ~fedora/vanchocstraw.pem F3@141.142.209.113 pkill -f Forwarder.py
+
+ssh -i ~fedora/vanchocstraw.pem archive@141.142.210.202 pkill -f ArchiveController.py
 #ssh F4@141.142.209.120 pkill -f Forwarder.py
