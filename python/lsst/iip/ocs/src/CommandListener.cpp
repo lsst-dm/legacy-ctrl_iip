@@ -1,10 +1,10 @@
 #include <iostream> 
 #include <sstream> 
-#include <string.h> 
 #include <pthread.h>
 #include <SimpleAmqpClient/SimpleAmqpClient.h>
 #include "OCS_Bridge.h" 
 #include "CommandListener.h"
+#include <string>
 
 using namespace std;
 using namespace DDS; 
@@ -73,7 +73,7 @@ void CommandListener::dm_start(int cmdId, int timeout, os_time delay_10ms, Chann
     if (cmdId > 0) { 
 	cout << "== START Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: START, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: START, DEVICE: " << SALInstance.device << ", cmdId: " << to_string(cmdId) << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -87,7 +87,7 @@ void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, Channe
     if (cmdId > 0) { 
 	cout << "== STOP Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: STOP, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: STOP, DEVICE: " << SALInstance.device << ", cmdId: " << to_string(cmdId) << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -101,7 +101,7 @@ void CommandListener::dm_enable(int cmdId, int timeout, os_time delay_10ms, Chan
     if (cmdId > 0) { 
 	cout << "== ENABLE Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: ENABLE, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: ENABLE, DEVICE: " << SALInstance.device << ", cmdId: " << to_string(cmdId) << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -115,7 +115,7 @@ void CommandListener::dm_disable(int cmdId, int timeout, os_time delay_10ms, Cha
     if (cmdId > 0) { 
 	cout << "== DISABLE Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: DISABLE, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: DISABLE, DEVICE: " << SALInstance.device << ", cmdId: " << to_string(cmdId) << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -129,7 +129,7 @@ void CommandListener::dm_enterControl(int cmdId, int timeout, os_time delay_10ms
     if (cmdId > 0) { 
 	cout << "== ENTERCONTROL Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: ENTERCONTROL, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: ENTERCONTROL, DEVICE: " << SALInstance.device << ", cmdId: " << to_string(cmdId) << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -143,7 +143,7 @@ void CommandListener::dm_standby(int cmdId, int timeout, os_time delay_10ms, Cha
     if (cmdId > 0) { 
 	cout << "== STANDBY Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: STANDBY, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: STANDBY, DEVICE: " << SALInstance.device << ", cmdId: " << to_string(cmdId) << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -157,7 +157,7 @@ void CommandListener::dm_exitControl(int cmdId, int timeout, os_time delay_10ms,
     if (cmdId > 0) { 
 	cout << "== OFFLINE Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: OFFLINE, DEVICE: " << SALInstance.device  << "}"; 
+	message << "{MSG_TYPE: OFFLINE, DEVICE: " << SALInstance.device << ", cmdId: " << to_string(cmdId) << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -171,7 +171,7 @@ void CommandListener::dm_abort(int cmdId, int timeout, os_time delay_10ms, Chann
     if (cmdId > 0) { 
 	cout << "== FAULT Command " << endl;
 	ostringstream message; 
-	message << "{MSG_TYPE: EXIT, DEVICE: " << SALInstance.device << "}"; 
+	message << "{MSG_TYPE: FAULT, DEVICE: " << SALInstance.device << ", cmdId: " << to_string(cmdId) << "}"; 
 	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);

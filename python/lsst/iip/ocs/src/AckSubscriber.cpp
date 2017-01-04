@@ -46,18 +46,29 @@ AckSubscriber::~AckSubscriber() {
 }
 
 void AckSubscriber::setup_consumer() { 
-    object pyimport = import("Consumer");
-    ocs_consumer = pyimport.attr("Consumer")(base_broker_addr, OCS_CONSUME);  
+    try {
+	object pyimport = import("Consumer");
+	ocs_consumer = pyimport.attr("Consumer")(base_broker_addr, OCS_CONSUME);  
+    }
+    catch (error_already_set const &){ 
+	PyErr_Print();
+    }
 }
 
 void AckSubscriber::run() { 
     cout << "============> running CONSUMER <=============" << endl; 
-    object pymethod = make_function(AckSubscriber::on_dmcs_message);  
-    ocs_consumer.attr("run")(pymethod); 
+    try { 
+	object pymethod = make_function(AckSubscriber::on_dmcs_message);  
+	ocs_consumer.attr("run")(pymethod); 
+    }
+    catch (error_already_set const &) {
+	PyErr_Print();
+    }
 } 
 
 void AckSubscriber::on_dmcs_message(object ch, object method, object properties, dict body) { 
-    string message_type, message_value; 
+    string message_type, message_value;
+    int cmdId;  
     try { 
 	GILRelease gil;
 	cout << "#############  RECEIVING MESSAGE #############" << endl; 
@@ -71,6 +82,9 @@ void AckSubscriber::on_dmcs_message(object ch, object method, object properties,
 		message_type = key; 
 		message_value = value; 
 	    }  
+	    if (key == "cmdId") { 
+		cmdId = stoi(value); 	
+	    } 
 	} 
     } 
     catch (error_already_set const &) { 
@@ -82,7 +96,7 @@ void AckSubscriber::on_dmcs_message(object ch, object method, object properties,
     if (!message_value.empty()) { 
 	mgr.salProcessor(const_cast<char *>(cmd.c_str())); 
 	funcptr action = get<1>(action_handler[message_value]); 
-	(mgr.*action)(0, SAL__CMD_COMPLETE, 0, "Done: OK");     
+	(mgr.*action)(cmdId, SAL__CMD_COMPLETE, 0, "Done: OK");     
     } 
     else { 
 	cout << "MSG_TYPE is not valid." << endl; 
