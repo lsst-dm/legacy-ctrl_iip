@@ -82,7 +82,7 @@ void AckSubscriber::on_dmcs_message(object ch, object method, object properties,
 		message_type = key; 
 		message_value = value; 
 	    }  
-	    if (key == "cmdId") { 
+	    if (key == "CMD_ID") { 
 		cmdId = stoi(value); 	
 	    } 
 	} 
