@@ -11,6 +11,10 @@ using namespace DDS;
 using namespace dm; 
 using namespace AmqpClient;
 
+/*
+    CommandListener listens to messages from OCS Bridge. It is a child class of a class called
+    OCS_Bridge which handles configuration file openings and setting up publisher to RabbitMq.
+*/
 CommandListener::CommandListener() : OCS_Bridge() { 
     mgr = SAL_dm(); 
 
@@ -21,14 +25,26 @@ CommandListener::CommandListener() : OCS_Bridge() {
     setup_ocs_consumer();
 } 
 
+/* destructor for CommandListener */
 CommandListener::~CommandListener(){ 
 }
 
+/* set up a consumer for OCS commands */
 void CommandListener::setup_ocs_consumer() { 
     cout << "Setting up OCS COMMAND consumer" << endl; 
     pthread_create(&ocsthread, NULL, &CommandListener::run_ocs_consumer, command_args); 
 } 
 
+/* 
+    run OCS consumer to consume messages
+    OCS sends commands via devices called start_commander, stop_commander, ...
+    This method uses accepting devices called start_controller, stop_controller, ... to receive messages
+    from OCS.
+    :param *pargs: arguments passed to the thread
+                 : SAL_dm is SAL manager for dm
+                 : publisher is the publisher object for sending messages to Rabbitmq
+                 : queue is the queue name for sending messages to
+*/ 
 void *CommandListener::run_ocs_consumer(void *pargs) { 
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
     SAL_dm mgr = params->dmgr; 
@@ -65,6 +81,15 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
     return 0;
 }  
 
+/*
+    dm_start is used in run_ocs_consumer to accept messages from OCS system via device called start_commander
+    :param cmdId: command id issued by the SAL
+    :param timeout: timeout to use with the controller
+    :param delay_10ms: delay milliseconds
+    :param publisher: publisher object to send messages to Rabbitmq 
+    :param queue: queue name to send messages to 
+    :param mgr: SAL_dm manager to handle acceptance of messages from OCS
+*/
 void CommandListener::dm_start(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
     dm_command_startC SALInstance; 
     
@@ -79,6 +104,15 @@ void CommandListener::dm_start(int cmdId, int timeout, os_time delay_10ms, Chann
     os_nanoSleep(delay_10ms);
 } 
 
+/*
+    dm_stop is used in run_ocs_consumer to accept messages from OCS system via device called stop_commander
+    :param cmdId: command id issued by the SAL
+    :param timeout: timeout to use with the controller
+    :param delay_10ms: delay milliseconds
+    :param publisher: publisher object to send messages to Rabbitmq 
+    :param queue: queue name to send messages to 
+    :param mgr: SAL_dm manager to handle acceptance of messages from OCS
+*/
 void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
     dm_command_stopC SALInstance; 
     
@@ -93,6 +127,15 @@ void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, Channe
     os_nanoSleep(delay_10ms);
 } 
 
+/*
+    dm_enable is used in run_ocs_consumer to accept messages from OCS system via device called enable_commander
+    :param cmdId: command id issued by the SAL
+    :param timeout: timeout to use with the controller
+    :param delay_10ms: delay milliseconds
+    :param publisher: publisher object to send messages to Rabbitmq 
+    :param queue: queue name to send messages to 
+    :param mgr: SAL_dm manager to handle acceptance of messages from OCS
+*/
 void CommandListener::dm_enable(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
     dm_command_enableC SALInstance; 
     
@@ -107,6 +150,15 @@ void CommandListener::dm_enable(int cmdId, int timeout, os_time delay_10ms, Chan
     os_nanoSleep(delay_10ms);
 } 
 
+/*
+    dm_disable is used in run_ocs_consumer to accept messages from OCS system via device called disable_commander
+    :param cmdId: command id issued by the SAL
+    :param timeout: timeout to use with the controller
+    :param delay_10ms: delay milliseconds
+    :param publisher: publisher object to send messages to Rabbitmq 
+    :param queue: queue name to send messages to 
+    :param mgr: SAL_dm manager to handle acceptance of messages from OCS
+*/
 void CommandListener::dm_disable(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
     dm_command_disableC SALInstance; 
     
@@ -121,6 +173,15 @@ void CommandListener::dm_disable(int cmdId, int timeout, os_time delay_10ms, Cha
     os_nanoSleep(delay_10ms);
 } 
 
+/*
+    dm_enterControl is used in run_ocs_consumer to accept messages from OCS system via device called enterControl_commander
+    :param cmdId: command id issued by the SAL
+    :param timeout: timeout to use with the controller
+    :param delay_10ms: delay milliseconds
+    :param publisher: publisher object to send messages to Rabbitmq 
+    :param queue: queue name to send messages to 
+    :param mgr: SAL_dm manager to handle acceptance of messages from OCS
+*/
 void CommandListener::dm_enterControl(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
     dm_command_enterControlC SALInstance; 
     
@@ -135,6 +196,15 @@ void CommandListener::dm_enterControl(int cmdId, int timeout, os_time delay_10ms
     os_nanoSleep(delay_10ms);
 } 
 
+/*
+    dm_standby is used in run_ocs_consumer to accept messages from OCS system via device called standby_commander
+    :param cmdId: command id issued by the SAL
+    :param timeout: timeout to use with the controller
+    :param delay_10ms: delay milliseconds
+    :param publisher: publisher object to send messages to Rabbitmq 
+    :param queue: queue name to send messages to 
+    :param mgr: SAL_dm manager to handle acceptance of messages from OCS
+*/
 void CommandListener::dm_standby(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
     dm_command_standbyC SALInstance; 
     
@@ -149,6 +219,15 @@ void CommandListener::dm_standby(int cmdId, int timeout, os_time delay_10ms, Cha
     os_nanoSleep(delay_10ms);
 } 
 
+/*
+    dm_exitControl is used in run_ocs_consumer to accept messages from OCS system via device called exitControl_commander
+    :param cmdId: command id issued by the SAL
+    :param timeout: timeout to use with the controller
+    :param delay_10ms: delay milliseconds
+    :param publisher: publisher object to send messages to Rabbitmq 
+    :param queue: queue name to send messages to 
+    :param mgr: SAL_dm manager to handle acceptance of messages from OCS
+*/
 void CommandListener::dm_exitControl(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
     dm_command_exitControlC SALInstance; 
     
@@ -163,6 +242,15 @@ void CommandListener::dm_exitControl(int cmdId, int timeout, os_time delay_10ms,
     os_nanoSleep(delay_10ms);
 } 
 
+/*
+    dm_abort is used in run_ocs_consumer to accept messages from OCS system via device called abort_commander
+    :param cmdId: command id issued by the SAL
+    :param timeout: timeout to use with the controller
+    :param delay_10ms: delay milliseconds
+    :param publisher: publisher object to send messages to Rabbitmq 
+    :param queue: queue name to send messages to 
+    :param mgr: SAL_dm manager to handle acceptance of messages from OCS
+*/
 void CommandListener::dm_abort(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
     dm_command_abortC SALInstance; 
     

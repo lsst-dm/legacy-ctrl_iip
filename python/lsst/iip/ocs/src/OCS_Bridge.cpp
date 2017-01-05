@@ -12,6 +12,9 @@ using namespace std;
 using namespace AmqpClient; 
 using namespace YAML;
 
+/* 
+    OCS_Bridge handles configuration file opening and setting up publisher for rabbitmq
+*/ 
 OCS_Bridge::OCS_Bridge() { 
     Node config; 
     config = LoadFile("OCSDeviceCfg.yaml");
@@ -33,14 +36,24 @@ OCS_Bridge::OCS_Bridge() {
     setup_publisher(); 
 }
 
+/* destructor for OCS_Bridge */ 
 OCS_Bridge::~OCS_Bridge() {
 } 
 
+/* 
+    create rabbitmq publisher to send messages
+*/ 
 void OCS_Bridge::setup_publisher() { 
     cout << "Setting up RABBIT publisher" << endl; 
     ocs_publisher =  Channel::CreateFromUri(base_broker_addr); 
 } 
 
+/* 
+    send messages using ocs_publisher to rabbitmq 
+    :param publisher: publisher object used to send messages to rabbitmq 
+    :param queue: message queue to send messages to 
+    :param message: message string
+*/
 void OCS_Bridge::process_ocs_message(Channel::ptr_t publisher, string queue, string message) { 
     BasicMessage::ptr_t msg = BasicMessage::Create(message); 
     publisher->BasicPublish("", queue, msg, true, false); 

@@ -14,7 +14,10 @@ using namespace YAML;
 using namespace dm;
 using namespace DDS; 
 
-typedef salReturn (SAL_dm::*funcptr)(int, salLONG, salLONG, char *); 
+/* function pointer to be used with map to handle message_types */
+typedef salReturn (SAL_dm::*funcptr)(int, salLONG, salLONG, char *);
+
+/* map of message_types and function pointer to handle callbacks */ 
 map<string, pair<string,funcptr>> action_handler = {
     {"START_ACK", make_pair("dm_command_start", &SAL_dm::ackCommand_start)},
     {"STOP_ACK", make_pair("dm_command_stop", &SAL_dm::ackCommand_stop)},
@@ -25,7 +28,10 @@ map<string, pair<string,funcptr>> action_handler = {
     {"OFFLINE_ACK", make_pair("dm_command_exitControl", &SAL_dm::ackCommand_exitControl)}, 
     {"FAULT_ACK", make_pair("dm_command_abort", &SAL_dm::ackCommand_abort)}
 }; 
-					
+
+/* 
+    AckSubscriber listens to messages returned from DMCS and acks those messages back to OCS.
+*/					
 AckSubscriber::AckSubscriber() { 
     Node config = LoadFile("OCSDeviceCfg.yaml"); 
 
@@ -42,9 +48,13 @@ AckSubscriber::AckSubscriber() {
     setup_consumer(); 
 } 
 
+/* destructor for AckSubscriber */ 
 AckSubscriber::~AckSubscriber() { 
 }
 
+/* 
+    set up rabbitmq consumer to consume messages from DMCS. 
+*/  
 void AckSubscriber::setup_consumer() { 
     try {
 	object pyimport = import("Consumer");
@@ -55,6 +65,9 @@ void AckSubscriber::setup_consumer() {
     }
 }
 
+/* 
+    constructs callback python function and start IOLoop when called. 
+*/
 void AckSubscriber::run() { 
     cout << "============> running CONSUMER <=============" << endl; 
     try { 
@@ -66,6 +79,13 @@ void AckSubscriber::run() {
     }
 } 
 
+/* 
+    callback method using the signature defined by rabbitmq to consume messages
+    :param ch: boost python rabbitmq channel object
+    :param method: boost python rabbitmq method object
+    :param properties: boost python rabbitmq properties object
+    :param body: boost python dictionary object
+*/
 void AckSubscriber::on_dmcs_message(object ch, object method, object properties, dict body) { 
     string message_type, message_value;
     int cmdId;  
