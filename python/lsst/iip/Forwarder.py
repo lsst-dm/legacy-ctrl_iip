@@ -188,6 +188,26 @@ class Forwarder:
         return raw_files_dict
 
 
+    """
+        format raw files to fits file with header data
+        :param file_list: dictionary of file_name against raw file name 
+        :param mdata: primary meta data stream fetched from camera daq
+    """ 
+    def format(self, file_list, mdata): 
+        final_filenames = [] 
+        for ccd_id, raw_file_name in file_list.iteritems(): 
+            image_array = np.fromfile(raw_file_name, dtype=np.int32)
+            header_data = mdata[ccd_id]["primary_metadata_chunk"]
+            secondary_data = mdata[ccd_id]["secondary_metadata_chunk"]
+            header_data.update(secondary_data)
+
+            primary_header = pyfits.Header()
+            for key, value in header_data.iteritems(): 
+                primary_header[key] = value
+            fits_file = pyfits.PrimaryHDU(header=primary_header, data=image_array)
+            fits_file.writeto(ccd_id + ".fits")
+            final_filenames.append(ccd_id + ".fits")
+        return final_filenames
 
     def format(self, job_num, raw_files_dict):
         keez = raw_files_dict.keys()
@@ -248,30 +268,6 @@ class Forwarder:
             
         #cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
         #pass
-
-
-
-    """
-    def format(self, meta, params, path):
-        data_array = np.fromfile(path, dtype=np.int32)
-        
-        not_write = ["BITPIX", "NAXIS", "NAXIS1", "NAXIS2"]
-
-        header = meta.copy()
-        header.update(params)
-
-        hdu = pyfits.PrimaryHDU(data_array)
-        hdu_header = hdu.header
-
-        for key, value in header.iteritems(): 
-            if key not in not_write: 
-                hdu_header[key] = value 
-        
-        fitsname = "RAWCCD-" + str(header["CCDN"]) + "." + str(header["IMAGE_ID"]) \
-                   + "." + str(header["VISIT_ID"]) + ".fits" 
-        hdu.writeto("/home/" + str(self._name) + "/xfer_dir/" + fitsname)
-    """
-
 
 
     def send_ack_response(self, type, params):
