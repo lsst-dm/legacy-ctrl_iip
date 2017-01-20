@@ -4,7 +4,7 @@ import logging
 import pika
 import redis
 import yaml
-import sys
+import sys, traceback
 import os
 import time
 from time import sleep
@@ -36,7 +36,6 @@ class DMCS:
     ACK_SCBD = None
     STATE_SCBD = None
     BACKLOG_SCBD = None
-    ENABLE = 'ENABLE'
     OCS_BDG_PUBLISH = "ocs_bdg_publish"  #Messages from OCS Bridge
     OCS_BDG_CONSUME = "ocs_bdg_consume"  #Messages to OCS Bridge
     DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
@@ -51,12 +50,18 @@ class DMCS:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        #self.purge_broker()
         self._default_cfg_file = 'ForemanCfg.yaml'
         if filename == None:
             filename = self._default_cfg_file
 
-        cdm = toolsmod.intake_yaml_file(filename)
+        try:
+            cdm = toolsmod.intake_yaml_file(filename)
+        except IOError, e:
+            trace = traceback.print_exc()
+            emsg = "Unable to find CFG Yaml file %s\n" % filename
+            LOGGER.critical(emsg + trace)
+            self.enter_fault_state(emsg)
+            sys.exit(101) 
 
         try:
             self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
@@ -68,19 +73,23 @@ class DMCS:
             ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
             backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
             self.CCD_LIST = cdm[ROOT]['CCD_LIST']
-        except KeyError as e:
-            print e
-            print "Dictionary error"
-            print "Bailing out..."
-            sys.exit(99)
+            broker_vhost = cdm[ROOT]['BROKER_VHOST']
+            queue_purges = cdm[ROOT]['QUEUE_PURGES']
+        except KeyError, e:
+            trace = traceback.print_exc()
+            emsg = "Unable to find key in CDM representation of %s\n" % filename
+            LOGGER.critical(emsg + trace)
+            self.enter_fault_state(emsg)
+            sys.exit(102) 
 
+        self.purge_broker(broker_vhost, queue_purges)
         self._base_broker_url = 'amqp_url'
         self._next_timed_ack_id = 0
 
+        # TEMPORARY ONLY - Will be removed when config key nature is finalized
         # Build ccd_list as if a config key is being used...
         for i in range (1, 21):
             self.CCD_LIST
-
 
 
         self.JOB_SCBD = JobScoreboard(job_db_instance)
@@ -88,18 +97,18 @@ class DMCS:
         self.ACK_SCBD = AckScoreboard(ack_db_instance)
         self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
 
-        # Messages from both Base Foreman AND OCS Bridge
-        self._OCS_msg_actions = { 'START': self.process_start_command,
-                              'ENABLE': self.process_enable_command,
-                              'DISABLE': self.process_disable_command,
-                              'STANDBY': self.process_standby_command,
-                              'EXIT': self.process_exit_command,
-                              'FAULT': self.process_fault_command,
-                              'OFFLINE': self.process_offline_command,
-                              'NEXT_VISIT': self.process_next_visit_event,
-                              'START_INTEGRATION': self.process_start_integration_event,
-                              'READOUT': self.process_readout_event,
-                              'TELEMETRY': self.process_telemetry }
+        # Messages from OCS Bridge
+        self._OCS_msg_actions = { START: self.process_start_command,
+                              ENABLE: self.process_enable_command,
+                              DISABLE: self.process_disable_command,
+                              STANDBY: self.process_standby_command,
+                              EXIT: self.process_exit_command,
+                              FAULT: self.process_fault_command,
+                              OFFLINE: self.process_offline_command,
+                              NEXT_VISIT: self.process_next_visit_event,
+                              START_INTEGRATION: self.process_start_integration_event,
+                              READOUT: self.process_readout_event,
+                              TELEMETRY: self.process_telemetry }
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
                               'NEW_SESSION_ACK': self.process_ack,
@@ -109,17 +118,19 @@ class DMCS:
                               'NEW_JOB_ACK': self.process_ack }
 
 
-        self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
+        self._base_broker_url = "amqp://" + self._base_name + ":" + \
+                                            self._base_passwd + "@" + \
+                                            str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
-        self.setup_publishers()
         self.setup_consumers()
+        self.setup_publishers()
 
 
 
     def setup_consumers(self):
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
-        LOGGER.info('Running start_new_thread on all consumer methods')
+        LOGGER.info('Running start_new_thread on all DMCS consumer methods')
 
         self._ocs_bdg_consumer = Consumer(self._base_broker_url, self.OCS_BDG_PUBLISH, "YAML")
         try:
@@ -142,29 +153,24 @@ class DMCS:
 
 
     def run_ocs_bdg_consumer(self, threadname, delay):
+        LOGGER.debug('Thread ID in OCS Bridge consumer callback is %s', thread.get_ident())
         self._ocs_bdg_consumer.run(self.on_ocs_message)
 
-
-
-    def run_ocs_consumer(self, threadname, delay):
-        self._ocs_consumer.run(self.on_ocs_message)
-
     def run_ack_consumer(self, threadname, delay):
+        LOGGER.debug('Thread ID in ACK consumer callback is %s', thread.get_ident())
         self._ack_consumer.run(self.on_ack_message)
-
 
 
     def setup_publishers(self):
         LOGGER.info('Setting up Base publisher on %s', self._base_broker_url)
-        self._publisher = SimplePublisher(self._base_broker_url, "YAML")
+        self._publisher = SimplePublisher(self._base_broker_url, YAML)
 
 
 
     def on_ocs_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
         msg_dict = body 
-        LOGGER.info('In DMCS message callback')
-        LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
+        LOGGER.info('Processing message in OCS message callback')
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
         handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
@@ -183,7 +189,6 @@ class DMCS:
 
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
-        print "ACK MSG BODY is:\n%s" % body
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
@@ -213,13 +218,13 @@ class DMCS:
                   has only one 'out'  state transition - to FinalState.
         """
         # Extract device arg
-        device = msg['DEVICE']
-        if device == "AR":
-            self.STATE_SCBD.set_archive_state("STANDBY")
-        if device == "PP":
-            self.STATE_SCBD.set_prompt_process_state("STANDBY")
-        if device == "CU":
-            self.STATE_SCBD.set_catchup_archive_state("STANDBY")
+        device = msg[DEVICE]
+        if device == AR:
+            self.STATE_SCBD.set_archive_state(STANDBY)
+        if device == PP:
+            self.STATE_SCBD.set_prompt_process_state(STANDBY)
+        if device == CU:
+            self.STATE_SCBD.set_catchup_archive_state(STANDBY)
 
         # send new session id to all
         session_id = self.STATE_SCBD.get_next_session_id()
@@ -272,7 +277,6 @@ class DMCS:
 
 
     def process_enable_command(self, msg):
-        print "Processing Enable Command"
         """Transition from DisableState to EnableState. Full operation is capable after this transition.
 
         """
@@ -303,13 +307,13 @@ class DMCS:
         
         """
         # Extract device arg
-        device = msg['DEVICE']
-        if device == "AR":
-            self.STATE_SCBD.set_archive_state("EXIT")
-        if device == "PP":
-            self.STATE_SCBD.set_prompt_process_state("EXIT")
-        if device == "CU":
-            self.STATE_SCBD.set_catchup_archive_state("EXIT")
+        device = msg[DEVICE]
+        if device == AR:
+            self.STATE_SCBD.set_archive_state(EXIT)
+        if device == PP:
+            self.STATE_SCBD.set_prompt_process_state(EXIT)
+        if device == CU:
+            self.STATE_SCBD.set_catchup_archive_state(EXIT)
 
 
 
@@ -320,7 +324,7 @@ class DMCS:
         # First, get dict of devices in Enable state with their consume queues
         visit_id = params['VISIT_ID']
         self.JOB_SCBD.set_visit_id(visit_id)
-        enabled_devices = self.STATE_SCBD.get_devices_by_state(self.ENABLE)
+        enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
 
         acks = []
         for k in enabled_devices.keys():
@@ -328,10 +332,10 @@ class DMCS:
             ack = self.get_next_timed_ack_id("NEXT_VISIT_ACK")
             acks.append(ack)
             msg = {}
-            msg[MSG_TYPE] = "NEXT_VISIT"
+            msg[MSG_TYPE] = NEXT_VISIT
             msg[ACK_ID] = ack
-            msg['VISIT_ID'] = params['VISIT_ID']
-            msg['BORE_SIGHT'] = params['BORE_SIGHT']
+            msg[VISIT_ID] = params[VISIT_ID]
+            msg[BORE_SIGHT] = params['BORE_SIGHT']
             msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
             self._publisher.publish_message(consume_queue, msg)
 
@@ -354,14 +358,6 @@ class DMCS:
 
     def process_start_integration_event(self, params):
         # Send start int message to all enabled devices, with details of job...include new job_num
-        # Msg should have session, latest visit_id, job_num, ccd lists and image_id
-
-        image_id = params['IMAGE_ID']
-        ## Setting to Archive for now...
-        device = params['DEVICE']
-        job_num = self.STATE_SCBD.get_next_job_num(device)
-        self.JOB_SCBD.set_current_device_job(job_num, device)
-
         ## CCD List will eventually be derived from config key. For now, using a list set in this class
         ccd_list = self.CCD_LIST
         visit_id = self.JOB_SCBD.get_current_visit()
@@ -425,9 +421,6 @@ class DMCS:
     def process_telemetry(self, msg):
         pass
 
-    def enter_fault_state(self):
-        pass
-
     def process_start_command(self):
         pass
 
@@ -462,6 +455,14 @@ class DMCS:
 
 
     def get_next_timed_ack_id(self, ack_type):
+            self._publisher.publish_message(consume_queue, msg)
+
+        return acks
+            
+ 
+
+
+    def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         return retval 
@@ -471,37 +472,20 @@ class DMCS:
         sleep(seconds)
         return True
 
-    def purge_broker(self):
-        #This will either move to an external script, or be done dynamically by reading cfg file
-        os.system('rabbitmqctl -p /tester purge_queue f_consume')
-        os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
-        os.system('rabbitmqctl -p /tester purge_queue ack_publish')
-        os.system('rabbitmqctl -p /tester purge_queue dmcs_consume')
-        os.system('rabbitmqctl -p /tester purge_queue ncsa_consume')
+    def purge_broker(self, vhost, queues):
+        for q in queues:
+            cmd = "rabbitmqctl -p " + vhost + " purge_queue " + q
+            os.system(cmd)
 
-        os.system('rabbitmqctl -p /bunny purge_queue forwarder_publish')
-        os.system('rabbitmqctl -p /bunny purge_queue ack_publish')
-        os.system('rabbitmqctl -p /bunny purge_queue F1_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F2_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F3_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F4_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F5_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F6_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F7_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F8_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F9_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F10_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F11_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F12_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F13_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F14_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F15_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F16_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F17_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F18_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F19_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F20_consume')
-        os.system('rabbitmqctl -p /bunny purge_queue F21_consume')
+    def enter_fault_state(self, message):
+        # tell other entities to enter fault state via messaging
+        #  a. OCSBridge
+        #  b. Foreman Devices
+        #  c. Archive Controller
+        #  d. Auditor
+        # Raise an L1SystemError with message
+        # Exit?
+        pass
 
 
 def main():
