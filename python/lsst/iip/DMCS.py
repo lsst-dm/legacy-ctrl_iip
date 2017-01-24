@@ -14,6 +14,7 @@ from Scoreboard import Scoreboard
 from JobScoreboard import JobScoreboard
 from AckScoreboard import AckScoreboard
 from StateScoreboard import StateScoreboard
+from ToDoScoreboard import ToDoScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
@@ -49,11 +50,14 @@ class DMCS:
 
     def __init__(self, filename=None):
         toolsmod.singleton(self)
+        LOGGER.info('DMCS Init beginning')
 
         self._default_cfg_file = 'ForemanCfg.yaml'
         if filename == None:
             filename = self._default_cfg_file
 
+
+        LOGGER.info('Reading YAML Config file %s' % filename)
         try:
             cdm = toolsmod.intake_yaml_file(filename)
         except IOError, e:
@@ -63,6 +67,7 @@ class DMCS:
             self.enter_fault_state(emsg)
             sys.exit(101) 
 
+        LOGGER.info('Extracting values from Config dictionary')
         try:
             self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
             self._base_passwd = cdm[ROOT][BASE_BROKER_PASSWD]   
@@ -87,13 +92,14 @@ class DMCS:
         self._next_timed_ack_id = 0
 
         # TEMPORARY ONLY - Will be removed when config key nature is finalized
-        # Build ccd_list as if a config key is being used...
+        # Build ccd_list as if a config key is being used... range val is numbee of CCDs to handle
         for i in range (1, 21):
             self.CCD_LIST
 
 
+        LOGGER.info('Setting up DMCS Scoreboards')
         self.JOB_SCBD = JobScoreboard(job_db_instance)
-        #self.TO_DO_SCBD = ToDoScoreboard(backlog_db_instance)
+        self.TO_DO_SCBD = ToDoScoreboard(backlog_db_instance)
         self.ACK_SCBD = AckScoreboard(ack_db_instance)
         self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
 
@@ -123,8 +129,14 @@ class DMCS:
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
+        LOGGER.info('DMCS consumer setup'))
         self.setup_consumers()
+
+        LOGGER.info('DMCS publisher setup'))
         self.setup_publishers()
+
+
+        LOGGER.info('DMCS Init complete'))
 
 
 
@@ -135,19 +147,27 @@ class DMCS:
         self._ocs_bdg_consumer = Consumer(self._base_broker_url, self.OCS_BDG_PUBLISH, "YAML")
         try:
             thread.start_new_thread( self.run_ocs_bdg_consumer, ("thread-dmcs-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
-            print "Cannot start consumer!"
-            #sys.exit(99)
+        except Exception, e: # Catching naked exception as thread exceptions can be many
+            trace = traceback.print_exc()
+            emsg = "Unable to start new thread for OCS Bridge consumer"
+            LOGGER.critical(emsg + trace)
+            self.enter_fault_state(emsg)
+            LOGGER.critical('Cannot start OCS Bridge consumer thread for DMCS, exiting...')
+            print "Cannot start OCS Bridge consumer!"
+            sys.exit(103)
 
 
         self._ack_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_ACK_PUBLISH, "YAML")
         try:
             thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start ACK consumer thread, exiting...')
-            print "Cannot start consumer!"
-            #sys.exit(102)
+        except Exception, e:
+            trace = traceback.print_exc()
+            emsg = "Unable to start new thread for OCS Bridge consumer"
+            LOGGER.critical(emsg + trace)
+            self.enter_fault_state(emsg)
+            LOGGER.critical('Cannot start ACK consumer thread for DMCS, exiting...')
+            print "Cannot start ACK consumer for DMCS!"
+            sys.exit(104)
 
         LOGGER.info('Finished starting all three consumer threads')
 
@@ -167,34 +187,24 @@ class DMCS:
 
 
 
-    def on_ocs_message(self, ch, method, properties, body):
-        #msg_dict = yaml.load(body) 
-        msg_dict = body 
+    def on_ocs_message(self, ch, method, properties, msg_dict):
         LOGGER.info('Processing message in OCS message callback')
-        LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
+        LOGGER.debug('Thread in OCS message callback of DMCS is %s', thread.get_ident())
+        LOGGER.debug('Message from DMCS callback message body is: %s', str(msg_dict))
 
         handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
-    def on_foreman_message(self, ch, method, properties, body):
-        #msg_dict = yaml.load(body) 
+
+    def on_ack_message(self, ch, method, properties, msg_dict):
         msg_dict = body 
-        LOGGER.info('In DMCS message callback')
-        LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
-        LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
+        LOGGER.info('Processing message in ACK message callback')
+        LOGGER.debug('Thread in ACK callback od DMCS is %s', thread.get_ident())
+        LOGGER.debug('Message from ACK callback message body is: %s', str(msg_dict))
 
         handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
-    
 
-    def on_ack_message(self, ch, method, properties, body):
-        msg_dict = body 
-        LOGGER.info('In ACK message callback')
-        LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
-        LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
-
-        handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
-        result = handler(msg_dict)
 
    #==================================================================================== 
    # The following functions map to the state transition commands that the OCS will generate
