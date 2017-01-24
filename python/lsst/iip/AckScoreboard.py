@@ -32,7 +32,7 @@ class AckScoreboard(Scoreboard):
     DB_INSTANCE = None
   
 
-    def __init__(self, db_instance):
+    def __init__(self, db_instance, debug=false):
         """After connecting to the Redis database instance 
            ACK_SCOREBOARD_DB, this redis database is flushed 
            for a clean start. 
@@ -57,6 +57,8 @@ class AckScoreboard(Scoreboard):
         self._redis.flushdb()
         #DEBUG_ONLY:
         #self.charge_database()
+        
+        self._debug = debug
     
 
     def connect(self):
@@ -122,6 +124,18 @@ class AckScoreboard(Scoreboard):
             #params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
             #params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
             #self.persist(self.build_audit_data(params))
+
+            if self._debug: 
+                audit_msg = {} 
+                audit_msg["DATA_TYPE"] = "ACK_SCOREBOARD_DB"
+                audit_msg["TIME"] = toolsmod.get_timestamp()
+                audit_msg["SUB_TYPE"] = ack_sub_type
+                audit_msg["ACK_ID"] = ack_id_string
+                audit_msg["COMPONENT_NAME"] = ack_component_name
+                audit_msg["IMAGE_ID"] = ack_msg_body["IMAGE_ID"] 
+                audit_msg["JOB_NUM"] = ack_msg_body["JOB_NUM"]
+                audit_msg["ACK_BOOL"] = ack_msg_body["ACK_BOOL"]
+                self.persist(audit_msg)
             
         else:
             LOGGER.error('Unable to add new ACK; Redis connection unavailable')

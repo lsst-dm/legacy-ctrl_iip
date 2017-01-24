@@ -44,7 +44,7 @@ class JobScoreboard(Scoreboard):
     CU = 'CU'
   
 
-    def __init__(self, db_instance):
+    def __init__(self, db_instance, debug=False):
         """After connecting to the Redis database instance 
            JOB_SCOREBOARD_DB, this redis database is flushed 
            for a clean start. A 'charge_database' method is 
@@ -94,6 +94,8 @@ class JobScoreboard(Scoreboard):
 #        job_num_seed = str(weekday) + "000"
 #        #set up auto sequence
 #        self._redis.set(self.JOB_SEQUENCE_NUM, job_num_seed)
+
+        self._debug = debug
       
     
 
@@ -155,6 +157,8 @@ class JobScoreboard(Scoreboard):
             #params['IMAGE_ID'] = image_id
             #params[self.STATUS] = 'active'
             #self.persist(self.build_monitor_data(params))
+
+            # audit dictionary for job_state 
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
 
@@ -181,6 +185,17 @@ class JobScoreboard(Scoreboard):
         if self.check_connection():
             self._redis.hset(job_number, STATE, state)
 
+        # audit dictionary for job_state 
+        if self._debug: 
+            audit_msg = {}
+            audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
+            audit_msg["SUB_TYPE"] = "JOB_STATE"
+            audit_msg["STATE"] = state
+            audit_msg["JOB_NUM"] = job_number
+            audit_msg["IMAGE_ID"] = self._redis.hget(job_number, "IMAGE_ID")
+            audit_msg["VISIT_ID"] = self.get_current_visit()
+            audit_msg["SESSION_ID"] = self.get_current_session()
+            self.persist(audit_msg) 
 
     def get_job_state(self, job_number):
         if self.check_connection():
@@ -190,12 +205,26 @@ class JobScoreboard(Scoreboard):
     def set_job_status(self, job_number, status):
         if self.check_connection():
             job = str(job_number)
+
+            # audit dictionary for job_status 
+            if self._debug: 
+                audit_msg = {}
+                audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
+                audit_msg["SUB_TYPE"] = "JOB_STATUS"
+                audit_msg["STATUS"] = status
+                audit_msg["JOB_NUM"] = job_number
+                audit_msg["IMAGE_ID"] = self._redis.hget(job_number, "IMAGE_ID")
+                audit_msg["VISIT_ID"] = self.get_current_visit()
+                audit_msg["SESSION_ID"] = self.get_current_session()
+                self.persist(audit_msg) 
+
             return self._redis.hset(job, self.STATUS, status)
             params = {}
             params[JOB_NUM] = job
             params[self.STATUS] = status
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
+
 
     def set_value_for_job(self, job_number, kee, val):
         """Set a specific field in a job row with a key and value.
@@ -206,6 +235,30 @@ class JobScoreboard(Scoreboard):
         """
         if self.check_connection():
             job = str(job_number) 
+
+            if self._debug: 
+                if kee == "STATE": 
+                    audit_msg = {}
+                    audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
+                    audit_msg["SUB_TYPE"] = "JOB_STATE"
+                    audit_msg["STATE"] = val
+                    audit_msg["JOB_NUM"] = job_number
+                    audit_msg["IMAGE_ID"] = self._redis.hget(job_number, "IMAGE_ID")
+                    audit_msg["VISIT_ID"] = self.get_current_visit()
+                    audit_msg["SESSION_ID"] = self.get_current_session()
+                    self.persist(audit_msg) 
+                elif kee == "STATUS":
+                    audit_msg = {}
+                    audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
+                    audit_msg["SUB_TYPE"] = "JOB_STATUS"
+                    audit_msg["STATUS"] = status
+                    audit_msg["JOB_NUM"] = job_number
+                    audit_msg["IMAGE_ID"] = self._redis.hget(job_number, "IMAGE_ID")
+                    audit_msg["VISIT_ID"] = self.get_current_visit()
+                    audit_msg["SESSION_ID"] = self.get_current_session()
+                    self.persist(audit_msg) 
+                    
+                    
             return self._redis.hset(job, kee, val)
         else:
            return False
@@ -236,6 +289,15 @@ class JobScoreboard(Scoreboard):
         """
         if self.check_connection():
             self._redis.hset(str(job_number), 'PAIRS', yaml.dump(pairs))
+
+
+            # audit msg for job pairs 
+            audit_msg = {}
+            audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
+            audit_msg["SUB_TYPE"] = "JOB_PAIRS"
+            audit_msg["TIME"] = toolsmod.get_timestamp()
+            audit_msg["PAIRS"] = pairs
+            self.persist(audit_msg)
             return True
         else:
             return False
@@ -269,6 +331,15 @@ class JobScoreboard(Scoreboard):
         """
         if self.check_connection():
             self._redis.hset(str(job_number), 'CCDS', yaml.dump(ccds))
+
+            # audit msg for ccds
+            audit_msg = {} 
+            audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
+            audit_msg["TIME"] = toolsmod.get_timestamp() 
+            audit_msg["SUB_TYPE"] = "SET_CCDS"
+            audit_msg["JOB_NUM"] = job_number
+            audit_msg["CCD_LIST"] = ccds
+            self.persist(audit_msg)
             return True
         else:
             return False

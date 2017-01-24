@@ -107,6 +107,15 @@ class StateScoreboard(Scoreboard):
         if self.check_connection():
             self._redis.hset(self.AR, STATE, state)
 
+        # audit msg for archive
+        audit = {} 
+        audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
+        audit["SUB_TYPE"] = "DMCS_DEVICE_STATE" 
+        audit["TIME"] = toolsmod.get_timestamp()
+        audit["DEVICE"] = "AR"
+        audit["STATE"] = state
+        self.build_monitor_data(audit)
+
     def get_archive_state(self):
         if self.check_connection():
             return self._redis.hget(self.AR, STATE)
@@ -116,6 +125,15 @@ class StateScoreboard(Scoreboard):
         if self.check_connection():
             self._redis.hset(self.PP, STATE, state)
 
+        # audit msg for archive
+        audit = {} 
+        audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
+        audit["SUB_TYPE"] = "DMCS_DEVICE_STATE" 
+        audit["TIME"] = toolsmod.get_timestamp()
+        audit["DEVICE"] = "PP"
+        audit["STATE"] = state
+        self.build_monitor_data(audit)
+
     def get_prompt_process_state(self):
         if self.check_connection():
             return self._redis.hget(self.PP, STATE)
@@ -124,6 +142,15 @@ class StateScoreboard(Scoreboard):
     def set_catchup_archive_state(self, state):
         if self.check_connection():
             self._redis.hset(self.CU, STATE, state)
+
+        # audit msg for archive
+        audit = {} 
+        audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
+        audit["SUB_TYPE"] = "DMCS_DEVICE_STATE" 
+        audit["TIME"] = toolsmod.get_timestamp()
+        audit["DEVICE"] = "CU"
+        audit["STATE"] = state
+        self.build_monitor_data(audit)
 
     def get_catchup_archive_state(self):
         if self.check_connection():
@@ -159,14 +186,16 @@ class StateScoreboard(Scoreboard):
 
 
     def build_monitor_data(self, params):
-        monitor_data = {}
-        keez = params.keys()
-        for kee in keez:
-            monitor_data[kee] = params[kee]
+        #monitor_data = {}
+        #keez = params.keys()
+        #for kee in keez:
+        #    monitor_data[kee] = params[kee]
+        monitor_data = deepcopy(params)
         monitor_data['SESSION_ID'] = self.get_current_session()
         monitor_data['VISIT_ID'] = self.get_current_visit()
-        monitor_data['TIME'] = get_epoch_timestamp()
-        monitor_data['DATA_TYPE'] = self.DBTYPE
+        monitor_data['TIME'] = toolsmod.get_epoch_timestamp()
+        #monitor_data['DATA_TYPE'] = self.DBTYPE
+        self.persist(monitor_data)
         return monitor_data
 
 

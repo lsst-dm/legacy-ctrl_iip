@@ -40,7 +40,9 @@ class AuditListener:
                              'JOB_SCOREBOARD_DB': self.process_job_scbd,
                              'DMCS_SCOREBOARD_DB': self.process_dmcs_scbd,
                              'BACKLOG_SCOREBOARD_DB': self.process_backlog_scbd,
-                             'FOREMAN_ACK_REQUEST': self.process_foreman_ack_request }
+                             'FOREMAN_ACK_REQUEST': self.process_foreman_ack_request 
+                             'ARCHIVE_DEVICE_DB': self.process_archive_device 
+                             'ARCHIVE_CTRL_DB': self.process_archive_ctrl }
 
         self.job_sub_actions = { 'SESSION': self.process_job_session,
                                  'VISIT': self.process_job_visit,
@@ -99,7 +101,47 @@ class AuditListener:
         pass
 
     def process_fwd_scbd(self, msg):
-        pass
+        L = [] 
+
+        if not msg.has_key("SUB_STATE"): 
+            for fwd in msg["FORWARDERS"]: 
+                tags = {} 
+                tags["forwarder"] = fwd
+
+                fields = {}
+                if msg.has_key("STATUS"): 
+                    fields["status"] = msg["STATUS"]
+                elif msg.has_key("STATE"):
+                    fields["state"] = msg["STATE"]
+
+                influx = {}
+                influx["measurement"] = "FWD_STATE"
+                influx["time"] = msg["TIME"]
+                influx["tags"] = tags
+                influx["fields"] = fields
+
+                L.append(influx)
+        else: 
+            tags = {}
+            tags["name"] = msg["NAME"]
+            if msg["SUB_STATE"] == "FORWARD_START":
+                tags["job_num"] = msg["JOB_NUM"]
+            
+            
+            fields = {}
+            fields["sub_state"] = msg["SUB_STATE"] 
+            fields["ccd_list"] = msg["CCD_LIST"] 
+
+            influx = {} 
+            influx["measurement"] = "FWD_SUB_STATE"
+            influx["time"] = msg["TIME"] 
+            influx["tags"] = tags
+            influx["fields"] = fields 
+
+            L.append(influx)
+        self.influx_client.write_points(L)
+
+        
 
 
     def process_job_scbd(self, msg):
@@ -199,10 +241,162 @@ class AuditListener:
 
 
     def process_job_pairs(self, msg):
-        pass
+        L = []
+        tags = {} 
+
+        fields = {} 
+        fields["pairs"] = msg["PAIRS"]
+        
+        influx = {}
+        influx["measurement"] = msg["SUB_TYPE"] 
+        influx["time"] = msg["TIME"] 
+        influx["fields"] = fields
+        L.append(influx)
+        self.influx_client.write_points(L)
 
     def process_dmcs_scbd(self, msg):
-        pass
+        L = [] 
+        
+        if msg["SUB_TYPE"] == "DMCS_DEVICE_STATE": 
+            tags = {} 
+            tags["device"] = msg["DEVICE"]
+            tags["session_id"] = msg["SESSION_ID"] 
+            tags["visit_id"] = msg["VISIT_ID"] 
+            
+            fields = {} 
+            fields["state"] = msg["STATE"] 
+
+            influx = {}
+            influx["measurement"] = msg["SUB_TYPE"] 
+            influx["time"] = msg["TIME"] 
+            influx["tags"] = tags
+            influx["fields"] = fields 
+            L.append(influx)
+            self.influx_client.write_points(L)
+        elif msg["SUB_TYPE"] == "DMCS_EVENT_STATE": 
+            tags = {} 
+            tags["device"] = msg["DEVICE"]
+            tags["session_id"] = msg["SESSION_ID"] 
+            tags["visit_id"] = msg["VISIT_ID"] 
+            if msg.has_key("JOB_NUM"): 
+                tags["job_num"] = msg["JOB_NUM"] 
+
+            if msg.has_key("IMAGE_ID"):
+                tags["image_id"] = msg["IMAGE_ID"] 
+            
+            fields = {} 
+            fields["event_type"] = msg["EVENT_TYPE"] 
+
+            influx = {}
+            influx["measurement"] = msg["SUB_TYPE"] 
+            influx["time"] = msg["TIME"] 
+            influx["tags"] = tags
+            influx["fields"] = fields 
+            L.append(influx)
+            self.influx_client.write_points(L)
+        elif msg["SUB_TYPE"] == "DMCS_NEW_SESSION": 
+            tags = {} 
+            tags["acks"] = msg["ACKS"] 
+            tags["device"] = msg["DEVICE"] 
+
+            fields = {} 
+            fields["session_id"] = msg["SESSION_ID"]
+
+            influx = {}
+            influx["measurement"] = msg["SUB_TYPE"] 
+            influx["time"] = msg["TIME"] 
+            influx["tags"] = tags
+            influx["fields"] = fields 
+            L.append(influx)
+            self.influx_client.write_points(L)
+        ######################################
+        # TODO: new job is not impelemented yet
+        ######################################
+        elif msg["SUB_TYPE"] = "DMCS_NEW_JOB": 
+            tags = {} 
+
+            fields = {} 
+
+            influx = {}
+            influx["measurement"] = msg["SUB_TYPE"] 
+            influx["time"] = msg["TIME"] 
+            influx["tags"] = tags
+            influx["fields"] = fields 
+            L.append(influx)
+            self.influx_client.write_points(L)
+
+    def process_archive_device(self, msg): 
+        L = [] 
+        tags = {}
+        tags["session_id"] = msg["SESSION_ID"] 
+        tags["visit_id"] = msg["VISIT_ID"]
+        
+        state_list = ["FWDR_HEALTH_CHECK_STARTED", "FWDR_HEALTH_CHECK_COMPLETED"] 
+        if msg["STATE"] not in state_list: 
+            tags["job_num"] = msg["JOB_NUM"]
+            tags["image_id"] = msg["IMAGE_ID"]
+            
+        fields = {}
+        fields["state"] = msg["STATE"]  
+        if msg["STATE"] == "START_INTEGRATION_RECEIVED": 
+            fields["ccds"] = msg["CCDS"] 
+            fields["start_int_ack_id"] = msg["START_INT_ACK_ID"] 
+        elif msg["STATE"] == "FWDR_HEALTH_CHECK_STARTED": 
+            fields["ack_id"] = msg["ACK_ID"] 
+        elif msg["STATE"] == "FWDR_HEALTH_CHECK_COMPLETED": 
+            fields["ack_id"] = msg["ACK_ID"] 
+            fields["forwarder_num"] = msg["FORWARDER_NUM"]
+        elif msg["STATE"] == "SEND_XFER_PARAMS": 
+            fields["ack_id"] = msg["ACK_ID"]
+            fields["xfer_params"] = msg["XFER_PARAMS"]
+        elif msg["STATE"] == "READOUT_RECEIVED": 
+            fields["ack_id"] = msg["ACK_ID"]
+        elif msg["STATE"] == "JOB_COMPLETE": 
+            fields["ack_id"] = msg["ACK_ID"]
+            fields["readout_response"] = msg["READOUT_RESPONSES"]
+        elif msg["STATE"] == "RESULT_STAT_FOR_JOB":
+            fields["ack_id"] = msg["ACK_ID"]
+            fields["results"] = msg["RESULTS"]
+
+        influx = {}
+        influx["measurement"] = "ARCHIVE_DEVICE_STATE" 
+        influx["time"] = msg["TIME"] 
+        influx["tags"] = tags
+        influx["fields"] = fields 
+        L.append(influx)
+        self.influx_client.write_points(L)
+
+        
+    def process_archive_ctrl(self, msg): 
+        L = [] 
+        
+        tags = {}
+        fields = {}
+        fields["state"] = msg["STATE"] 
+
+        if msg["STATE"] == "ARCHIVE_HEALTH_CHECK": 
+            tags["session_id"] = msg["SESSION_ID"]
+            fields["ack_id"] = msg["ACK_ID"] 
+        elif msg["STATE"] == "NEW_ARCHIVE_ITEM": 
+            tags["session_id"] = msg["SESSION_ID"] 
+            tags["visit_id"] = msg["VISIT_ID"] 
+            tags["image_id"] = msg["IMAGE_ID"]
+
+        elif msg["STATE"] == "TRANSFER_COMPLETE": 
+            tags["image_id"] = msg["IMAGE_ID"]
+            
+            fields["ccd_list"] = msg["CCD_LIST"] 
+            fields["ack_id"] = msg["ACK_ID"]
+            fields["RESULTS"] = msg["RESULTS"]
+
+        influx = {}
+        influx["measurement"] = "ARCHIVE_CTRL_STATE"
+        influx["time"] = msg["TIME"] 
+        influx["tags"] = tags
+        influx["fields"] = fields  
+        L.append(influx)
+        self.influx_client.write_points(L)
+            
 
     def process_backlog_scbd(self, msg):
         pass

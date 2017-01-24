@@ -107,13 +107,34 @@ class ArchiveController:
            :param str 'SESSION_ID' Might be useful for the controller to 
                generate a target location for new items to be archived?
         """
-        self.send_audit_message("received_")
+
+        # audit msg for archive health check
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "ARCHIVE_CTRL_DB"
+        audit_msg["STATE"] = "ARCHIVE_HEALTH_CHECK"
+        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["SESSION_ID"] = params["SESSION_ID"] 
+        audit_msg["ACK_ID"] = params["ACK_ID"]
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
+
+        #self.send_audit_message("received_")
         self.send_health_ack_response("ARCHIVE_HEALTH_CHECK_ACK", params)
         
 
     def process_new_archive_item(self, params):
         print "Incoming archive ctrl new archive item msg is:\n%s" % params
-        self.send_audit_message("received_", params)
+
+        # audit msg for archive new item 
+        audit_msg = {}
+        audit_msg["DATA_TYPE"] = "ARCHIVE_CTRL_DB"
+        audit_msg["STATE"] = "NEW_ARCHIVE_ITEM"
+        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["SESSION_ID"] = params["SESSION_ID"]
+        audit_msg["VISIT_ID"] = params["VISIT_ID"]
+        audit_msg["IMAGE_ID"] = params["IMAGE_ID"]
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
+        
+        #self.send_audit_message("received_", params)
         target_dir = self.construct_send_target_dir(params)
         self.send_new_item_ack(target_dir, params)
 
@@ -133,6 +154,17 @@ class ArchiveController:
             pathway = ccd_list[ccd]['FILENAME']
             csum = ccd_list[ccd]['CHECKSUM']
             transfer_results[ccd] = self.check_transferred_file(pathway, csum)
+
+
+        # audit msg for transfer complete
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "ARCHIVE_CTRL_DB"
+        audit_msg["STATE"] = "TRANSFER_COMPLETE"
+        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["RESULTS"] = transfer_results
+        audit_msg["IMAGE_ID"] = params["IMAGE_ID"]
+        audit_msg["ACK_ID"] = params["ACK_ID"]
+        audit_msg["CCD_LIST"] = params["CCD_LIST"]
         self.send_transfer_complete_ack(transfer_results, params)
 
 

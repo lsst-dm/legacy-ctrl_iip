@@ -24,6 +24,8 @@ class Forwarder:
        nightly operation, at least 21 of these 
        components will be available at any time (one for each raft).
     """
+    
+    AUDIT_CONSUME = "audit_consume"
 
     def __init__(self):
         self._registered = False
@@ -184,6 +186,15 @@ class Forwarder:
             filename = "ccd_" + str(ccd) + ".data"
             raw_files_dict[ccd] = filename
 
+        # Audit msg for fetch complete state
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["SUB_STATE"] = "FETCH_COMPLETE"
+        audit_msg["CCD_LIST"] = ccd_list
+        audit_msg["NAME"] = self._name
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
+
         print "In Forwarder Fetch method, raw_files_dict is: \n%s" % raw_files_dict
         return raw_files_dict
 
@@ -195,6 +206,21 @@ class Forwarder:
     """ 
     def format(self, file_list, mdata): 
         final_filenames = [] 
+
+        # audit msg for start format state
+
+        ccd_list = []
+        for ccd_id, raw_file_name in ccd_list.iteritemes(): 
+            ccd_list.append(ccd_id)
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["TIME"] = toolsmod.get_timestamp() 
+        audit_msg["CCD_LIST"] = ccd_list 
+        audit_msg["SUB_STATE"] = "FORMAT_START"
+        audit_msg["NAME"] = self._name
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
+        
+
         for ccd_id, raw_file_name in file_list.iteritems(): 
             image_array = np.fromfile(raw_file_name, dtype=np.int32)
             header_data = mdata[ccd_id]["primary_metadata_chunk"]
@@ -238,6 +264,17 @@ class Forwarder:
 
     def forward(self, job_num, final_filenames):
         print "Start Time of READOUT IS: %s" % get_timestamp()
+
+        # audit msg for forward
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["SUB_TYPE"] = "FORWARD_START"
+        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["NAME"] = self._name
+        audit_msg["JOB_NUM"] = job_num
+        audit_msg["CCD_LIST"] = final_filenames.keys()
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
+
         login_str = self._job_scratchpad.get_job_value(job_num, 'LOGIN_STR')
         target_dir = self._job_scratchpad.get_job_value(job_num, 'TARGET_DIR')
         results = {}

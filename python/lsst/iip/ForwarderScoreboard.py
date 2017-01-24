@@ -74,6 +74,13 @@ class ForwarderScoreboard(Scoreboard):
             self._redis.hset(forwarder, 'STATUS', status)
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["FORWARDERS"] = forwarders
+        audit_msg["STATUS"] = status
+        self.persist(audit_msg)
+
 
     def set_forwarder_params(self, forwarders, params):
         """This is the workhorse of scoreboard getter/setter methods.
@@ -86,6 +93,19 @@ class ForwarderScoreboard(Scoreboard):
                 self._redis.hset(forwarder, kee, params[kee])
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
+        # state and status
+        state = params["STATE"]
+        status = params["STATUS"] 
+
+        # persist state
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["TIME"] = toolsmod.get_timestamp() 
+        audit_msg["FORWARDERS"] = forwarders 
+        audit_msg["STATE"] = state
+        audit_msg["STATUS"] = status
+        self.persist(audit_msg)
+
 
     def get_value_for_forwarder(self, forwarder, kee):
         return self._redis.hget(forwarder, kee)
@@ -95,10 +115,23 @@ class ForwarderScoreboard(Scoreboard):
         self._redis.hset(forwarder, 'STATE', state)
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["TIME"] = toolsmod.get_timestamp() 
+        audit_msg["FORWARDERS"] = [forwarder] 
+        audit_msg["STATE"] = state
+        self.persist(audit_msg)
 
     def set_forwarder_status(self, forwarder, status):
         self._redis.hset(forwarder, 'STATUS', status)
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
+
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["TIME"] = toolsmod.get_timestamp() 
+        audit_msg["FORWARDERS"] = [forwarder] 
+        audit_msg["STATUS"] = status
+        self.persist(audit_msg_status)
 
 
     def get_routing_key(self, forwarder):

@@ -34,6 +34,7 @@ class ArchiveDevice:
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
     YAML = 'YAML'
     START_INTEGRATION_XFER_PARAMS = {}
+    AUDIT_CONSUME = "audit_consume"
 
 
     def __init__(self, filename=None):
@@ -211,6 +212,19 @@ class ArchiveDevice:
         ccds = params['CCD_LIST']
         start_int_ack_id = params[ACK_ID]
 
+        # audit msg for start_integration received
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
+        audit_msg["STATE"] = "START_INTEGRATION_RECEIVED"
+        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["SESSION_ID"] = session_id 
+        audit_msg["VISIT_ID"] = visit_id 
+        audit_msg["JOB_NUM"] = job_number
+        audit_msg["IMAGE_ID"] = image_id 
+        audit_msg["CCDS"] = ccds
+        audit_msg["START_INT_ACK_ID"] = start_int_ack_id
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg) 
+
         # next, run health check
         health_check_ack_id = self.get_next_timed_ack_id('AR_FWDR_HEALTH_ACK')
         num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
@@ -248,8 +262,21 @@ class ArchiveDevice:
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
         self.ack_timer(2)
         
+        # audit message for when archive contacted for location 
+        audit_ar_location = {} 
+        audit_ar_location["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
+        audit_ar_location["STATE"] = "CONTACT_FOR_LOCATION" 
+        audit_ar_location["TIME"] = toolsmod.get_timestamp() 
+        audit_ar_location["VISIT_ID"] = visit_id
+        audit_ar_location["IMAGE_ID"] = image_id
+        audit_ar_location["SESSION_ID"] = session_id
+        audit_ar_location["JOB_NUM"] = job_number
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_ar_location)
+
         # receive target dir back in ack from AC
         ar_response = self.ACK_SCBD.get_components_for_timed_ack(ac_timed_ack)
+
+        
         ## XXX FIX Check for None below
         if len(ar_response) < 1:
             start_int_params['ACK_ID'] = start_int__ack_id
@@ -280,6 +307,7 @@ class ArchiveDevice:
         # send image_id, target dir, and job, session,visit and work to do to healthy forwarders
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
         self.JOB_SCBD.set_ccds_for_job(job_number, work_schedule)
+
        
         xfer_params_ack_id = self.get_next_timed_ack_id("AR_FWDR_PARAMS_ACK") 
 
@@ -329,6 +357,17 @@ class ArchiveDevice:
 
 
     def fwdr_health_check(self, ack_id):
+        # audit msg for forwarder health check by archive
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
+        audit_msg["STATE"] = "FWDR_HEALTH_CHECK_STARTED" 
+        audit_msg["TIME"] = toolsmod.get_timestamp() 
+        audit_msg["ACK_ID"] = ack_id
+        audit_msg["SESSION_ID"] = self.get_current_session()  
+        audit_msg["VISIT_ID"] = self.get_current_visit()
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
+
+
         msg_params = {}
         msg_params[MSG_TYPE] = 'FORWARDER_HEALTH_CHECK'
         msg_params[ACK_ID] = ack_id
@@ -339,6 +378,18 @@ class ArchiveDevice:
         self.FWD_SCBD.set_forwarder_params(forwarders, state_status)
         for forwarder in forwarders:
             self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"), msg_params)
+    
+        # audit msg for forwarder health check by archive 
+        audit_msg_status = {} 
+        audit_msg_status["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
+        audit_msg_status["STATE"] = "FWDR_HEALTH_CHECK_COMPLETED"
+        audit_msg_status["TIME"] = toolsmod.get_timestamp() 
+        audit_msg_status["ACK_ID"] = ack_id 
+        audit_msg_status["FORWARDER_NUM"] = len(forwarders)
+        audit_msg_status["SESSION_ID"] = self.get_current_session() 
+        audit_msg_status["VISIT_ID"] = self.get_current_visit()
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg_status)
+
         return len(forwarders)
 
 
@@ -380,6 +431,18 @@ class ArchiveDevice:
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
             self._publisher.publish_message(route_key, params)
 
+        # audit_msg for "when params are sent to forwarders"
+        audit_params = {} 
+        audit_params["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
+        audit_params["TIME"] = toolsmod.get_timestamp()
+        audit_params["STATE"] = "SEND_XFER_PARAMS"
+        audit_params["JOB_NUM"] = params["JOB_NUM"] 
+        audit_params["ACK_ID"] = params["ACK_ID"] 
+        audit_params["IMAGE_ID"] = params["IMAGE_ID"] 
+        audit_params["SESSION_ID"] = params["SESSION_ID"]
+        audit_params["VISIT_ID"] = params["VISIT_ID"]
+        audit_params["XFER_PARAMS"] = params["XFER_PARAMS"] 
+        self._publisher.publish_message("audit_consume", audit_params)
 
     def accept_job(self, params):
         print "ACCEPT_JOB - params are:\n%s" % params
@@ -411,6 +474,20 @@ class ArchiveDevice:
 
     def process_dmcs_readout(self, params):
         print "\n\nIn readout, in params are:\n%s" % params
+
+        # audit message for readout received
+        audit_msg = {}
+        audit_msg["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
+        audit_msg["STATE"] = "READOUT_RECEIVED"
+        audit_msg["TIME"] = toolsmod.get_timestamp() 
+        audit_msg["SESSION_ID"] = self.get_current_session()
+        audit_msg["VISIT_ID"] = self.get_current_visit()
+        audit_msg["ACK_ID"] = params["ACK_ID"] 
+        audit_msg["JOB_NUM"] = params["JOB_NUM"]
+        audit_msg["IMAGE_ID"] = params["IMAGE_ID"]
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
+
+
         readout_ack_id = params[ACK_ID]
         job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
@@ -427,6 +504,7 @@ class ArchiveDevice:
 
         self.ack_timer(44)
 
+
         readout_responses = self.ACK_SCBD.get_components_for_timed_ack(fwdr_readout_ack)
         print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
         print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
@@ -436,7 +514,19 @@ class ArchiveDevice:
         print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
         print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
 
+        # audit message for job complete
+        audit_job_complete = {} 
+        audit_job_complete["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
+        audit_job_complete["STATE"] = "JOB_COMPLETE"
+        audit_job_complete["TIME"] = toolsmod.get_timestamp()
+        audit_job_complete["SESSION_ID"] = self.get_current_session()
+        audit_job_complete["VISIT_ID"] = self.get_current_visit()
+        audit_job_complete["JOB_NUM"] = params["JOB_NUM"]
+        audit_job_complete["ACK_ID"] = readout_ack_id 
+        audit_job_complete["IMAGE_ID"] = image_id 
+        audit_job_complete["READOUT_RESPONSES"] = readout_responses
         self.process_readout_responses(readout_ack_id, image_id, readout_responses)
+
 
     def process_readout_responses(self, readout_ack_id, image_id, readout_responses):
         # Prep Job SCBD for results
@@ -492,6 +582,18 @@ class ArchiveDevice:
         self._publisher.publish_message("dmcs_ack_consume", ack_msg)
 
 
+        # audit msg for result stats of job 
+        audit_msg = {} 
+        audit_msg["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
+        audit_msg["STATE"] = "RESULT_STATS_FOR_JOB"
+        audit_msg["TIME"] = toolsmod.get_timestamp() 
+        audit_msg["SESSION_ID"] = self.get_current_session()
+        audit_msg["VISIT_ID"] = self.get_current_visit()
+        audit_msg["JOB_NUM"] = job_number
+        audit_msg["IMAGE_ID"] = image_id
+        audit_msg["ACK_ID"] = readout_ack_id
+        audit_msg["RESULTS"] = results
+        self._publisher.publish_message("audit_consume", audit_msg) 
                    
     def send_readout(self, params, readout_ack):
         ro_params = {}

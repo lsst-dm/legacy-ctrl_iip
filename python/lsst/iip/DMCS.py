@@ -46,13 +46,14 @@ class DMCS:
     ACK_PUBLISH = "ack_publish"
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"
     CCD_LIST = [] 
+    AUDIT_CONSUME = "audit_consume" 
 
 
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
         #self.purge_broker()
-        self._default_cfg_file = 'ForemanCfg.yaml'
+        self._default_cfg_file = 'ForemanCfgTest.yaml'
         if filename == None:
             filename = self._default_cfg_file
 
@@ -74,7 +75,7 @@ class DMCS:
             print "Bailing out..."
             sys.exit(99)
 
-        self._base_broker_url = 'amqp_url'
+        #self._base_broker_url = 'amqp_url'
         self._next_timed_ack_id = 0
 
         # Build ccd_list as if a config key is being used...
@@ -109,7 +110,8 @@ class DMCS:
                               'NEW_JOB_ACK': self.process_ack }
 
 
-        self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
+        #self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
+        self._base_broker_url = "amqp://ocs:ocs@141.142.208.241/%2fbridge"
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
         self.setup_publishers()
@@ -221,6 +223,7 @@ class DMCS:
         if device == "CU":
             self.STATE_SCBD.set_catchup_archive_state("STANDBY")
 
+
         # send new session id to all
         session_id = self.STATE_SCBD.get_next_session_id()
         acks = self.send_new_session_msg(session_id)
@@ -322,6 +325,19 @@ class DMCS:
         self.JOB_SCBD.set_visit_id(visit_id)
         enabled_devices = self.STATE_SCBD.get_devices_by_state(self.ENABLE)
 
+        # audit message for next visit event 
+        audit = {} 
+        audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
+        audit["SUB_TYPE"] = "DMCS_EVENT_STATE"
+        audit["TIME"] = toolsmod.get_timestamp()
+        audit["EVENT_TYPE"] = "NEXT_VISIT_RECEIVED"
+        audit["DEVICE"] = enabled_devices
+        #audit["IMAGE_ID"] = image_id 
+        audit["SESSION_ID"] = self.STATE_SCBD.get_current_session_id() 
+        audit["VISIT_ID"] = visit_id 
+        #audit["JOB_NUM"] = self.JOB_SCBD.get_current_device_job(device)
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit)
+
         acks = []
         for k in enabled_devices.keys():
             consume_queue = enabled_devices[k]
@@ -349,22 +365,38 @@ class DMCS:
 #                #Enter a fault state, as no devices are responding
 #                pass
             
-            
 
 
     def process_start_integration_event(self, params):
         # Send start int message to all enabled devices, with details of job...include new job_num
         # Msg should have session, latest visit_id, job_num, ccd lists and image_id
 
-        image_id = params['IMAGE_ID']
         ## Setting to Archive for now...
         device = params['DEVICE']
         job_num = self.STATE_SCBD.get_next_job_num(device)
-        self.JOB_SCBD.set_current_device_job(job_num, device)
+        image_id = params['IMAGE_ID']
 
         ## CCD List will eventually be derived from config key. For now, using a list set in this class
         ccd_list = self.CCD_LIST
         visit_id = self.JOB_SCBD.get_current_visit()
+
+        # audit msg for start_integration
+        # XXX: can be problematic if setting current_device job is taking long(what if redis fails in this instance) 
+        # Then time can be wrong. 
+        audit = {} 
+        audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
+        audit["SUB_TYPE"] = "DMCS_EVENT_STATE"
+        audit["TIME"] = toolsmod.get_timestamp()
+        audit["EVENT_TYPE"] = "START_INTEGRATION_RECEIVED"
+        audit["DEVICE"] = device
+        audit["IMAGE_ID"] = image_id 
+        audit["SESSION_ID"] = self.STATE_SCBD.get_current_session_id() 
+        audit["VISIT_ID"] = visit_id
+        audit["JOB_NUM"] = job_num
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit)
+
+
+        self.JOB_SCBD.set_current_device_job(job_num, device)
         self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
 
         ack_id = self.get_next_timed_ack_id("START_INT_ACK")
@@ -403,6 +435,19 @@ class DMCS:
         device = params['DEVICE']
 
         ack_id = self.get_next_timed_ack_id("READOUT_ACK")
+
+        # audit messsage for readout received
+        audit = {} 
+        audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
+        audit["SUB_TYPE"] = "DMCS_EVENT_STATE"
+        audit["TIME"] = toolsmod.get_timestamp()
+        audit["EVENT_TYPE"] = "READOUT_RECEIVED"
+        audit["DEVICE"] = device
+        audit["IMAGE_ID"] = image_id 
+        audit["SESSION_ID"] = self.STATE_SCBD.get_current_session_id() 
+        audit["VISIT_ID"] = self.JOB_SCBD.get_current_visit() 
+        audit["JOB_NUM"] = self.JOB_SCBD.get_current_device_job(device)
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit)
 
         msg_params = {}
         msg_params[MSG_TYPE] = 'READOUT'
@@ -456,6 +501,16 @@ class DMCS:
             acks.append(ack_id)
             self._publisher.publish_message(consume_queue, msg)
 
+
+        # audit msg for new session
+        audit = {} 
+        audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
+        audit["SUB_TYPE"] = "DMCS_NEW_SESSION"
+        audit["TIME"] = toolsmod.get_timestamp()
+        audit["ACKS"] = acks
+        audit["SESSION_ID"] = session_id
+        audit["DEVICE"] = ddict
+        self._publisher.publish_message(self.AUDIT_CONSUME, audit) 
         return acks
             
  
