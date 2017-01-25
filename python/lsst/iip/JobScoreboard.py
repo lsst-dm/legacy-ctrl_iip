@@ -339,14 +339,16 @@ class JobScoreboard(Scoreboard):
         return monitor_data
 
 
-#    def get_next_job_num(self, prefix):
-#        if self.check_connection():
-#            self._redis.incr(self.JOB_SEQUENCE_NUM)
-#            job_num_str = prefix + str( self._redis.hget(self.JOB_SEQUENCE_NUM))
-#            return job_num_str
-#        else:
-#            LOGGER.error('Unable to increment job number due to lack of redis connection')
-#            #RAISE exception to catch in DMCS.py
+    def get_next_job_num(self, prefix):
+        if prefix == None:
+            prefix = "job"
+        if self.check_connection():
+            self._redis.incr(self.JOB_SEQUENCE_NUM)
+            job_num_str = prefix + "-" + str( self._redis.hget(self.JOB_SEQUENCE_NUM))
+            return job_num_str
+        else:
+            LOGGER.error('Unable to increment job number due to lack of redis connection')
+            #RAISE exception to catch in DMCS.py
 
 
 #    def get_next_job_num(self):

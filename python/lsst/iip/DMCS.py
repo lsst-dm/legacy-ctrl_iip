@@ -120,7 +120,7 @@ class DMCS:
                               'NEW_SESSION_ACK': self.process_ack,
                               'AR_NEXT_VISIT_ACK': self.process_ack,
                               'AR_START_INTEGRATION_ACK': self.process_ack,
-                              'AR_READOUT_ACK': self.process_ack,
+                              'AR_READOUT_ACK': self.process_readout_results_ack,
                               'NEW_JOB_ACK': self.process_ack }
 
 
@@ -443,6 +443,12 @@ class DMCS:
 
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
+
+    def process_readout_results_ack(params):
+        # Mark job number done
+        # Add completed CCDs to job->completed_ccds
+        # Add failed CCDs to job->failed_ccds
+        # Add failed CCDs to ToDoSCBD, and prioritize according to policy
        
     def send_new_session_msg(self, session_id):
         acks = [] 

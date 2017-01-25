@@ -491,6 +491,8 @@ class ArchiveDevice:
         print ">>>>>>>>>>>>>  AM I HERE? <<<<<<<<<<<<<<<<<<<"
         self._publisher.publish_message("dmcs_ack_consume", ack_msg)
 
+        ### FIXME Set state as complete for Job
+
 
                    
     def send_readout(self, params, readout_ack):
