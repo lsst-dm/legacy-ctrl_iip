@@ -1,5 +1,6 @@
 from Scoreboard import Scoreboard
 import redis
+import toolsmod
 import logging
 from const import * 
 
@@ -16,6 +17,7 @@ class ForwarderScoreboard(Scoreboard):
 
     def __init__(self, db_instance, fdict):
         LOGGER.info('Setting up ForwarderScoreboard')
+        Scoreboard.__init__(self)
         self.DB_INSTANCE = db_instance
         self._redis = self.connect()
         self._redis.flushdb()

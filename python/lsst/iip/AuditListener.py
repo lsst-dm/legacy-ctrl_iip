@@ -40,8 +40,8 @@ class AuditListener:
                              'JOB_SCOREBOARD_DB': self.process_job_scbd,
                              'DMCS_SCOREBOARD_DB': self.process_dmcs_scbd,
                              'BACKLOG_SCOREBOARD_DB': self.process_backlog_scbd,
-                             'FOREMAN_ACK_REQUEST': self.process_foreman_ack_request 
-                             'ARCHIVE_DEVICE_DB': self.process_archive_device 
+                             'FOREMAN_ACK_REQUEST': self.process_foreman_ack_request, 
+                             'ARCHIVE_DEVICE_DB': self.process_archive_device, 
                              'ARCHIVE_CTRL_DB': self.process_archive_ctrl }
 
         self.job_sub_actions = { 'SESSION': self.process_job_session,
@@ -71,7 +71,7 @@ class AuditListener:
 
 
     def on_influx_message(self, ch, method, properties, msg):
-        #print "In audit, msg contents is:  %s" % msg
+        print "In audit, msg contents is:  %s" % msg
         handler = self.msg_actions.get(msg['DATA_TYPE'])
         result = handler(msg)
 
@@ -312,7 +312,7 @@ class AuditListener:
         ######################################
         # TODO: new job is not impelemented yet
         ######################################
-        elif msg["SUB_TYPE"] = "DMCS_NEW_JOB": 
+        elif msg["SUB_TYPE"] == "DMCS_NEW_JOB": 
             tags = {} 
 
             fields = {} 
@@ -338,25 +338,25 @@ class AuditListener:
             
         fields = {}
         fields["state"] = msg["STATE"]  
-        if msg["STATE"] == "START_INTEGRATION_RECEIVED": 
-            fields["ccds"] = msg["CCDS"] 
-            fields["start_int_ack_id"] = msg["START_INT_ACK_ID"] 
-        elif msg["STATE"] == "FWDR_HEALTH_CHECK_STARTED": 
-            fields["ack_id"] = msg["ACK_ID"] 
-        elif msg["STATE"] == "FWDR_HEALTH_CHECK_COMPLETED": 
-            fields["ack_id"] = msg["ACK_ID"] 
-            fields["forwarder_num"] = msg["FORWARDER_NUM"]
-        elif msg["STATE"] == "SEND_XFER_PARAMS": 
-            fields["ack_id"] = msg["ACK_ID"]
-            fields["xfer_params"] = msg["XFER_PARAMS"]
-        elif msg["STATE"] == "READOUT_RECEIVED": 
-            fields["ack_id"] = msg["ACK_ID"]
-        elif msg["STATE"] == "JOB_COMPLETE": 
-            fields["ack_id"] = msg["ACK_ID"]
-            fields["readout_response"] = msg["READOUT_RESPONSES"]
-        elif msg["STATE"] == "RESULT_STAT_FOR_JOB":
-            fields["ack_id"] = msg["ACK_ID"]
-            fields["results"] = msg["RESULTS"]
+        #if msg["STATE"] == "START_INTEGRATION_RECEIVED": 
+            #fields["ccds"] = msg["CCDS"] 
+            #fields["start_int_ack_id"] = msg["START_INT_ACK_ID"] 
+        #elif msg["STATE"] == "FWDR_HEALTH_CHECK_STARTED": 
+        #    fields["ack_id"] = msg["ACK_ID"] 
+        #elif msg["STATE"] == "FWDR_HEALTH_CHECK_COMPLETED": 
+        #    fields["ack_id"] = msg["ACK_ID"] 
+        #    fields["forwarder_num"] = msg["FORWARDER_NUM"]
+        #elif msg["STATE"] == "SEND_XFER_PARAMS": 
+        #    fields["ack_id"] = msg["ACK_ID"]
+        #    fields["xfer_params"] = msg["XFER_PARAMS"]
+        #elif msg["STATE"] == "READOUT_RECEIVED": 
+        #    fields["ack_id"] = msg["ACK_ID"]
+        #elif msg["STATE"] == "JOB_COMPLETE": 
+        #    fields["ack_id"] = msg["ACK_ID"]
+        #    fields["readout_response"] = msg["READOUT_RESPONSES"]
+        #elif msg["STATE"] == "RESULT_STAT_FOR_JOB":
+        #    fields["ack_id"] = msg["ACK_ID"]
+        #    fields["results"] = msg["RESULTS"]
 
         influx = {}
         influx["measurement"] = "ARCHIVE_DEVICE_STATE" 

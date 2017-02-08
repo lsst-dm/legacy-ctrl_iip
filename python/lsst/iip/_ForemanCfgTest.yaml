@@ -1,59 +1,39 @@
 # Cfg settings for foreman
 ROOT:
   NUMBER_OF_PAIRS: 10
-  BASE_BROKER_NAME: BASE
-  BASE_BROKER_PASSWD: BASE
   ARCHIVE_BROKER_NAME: ARCHIE
   ARCHIVE_BROKER_PASSWD: ARCHIE
-  AUDIT_BROKER_NAME: AUDIT
-  AUDIT_BROKER_PASSWD: AUDIT
-  NCSA_BROKER_NAME: NCSA
+  BASE_BROKER_NAME: BASE
+  BASE_BROKER_PASSWD: BASE
+  NCSA_BROKER_NAME: NCSA 
   NCSA_BROKER_PASSWD: NCSA
-  #BASE_BROKER_ADDR: 141.142.208.191:5672/%2ftester
-  BASE_BROKER_ADDR: 141.142.208.241:5672/%2fbunny
+  TEST_BROKER_NAME: TesT
+  TEST_BROKER_PASSWD: TesT
   #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
-  NCSA_BROKER_ADDR: 141.142.237.160:5672/%2fbunny
+  BASE_BROKER_ADDR: 141.142.208.191:5672/%2ftester
+  #NCSA_BROKER_ADDR: 141.142.237.160:5672/%2fbunny
+  NCSA_BROKER_ADDR: 141.142.208.191:5672/%2ftester
+  #TEST_BROKER_ADDR: 141.142.237.160:5672/%2fbunny
+  TEST_BROKER_ADDR: 141.142.208.191:5672/%2ftester
   INFLUX_DB: L1_Test
   AUDIT_MSG_FORMAT: YAML
   RAFT_LIST:  ['4','6','18','2','1','20','15','16','3','12','5','10','9','14','19','7','13','8','21','17','11']
-  #CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115']
-  CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115','136','3','12','50','101','79','144','19','7','139','8','21','172','11','121','122','123','124','125','126','127','128','129','130','131','132','133','134','135','137','138','143']  #43
-  FOREMAN_CONSUME_QUEUES:
-    AR: ar_foreman_consume
-    PP: pp_foreman_consume
-    CU: cu_foreman_consume
-  ARCHIVE:
-    ARCHIVE_NAME: archive
-    ARCHIVE_LOGIN: archive
-    ARCHIVE_IP: 141.142.210.202
-    ARCHIVE_HOSTNAME: Archibald
-    ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
-    CHECKSUM_INABLED: no
   SCOREBOARDS:
-    AR_JOB_SCBD: 1
-    AR_FWD_SCBD: 2
-    AR_ACK_SCBD: 3
-    PP_JOB_SCBD: 4
-    PP_FWD_SCBD: 5
-    PP_ACK_SCBD: 6
-    CU_JOB_SCBD: 7
-    CU_FWD_SCBD: 8
-    CU_ACK_SCBD: 9
-    NCSA_JOB_SCBD: 10
-    NCSA_DIST_SCBD: 11
-    #NCSA_ACK_SCBD: 12
-    DMCS_ACK_SCBD: 12
-    DMCS_STATE_SCBD: 13
-    DMCS_JOB_SCBD: 14
-    DMCS_BACKLOG_SCBD: 15
+    ACK_SCOREBOARD_DB: 3
+    DIST_SCOREBOARD_DB: 4
+    FWD_SCOREBOARD_DB: 6
+    JOB_SCOREBOARD_DB: 8
+    DMCS_SCOREBOARD_DB: 11
+    BACKLOG_SCOREBOARD_DB: 12
+    
   XFER_COMPONENTS:
     FORWARDERS:
       FORWARDER_1:
         NAME: F1
         HOSTNAME: lsst-wf-base01.ncsa.illinois.edu  
-        IP_ADDR: 141.142.208.241
+        IP_ADDR: 141.142.238.161
         STATE: IDLE
-        CONSUME_QUEUE: F1_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_2:
@@ -61,7 +41,7 @@ ROOT:
         HOSTNAME: lsst-wf-base02.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.162
         STATE: IDLE
-        CONSUME_QUEUE: F2_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_3:
@@ -69,7 +49,7 @@ ROOT:
         HOSTNAME: lsst-wf-base03.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.163
         STATE: IDLE
-        CONSUME_QUEUE: F3_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_4:
@@ -77,7 +57,7 @@ ROOT:
         HOSTNAME: lsst-wf-base04.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.164
         STATE: IDLE
-        CONSUME_QUEUE: F4_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_5:
@@ -85,7 +65,7 @@ ROOT:
         HOSTNAME: lsst-wf-base05.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.165
         STATE: IDLE
-        CONSUME_QUEUE: F5_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_6:
@@ -93,7 +73,7 @@ ROOT:
         HOSTNAME: lsst-wf-base06.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.166
         STATE: IDLE
-        CONSUME_QUEUE: F6_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_7:
@@ -101,7 +81,7 @@ ROOT:
         HOSTNAME: lsst-wf-base07.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.167
         STATE: IDLE
-        CONSUME_QUEUE: F7_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_8:
@@ -109,7 +89,7 @@ ROOT:
         HOSTNAME: lsst-wf-base08.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.168
         STATE: IDLE
-        CONSUME_QUEUE: F8_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_9:
@@ -117,7 +97,7 @@ ROOT:
         HOSTNAME: lsst-wf-base09.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.169
         STATE: IDLE
-        CONSUME_QUEUE: F9_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
       FORWARDER_10:
@@ -125,52 +105,9 @@ ROOT:
         HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
         IP_ADDR: 141.142.238.170
         STATE: IDLE
-        CONSUME_QUEUE: F10_consume
+        CONSUME_QUEUE: f_consume
         PUBLISH_QUEUE: forwarder_publish
 
-
-    ARCHIVE_FORWARDERS:
-      FORWARDER_1:
-        NAME: F1
-        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.170
-        STATE: IDLE
-        CONSUME_QUEUE: f1_consume
-        PUBLISH_QUEUE: forwarder_publish
-
-      FORWARDER_2:
-        NAME: F2
-        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.170
-        STATE: IDLE
-        CONSUME_QUEUE: f2_consume
-        PUBLISH_QUEUE: forwarder_publish
-
-
-      FORWARDER_3:
-        NAME: F3
-        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.170
-        STATE: IDLE
-        CONSUME_QUEUE: f3_consume
-        PUBLISH_QUEUE: forwarder_publish
-
-#      FORWARDER_4:
-#        NAME: F4
-#        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
-#        IP_ADDR: 141.142.238.170
-#        STATE: IDLE
-#        CONSUME_QUEUE: f4_consume
-#        PUBLISH_QUEUE: forwarder_publish
-
-    CATCHUP_FORWARDERS:
-      FORWARDER_15:
-        NAME: F15
-        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.170
-        STATE: IDLE
-        CONSUME_QUEUE: F14_consume
-        PUBLISH_QUEUE: forwarder_publish
 
     DISTRIBUTORS:
       DISTRIBUTOR_1:
@@ -253,4 +190,9 @@ ROOT:
         PUBLISH_QUEUE: distributor_publish
         TARGET_DIR: /home/D10/xfer_dir
 
-
+  QUEUE_PURGES:
+    - dmcs_consume
+    - ack_publish
+    - f_consume
+    - forwarder_publish
+ 

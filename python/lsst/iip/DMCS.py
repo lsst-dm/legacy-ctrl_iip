@@ -110,8 +110,7 @@ class DMCS:
                               'NEW_JOB_ACK': self.process_ack }
 
 
-        #self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
-        self._base_broker_url = "amqp://ocs:ocs@141.142.208.241/%2fbridge"
+        self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
         self.setup_publishers()
@@ -509,7 +508,7 @@ class DMCS:
         audit["TIME"] = toolsmod.get_timestamp()
         audit["ACKS"] = acks
         audit["SESSION_ID"] = session_id
-        audit["DEVICE"] = ddict
+        audit["DEVICE"] = ddict.keys() # getting the devices
         self._publisher.publish_message(self.AUDIT_CONSUME, audit) 
         return acks
             

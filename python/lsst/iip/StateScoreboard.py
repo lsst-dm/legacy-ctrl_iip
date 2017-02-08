@@ -1,3 +1,4 @@
+from copy import deepcopy
 import redis
 from toolsmod import get_timestamp
 from toolsmod import get_epoch_timestamp
@@ -41,6 +42,7 @@ class StateScoreboard(Scoreboard):
   
 
     def __init__(self, db_instance, ddict):
+        Scoreboard.__init__(self)
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
         try:
@@ -111,9 +113,11 @@ class StateScoreboard(Scoreboard):
         audit = {} 
         audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
         audit["SUB_TYPE"] = "DMCS_DEVICE_STATE" 
-        audit["TIME"] = toolsmod.get_timestamp()
+        audit["TIME"] = get_timestamp()
         audit["DEVICE"] = "AR"
         audit["STATE"] = state
+        
+        print audit
         self.build_monitor_data(audit)
 
     def get_archive_state(self):
@@ -129,7 +133,7 @@ class StateScoreboard(Scoreboard):
         audit = {} 
         audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
         audit["SUB_TYPE"] = "DMCS_DEVICE_STATE" 
-        audit["TIME"] = toolsmod.get_timestamp()
+        audit["TIME"] = get_timestamp()
         audit["DEVICE"] = "PP"
         audit["STATE"] = state
         self.build_monitor_data(audit)
@@ -147,7 +151,7 @@ class StateScoreboard(Scoreboard):
         audit = {} 
         audit["DATA_TYPE"] = "DMCS_SCOREBOARD_DB"
         audit["SUB_TYPE"] = "DMCS_DEVICE_STATE" 
-        audit["TIME"] = toolsmod.get_timestamp()
+        audit["TIME"] = get_timestamp()
         audit["DEVICE"] = "CU"
         audit["STATE"] = state
         self.build_monitor_data(audit)
@@ -191,9 +195,8 @@ class StateScoreboard(Scoreboard):
         #for kee in keez:
         #    monitor_data[kee] = params[kee]
         monitor_data = deepcopy(params)
-        monitor_data['SESSION_ID'] = self.get_current_session()
+        monitor_data['SESSION_ID'] = self.get_current_session_id()
         monitor_data['VISIT_ID'] = self.get_current_visit()
-        monitor_data['TIME'] = toolsmod.get_epoch_timestamp()
         #monitor_data['DATA_TYPE'] = self.DBTYPE
         self.persist(monitor_data)
         return monitor_data
@@ -234,6 +237,9 @@ class StateScoreboard(Scoreboard):
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
 
+    def get_current_visit(self):
+        if self.check_connection():
+            return self._redis.lindex("VISIT_ID_LIST", 0)
 
 
     def print_all(self):

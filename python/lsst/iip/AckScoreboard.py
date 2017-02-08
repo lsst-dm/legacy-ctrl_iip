@@ -32,7 +32,7 @@ class AckScoreboard(Scoreboard):
     DB_INSTANCE = None
   
 
-    def __init__(self, db_instance, debug=false):
+    def __init__(self, db_instance, debug=False):
         """After connecting to the Redis database instance 
            ACK_SCOREBOARD_DB, this redis database is flushed 
            for a clean start. 
@@ -45,6 +45,7 @@ class AckScoreboard(Scoreboard):
            4) After a timer event elapses, the scoreboard is locked and checked  to see which ACKs were received.
         """
         LOGGER.info('Setting up AckScoreboard')
+        Scoreboard.__init__(self)
         self.DB_INSTANCE = db_instance
         try:
             Scoreboard.__init__(self)

@@ -70,6 +70,7 @@ class JobScoreboard(Scoreboard):
            TERMINATED
         """
         LOGGER.info('Setting up JobScoreboard')
+        Scoreboard.__init__(self)
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
         try:
@@ -295,7 +296,7 @@ class JobScoreboard(Scoreboard):
             audit_msg = {}
             audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
             audit_msg["SUB_TYPE"] = "JOB_PAIRS"
-            audit_msg["TIME"] = toolsmod.get_timestamp()
+            audit_msg["TIME"] = get_timestamp()
             audit_msg["PAIRS"] = pairs
             self.persist(audit_msg)
             return True
@@ -333,13 +334,13 @@ class JobScoreboard(Scoreboard):
             self._redis.hset(str(job_number), 'CCDS', yaml.dump(ccds))
 
             # audit msg for ccds
-            audit_msg = {} 
-            audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
-            audit_msg["TIME"] = toolsmod.get_timestamp() 
-            audit_msg["SUB_TYPE"] = "SET_CCDS"
-            audit_msg["JOB_NUM"] = job_number
-            audit_msg["CCD_LIST"] = ccds
-            self.persist(audit_msg)
+            #audit_msg = {} 
+            #audit_msg["DATA_TYPE"] = "JOB_SCOREBOARD_DB"
+            #audit_msg["TIME"] = get_timestamp() 
+            #audit_msg["SUB_TYPE"] = "SET_CCDS"
+            #audit_msg["JOB_NUM"] = job_number
+            #audit_msg["CCD_LIST"] = ccds
+            #self.persist(audit_msg)
             return True
         else:
             return False
@@ -405,7 +406,7 @@ class JobScoreboard(Scoreboard):
             monitor_data[kee] = params[kee]
         monitor_data['SESSION_ID'] = self.get_current_session()
         monitor_data['VISIT_ID'] = self.get_current_visit()
-        monitor_data['TIME'] = get_epoch_timestamp()
+        monitor_data['TIME'] = get_timestamp()
         monitor_data['DATA_TYPE'] = self.DBTYPE
         return monitor_data
 

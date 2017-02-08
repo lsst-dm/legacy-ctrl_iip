@@ -313,7 +313,7 @@ class BaseForeman:
         audit_params['SUB_TYPE'] = 'FORWARDER_HEALTH_CHECK_ACK'
         audit_params['ACK_ID'] = timed_ack
         audit_parsms['COMPONENT_NAME'] = 'BASE_FOREMAN'
-        audit_params['TIME'] = get_epoch_timestamp()
+        audit_params['TIME'] = get_timestamp()
         for forwarder in forwarders:
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             ack_params)

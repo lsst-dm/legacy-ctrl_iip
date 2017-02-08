@@ -212,6 +212,7 @@ class ArchiveDevice:
         ccds = params['CCD_LIST']
         start_int_ack_id = params[ACK_ID]
 
+        print("### START_INTEGRATION IN ARCHIVE DEVICE")
         # audit msg for start_integration received
         audit_msg = {} 
         audit_msg["DATA_TYPE"] = "ARCHIVE_DEVICE_DB"
