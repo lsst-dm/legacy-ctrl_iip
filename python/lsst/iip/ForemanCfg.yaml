@@ -27,8 +27,9 @@ ROOT:
     ARCHIVE_LOGIN: archive
     ARCHIVE_IP: 141.142.210.202
     ARCHIVE_HOSTNAME: Archibald
-    ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
-    CHECKSUM_INABLED: no
+    #ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
+    ARCHIVE_XFER_ROOT: /home/centos/
+    CHECKSUM_ENABLED: no
   SCOREBOARDS:
     AR_JOB_SCBD: 1
     AR_FWD_SCBD: 2

@@ -226,6 +226,7 @@ class DMCS:
         # send new session id to all
         session_id = self.STATE_SCBD.get_next_session_id()
         acks = self.send_new_session_msg(session_id)
+        print "XXX acks: ", acks
 
         self.ack_timer(2)
 
@@ -330,7 +331,7 @@ class DMCS:
         audit["SUB_TYPE"] = "DMCS_EVENT_STATE"
         audit["TIME"] = toolsmod.get_timestamp()
         audit["EVENT_TYPE"] = "NEXT_VISIT_RECEIVED"
-        audit["DEVICE"] = enabled_devices
+        audit["DEVICE"] = enabled_devices.keys()
         #audit["IMAGE_ID"] = image_id 
         audit["SESSION_ID"] = self.STATE_SCBD.get_current_session_id() 
         audit["VISIT_ID"] = visit_id 
@@ -510,6 +511,7 @@ class DMCS:
         audit["SESSION_ID"] = session_id
         audit["DEVICE"] = ddict.keys() # getting the devices
         self._publisher.publish_message(self.AUDIT_CONSUME, audit) 
+        print "XXX ACK_ID:", acks
         return acks
             
  

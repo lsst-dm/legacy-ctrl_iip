@@ -39,8 +39,8 @@ class Forwarder:
             self._base_broker_addr = cdm[BASE_BROKER_ADDR]
             self._consume_queue = cdm[CONSUME_QUEUE]
             self._publish_queue = cdm[PUBLISH_QUEUE]
-            self._hostname = cdm[HOSTNAME]
-            self._ip_addr = cdm[IP_ADDR]
+            #self._hostname = cdm[HOSTNAME]
+            #self._ip_addr = cdm[IP_ADDR]
             self._DAQ_PATH = cdm['DAQ_PATH']
             ## XXX FIX: Put in config file
             self.CHECKSUM_ENABLED = False 
@@ -189,7 +189,7 @@ class Forwarder:
         # Audit msg for fetch complete state
         audit_msg = {} 
         audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
-        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["TIME"] = get_timestamp()
         audit_msg["SUB_STATE"] = "FETCH_COMPLETE"
         audit_msg["CCD_LIST"] = ccd_list
         audit_msg["NAME"] = self._name
@@ -214,7 +214,7 @@ class Forwarder:
             ccd_list.append(ccd_id)
         audit_msg = {} 
         audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
-        audit_msg["TIME"] = toolsmod.get_timestamp() 
+        audit_msg["TIME"] = get_timestamp() 
         audit_msg["CCD_LIST"] = ccd_list 
         audit_msg["SUB_STATE"] = "FORMAT_START"
         audit_msg["NAME"] = self._name
@@ -269,7 +269,7 @@ class Forwarder:
         audit_msg = {} 
         audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
         audit_msg["SUB_TYPE"] = "FORWARD_START"
-        audit_msg["TIME"] = toolsmod.get_timestamp()
+        audit_msg["TIME"] = get_timestamp()
         audit_msg["NAME"] = self._name
         audit_msg["JOB_NUM"] = job_num
         audit_msg["CCD_LIST"] = final_filenames.keys()

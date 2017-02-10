@@ -379,7 +379,6 @@ class AuditListener:
             fields["ack_id"] = msg["ACK_ID"] 
         elif msg["STATE"] == "NEW_ARCHIVE_ITEM": 
             tags["session_id"] = msg["SESSION_ID"] 
-            tags["visit_id"] = msg["VISIT_ID"] 
             tags["image_id"] = msg["IMAGE_ID"]
 
         elif msg["STATE"] == "TRANSFER_COMPLETE": 

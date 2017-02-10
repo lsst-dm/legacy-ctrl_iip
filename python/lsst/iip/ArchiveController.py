@@ -129,13 +129,15 @@ class ArchiveController:
         audit_msg["DATA_TYPE"] = "ARCHIVE_CTRL_DB"
         audit_msg["STATE"] = "NEW_ARCHIVE_ITEM"
         audit_msg["TIME"] = toolsmod.get_timestamp()
-        audit_msg["SESSION_ID"] = params["SESSION_ID"]
-        audit_msg["VISIT_ID"] = params["VISIT_ID"]
+        audit_msg["SESSION_ID"] = None
+        #audit_msg["VISIT_ID"] = params["VISIT_ID"]
         audit_msg["IMAGE_ID"] = params["IMAGE_ID"]
-        self._publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
+        self._archive_publisher.publish_message(self.AUDIT_CONSUME, audit_msg)
         
         #self.send_audit_message("received_", params)
         target_dir = self.construct_send_target_dir(params)
+
+        print "XXX process_new: ", target_dir
         self.send_new_item_ack(target_dir, params)
 
 

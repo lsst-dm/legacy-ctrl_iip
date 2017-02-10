@@ -160,12 +160,7 @@ class AckScoreboard(Scoreboard):
 
                 print "WAIT: Component_dict is:\n%s" % component_dict
                 return component_dict
-                
-                #params = {}
-                #params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
-                #params['ACK_ID'] = timed_ack
-                #self.persist(self.build_audit_data(params))
-                
+
             else:
                 return None
 

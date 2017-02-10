@@ -37,7 +37,7 @@ class JobScoreboard(Scoreboard):
     SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
-    DBTYPE = "Job scoreboard"
+    DBTYPE = "JOB_SCOREBOARD_DB"
     DB_INSTANCE = None
     AR = 'AR'
     PP = 'PP'

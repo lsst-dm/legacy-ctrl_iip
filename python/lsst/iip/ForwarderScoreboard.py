@@ -95,20 +95,6 @@ class ForwarderScoreboard(Scoreboard):
                 self._redis.hset(forwarder, kee, params[kee])
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
-        # state and status
-        state = params["STATE"]
-        status = params["STATUS"] 
-
-        # persist state
-        audit_msg = {} 
-        audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
-        audit_msg["TIME"] = toolsmod.get_timestamp() 
-        audit_msg["FORWARDERS"] = forwarders 
-        audit_msg["STATE"] = state
-        audit_msg["STATUS"] = status
-        self.persist(audit_msg)
-
-
     def get_value_for_forwarder(self, forwarder, kee):
         return self._redis.hget(forwarder, kee)
 
@@ -133,7 +119,7 @@ class ForwarderScoreboard(Scoreboard):
         audit_msg["TIME"] = toolsmod.get_timestamp() 
         audit_msg["FORWARDERS"] = [forwarder] 
         audit_msg["STATUS"] = status
-        self.persist(audit_msg_status)
+        self.persist(audit_msg)
 
 
     def get_routing_key(self, forwarder):
