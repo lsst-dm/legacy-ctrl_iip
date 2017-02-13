@@ -368,10 +368,15 @@ class DMCS:
 
     def process_start_integration_event(self, params):
         # Send start int message to all enabled devices, with details of job...include new job_num
+
+        ## FIX - see temp hack below...
         ## CCD List will eventually be derived from config key. For now, using a list set in this class
         ccd_list = self.CCD_LIST
         visit_id = self.JOB_SCBD.get_current_visit()
+        image_id = params[IMAGE_ID]
+        job_num = self.STATE_SCBD.get_next_job_num( str(get_current_session_id())
         self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
+        self.JOB_SCBD.set_value_for_job(job_num, 'DEVICE', 'AR')
 
         ack_id = self.get_next_timed_ack_id("START_INT_ACK")
 
@@ -386,6 +391,7 @@ class DMCS:
         msg_params[ACK_ID] = ack_id
         msg_params['CCD_LIST'] = ccd_list
         self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(device), msg_params)
+        self.JOB_SCBD.set_job_state(job_num, "DISPATCHED")
 
         self.ack_timer(3)
         ## XXX Don't check for responses right now...
@@ -445,11 +451,26 @@ class DMCS:
         self.ACK_SCBD.add_timed_ack(params)
 
     def process_readout_results_ack(params):
+        job_num = params[JOB_NUM]
+        results = params['RESULTS_LIST']
+
         # Mark job number done
-        # Add completed CCDs to job->completed_ccds
-        # Add failed CCDs to job->failed_ccds
-        # Add failed CCDs to ToDoSCBD, and prioritize according to policy
-       
+        self.JOB_SCBD.set_job_state(job_num, "COMPLETE")
+
+        # Store results for job with that job
+        self.JOB_SCBD.set_results_for_job(job_num, results)
+
+        failed_list = []
+        keez = results.keys()
+        for kee in keez:
+            if (results[kee] == str(-1)) or (results[kee] == str(0)):
+                failed_list.append(kee)
+
+        # For each failed CCD, add CCD to Backlog Scoreboard
+        if failed_list:
+            self.BACKLOG_SCBD.add_ccds_by_job(job_num, failed_list, params)
+
+
     def send_new_session_msg(self, session_id):
         acks = [] 
         msg = {}

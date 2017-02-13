@@ -283,6 +283,29 @@ class JobScoreboard(Scoreboard):
         else:
             return None
 
+
+    def set_results_for_job(self, job_number, results):
+        if self.check_connection():
+            self._redis.hset(str(job_number), 'RESULTS', yaml.dump(results))
+            return True
+        else:
+            return False
+
+
+    def get_results_for_job(self, job_number):
+        if self.check_connection():
+            results =  self._redis.hget(str(job_number), 'RESULTS')
+        if results:
+            return yaml.load(results)
+        else:
+            return None
+
+
+    def get_device_for_job(self, job_number):
+        if self.check_connection():
+            return self._redis.hget(job_number, 'DEVICE')
+            
+
     def set_session(self, session_id):
         self._redis.set(self.CURRENT_SESSION_ID, session_id)
 
@@ -339,16 +362,16 @@ class JobScoreboard(Scoreboard):
         return monitor_data
 
 
-    def get_next_job_num(self, prefix):
-        if prefix == None:
-            prefix = "job"
-        if self.check_connection():
-            self._redis.incr(self.JOB_SEQUENCE_NUM)
-            job_num_str = prefix + "-" + str( self._redis.hget(self.JOB_SEQUENCE_NUM))
-            return job_num_str
-        else:
-            LOGGER.error('Unable to increment job number due to lack of redis connection')
-            #RAISE exception to catch in DMCS.py
+#    def get_next_job_num(self, prefix):
+#        if prefix == None:
+#            prefix = "job"
+#        if self.check_connection():
+#            self._redis.incr(self.JOB_SEQUENCE_NUM)
+#            job_num_str = prefix + "-" + str( self._redis.hget(self.JOB_SEQUENCE_NUM))
+#            return job_num_str
+#        else:
+#            LOGGER.error('Unable to increment job number due to lack of redis connection')
+#            #RAISE exception to catch in DMCS.py
 
 
 #    def get_next_job_num(self):
