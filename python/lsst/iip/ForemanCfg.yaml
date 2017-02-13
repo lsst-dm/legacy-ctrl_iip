@@ -47,7 +47,7 @@ ROOT:
     DMCS_JOB_SCBD: 14
     DMCS_BACKLOG_SCBD: 15
   XFER_COMPONENTS:
-    FORWARDERS:
+    PP_FORWARDERS:
       FORWARDER_1:
         NAME: F1
         HOSTNAME: lsst-wf-base01.ncsa.illinois.edu  

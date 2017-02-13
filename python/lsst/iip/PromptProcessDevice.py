@@ -23,11 +23,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class BaseForeman:
-    FWD_SCBD = None
-    JOB_SCBD = None
-    ACK_SCBD = None
-    DMCS_PUBLISH = "dmcs_publish"
-    DMCS_CONSUME = "dmcs_consume"
+    PP_JOB_SCBD = None
+    PP_FWD_SCBD = None
+    PP_ACK_SCBD = None
+    COMPONENT_NAME = 'PROMPT_PROCESS_FOREMAN'
+    PP_FOREMAN_CONSUME = "pp_foreman_consume"
+    PP_FOREMAN_ACK_PUBLISH = "pp_foreman_ack_publish"
     NCSA_PUBLISH = "ncsa_publish"
     NCSA_CONSUME = "ncsa_consume"
     FORWARDER_PUBLISH = "forwarder_publish"
@@ -53,7 +54,8 @@ class BaseForeman:
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
+            forwarder_dict = cdm[ROOT][XFER_COMPONENTS][PP_FORWARDERS]
+            self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
         except KeyError as e:
             print "Dictionary error"
             print "Bailing out..."
@@ -78,9 +80,10 @@ class BaseForeman:
 
         # Create Redis Forwarder table with Forwarder info
 
-        self.FWD_SCBD = ForwarderScoreboard(forwarder_dict)
-        self.JOB_SCBD = JobScoreboard()
-        self.ACK_SCBD = AckScoreboard()
+        self.FWD_SCBD = ForwarderScoreboard(self._scbd_dict['PP_FWD_SCBD'], forwarder_dict)
+        self.JOB_SCBD = JobScoreboard(self._scbd_dict['PP_JOB_SCBD'])
+        self.ACK_SCBD = AckScoreboard(self._scbd_dict['PP_ACK_SCBD'])
+
         self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
                               'READOUT': self.process_dmcs_readout,
                               'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
