@@ -526,6 +526,8 @@ class ArchiveDevice:
         audit_job_complete["ACK_ID"] = readout_ack_id 
         audit_job_complete["IMAGE_ID"] = image_id 
         audit_job_complete["READOUT_RESPONSES"] = readout_responses
+        self._publisher.publish_message("audit_consume", audit_job_complete) 
+
         self.process_readout_responses(readout_ack_id, image_id, readout_responses)
 
 
