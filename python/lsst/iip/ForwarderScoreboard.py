@@ -78,6 +78,7 @@ class ForwarderScoreboard(Scoreboard):
 
         audit_msg = {} 
         audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["SUB_TYPE"] = "FWD_STATUS"
         audit_msg["TIME"] = toolsmod.get_timestamp()
         audit_msg["FORWARDERS"] = forwarders
         audit_msg["STATUS"] = status
@@ -93,6 +94,16 @@ class ForwarderScoreboard(Scoreboard):
             kees = params.keys()
             for kee in kees:
                 self._redis.hset(forwarder, kee, params[kee])
+                
+                audit_msg = {} 
+                audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+                audit_msg["SUB_TYPE"] = "FWD_" + kee.upper()
+                audit_msg["TIME"] = toolsmod.get_timestamp()
+                audit_msg["FORWARDERS"] = [forwarder]
+                audit_msg[kee.upper()] = params[kee]
+                self.persist(audit_msg)
+
+            
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
     def get_value_for_forwarder(self, forwarder, kee):
@@ -105,6 +116,7 @@ class ForwarderScoreboard(Scoreboard):
 
         audit_msg = {} 
         audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["SUB_TYPE"] = "FWD_STATE"
         audit_msg["TIME"] = toolsmod.get_timestamp() 
         audit_msg["FORWARDERS"] = [forwarder] 
         audit_msg["STATE"] = state
@@ -116,6 +128,7 @@ class ForwarderScoreboard(Scoreboard):
 
         audit_msg = {} 
         audit_msg["DATA_TYPE"] = "FWD_SCOREBOARD_DB"
+        audit_msg["SUB_TYPE"] = "FWD_STATUS"
         audit_msg["TIME"] = toolsmod.get_timestamp() 
         audit_msg["FORWARDERS"] = [forwarder] 
         audit_msg["STATUS"] = status

@@ -103,46 +103,55 @@ class AuditListener:
     def process_fwd_scbd(self, msg):
         L = [] 
 
-        if not msg.has_key("SUB_STATE"): 
-            for fwd in msg["FORWARDERS"]: 
+        # FWDR STATE
+        if msg["SUB_TYPE"] == "FWD_STATE": 
+            for forwarder in msg["FORWARDERS"]: 
                 tags = {} 
-                tags["forwarder"] = fwd
+                tags["forwarder"] = forwarder
 
-                fields = {}
-                if msg.has_key("STATUS"): 
-                    fields["status"] = msg["STATUS"]
-                elif msg.has_key("STATE"):
-                    fields["state"] = msg["STATE"]
+                fields = {} 
+                fields["state"] = msg["STATE"]
 
-                influx = {}
-                influx["measurement"] = "FWD_STATE"
-                influx["time"] = msg["TIME"]
+                influx = {} 
+                influx["measurement"] = msg["SUB_TYPE"] 
                 influx["tags"] = tags
                 influx["fields"] = fields
-
+                influx["time"] = msg["TIME"] 
                 L.append(influx)
-        else: 
-            tags = {}
-            tags["name"] = msg["NAME"]
-            if msg["SUB_STATE"] == "FORWARD_START":
-                tags["job_num"] = msg["JOB_NUM"]
-            
-            
-            fields = {}
-            fields["sub_state"] = msg["SUB_STATE"] 
-            fields["ccd_list"] = msg["CCD_LIST"] 
-
-            influx = {} 
-            influx["measurement"] = "FWD_SUB_STATE"
-            influx["time"] = msg["TIME"] 
-            influx["tags"] = tags
-            influx["fields"] = fields 
-
-            L.append(influx)
-        self.influx_client.write_points(L)
-
         
+        # FWDR STATUS
+        elif msg["SUB_TYPE"] == "FWD_STATUS": 
+            for forwarder in msg["FORWARDERS"]: 
+                tags = {} 
+                tags["forwarder"] = forwarder
 
+                fields = {} 
+                fields["status"] = msg["STATUS"] 
+
+                influx = {} 
+                influx["measurement"] = msg["SUB_TYPE"] 
+                influx["tags"] = tags
+                influx["fields"] = fields
+                influx["time"] = msg["TIME"] 
+                L.append(influx)
+
+
+        # FWDR SUB_STATES
+        else: 
+            tags = {} 
+            tags["forwarder"] = msg["NAME"] 
+
+            fields = {} 
+            fields["SUB_STATE"] = msg["SUB_STATE"] 
+            
+            influx = {} 
+            influx["measurement"] = msg["SUB_TYPE"] 
+            influx["tags"] = tags
+            influx["fields"] = fields
+            influx["time"] = msg["TIME"] 
+            L.append(influx)
+
+        self.influx_client.write_points(L)
 
     def process_job_scbd(self, msg):
         handler = self.job_sub_actions.get(msg['SUB_TYPE'])
@@ -272,7 +281,6 @@ class AuditListener:
             influx["tags"] = tags
             influx["fields"] = fields 
             L.append(influx)
-            self.influx_client.write_points(L)
         elif msg["SUB_TYPE"] == "DMCS_EVENT_STATE": 
             tags = {} 
             tags["device"] = msg["DEVICE"]
@@ -293,7 +301,6 @@ class AuditListener:
             influx["tags"] = tags
             influx["fields"] = fields 
             L.append(influx)
-            self.influx_client.write_points(L)
         elif msg["SUB_TYPE"] == "DMCS_NEW_SESSION": 
             tags = {} 
             tags["acks"] = msg["ACKS"] 
@@ -308,7 +315,6 @@ class AuditListener:
             influx["tags"] = tags
             influx["fields"] = fields 
             L.append(influx)
-            self.influx_client.write_points(L)
         ######################################
         # TODO: new job is not impelemented yet
         ######################################
@@ -323,7 +329,7 @@ class AuditListener:
             influx["tags"] = tags
             influx["fields"] = fields 
             L.append(influx)
-            self.influx_client.write_points(L)
+        self.influx_client.write_points(L)
 
     def process_archive_device(self, msg): 
         L = [] 
