@@ -77,7 +77,7 @@ void EventListener::run() {
 */
 void EventListener::log_readout(string message) { 
     cout << "### Event READOUT Ready ..." << endl; 
-    process_ocs_message(ocs_publisher, OCS_PUBLISH, message);  
+    ocs_publisher.publish_message(OCS_PUBLISH, message); 
 } 
 
 /* 
@@ -86,7 +86,7 @@ void EventListener::log_readout(string message) {
 */
 void EventListener::log_next_visit(string message) { 
     cout << "### Event NEXTVISIT Ready ..." << endl; 
-    process_ocs_message(ocs_publisher, OCS_PUBLISH, message);  
+    ocs_publisher.publish_message(OCS_PUBLISH, message); 
 } 
 
 /* 
@@ -95,7 +95,7 @@ void EventListener::log_next_visit(string message) {
 */
 void EventListener::log_start_integration(string message) { 
     cout << "### Event START_INTEGRATION Ready ..." << endl; 
-    process_ocs_message(ocs_publisher, OCS_PUBLISH, message);  
+    ocs_publisher.publish_message(OCS_PUBLISH, message); 
 }
 
 int main() { 

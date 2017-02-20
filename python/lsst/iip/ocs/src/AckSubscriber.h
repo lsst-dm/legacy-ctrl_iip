@@ -1,5 +1,8 @@
+#include "Consumer.h"
+
 class AckSubscriber { 
     public: 
+        Consumer ack_consumer; 
 	AckSubscriber(); 
 	~AckSubscriber(); 
 	void setup_consumer(); 
@@ -11,10 +14,3 @@ class AckSubscriber {
 	boost::python::object ocs_consumer; 
 }; 
 
-class GILRelease { 
-    public: 
-	inline GILRelease() { tstate = PyGILState_Ensure(); }
-	inline ~GILRelease() { PyGILState_Release(tstate); }
-    private: 
-	PyGILState_STATE tstate;
-}; 

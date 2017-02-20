@@ -2,14 +2,12 @@
 #include <stdio.h> 
 #include <string.h>
 #include <iostream>
-#include <SimpleAmqpClient/SimpleAmqpClient.h>
 #include <yaml-cpp/yaml.h>
 #include "OCS_Bridge.h"
 
 using namespace DDS;
 using namespace dm;
 using namespace std; 
-using namespace AmqpClient; 
 using namespace YAML;
 
 /* 
@@ -45,16 +43,5 @@ OCS_Bridge::~OCS_Bridge() {
 */ 
 void OCS_Bridge::setup_publisher() { 
     cout << "Setting up RABBIT publisher" << endl; 
-    ocs_publisher =  Channel::CreateFromUri(base_broker_addr); 
+    SimplePublisher ocs_publisher(base_broker_addr); 
 } 
-
-/* 
-    send messages using ocs_publisher to rabbitmq 
-    :param publisher: publisher object used to send messages to rabbitmq 
-    :param queue: message queue to send messages to 
-    :param message: message string
-*/
-void OCS_Bridge::process_ocs_message(Channel::ptr_t publisher, string queue, string message) { 
-    BasicMessage::ptr_t msg = BasicMessage::Create(message); 
-    publisher->BasicPublish("", queue, msg, true, false); 
-}

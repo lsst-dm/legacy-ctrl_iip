@@ -5,6 +5,7 @@
 #include "OCS_Bridge.h" 
 #include "CommandListener.h"
 #include <string>
+#include "SimplePublisher.h"
 
 using namespace std;
 using namespace DDS; 
@@ -99,7 +100,7 @@ void CommandListener::dm_start(int cmdId, int timeout, os_time delay_10ms, Chann
 	cout << "== START Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: START, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
+        ocs_publisher.publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -122,7 +123,7 @@ void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, Channe
 	cout << "== STOP Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: STOP, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
+        ocs_publisher.publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -145,7 +146,7 @@ void CommandListener::dm_enable(int cmdId, int timeout, os_time delay_10ms, Chan
 	cout << "== ENABLE Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: ENABLE, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
+        ocs_publisher.publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -168,7 +169,7 @@ void CommandListener::dm_disable(int cmdId, int timeout, os_time delay_10ms, Cha
 	cout << "== DISABLE Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: DISABLE, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
+        ocs_publisher.publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -191,7 +192,7 @@ void CommandListener::dm_enterControl(int cmdId, int timeout, os_time delay_10ms
 	cout << "== ENTERCONTROL Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: ENTERCONTROL, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
+        ocs_publisher.publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -214,7 +215,7 @@ void CommandListener::dm_standby(int cmdId, int timeout, os_time delay_10ms, Cha
 	cout << "== STANDBY Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: STANDBY, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
+        ocs_publisher.publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -237,7 +238,7 @@ void CommandListener::dm_exitControl(int cmdId, int timeout, os_time delay_10ms,
 	cout << "== OFFLINE Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: OFFLINE, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
+        ocs_publisher.publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -260,7 +261,7 @@ void CommandListener::dm_abort(int cmdId, int timeout, os_time delay_10ms, Chann
 	cout << "== FAULT Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: FAULT, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-	OCS_Bridge::process_ocs_message(publisher, queue, message.str()); 
+        ocs_publisher.publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 }

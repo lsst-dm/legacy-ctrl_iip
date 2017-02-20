@@ -1,15 +1,14 @@
 #include <string.h>
 #include <iostream> 
-#include <boost/python.hpp> 
 #include <yaml-cpp/yaml.h>
 #include "SAL_dm.h"
 #include "ccpp_sal_dm.h" 
 #include "os.h"
 #include "unistd.h"
 #include "AckSubscriber.h"
+#include <yaml-cpp/yaml.h>
 
 using namespace std; 
-using namespace boost::python; 
 using namespace YAML; 
 using namespace dm;
 using namespace DDS; 
@@ -44,7 +43,6 @@ AckSubscriber::AckSubscriber() {
 
     OCS_CONSUME = config["ROOT"]["OCS_CONSUME"].as<string>(); 
 
-    Py_Initialize(); 
     setup_consumer(); 
 } 
 
@@ -56,13 +54,7 @@ AckSubscriber::~AckSubscriber() {
     set up rabbitmq consumer to consume messages from DMCS. 
 */  
 void AckSubscriber::setup_consumer() { 
-    try {
-	object pyimport = import("Consumer");
-	ocs_consumer = pyimport.attr("Consumer")(base_broker_addr, OCS_CONSUME);  
-    }
-    catch (error_already_set const &){ 
-	PyErr_Print();
-    }
+    Consumer ack_consumer("base_broker_addr"); 
 }
 
 /* 
@@ -70,13 +62,27 @@ void AckSubscriber::setup_consumer() {
 */
 void AckSubscriber::run() { 
     cout << "============> running CONSUMER <=============" << endl; 
-    try { 
-	object pymethod = make_function(AckSubscriber::on_dmcs_message);  
-	ocs_consumer.attr("run")(pymethod); 
-    }
-    catch (error_already_set const &) {
-	PyErr_Print();
-    }
+    ack_consumer.run(on_message); 
+} 
+
+
+void on_message(string message) { 
+    string message_type, message_value; 
+
+    Node node = Load(message); 
+    message_value = node["MSG_TYPE"].as<string>(); 
+    
+    
+    SAL_dm mgr = SAL_dm();
+    string cmd = get<0>(action_handler[message_value]); 
+    if (!message_value.empty()) { 
+	mgr.salProcessor(const_cast<char *>(cmd.c_str())); 
+	funcptr action = get<1>(action_handler[message_value]); 
+	(mgr.*action)(cmdId, SAL__CMD_COMPLETE, 0, "Done: OK");     
+    } 
+    else { 
+	cout << "MSG_TYPE is not valid." << endl; 
+    } 
 } 
 
 /* 
