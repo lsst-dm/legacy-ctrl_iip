@@ -28,6 +28,7 @@ class SimplePublisher {
         /** publish messages to the rabbitmq broker  
           * @param queue_name rabbitmq queue to which the messages are being sent
           * @param msg message dictionary to publish to the queue
-          * msg must be in the form of "{ MSG_TYPE: HELLO_WORLD }", which looks like python dictionary 
+          * msg must be in the form of "{ MSG_TYPE: HELLO_WORLD }", which looks like python dictionary  
+          */
         void publish_message(std::string queue_name, std::string msg); 
 };

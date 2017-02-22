@@ -1,13 +1,13 @@
 #include <iostream> 
 #include <sstream> 
 #include <string.h> 
+#include <yaml-cpp/yaml.h>
+#include "SAL_dm.h"
 #include "OCS_Bridge.h" 
 #include "EventListener.h"
 
 using namespace std;
-using namespace DDS; 
-using namespace dm; 
-using namespace AmqpClient;
+using namespace YAML; 
 
 /* function pointer for EventListener */ 
 typedef void (EventListener::*funcptr)(string);
@@ -28,12 +28,13 @@ EventListener::EventListener() : OCS_Bridge() {
 
     command_args = new ocs_thread_args; 
     command_args->dmgr = mgr; 
-    command_args->ocsAmqp = ocs_publisher;
+    command_args->publisher = ocs_publisher;
     command_args->q = OCS_PUBLISH;  
 } 
 
 /* destructor for EventListener */
 EventListener::~EventListener(){ 
+    delete command_args; 
 }
 
 /* 
@@ -54,9 +55,8 @@ void EventListener::run() {
 	status = mgr.getEventC(&SALInstance); 
 	if (status == SAL__OK) { 
 	    string msg = SALInstance.message; 
-	    int firstcolon = msg.find(":", 0); 
-	    int firstcomma = msg.find(",", 0); 
-	    string msg_type = msg.substr(firstcolon+2, firstcomma-firstcolon-2); 
+            Node node = Load(msg); 
+            string msg_type = node["MSG_TYPE"].as<string>(); 
 	    if (action_handler.count(msg_type) == 1) { 
 		funcptr action = action_handler[msg_type]; 
 		(this->*action)(msg); 
@@ -77,7 +77,7 @@ void EventListener::run() {
 */
 void EventListener::log_readout(string message) { 
     cout << "### Event READOUT Ready ..." << endl; 
-    ocs_publisher.publish_message(OCS_PUBLISH, message); 
+    ocs_publisher->publish_message(OCS_PUBLISH, message); 
 } 
 
 /* 
@@ -86,7 +86,7 @@ void EventListener::log_readout(string message) {
 */
 void EventListener::log_next_visit(string message) { 
     cout << "### Event NEXTVISIT Ready ..." << endl; 
-    ocs_publisher.publish_message(OCS_PUBLISH, message); 
+    ocs_publisher->publish_message(OCS_PUBLISH, message); 
 } 
 
 /* 
@@ -95,7 +95,7 @@ void EventListener::log_next_visit(string message) {
 */
 void EventListener::log_start_integration(string message) { 
     cout << "### Event START_INTEGRATION Ready ..." << endl; 
-    ocs_publisher.publish_message(OCS_PUBLISH, message); 
+    ocs_publisher->publish_message(OCS_PUBLISH, message); 
 }
 
 int main() { 

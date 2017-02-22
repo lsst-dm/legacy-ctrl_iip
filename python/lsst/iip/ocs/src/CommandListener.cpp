@@ -1,16 +1,12 @@
 #include <iostream> 
 #include <sstream> 
 #include <pthread.h>
-#include <SimpleAmqpClient/SimpleAmqpClient.h>
+#include <string>
+#include "SAL_dm.h"
 #include "OCS_Bridge.h" 
 #include "CommandListener.h"
-#include <string>
-#include "SimplePublisher.h"
 
 using namespace std;
-using namespace DDS; 
-using namespace dm; 
-using namespace AmqpClient;
 
 /*
     CommandListener listens to messages from OCS Bridge. It is a child class of a class called
@@ -21,13 +17,14 @@ CommandListener::CommandListener() : OCS_Bridge() {
 
     command_args = new ocs_thread_args; 
     command_args->dmgr = mgr; 
-    command_args->ocsAmqp = ocs_publisher;
+    command_args->publisher = ocs_publisher;
     command_args->q = OCS_PUBLISH;  
     setup_ocs_consumer();
 } 
 
 /* destructor for CommandListener */
 CommandListener::~CommandListener(){ 
+    delete command_args; 
 }
 
 /* set up a consumer for OCS commands */
@@ -49,7 +46,7 @@ void CommandListener::setup_ocs_consumer() {
 void *CommandListener::run_ocs_consumer(void *pargs) { 
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
     SAL_dm mgr = params->dmgr; 
-    Channel::ptr_t publisher = params->ocsAmqp; 
+    SimplePublisher* rabbit_publisher = params->publisher; 
     string queue = params->q; 
     
     os_time delay_10ms = {0, 10000000}; 
@@ -69,14 +66,14 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
     cout << "=== dm COMMAND controller ready" << endl; 
 
     while (1) { 
-	dm_start(cmdId, timeout, delay_10ms, publisher, queue, mgr); 
-	dm_stop(cmdId, timeout, delay_10ms, publisher, queue, mgr);  
-	dm_enable(cmdId, timeout, delay_10ms, publisher, queue, mgr);  
-	dm_disable(cmdId, timeout, delay_10ms, publisher, queue, mgr);  
-	dm_enterControl(cmdId, timeout, delay_10ms, publisher, queue, mgr);  
-	dm_standby(cmdId, timeout, delay_10ms, publisher, queue, mgr);  
-	dm_exitControl(cmdId, timeout, delay_10ms, publisher, queue, mgr);  
-	dm_abort(cmdId, timeout, delay_10ms, publisher, queue, mgr);  
+	dm_start(cmdId, timeout, delay_10ms, rabbit_publisher, queue, mgr); 
+	dm_stop(cmdId, timeout, delay_10ms, rabbit_publisher, queue, mgr);  
+	dm_enable(cmdId, timeout, delay_10ms, rabbit_publisher, queue, mgr);  
+	dm_disable(cmdId, timeout, delay_10ms, rabbit_publisher, queue, mgr);  
+	dm_enterControl(cmdId, timeout, delay_10ms, rabbit_publisher, queue, mgr);  
+	dm_standby(cmdId, timeout, delay_10ms, rabbit_publisher, queue, mgr);  
+	dm_exitControl(cmdId, timeout, delay_10ms, rabbit_publisher, queue, mgr);  
+	dm_abort(cmdId, timeout, delay_10ms, rabbit_publisher, queue, mgr);  
     }
     mgr.salShutdown(); 
     return 0;
@@ -91,7 +88,7 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
     :param queue: queue name to send messages to 
     :param mgr: SAL_dm manager to handle acceptance of messages from OCS
 */
-void CommandListener::dm_start(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
+void CommandListener::dm_start(int cmdId, int timeout, os_time delay_10ms, SimplePublisher* publisher, string queue, SAL_dm mgr) { 
     dm_command_startC SALInstance; 
     
     cmdId = mgr.acceptCommand_start(&SALInstance); 
@@ -100,7 +97,7 @@ void CommandListener::dm_start(int cmdId, int timeout, os_time delay_10ms, Chann
 	cout << "== START Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: START, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-        ocs_publisher.publish_message(queue, message.str()); 
+        publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -114,7 +111,7 @@ void CommandListener::dm_start(int cmdId, int timeout, os_time delay_10ms, Chann
     :param queue: queue name to send messages to 
     :param mgr: SAL_dm manager to handle acceptance of messages from OCS
 */
-void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
+void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, SimplePublisher* publisher, string queue, SAL_dm mgr) { 
     dm_command_stopC SALInstance; 
     
     cmdId = mgr.acceptCommand_stop(&SALInstance); 
@@ -123,7 +120,7 @@ void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, Channe
 	cout << "== STOP Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: STOP, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-        ocs_publisher.publish_message(queue, message.str()); 
+        publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -137,7 +134,7 @@ void CommandListener::dm_stop(int cmdId, int timeout, os_time delay_10ms, Channe
     :param queue: queue name to send messages to 
     :param mgr: SAL_dm manager to handle acceptance of messages from OCS
 */
-void CommandListener::dm_enable(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
+void CommandListener::dm_enable(int cmdId, int timeout, os_time delay_10ms, SimplePublisher* publisher, string queue, SAL_dm mgr) { 
     dm_command_enableC SALInstance; 
     
     cmdId = mgr.acceptCommand_enable(&SALInstance); 
@@ -146,7 +143,7 @@ void CommandListener::dm_enable(int cmdId, int timeout, os_time delay_10ms, Chan
 	cout << "== ENABLE Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: ENABLE, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-        ocs_publisher.publish_message(queue, message.str()); 
+        publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -160,7 +157,7 @@ void CommandListener::dm_enable(int cmdId, int timeout, os_time delay_10ms, Chan
     :param queue: queue name to send messages to 
     :param mgr: SAL_dm manager to handle acceptance of messages from OCS
 */
-void CommandListener::dm_disable(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
+void CommandListener::dm_disable(int cmdId, int timeout, os_time delay_10ms, SimplePublisher* publisher, string queue, SAL_dm mgr) { 
     dm_command_disableC SALInstance; 
     
     cmdId = mgr.acceptCommand_disable(&SALInstance); 
@@ -169,7 +166,7 @@ void CommandListener::dm_disable(int cmdId, int timeout, os_time delay_10ms, Cha
 	cout << "== DISABLE Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: DISABLE, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-        ocs_publisher.publish_message(queue, message.str()); 
+        publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -183,7 +180,7 @@ void CommandListener::dm_disable(int cmdId, int timeout, os_time delay_10ms, Cha
     :param queue: queue name to send messages to 
     :param mgr: SAL_dm manager to handle acceptance of messages from OCS
 */
-void CommandListener::dm_enterControl(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
+void CommandListener::dm_enterControl(int cmdId, int timeout, os_time delay_10ms, SimplePublisher* publisher, string queue, SAL_dm mgr) { 
     dm_command_enterControlC SALInstance; 
     
     cmdId = mgr.acceptCommand_enterControl(&SALInstance); 
@@ -192,7 +189,7 @@ void CommandListener::dm_enterControl(int cmdId, int timeout, os_time delay_10ms
 	cout << "== ENTERCONTROL Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: ENTERCONTROL, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-        ocs_publisher.publish_message(queue, message.str()); 
+        publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -206,7 +203,7 @@ void CommandListener::dm_enterControl(int cmdId, int timeout, os_time delay_10ms
     :param queue: queue name to send messages to 
     :param mgr: SAL_dm manager to handle acceptance of messages from OCS
 */
-void CommandListener::dm_standby(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
+void CommandListener::dm_standby(int cmdId, int timeout, os_time delay_10ms, SimplePublisher* publisher, string queue, SAL_dm mgr) { 
     dm_command_standbyC SALInstance; 
     
     cmdId = mgr.acceptCommand_standby(&SALInstance); 
@@ -215,7 +212,7 @@ void CommandListener::dm_standby(int cmdId, int timeout, os_time delay_10ms, Cha
 	cout << "== STANDBY Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: STANDBY, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-        ocs_publisher.publish_message(queue, message.str()); 
+        publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -229,7 +226,7 @@ void CommandListener::dm_standby(int cmdId, int timeout, os_time delay_10ms, Cha
     :param queue: queue name to send messages to 
     :param mgr: SAL_dm manager to handle acceptance of messages from OCS
 */
-void CommandListener::dm_exitControl(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
+void CommandListener::dm_exitControl(int cmdId, int timeout, os_time delay_10ms, SimplePublisher* publisher, string queue, SAL_dm mgr) { 
     dm_command_exitControlC SALInstance; 
     
     cmdId = mgr.acceptCommand_exitControl(&SALInstance); 
@@ -238,7 +235,7 @@ void CommandListener::dm_exitControl(int cmdId, int timeout, os_time delay_10ms,
 	cout << "== OFFLINE Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: OFFLINE, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-        ocs_publisher.publish_message(queue, message.str()); 
+        publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 } 
@@ -252,7 +249,7 @@ void CommandListener::dm_exitControl(int cmdId, int timeout, os_time delay_10ms,
     :param queue: queue name to send messages to 
     :param mgr: SAL_dm manager to handle acceptance of messages from OCS
 */
-void CommandListener::dm_abort(int cmdId, int timeout, os_time delay_10ms, Channel::ptr_t publisher, string queue, SAL_dm mgr) { 
+void CommandListener::dm_abort(int cmdId, int timeout, os_time delay_10ms, SimplePublisher* publisher, string queue, SAL_dm mgr) { 
     dm_command_abortC SALInstance; 
     
     cmdId = mgr.acceptCommand_abort(&SALInstance); 
@@ -261,7 +258,7 @@ void CommandListener::dm_abort(int cmdId, int timeout, os_time delay_10ms, Chann
 	cout << "== FAULT Command " << endl;
 	ostringstream message; 
 	message << "{MSG_TYPE: FAULT, DEVICE: " << SALInstance.device << ", CMD_ID: " << to_string(cmdId) << "}"; 
-        ocs_publisher.publish_message(queue, message.str()); 
+        publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
 }
