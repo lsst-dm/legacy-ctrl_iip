@@ -122,7 +122,7 @@ class DistributorScoreboard(Scoreboard):
 def main():
     logging.basicConfig(filename='logs/DistributorScoreboard.log', level=logging.INFO, format=LOG_FORMAT)
 
-    f = open('ForemanCfg.yaml')
+    f = open('L1SystemCfg.yaml')
 
     #cfg data map...
     cdm = yaml.safe_load(f)

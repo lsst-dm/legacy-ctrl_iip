@@ -30,7 +30,7 @@ class ArchiveController:
     def __init__(self, filename=None):
         self._session_id = None
         self._name = "ARCHIVE_CTRL"
-        self._config_file = 'ForemanCfg.yaml'
+        self._config_file = 'L1SystemCfg.yaml'
         if filename != None:
             self._config_file = filename
 

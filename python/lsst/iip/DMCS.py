@@ -52,7 +52,7 @@ class DMCS:
         toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
-        self._default_cfg_file = 'ForemanCfg.yaml'
+        self._default_cfg_file = 'L1SystemCfg.yaml'
         if filename == None:
             filename = self._default_cfg_file
 

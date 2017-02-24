@@ -14,7 +14,7 @@ class AuditListener:
 
     def __init__(self, filename=None):
         if filename == None:
-            file = 'ForemanCfgTest.yaml'
+            file = 'L1SystemCfg.yaml'
         try:
             f = open(file)
         except IOError:

@@ -21,7 +21,7 @@ class Scoreboard:
 
     def __init__(self, file=None):
         if file == None:
-            file = 'ForemanCfgTest.yaml'
+            file = 'L1SystemCfg.yaml'
         try:
             f = open(file)
         except IOError:

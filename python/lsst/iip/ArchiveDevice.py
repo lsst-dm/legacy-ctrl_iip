@@ -39,7 +39,7 @@ class ArchiveDevice:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self._config_file = 'ForemanCfg.yaml'
+        self._config_file = 'L1SystemCfg.yaml'
         if filename != None:
             self._config_file = filename
 
