@@ -470,6 +470,17 @@ class DMCS:
         if failed_list:
             self.BACKLOG_SCBD.add_ccds_by_job(job_num, failed_list, params)
 
+    def get_backlog_stats(self):
+        # return brief info on all backlog items.
+        pass
+
+    def get_backlog_details(self):
+        # return detailed dictionary of all backlog items and the nature of each.
+        pass
+
+    def get_next_backlog_item(self):
+        pass
+
 
     def send_new_session_msg(self, session_id):
         acks = [] 
@@ -531,6 +542,7 @@ def main():
     print "Beginning DMCS event loop..."
     try:
         while 1:
+            # dmcs.get_next_backlog_item() ???
             pass
     except KeyboardInterrupt:
         pass
