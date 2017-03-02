@@ -14,7 +14,7 @@ from Scoreboard import Scoreboard
 from JobScoreboard import JobScoreboard
 from AckScoreboard import AckScoreboard
 from StateScoreboard import StateScoreboard
-from ToDoScoreboard import ToDoScoreboard
+from BacklogScoreboard import BacklogScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 
@@ -87,7 +87,8 @@ class DMCS:
             self.enter_fault_state(emsg)
             sys.exit(102) 
 
-        self.purge_broker(broker_vhost, queue_purges)
+        ### FIXME Add a Sudo capability to run purges in rabbitmqctl
+        #self.purge_broker(broker_vhost, queue_purges)
         self._base_broker_url = 'amqp_url'
         self._next_timed_ack_id = 0
 
@@ -99,7 +100,7 @@ class DMCS:
 
         LOGGER.info('Setting up DMCS Scoreboards')
         self.JOB_SCBD = JobScoreboard(job_db_instance)
-        self.TO_DO_SCBD = ToDoScoreboard(backlog_db_instance)
+        self.BACKLOG_SCBD = BacklogScoreboard(backlog_db_instance)
         self.ACK_SCBD = AckScoreboard(ack_db_instance)
         self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
 
@@ -129,14 +130,14 @@ class DMCS:
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
-        LOGGER.info('DMCS consumer setup'))
+        LOGGER.info('DMCS consumer setup')
         self.setup_consumers()
 
-        LOGGER.info('DMCS publisher setup'))
+        LOGGER.info('DMCS publisher setup')
         self.setup_publishers()
 
 
-        LOGGER.info('DMCS Init complete'))
+        LOGGER.info('DMCS Init complete')
 
 
 
@@ -380,7 +381,7 @@ class DMCS:
         ccd_list = self.CCD_LIST
         visit_id = self.JOB_SCBD.get_current_visit()
         image_id = params[IMAGE_ID]
-        job_num = self.STATE_SCBD.get_next_job_num( str(get_current_session_id())
+        job_num = self.STATE_SCBD.get_next_job_num( str(get_current_session_id()))
         self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
         self.JOB_SCBD.set_value_for_job(job_num, 'DEVICE', 'AR')
 
@@ -521,10 +522,10 @@ class DMCS:
  
 
 
-    def get_next_timed_ack_id(self, ack_type):
-            self._publisher.publish_message(consume_queue, msg)
-
-        return acks
+#    def get_next_timed_ack_id(self, ack_type):
+#            self._publisher.publish_message(consume_queue, msg)
+#
+#        return acks
             
  
 
