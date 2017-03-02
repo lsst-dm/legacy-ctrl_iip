@@ -19,10 +19,6 @@ map<string, funcptr> action_handler = {
     {"NEXT_VISIT", &EventListener::log_next_visit}
 }; 
 
-/* 
-    EventListener listens to event commands such as next_visit, start_integration commands from SAL.
-    It extends OCS_Bridge which handles Config file opening and setting up Rabbit publisher.
-*/ 
 EventListener::EventListener() : OCS_Bridge() { 
     mgr = SAL_dm(); 
 
@@ -32,16 +28,10 @@ EventListener::EventListener() : OCS_Bridge() {
     command_args->q = OCS_PUBLISH;  
 } 
 
-/* destructor for EventListener */
 EventListener::~EventListener(){ 
     delete command_args; 
 }
 
-/* 
-    run method is called whenever Event Listener runs. It handles messages by chopping off string
-    sent by OCS and calls action handler to publish messages.
-    TODO: chopping off things isn't robust
-*/
 void EventListener::run() { 
     os_time delay_2ms = {0, 2000000}; 
     os_time delay_200ms = {0, 200000000}; 
@@ -71,28 +61,16 @@ void EventListener::run() {
     mgr.salShutdown(); 
 } 
 
-/* 
-    handles readout message type and publishes to OCS_PUBLISH queue
-    :param message: message string which looks like a python dictionary '{"MSG_TYPE": ... }'
-*/
 void EventListener::log_readout(string message) { 
     cout << "### Event READOUT Ready ..." << endl; 
     ocs_publisher->publish_message(OCS_PUBLISH, message); 
 } 
 
-/* 
-    handles next_visit message type and publishes to OCS_PUBLISH queue
-    :param message: message string which looks like a python dictionary '{"MSG_TYPE": ... }'
-*/
 void EventListener::log_next_visit(string message) { 
     cout << "### Event NEXTVISIT Ready ..." << endl; 
     ocs_publisher->publish_message(OCS_PUBLISH, message); 
 } 
 
-/* 
-    handles start_integration message type and publishes to OCS_PUBLISH queue
-    :param message: message string which looks like a python dictionary '{"MSG_TYPE": ... }'
-*/
 void EventListener::log_start_integration(string message) { 
     cout << "### Event START_INTEGRATION Ready ..." << endl; 
     ocs_publisher->publish_message(OCS_PUBLISH, message); 

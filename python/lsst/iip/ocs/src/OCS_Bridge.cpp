@@ -8,9 +8,6 @@
 using namespace std; 
 using namespace YAML;
 
-/* 
-    OCS_Bridge handles configuration file opening and setting up publisher for rabbitmq
-*/ 
 OCS_Bridge::OCS_Bridge() { 
     Node config_file; 
     config_file = LoadFile("ForemanCfg.yaml");
@@ -32,14 +29,10 @@ OCS_Bridge::OCS_Bridge() {
     setup_publisher(); 
 }
 
-/* destructor for OCS_Bridge */ 
 OCS_Bridge::~OCS_Bridge() {
     delete ocs_publisher; 
 } 
 
-/* 
-    create rabbitmq publisher to send messages
-*/ 
 void OCS_Bridge::setup_publisher() { 
     cout << "Setting up RABBIT publisher" << endl; 
     ocs_publisher = new SimplePublisher(base_broker_addr); 
