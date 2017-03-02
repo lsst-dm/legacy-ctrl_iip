@@ -247,10 +247,14 @@ class DMCS:
             ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
 
         ## XXX FIX  Do error trapping below
-        if ack_responses == None:
-            print "BIG Problem handling new session ack"
-
-
+        ## acks is a List of ack_ids. The ack scoreboard is searched by the ack_id key
+        ## Each ack_id will have a dict of components that acked under that ack_id
+        ## These acks are set up as a different ack_id per device...is this necessary?
+        ## under the [ack_id}, the under the component name[ar_foreman], there will be an ACK_BOOL.
+        ## this tells whether the command was successful or not.
+#        if ack_responses == None:
+#            print "BIG Problem handling new session ack"
+#
 #            if ack_responses != None:
 #                responses = ack_responses.keys()
 #                for response in responses:
@@ -339,6 +343,8 @@ class DMCS:
         acks = []
         for k in enabled_devices.keys():
             consume_queue = enabled_devices[k]
+            ## FIXME - Must each enabled device use its own ack_id? Or
+            ## can we use the same method for broadcasting Forwarder messages?  
             ack = self.get_next_timed_ack_id("NEXT_VISIT_ACK")
             acks.append(ack)
             msg = {}
@@ -370,7 +376,7 @@ class DMCS:
         # Send start int message to all enabled devices, with details of job...include new job_num
 
         ## FIX - see temp hack below...
-        ## CCD List will eventually be derived from config key. For now, using a list set in this class
+        ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         ccd_list = self.CCD_LIST
         visit_id = self.JOB_SCBD.get_current_visit()
         image_id = params[IMAGE_ID]
@@ -398,7 +404,7 @@ class DMCS:
 
 
 ####### # Right now, using only Archive...
-#        enabled_devices = self.STATE_SCBD.get_enabled_devices()
+#        enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLED)
 #        ack_prefix = 
 #        acks = {}
 #        for k in enabled_devices.keys():
@@ -409,7 +415,16 @@ class DMCS:
 
 
 
-
+    #####################################################################
+    # FIX How will this work? Will one readout event be sent, and then 
+    #     all enabled devices respond? Or will a separate READOUT event
+    #     be sent for each device? I am thinking the former - but this
+    #     method only handles Archive readouts and must be modified
+    #     to include Prompt Processing.
+    #
+    #     In addition, will the Start Integration message be device
+    #     specific? How will job numbers be created and tracked?
+ 
     def process_readout_event(self, params):
         image_id = params['IMAGE_ID']
         device = params['DEVICE']
@@ -441,6 +456,8 @@ class DMCS:
         pass
 
     def process_fault_command(self):
+        # FIXME this method should raise a custom exception, and cease all activity. Call
+        # self.enter_fault_state() to do so.
         pass
 
     def process_offline_command(self):
@@ -451,6 +468,7 @@ class DMCS:
         self.ACK_SCBD.add_timed_ack(params)
 
     def process_readout_results_ack(params):
+        # FIXME make certain devices/job_nums are kept separate so OCS can be informed of results properly.
         job_num = params[JOB_NUM]
         results = params['RESULTS_LIST']
 
@@ -479,6 +497,7 @@ class DMCS:
         pass
 
     def get_next_backlog_item(self):
+        # This method will return a backlog item according to a policy in place.
         pass
 
 
