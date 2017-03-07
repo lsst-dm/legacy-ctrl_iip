@@ -46,8 +46,8 @@ class ArchiveDevice:
         cdm = toolsmod.intake_yaml_file(self._config_file)
 
         try:
-            self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
-            self._base_passwd = cdm[ROOT][BASE_BROKER_PASSWD]   
+            self._msg_name = cdm[ROOT][AFM_BROKER_NAME]      # Message broker user & passwd
+            self._msg_passwd = cdm[ROOT][AFM_BROKER_PASSWD]   
             self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
@@ -97,7 +97,7 @@ class ArchiveDevice:
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack }
 
 
-        self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
+        self._base_broker_url = "amqp://" + self._msg_name + ":" + self._msg_passwd + "@" + str(self._base_broker_addr)
 
 
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)

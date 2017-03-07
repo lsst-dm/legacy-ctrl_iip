@@ -45,15 +45,15 @@ class BaseForeman:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self._config_file = 'ForemanCfg.yaml'
+        self._config_file = 'L1SystemCfg.yaml'
         if filename != None:
             self._config_file = filename
 
         cdm = toolsmod.intake_yaml_file(self._config_file)
 
         try:
-            self._base_name = cdm[ROOT][BASE_BROKER_NAME]      # Message broker user & passwd
-            self._base_passwd = cdm[ROOT][BASE_BROKER_PASSWD]   
+            self._msg_name = cdm[ROOT][PFM_BROKER_NAME]      # Message broker user & passwd
+            self._msg_passwd = cdm[ROOT][PFM_BROKER_PASSWD]   
             self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
@@ -64,8 +64,8 @@ class BaseForeman:
             print "Bailing out..."
             sys.exit(99)
 
-        if 'QUEUE_PURGES' in cdm[ROOT]:
-            self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
+        #if 'QUEUE_PURGES' in cdm[ROOT]:
+        #    self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
         self._base_msg_format = self.YAML
         self._ncsa_msg_format = self.YAML
@@ -97,7 +97,7 @@ class BaseForeman:
                               'NEW_JOB_ACK': self.process_ack }
 
 
-        self._base_broker_url = "amqp://" + self._base_name + ":" + self._base_passwd + "@" + str(self._base_broker_addr)
+        self._base_broker_url = "amqp://" + self._msg_name + ":" + self._msg_passwd + "@" + str(self._base_broker_addr)
         self._ncsa_broker_url = "amqp://" + self._ncsa_name + ":" + self._ncsa_passwd + "@" + str(self._ncsa_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
         LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
