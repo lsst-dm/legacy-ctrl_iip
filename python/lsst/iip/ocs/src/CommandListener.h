@@ -23,7 +23,7 @@ class CommandListener : public OCS_Bridge {
         /** pthread to listen to messages in the background */ 
 	pthread_t ocsthread; 
 
-        / constructor for CommandListener */ 
+        /** constructor for CommandListener */ 
 	CommandListener(); 
 
         /* destructor for CommandListener */
