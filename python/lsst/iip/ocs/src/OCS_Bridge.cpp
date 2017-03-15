@@ -10,7 +10,7 @@ using namespace YAML;
 
 OCS_Bridge::OCS_Bridge() { 
     Node config_file; 
-    config_file = LoadFile("ForemanCfg.yaml");
+    config_file = LoadFile("L1SystemCfg.yaml");
 
     Node root = config_file["ROOT"]; 
     string base_name = root["OCS"]["OCS_NAME"].as<string>(); 
