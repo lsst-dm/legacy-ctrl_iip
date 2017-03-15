@@ -125,9 +125,29 @@ class StateScoreboard(Scoreboard):
         if self.check_connection():
             self._redis.hset(self.CU, STATE, state)
 
+
     def get_catchup_archive_state(self):
         if self.check_connection():
             return self._redis.hget(self.CU, STATE)
+
+
+    def get_device_state(self, device):
+        if device == "AR":
+            return self.get_archive_state()
+        if device == "PP":
+            return self.get_prompt_process_state()
+        if device == "CU":
+            return self.get_catchup_archive_state()
+
+
+    def set_device_state(self, device, state):
+        if device == "AR":
+            return self.set_archive_state(state)
+        if device == "PP":
+            return self.set_prompt_process_state(state)
+        if device == "CU":
+            return self.set_catchup_archive_state(state)
+
 
     def get_device_consume_queue(self, device):
         if self.check_connection():
