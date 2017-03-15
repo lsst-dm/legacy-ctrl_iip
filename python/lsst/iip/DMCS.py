@@ -295,14 +295,20 @@ class DMCS:
         """Transition from DisableState to EnableState. Full operation is capable after this transition.
 
         """
-        # Extract device arg
+        new_state = "ENABLE"
+        # Get device
         device = msg['DEVICE']
-        if device == "AR":
-            self.STATE_SCBD.set_archive_state("ENABLE")
-        if device == "PP":
-            self.STATE_SCBD.set_prompt_process_state("ENABLE")
-        if device == "CU":
-            self.STATE_SCBD.set_catchup_archive_state("ENABLE")
+        # Get current state
+        current_state = self.STATE_SCBD.get_device_state(device)
+        # call transition check
+        transition_check = self.validate_transition(current_state, new_state)
+
+        if transition_check == True:
+            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
+        else:
+            response = "Invalid transition from " + str(current_state) + " to " + new_state
+            response = response + ". Device remaining in " + current_state + " state."
+            self.send_ocs_ack(transition_check, response)
 
 
 
