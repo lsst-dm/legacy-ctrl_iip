@@ -17,7 +17,6 @@ class Setup:
 
         self.channel = self.connection.channel()
 
-
         ## Bind signature details
         ## queue_bind(callback, queue, exchange, routing_key=None, nowait=False, arguments=None)
         
@@ -98,7 +97,10 @@ class Setup:
         
         self.channel.queue_declare(queue='archive_ctrl_publish',durable=True)
         self.channel.queue_bind(queue='archive_ctrl_publish', exchange='message',routing_key='archive_ctrl_publish')
-         
+               
+        self.channel.queue_declare(queue='dmcs_ocs_publish',durable=True)
+        self.channel.queue_bind(queue='dmcs_ocs_publish', exchange='message', routing_key='dmcs_ocs_publish' )
+        
          
         self.connection.close()
 
