@@ -38,7 +38,7 @@ class DMCS:
     STATE_SCBD = None
     BACKLOG_SCBD = None
     OCS_BDG_PUBLISH = "ocs_bdg_publish"  #Messages from OCS Bridge
-    OCS_BDG_CONSUME = "ocs_bdg_consume"  #Messages to OCS Bridge
+    DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
     DMCS_CONSUME = "dmcs_consume" #Used for Foreman comm
     #AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish" #Used for Foreman comm
@@ -129,6 +129,11 @@ class DMCS:
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
+        self.pub_base_broker_url = "amqp://" + self._msg_name + "_PUB:" + \
+                                            self._msg_passwd + "_PUB@" + \
+                                            str(self._base_broker_addr)
+        LOGGER.info('Building publishing _base_broker_url. Result is %s', self._base_broker_url)
+
         LOGGER.info('DMCS consumer setup')
         self.setup_consumers()
 
@@ -182,8 +187,8 @@ class DMCS:
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up Base publisher on %s', self._base_broker_url)
-        self._publisher = SimplePublisher(self._base_broker_url, YAML)
+        LOGGER.info('Setting up Base publisher on %s', self.pub_base_broker_url)
+        self._publisher = SimplePublisher(self.pub_base_broker_url, YAML)
 
 
 
@@ -262,7 +267,7 @@ class DMCS:
         else:
             response = "Invalid transition from " + str(current_state) + " to " + new_state
             response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response)
+            self.send_ocs_ack(transition_check, response, msg)
 
 
 
@@ -327,7 +332,7 @@ class DMCS:
         else:
             response = "Invalid transition from " + str(current_state) + " to " + new_state
             response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response)
+            self.send_ocs_ack(transition_check, response, msg)
 
 
 
@@ -347,10 +352,10 @@ class DMCS:
         else:
             response = "Invalid transition from " + str(current_state) + " to " + new_state
             response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response)
+            self.send_ocs_ack(transition_check, response, msg)
 
 
-    def process_fault_command(self):
+    def process_fault_command(self, msg):
         new_state = "FAULT"
         device = msg['DEVICE']
         current_state = self.STATE_SCBD.get_device_state(device)
@@ -363,11 +368,11 @@ class DMCS:
         else:
             response = "Invalid transition from " + str(current_state) + " to " + new_state
             response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response)
+            self.send_ocs_ack(transition_check, response, msg)
 
 
 
-    def process_final_command(self):
+    def process_final_command(self, msg):
         new_state = "FINAL"
         device = msg['DEVICE']
         current_state = self.STATE_SCBD.get_device_state(device)
@@ -380,7 +385,7 @@ class DMCS:
         else:
             response = "Invalid transition from " + str(current_state) + " to " + new_state
             response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response)
+            self.send_ocs_ack(transition_check, response, msg)
 
 
 
@@ -580,6 +585,15 @@ class DMCS:
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
         return transition_is_valid
  
+
+    def send_ocs_ack(self, transition_check, response, msg_in):
+        message = {}
+        message['MSG_TYPE'] = msg_in['MSG_TYPE'] + "_ACK"
+        message['ACK_ID'] = msg_in['ACK_ID']
+        message['ACK_DELAY'] = msg_in['ACK_DELAY']
+        message['ACK_BOOL'] = transition_check
+        message['ACK_STATEMENT'] = response
+        self._publisher.publish_message(DMCS_OCS_PUBLISH, message) 
 
 
 #    def get_next_timed_ack_id(self, ack_type):
