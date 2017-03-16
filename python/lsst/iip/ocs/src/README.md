@@ -1,14 +1,14 @@
-### OCS_Bridge System descriptions
-# CommandListener.cpp 
+# OCS_Bridge System descriptions
+### CommandListener.cpp 
   CommandListener listens to command messages(enable, disable, standby...) from OCS system. 
 
-# EventListener.cpp 
+### EventListener.cpp 
   EventListener listens to dm events messages(START_INTEGRATION, NEXT_VISIT, READOUT) from OCS system.
 
-# AckSubscriber.cpp 
+### AckSubscriber.cpp 
   AckSubscriber listens to messages from DMCS and acks back to OCS System.
 
-# OCS_Bridge.cpp 
+### OCS_Bridge.cpp 
   OCS_Bridge is the parent of CommandListener and EventListener. It reads the configuration file and sets up the rabbitmq publisher. 
 
 ## How to Run
