@@ -18,7 +18,49 @@ def singleton(object, instantiated=[]):
         "%s is a Singleton class but is already instantiated" % object.__class__
     instantiated.append(object.__class__)
 
+state_enumeration = {}
+state_enumeration["OFFLINE"] =  0
+state_enumeration["STANDBY"] =  1
+state_enumeration["DISABLED"] = 2
+state_enumeration["ENABLED"] =  3
+state_enumeration["FAULT"] =    4
+state_enumeration["INITIAL"] =  5
+state_enumeration["FINAL"] =    6
 
+# This matrix expresses valid transitions and is reproduced in code afterwards.
+#
+#    \NEXT STATE
+#STATE\
+#      \ |Offline |Standby |Disabled|Enabled |Fault   |Initial |Final   |
+#------------------------------------------------------------------------ 
+#Offline |        |        |        |        |        |        |  TRUE  |
+#------------------------------------------------------------------------
+#Standby |  TRUE  |        |  TRUE  |        |  TRUE  |        |        |
+#------------------------------------------------------------------------
+#Disable |        |  TRUE  |        |  TRUE  |  TRUE  |        |        |
+#------------------------------------------------------------------------
+#Enable  |        |        |  TRUE  |        |  TRUE  |        |        |
+#------------------------------------------------------------------------
+#Fault   |        |  TRUE  |        |        |        |        |        |
+#------------------------------------------------------------------------
+#Initial |        |  TRUE  |        |        |        |        |        |
+#------------------------------------------------------------------------
+#Final   |        |        |        |        |        |        |        |
+#------------------------------------------------------------------------
+
+w, h = 7, 7;
+state_matrix = [[False for x in range(w)] for y in range(h)] 
+state_matrix[0][6] = True
+state_matrix[1][0] = True
+state_matrix[1][2] = True
+state_matrix[1][4] = True
+state_matrix[2][1] = True
+state_matrix[2][3] = True
+state_matrix[2][4] = True
+state_matrix[3][2] = True
+state_matrix[3][4] = True
+state_matrix[4][1] = True
+state_matrix[5][1] = True
 
 
 """ Exception classes 

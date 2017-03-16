@@ -105,13 +105,12 @@ class DMCS:
         self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
 
         # Messages from OCS Bridge
-        self._OCS_msg_actions = { START: self.process_start_command,
-                              ENABLE: self.process_enable_command,
-                              DISABLE: self.process_disable_command,
+        self._OCS_msg_actions = { OFFLINE: self.process_offline_command,
                               STANDBY: self.process_standby_command,
-                              EXIT: self.process_exit_command,
+                              DISABLE: self.process_disable_command,
+                              ENABLE: self.process_enable_command,
                               FAULT: self.process_fault_command,
-                              OFFLINE: self.process_offline_command,
+                              FINAL: self.process_final_command,
                               NEXT_VISIT: self.process_next_visit_event,
                               START_INTEGRATION: self.process_start_integration_event,
                               READOUT: self.process_readout_event,
@@ -212,30 +211,64 @@ class DMCS:
    # It is noted here rather than in method documentation below (to keep descriptions simple),
    # that a FaultState is reachable from StandbyState, DisableState, and EnableState.
 
+
+    def process_offline_command(self, msg):
+        """Transition from StandbyState to OfflineState. Catch up work could conceivably 
+           be done in OfflineState. There will be no contact with DDS, however. The only
+           available transition is from OfflineState to Final...which is 'off.' 
+           Any needed entities to be persisted beteen starts should happen after this transition. 
+           The system cannot be brought back up to EnableState from OfflineState.
+
+           When this method is called, DMCS should finish up any running jobs, and then 
+           begin working on the backlog queue. If the backlog queue is empty, persist and shut down.
+
+           Because the DDS is not reachable in the state resulting from this command, and 
+           telemetry from tasks done on the TO-DO queue must be staged, and then sent when 
+           the system returns to StandbyState.
+        
+        """
+        new_state = "OFFLINE"
+        device = msg['DEVICE']
+        current_state = self.STATE_SCBD.get_device_state(device)
+
+        # call transition check
+        transition_check = self.validate_transition(current_state, new_state)
+
+        if transition_check == True:
+            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
+        else:
+            response = "Invalid transition from " + str(current_state) + " to " + new_state
+            response = response + ". Device remaining in " + current_state + " state."
+            self.send_ocs_ack(transition_check, response)
+
+
+
     def process_standby_command(self, msg):
         """StandbyState is the initial system stste after the system comes up and makes connection with DDS.
            WHENEVER the StandbyState is entered, a new Session_ID is created. 
            IOW, the DMCS wakes up to find itself in StandbyState.
            Communication with DDS is expected and needed in ths state.
-           There are two transitions INTO StandbyState:
-               1) Component/system wake up
-               2) Standby - the transition command from DisableState to StandbyState. THIS TRANSITION IS THE
-                  ONE THAT THIS METHOD ADDRESSES.
-
-           There are two transitions OUT of StandbyState:
-               1) Start - the command from SandbyState to DisableState will be
-                  accompanied by configuration settings, such as interface version, DM cfg, etc.
-               2) Exit - effectively ends session by moving state to OfflineState which 
-                  has only one 'out'  state transition - to FinalState.
         """
-        # Extract device arg
-        device = msg[DEVICE]
-        if device == AR:
-            self.STATE_SCBD.set_archive_state(STANDBY)
-        if device == PP:
-            self.STATE_SCBD.set_prompt_process_state(STANDBY)
-        if device == CU:
-            self.STATE_SCBD.set_catchup_archive_state(STANDBY)
+
+        new_state = "STANDBY"
+        device = msg['DEVICE']
+        current_state = self.STATE_SCBD.get_device_state(device)
+
+        # call transition check
+        transition_check = self.validate_transition(current_state, new_state)
+
+        if transition_check == True:
+            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
+        else:
+            response = "Invalid transition from " + str(current_state) + " to " + new_state
+            response = response + ". Device remaining in " + current_state + " state."
+            self.send_ocs_ack(transition_check, response)
+
+
+
+
+
+
 
         # send new session id to all
         session_id = self.STATE_SCBD.get_next_session_id()
@@ -275,31 +308,17 @@ class DMCS:
         # Ack back?
 
 
+
     def process_disable_command(self, msg):
         """Transition from EnableState to DisableState. Limited operation only is capable after 
            this transition; for example, transfer of 'catch up' work from camera buffer to archive 
            is possible, but no NextVisit events will be received while in this state.
 
         """
-        # Extract device arg
+        new_state = "DISABLE"
         device = msg['DEVICE']
-        if device == "AR":
-            self.STATE_SCBD.set_archive_state("DISABLE")
-        if device == "PP":
-            self.STATE_SCBD.set_prompt_process_state("DISABLE")
-        if device == "CU":
-            self.STATE_SCBD.set_catchup_archive_state("DISABLE")
-
-
-    def process_enable_command(self, msg):
-        """Transition from DisableState to EnableState. Full operation is capable after this transition.
-
-        """
-        new_state = "ENABLE"
-        # Get device
-        device = msg['DEVICE']
-        # Get current state
         current_state = self.STATE_SCBD.get_device_state(device)
+
         # call transition check
         transition_check = self.validate_transition(current_state, new_state)
 
@@ -312,29 +331,56 @@ class DMCS:
 
 
 
-    def process_exit_command(self, msg):
-        """Transition from StandbyState to OfflineState. Catch up work could conceivably 
-           be done in OfflineState. There will be no contact with DDS, however. The only
-           available transition is from OfflineState to Final...which is 'off.' 
-           Any needed entities to be persisted beteen starts should happen after this transition. 
-           The system cannot be brought back up to EnableState from OfflineState.
+    def process_enable_command(self, msg):
+        """Transition from DisableState to EnableState. Full operation is capable after this transition.
 
-           When this method is called, DMCS should finish up any running jobs, and then 
-           begin working on the TO-DO queue. If the TO-DO queue is empty, persist and shut down.
-
-           Because the DDS is not reachable in the state resulting from this command, and 
-           telemetry from tasks done on the TO-DO queue must be staged, and then sent when 
-           the system returns to StandbyState.
-        
         """
-        # Extract device arg
-        device = msg[DEVICE]
-        if device == AR:
-            self.STATE_SCBD.set_archive_state(EXIT)
-        if device == PP:
-            self.STATE_SCBD.set_prompt_process_state(EXIT)
-        if device == CU:
-            self.STATE_SCBD.set_catchup_archive_state(EXIT)
+        new_state = "ENABLE"
+        device = msg['DEVICE']
+        current_state = self.STATE_SCBD.get_device_state(device)
+
+        # call transition check
+        transition_check = self.validate_transition(current_state, new_state)
+
+        if transition_check == True:
+            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
+        else:
+            response = "Invalid transition from " + str(current_state) + " to " + new_state
+            response = response + ". Device remaining in " + current_state + " state."
+            self.send_ocs_ack(transition_check, response)
+
+
+    def process_fault_command(self):
+        new_state = "FAULT"
+        device = msg['DEVICE']
+        current_state = self.STATE_SCBD.get_device_state(device)
+
+        # call transition check
+        transition_check = self.validate_transition(current_state, new_state)
+
+        if transition_check == True:
+            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
+        else:
+            response = "Invalid transition from " + str(current_state) + " to " + new_state
+            response = response + ". Device remaining in " + current_state + " state."
+            self.send_ocs_ack(transition_check, response)
+
+
+
+    def process_final_command(self):
+        new_state = "FINAL"
+        device = msg['DEVICE']
+        current_state = self.STATE_SCBD.get_device_state(device)
+
+        # call transition check
+        transition_check = self.validate_transition(current_state, new_state)
+
+        if transition_check == True:
+            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
+        else:
+            response = "Invalid transition from " + str(current_state) + " to " + new_state
+            response = response + ". Device remaining in " + current_state + " state."
+            self.send_ocs_ack(transition_check, response)
 
 
 
@@ -431,6 +477,8 @@ class DMCS:
     #
     #     In addition, will the Start Integration message be device
     #     specific? How will job numbers be created and tracked?
+
+
  
     def process_readout_event(self, params):
         image_id = params['IMAGE_ID']
@@ -459,13 +507,12 @@ class DMCS:
     def process_telemetry(self, msg):
         pass
 
+
     def process_start_command(self):
         pass
 
-    def process_fault_command(self):
-        # FIXME this method should raise a custom exception, and cease all activity. Call
-        # self.enter_fault_state() to do so.
-        pass
+
+
 
     def process_offline_command(self):
         pass
@@ -473,6 +520,7 @@ class DMCS:
 
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
+
 
     def process_readout_results_ack(params):
         # FIXME make certain devices/job_nums are kept separate so OCS can be informed of results properly.
@@ -494,6 +542,7 @@ class DMCS:
         # For each failed CCD, add CCD to Backlog Scoreboard
         if failed_list:
             self.BACKLOG_SCBD.add_ccds_by_job(job_num, failed_list, params)
+
 
     def get_backlog_stats(self):
         # return brief info on all backlog items.
@@ -524,7 +573,12 @@ class DMCS:
             self._publisher.publish_message(consume_queue, msg)
 
         return acks
-            
+
+    def validate_transition(self, current_state, new_state):
+        current_index = toolsmod.state_enumeration[current_state]
+        new_index = toolsmod.state_enumeration[new_state]
+        transition_is_valid = toolsmod.state_matrix[current_index][new_index]
+        return transition_is_valid
  
 
 
