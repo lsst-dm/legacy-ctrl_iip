@@ -87,8 +87,9 @@ class DMCS:
             self.enter_fault_state(emsg)
             sys.exit(102) 
 
-        ### FIXME Add a Sudo capability to run purges in rabbitmqctl
-        #self.purge_broker(broker_vhost, queue_purges)
+        ### Run queue purges in rabbitmqctl
+        self.purge_broker(broker_vhost, queue_purges)
+
         self._base_broker_url = 'amqp_url'
         self._next_timed_ack_id = 0
 
@@ -211,80 +212,32 @@ class DMCS:
         result = handler(msg_dict)
 
 
-   #==================================================================================== 
-   # The following functions map to the state transition commands that the OCS will generate
-   # It is noted here rather than in method documentation below (to keep descriptions simple),
-   # that a FaultState is reachable from StandbyState, DisableState, and EnableState.
-
-
     def process_offline_command(self, msg):
-        """Transition from StandbyState to OfflineState. Catch up work could conceivably 
-           be done in OfflineState. There will be no contact with DDS, however. The only
-           available transition is from OfflineState to Final...which is 'off.' 
-           Any needed entities to be persisted beteen starts should happen after this transition. 
-           The system cannot be brought back up to EnableState from OfflineState.
-
-           When this method is called, DMCS should finish up any running jobs, and then 
-           begin working on the backlog queue. If the backlog queue is empty, persist and shut down.
-
-           Because the DDS is not reachable in the state resulting from this command, and 
-           telemetry from tasks done on the TO-DO queue must be staged, and then sent when 
-           the system returns to StandbyState.
-        
-        """
         new_state = "OFFLINE"
-        device = msg['DEVICE']
-        current_state = self.STATE_SCBD.get_device_state(device)
 
-        # call transition check
-        transition_check = self.validate_transition(current_state, new_state)
-
-        if transition_check == True:
-            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
-        else:
-            response = "Invalid transition from " + str(current_state) + " to " + new_state
-            response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response)
-
+        # call transition check and ACK
+        transition_check = self.validate_transition(new_state, msg)
 
 
     def process_standby_command(self, msg):
-        """StandbyState is the initial system stste after the system comes up and makes connection with DDS.
-           WHENEVER the StandbyState is entered, a new Session_ID is created. 
-           IOW, the DMCS wakes up to find itself in StandbyState.
-           Communication with DDS is expected and needed in ths state.
-        """
-
         new_state = "STANDBY"
-        device = msg['DEVICE']
-        current_state = self.STATE_SCBD.get_device_state(device)
 
         # call transition check
-        transition_check = self.validate_transition(current_state, new_state)
+        transition_check = self.validate_transition(new_state, msg)
 
-        if transition_check == True:
-            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
-        else:
-            response = "Invalid transition from " + str(current_state) + " to " + new_state
-            response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response, msg)
+        if transition_check:
+            # send new session id to all
+            session_id = self.STATE_SCBD.get_next_session_id()
+            acks = self.send_new_session_msg(session_id)
+
+            self.ack_timer(2)
+
+            # Check ack response
+            for a in acks:
+                ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
 
 
-
-
-
-
-
-        # send new session id to all
-        session_id = self.STATE_SCBD.get_next_session_id()
-        acks = self.send_new_session_msg(session_id)
-
-        self.ack_timer(2)
-
-        # Check ack response
-        for a in acks:
-            ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
-
+        ## XXXXXXXX FIX FIX XXXXXXXX
         ## XXX FIX  Do error trapping below
         ## acks is a List of ack_ids. The ack scoreboard is searched by the ack_id key
         ## Each ack_id will have a dict of components that acked under that ack_id
@@ -304,89 +257,30 @@ class DMCS:
 #            else:
 #                #Enter a fault state, as no devices are responding
 #                pass
-
         # Send return ack queue in new_session message
-
-
         # Set config key in state table
         # Send this state change to auditor
         # Ack back?
 
 
-
     def process_disable_command(self, msg):
-        """Transition from EnableState to DisableState. Limited operation only is capable after 
-           this transition; for example, transfer of 'catch up' work from camera buffer to archive 
-           is possible, but no NextVisit events will be received while in this state.
-
-        """
         new_state = "DISABLE"
-        device = msg['DEVICE']
-        current_state = self.STATE_SCBD.get_device_state(device)
-
-        # call transition check
-        transition_check = self.validate_transition(current_state, new_state)
-
-        if transition_check == True:
-            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
-        else:
-            response = "Invalid transition from " + str(current_state) + " to " + new_state
-            response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response, msg)
-
+        transition_check = self.validate_transition(new_state, msg)
 
 
     def process_enable_command(self, msg):
-        """Transition from DisableState to EnableState. Full operation is capable after this transition.
-
-        """
         new_state = "ENABLE"
-        device = msg['DEVICE']
-        current_state = self.STATE_SCBD.get_device_state(device)
-
-        # call transition check
-        transition_check = self.validate_transition(current_state, new_state)
-
-        if transition_check == True:
-            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
-        else:
-            response = "Invalid transition from " + str(current_state) + " to " + new_state
-            response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response, msg)
+        transition_check = self.validate_transition(new_state, msg)
 
 
     def process_fault_command(self, msg):
         new_state = "FAULT"
-        device = msg['DEVICE']
-        current_state = self.STATE_SCBD.get_device_state(device)
-
-        # call transition check
-        transition_check = self.validate_transition(current_state, new_state)
-
-        if transition_check == True:
-            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
-        else:
-            response = "Invalid transition from " + str(current_state) + " to " + new_state
-            response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response, msg)
-
+        transition_check = self.validate_transition(new_state, msg)
 
 
     def process_final_command(self, msg):
         new_state = "FINAL"
-        device = msg['DEVICE']
-        current_state = self.STATE_SCBD.get_device_state(device)
-
-        # call transition check
-        transition_check = self.validate_transition(current_state, new_state)
-
-        if transition_check == True:
-            self.send_ocs_ack(transition_check, str(device) + " device is now in " + new_state)
-        else:
-            response = "Invalid transition from " + str(current_state) + " to " + new_state
-            response = response + ". Device remaining in " + current_state + " state."
-            self.send_ocs_ack(transition_check, response, msg)
-
+        transition_check = self.validate_transition(new_state, msg)
 
 
     def process_next_visit_event(self, params):
@@ -579,10 +473,21 @@ class DMCS:
 
         return acks
 
-    def validate_transition(self, current_state, new_state):
+    def validate_transition(self, new_state, msg_in):
+        device = msg_in['DEVICE']
+        current_state = self.STATE_SCBD.get_device_state(device)
         current_index = toolsmod.state_enumeration[current_state]
         new_index = toolsmod.state_enumeration[new_state]
+
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
+        if transition_is_valid == True:
+            response = "The " + str(device) + " device is now in " + new_state
+            self.send_ocs_ack(transition_is_valid, response, msg_in)
+        else:
+            response = "Invalid transition from " + str(current_state) + " to " + new_state
+            response = response + ". Device remaining in " + current_state + " state."
+            self.send_ocs_ack(transition_is_valid, response, msg_in)
+
         return transition_is_valid
  
 
@@ -616,7 +521,7 @@ class DMCS:
 
     def purge_broker(self, vhost, queues):
         for q in queues:
-            cmd = "rabbitmqctl -p " + vhost + " purge_queue " + q
+            cmd = "sudo rabbitmqctl -p " + vhost + " purge_queue " + q
             os.system(cmd)
 
     def enter_fault_state(self, message):
