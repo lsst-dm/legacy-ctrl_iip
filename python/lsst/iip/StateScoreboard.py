@@ -178,6 +178,10 @@ class StateScoreboard(Scoreboard):
         return edict
 
 
+    def get_devices(self):
+        return self.get_devices_by_state(None)
+
+
     def build_monitor_data(self, params):
         monitor_data = {}
         keez = params.keys()

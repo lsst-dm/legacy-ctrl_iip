@@ -228,39 +228,12 @@ class DMCS:
         if transition_check:
             # send new session id to all
             session_id = self.STATE_SCBD.get_next_session_id()
-            acks = self.send_new_session_msg(session_id)
+            ack_timeout = 1
+            ack_id_list = self.send_new_session_msg(session_id, ack_timeout)
+            ## FIX ME - PERSIST ACK_ID_LIST TO SHARED DATA STRUCTURE.
 
-            self.ack_timer(2)
-
-            # Check ack response
-            for a in acks:
-                ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
-
-
-        ## XXXXXXXX FIX FIX XXXXXXXX
-        ## XXX FIX  Do error trapping below
-        ## acks is a List of ack_ids. The ack scoreboard is searched by the ack_id key
-        ## Each ack_id will have a dict of components that acked under that ack_id
-        ## These acks are set up as a different ack_id per device...is this necessary?
-        ## under the [ack_id}, the under the component name[ar_foreman], there will be an ACK_BOOL.
-        ## this tells whether the command was successful or not.
-#        if ack_responses == None:
-#            print "BIG Problem handling new session ack"
-#
-#            if ack_responses != None:
-#                responses = ack_responses.keys()
-#                for response in responses:
-#                    if response['AR_FOREMAN'][ACK_BOOL] == False:
-#                        # Mark this device as messed up...maybe enter fault.
-#                        # This means component or device 'response' failed
-#                        pass 
-#            else:
-#                #Enter a fault state, as no devices are responding
-#                pass
-        # Send return ack queue in new_session message
-        # Set config key in state table
-        # Send this state change to auditor
-        # Ack back?
+            ## Now check for ack_ids in main execution thread
+            ## ===============================================##
 
 
     def process_disable_command(self, msg):
@@ -456,14 +429,15 @@ class DMCS:
         pass
 
 
-    def send_new_session_msg(self, session_id):
-        acks = [] 
+    def send_new_session_msg(self, session_id, ack_delay):
+        ack_ids = [] 
         msg = {}
         msg['MSG_TYPE'] = 'NEW_SESSION'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['SESSION_ID'] = session_id
+        msg['ACK_DELAY'] = ack_delay
 
-        ddict = self.STATE_SCBD.get_devices_by_state(None)
+        ddict = self.STATE_SCBD.get_devices()
         for k in ddict.keys():
             consume_queue = ddict[k]
             ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
@@ -471,7 +445,8 @@ class DMCS:
             acks.append(ack_id)
             self._publisher.publish_message(consume_queue, msg)
 
-        return acks
+        return ack_ids
+
 
     def validate_transition(self, new_state, msg_in):
         device = msg_in['DEVICE']
@@ -481,6 +456,7 @@ class DMCS:
 
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
         if transition_is_valid == True:
+            self.STATE_SCBD.set_device_state(device, new_state)
             response = "The " + str(device) + " device is now in " + new_state
             self.send_ocs_ack(transition_is_valid, response, msg_in)
         else:
