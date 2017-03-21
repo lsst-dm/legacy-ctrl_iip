@@ -1,19 +1,19 @@
 
 
 /*
- * This file contains the implementation for the dm_standby commander test.
+ * This file contains the implementation for the archiver_standby commander test.
  *
  ***/
 
 #include <string>
 #include <sstream>
 #include <iostream>
-#include "SAL_dm.h"
-#include "ccpp_sal_dm.h"
+#include "SAL_archiver.h"
+#include "ccpp_sal_archiver.h"
 #include "os.h"
 #include <stdlib.h>
 using namespace DDS;
-using namespace dm;
+using namespace archiver;
 
 int main (int argc, char *argv[])
 { 
@@ -21,20 +21,20 @@ int main (int argc, char *argv[])
   int timeout=10;
   int status=0;
 
-  dm_command_standbyC myData;
+  archiver_command_standbyC myData;
   if (argc < 2 ) {
      printf("Usage :  input parameters...\n");
-     printf("  string	state;\n");
+     printf("  boolean	state;\n");
      exit(1);
   }
-  SAL_dm mgr = SAL_dm();
+  SAL_archiver mgr = SAL_archiver();
 
-  mgr.salCommand("dm_command_standby");
+  mgr.salCommand("archiver_command_standby");
 
-  myData.device   = argv[1];
+  myData.device   = "controller";
   myData.property = "command";
   myData.action   = "stop";
-    myData.state="";
+    sscanf(argv[1], "%d", &myData.state);
 
   // generate command
   cmdId = mgr.issueCommand_standby(&myData);

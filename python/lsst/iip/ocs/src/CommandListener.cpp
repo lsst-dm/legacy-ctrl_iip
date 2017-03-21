@@ -11,6 +11,7 @@
 using namespace std;
 
 int next_timed_ack_id = 0; 
+
 CommandListener::CommandListener() : OCS_Bridge() { 
     archiver = SAL_archiver(); 
     catchuparchiver = SAL_catchuparchiver(); 

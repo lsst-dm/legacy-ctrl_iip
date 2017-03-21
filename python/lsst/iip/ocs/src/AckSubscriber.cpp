@@ -39,7 +39,6 @@ AckSubscriber::AckSubscriber() {
 } 
 
 AckSubscriber::~AckSubscriber() { 
-    delete ack_consumer; 
 }
 
 void AckSubscriber::setup_consumer() { 
