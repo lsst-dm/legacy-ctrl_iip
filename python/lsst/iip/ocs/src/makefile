@@ -15,7 +15,7 @@ CARCHIVE = /opt/sal/ts_sal-master/test/catchuparchiver/cpp
 PCLUSTER = /opt/sal/ts_sal-master/test/processingcluster/cpp
 CFLAGS   = -g -Wall -c 
 
-all: CommandListener EventListener AckSubscriber SimplePublisher Consumer
+all: CommandListener AckSubscriber SimplePublisher Consumer
 
 OCS_Bridge: OCS_Bridge.cpp SimplePublisher
 	$(CC) -std=c++11 -I.. -L/usr/local/lib -lSimpleAmqpClient -lyaml-cpp SimplePublisher.o -c -o OCS_Bridge.o OCS_Bridge.cpp
