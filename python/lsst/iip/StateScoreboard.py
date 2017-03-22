@@ -98,8 +98,13 @@ class StateScoreboard(Scoreboard):
     def init_redis(self, ddict):
         if self.check_connection():
             self._redis.hset(self.AR, 'CONSUME_QUEUE', ddict[self.AR])
+            self.set_device_state(self.AR, 'STANDBY')
+
             self._redis.hset(self.PP, 'CONSUME_QUEUE', ddict[self.PP])
+            self.set_device_state(self.AR, 'STANDBY')
+
             self._redis.hset(self.CU, 'CONSUME_QUEUE', ddict[self.CU])
+            self.set_device_state(self.CU, 'STANDBY')
 
 
 
@@ -180,6 +185,14 @@ class StateScoreboard(Scoreboard):
 
     def get_devices(self):
         return self.get_devices_by_state(None)
+
+
+    def set_device_cfg_key(self, device, key):
+        self._redis.hset(device, 'CFG_KEY', key)
+
+
+    def get_device_cfg_key(self, device, key):
+        self._redis.hget(device, 'CFG_KEY')
 
 
     def build_monitor_data(self, params):

@@ -37,7 +37,7 @@ class DMCS:
     ACK_SCBD = None
     STATE_SCBD = None
     BACKLOG_SCBD = None
-    OCS_BDG_PUBLISH = "ocs_bdg_publish"  #Messages from OCS Bridge
+    OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
     DMCS_CONSUME = "dmcs_consume" #Used for Foreman comm
@@ -69,8 +69,10 @@ class DMCS:
 
         LOGGER.info('Extracting values from Config dictionary')
         try:
-            self._msg_name = cdm[ROOT][DMCS_BROKER_NAME]      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT][DMCS_BROKER_PASSWD]   
+            self._msg_name = cdm[ROOT]['DMCS_BROKER_NAME']      # Message broker user & passwd
+            self._msg_passwd = cdm[ROOT]['DMCS_BROKER_PASSWD']
+            self._pub_name = cdm[ROOT]['DMCS_BROKER_PUB_NAME']
+            self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
             state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
@@ -130,10 +132,11 @@ class DMCS:
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
-        self.pub_base_broker_url = "amqp://" + self._msg_name + "_PUB:" + \
-                                            self._msg_passwd + "_PUB@" + \
+
+        self.pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
+                                            self._pub_passwd + "@" + \
                                             str(self._base_broker_addr)
-        LOGGER.info('Building publishing _base_broker_url. Result is %s', self._base_broker_url)
+        LOGGER.info('Building publishing _base_broker_url. Result is %s', self.pub_base_broker_url)
 
         LOGGER.info('DMCS consumer setup')
         self.setup_consumers()
@@ -194,6 +197,7 @@ class DMCS:
 
 
     def on_ocs_message(self, ch, method, properties, msg_dict):
+        print "DUMPING msg_dict: %s" % msg_dict
         LOGGER.info('Processing message in OCS message callback')
         LOGGER.debug('Thread in OCS message callback of DMCS is %s', thread.get_ident())
         LOGGER.debug('Message from DMCS callback message body is: %s', str(msg_dict))
@@ -203,7 +207,6 @@ class DMCS:
     
 
     def on_ack_message(self, ch, method, properties, msg_dict):
-        msg_dict = body 
         LOGGER.info('Processing message in ACK message callback')
         LOGGER.debug('Thread in ACK callback od DMCS is %s', thread.get_ident())
         LOGGER.debug('Message from ACK callback message body is: %s', str(msg_dict))
@@ -384,12 +387,6 @@ class DMCS:
         pass
 
 
-
-
-    def process_offline_command(self):
-        pass
-
-
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
 
@@ -442,7 +439,7 @@ class DMCS:
             consume_queue = ddict[k]
             ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
             msg['ACK_ID'] = ack_id
-            acks.append(ack_id)
+            ack_ids.append(ack_id)
             self._publisher.publish_message(consume_queue, msg)
 
         return ack_ids
@@ -450,14 +447,25 @@ class DMCS:
 
     def validate_transition(self, new_state, msg_in):
         device = msg_in['DEVICE']
+        cfg_response = ""
         current_state = self.STATE_SCBD.get_device_state(device)
+            
         current_index = toolsmod.state_enumeration[current_state]
         new_index = toolsmod.state_enumeration[new_state]
+
+        if new_state == 'STANDBY' and 'CFG_KEY' in msg_in:
+            cfg_result = self.STATE_SCBD.set_device_cfg_key(device, msg_in['CFG_KEY'])
+            if cfg_result == True:  ### Consider checking with policy module here...
+                cfg_response = " CFG Key set to %s" % msg_in['CFG_KEY']
+            else:
+                cfg_response = " Invalid CFG Key -- using default"
+        
 
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
         if transition_is_valid == True:
             self.STATE_SCBD.set_device_state(device, new_state)
-            response = "The " + str(device) + " device is now in " + new_state
+            response = "The " + str(device) + " device is in " + new_state
+            response = response + cfg_response
             self.send_ocs_ack(transition_is_valid, response, msg_in)
         else:
             response = "Invalid transition from " + str(current_state) + " to " + new_state
@@ -474,7 +482,7 @@ class DMCS:
         message['ACK_DELAY'] = msg_in['ACK_DELAY']
         message['ACK_BOOL'] = transition_check
         message['ACK_STATEMENT'] = response
-        self._publisher.publish_message(DMCS_OCS_PUBLISH, message) 
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
 
 #    def get_next_timed_ack_id(self, ack_type):

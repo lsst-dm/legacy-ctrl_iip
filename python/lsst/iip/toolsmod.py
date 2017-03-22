@@ -21,8 +21,8 @@ def singleton(object, instantiated=[]):
 state_enumeration = {}
 state_enumeration["OFFLINE"] =  0
 state_enumeration["STANDBY"] =  1
-state_enumeration["DISABLED"] = 2
-state_enumeration["ENABLED"] =  3
+state_enumeration["DISABLE"] = 2
+state_enumeration["ENABLE"] =  3
 state_enumeration["FAULT"] =    4
 state_enumeration["INITIAL"] =  5
 state_enumeration["FINAL"] =    6
@@ -62,6 +62,14 @@ state_matrix[3][4] = True
 state_matrix[4][1] = True
 state_matrix[5][1] = True
 
+# Set up same state transitions as OK
+state_matrix[0][0] = True
+state_matrix[1][1] = True
+state_matrix[2][2] = True
+state_matrix[3][3] = True
+state_matrix[4][4] = True
+state_matrix[5][5] = True
+state_matrix[6][6] = True
 
 """ Exception classes 
 """ 

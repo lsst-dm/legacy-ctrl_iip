@@ -3,6 +3,8 @@ ROOT:
   NUMBER_OF_PAIRS: 10
   BASE_BROKER_NAME: BASE
   BASE_BROKER_PASSWD: BASE
+  BASE_BROKER_PUB_NAME: BASE_PUB
+  BASE_BROKER_PUB_PASSWD: BASE_PUB
   AFM_BROKER_NAME: AFM
   AFM_BROKER_PASSWD: AFM
   PFM_BROKER_NAME: PFM
@@ -13,6 +15,8 @@ ROOT:
   AUDIT_BROKER_PASSWD: AUDIT
   DMCS_BROKER_NAME: DMCS
   DMCS_BROKER_PASSWD: DMCS
+  DMCS_BROKER_PUB_NAME: DMCS_PUB
+  DMCS_BROKER_PUB_PASSWD: DMCS_PUB
   NCSA_BROKER_NAME: NCSA
   NCSA_BROKER_PASSWD: NCSA
   #BASE_BROKER_ADDR: 141.142.208.191:5672/%2ftester
@@ -20,6 +24,7 @@ ROOT:
   #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
   NCSA_BROKER_ADDR: 141.142.237.160:5672/%2fbunny
   INFLUX_DB: L1_Test
+  SESSION_ID_FILE: "/var/session_id"
   AUDIT_MSG_FORMAT: YAML
   RAFT_LIST:  ['4','6','18','2','1','20','15','16','3','12','5','10','9','14','19','7','13','8','21','17','11']
   CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115']
@@ -244,95 +249,96 @@ ROOT:
 
   BROKER_VHOST: /bunny
   QUEUE_PURGES:
-    - audit_consume
+#    - audit_consume
     - dmcs_consume
     - ocs_dmcs_consume
     - event_dmcs_consume
     - dmcs_ack_consume
+    - dmcs_ocs_publish
     - pp_foreman_ack_publish
     - pp_foreman_consume
     - pp_forwarder_publish
     - ar_foreman_ack_publish
     - ar_foreman_consume
-    - ar_forwarder_publish
-    - cu_foreman_ack_publish
-    - cu_foreman_consume
-    - cu_forwarder_publish
-    - archive_ctrl_publish
-    - archive_ctrl_consume
-    - f1_consume
-    - f2_consume
-    - f3_consume
-    - f4_consume
-    - f5_consume
-    - f6_consume
-    - f7_consume
-    - f8_consume
-    - f9_consume
-    - f10_consume
-    - f11_consume
-    - f12_consume
-    - f13_consume
-    - f14_consume
-    - f15_consume
-    - f16_consume
-    - f17_consume
-    - f18_consume
-    - f19_consume
-    - f20_consume
-    - f21_consume
-    - f22_consume
-    - f23_consume
-    - f24_consume
-    - f25_consume
-    - f26_consume
-    - f27_consume
-    - f28_consume
-    - f29_consume
-    - f30_consume
-    - f31_consume
-    - f32_consume
-    - f33_consume
-    - f34_consume
-    - f35_consume
-    - f36_consume
-    - f37_consume
-    - f38_consume
-    - f39_consume
-    - f40_consume
-    - f41_consume
-    - f42_consume
-    - f43_consume
-    - f44_consume
-    - f45_consume
-    - f46_consume
-    - f47_consume
-    - f48_consume
-    - f49_consume
-    - d1_consume
-    - d2_consume
-    - d3_consume
-    - d4_consume
-    - d5_consume
-    - d6_consume
-    - d7_consume
-    - d8_consume
-    - d9_consume
-    - d10_consume
-    - d11_consume
-    - d12_consume
-    - d13_consume
-    - d14_consume
-    - d15_consume
-    - d16_consume
-    - d17_consume
-    - d18_consume
-    - d19_consume
-    - d20_consume
-    - d21_consume
-    - d22_consume
-    - d23_consume
-    - d24_consume
-    - d25_consume
-    - f_consume
-    - forwarder_publish
+#    - ar_forwarder_publish
+#    - cu_foreman_ack_publish
+#    - cu_foreman_consume
+#    - cu_forwarder_publish
+#    - archive_ctrl_publish
+#    - archive_ctrl_consume
+#    - f1_consume
+#    - f2_consume
+#    - f3_consume
+#    - f4_consume
+#    - f5_consume
+#    - f6_consume
+#    - f7_consume
+#    - f8_consume
+#    - f9_consume
+#    - f10_consume
+#    - f11_consume
+#    - f12_consume
+#    - f13_consume
+#    - f14_consume
+#    - f15_consume
+#    - f16_consume
+#    - f17_consume
+#    - f18_consume
+#    - f19_consume
+#    - f20_consume
+#    - f21_consume
+#    - f22_consume
+#    - f23_consume
+#    - f24_consume
+#    - f25_consume
+#    - f26_consume
+#    - f27_consume
+#    - f28_consume
+#    - f29_consume
+#    - f30_consume
+#    - f31_consume
+#    - f32_consume
+#    - f33_consume
+#    - f34_consume
+#    - f35_consume
+#    - f36_consume
+#    - f37_consume
+#    - f38_consume
+#    - f39_consume
+#    - f40_consume
+#    - f41_consume
+#    - f42_consume
+#    - f43_consume
+#    - f44_consume
+#    - f45_consume
+#    - f46_consume
+#    - f47_consume
+#    - f48_consume
+#    - f49_consume
+#    - d1_consume
+#    - d2_consume
+#    - d3_consume
+#    - d4_consume
+#    - d5_consume
+#    - d6_consume
+#    - d7_consume
+#    - d8_consume
+#    - d9_consume
+#    - d10_consume
+#    - d11_consume
+#    - d12_consume
+#    - d13_consume
+#    - d14_consume
+#    - d15_consume
+#    - d16_consume
+#    - d17_consume
+#    - d18_consume
+#    - d19_consume
+#    - d20_consume
+#    - d21_consume
+#    - d22_consume
+#    - d23_consume
+#    - d24_consume
+#    - d25_consume
+#    - f_consume
+#    - forwarder_publish
