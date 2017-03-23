@@ -41,10 +41,8 @@ class DMCS:
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
     DMCS_CONSUME = "dmcs_consume" #Used for Foreman comm
-    #AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish" #Used for Foreman comm
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
     ACK_PUBLISH = "ack_publish"
-    OCS_BDG_PUBLISH = "ocs_dmcs_consume"
     CCD_LIST = [] 
 
 
@@ -52,9 +50,8 @@ class DMCS:
         toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
-        self._default_cfg_file = 'L1SystemCfg.yaml'
         if filename == None:
-            filename = self._default_cfg_file
+            filename = DEFAULT_CFG_FILE
 
 
         LOGGER.info('Reading YAML Config file %s' % filename)
@@ -64,7 +61,6 @@ class DMCS:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % filename
             LOGGER.critical(emsg + trace)
-            self.enter_fault_state(emsg)
             sys.exit(101) 
 
         LOGGER.info('Extracting values from Config dictionary')
@@ -82,18 +78,17 @@ class DMCS:
             self.CCD_LIST = cdm[ROOT]['CCD_LIST']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
+            self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
         except KeyError, e:
             trace = traceback.print_exc()
             emsg = "Unable to find key in CDM representation of %s\n" % filename
             LOGGER.critical(emsg + trace)
-            self.enter_fault_state(emsg)
             sys.exit(102) 
 
-        ### Run queue purges in rabbitmqctl
+        # Run queue purges in rabbitmqctl
         self.purge_broker(broker_vhost, queue_purges)
 
-        self._base_broker_url = 'amqp_url'
-        self._next_timed_ack_id = 0
+        self._next_timed_ack_id = self.init_ack_id()
 
         # TEMPORARY ONLY - Will be removed when config key nature is finalized
         # Build ccd_list as if a config key is being used... range val is numbee of CCDs to handle
@@ -144,9 +139,21 @@ class DMCS:
         LOGGER.info('DMCS publisher setup')
         self.setup_publishers()
 
-
         LOGGER.info('DMCS Init complete')
 
+
+    def init_ack_id(self):
+        if os.path.isfile(self.ack_id_file):
+            val = toolsmod.intake_yaml_file(self.dmcs_ack_id_file)
+            current_id = val['CURRENT_ACK_ID'] + 1
+            if current_id > 999900:
+                current_id = 1
+            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = current_id)
+            return current_id
+        else:
+            current_id = 1
+            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = current_id)
+            return current_id
 
 
     def setup_consumers(self):
@@ -160,9 +167,7 @@ class DMCS:
             trace = traceback.print_exc()
             emsg = "Unable to start new thread for OCS Bridge consumer"
             LOGGER.critical(emsg + trace)
-            self.enter_fault_state(emsg)
             LOGGER.critical('Cannot start OCS Bridge consumer thread for DMCS, exiting...')
-            print "Cannot start OCS Bridge consumer!"
             sys.exit(103)
 
 
@@ -173,7 +178,6 @@ class DMCS:
             trace = traceback.print_exc()
             emsg = "Unable to start new thread for OCS Bridge consumer"
             LOGGER.critical(emsg + trace)
-            self.enter_fault_state(emsg)
             LOGGER.critical('Cannot start ACK consumer thread for DMCS, exiting...')
             print "Cannot start ACK consumer for DMCS!"
             sys.exit(104)
@@ -200,7 +204,7 @@ class DMCS:
         print "DUMPING msg_dict: %s" % msg_dict
         LOGGER.info('Processing message in OCS message callback')
         LOGGER.debug('Thread in OCS message callback of DMCS is %s', thread.get_ident())
-        LOGGER.debug('Message from DMCS callback message body is: %s', str(msg_dict))
+        LOGGER.debug('Message and properties from DMCS callback message body is: %s', (str(msg_dict),properties))
 
         handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -209,7 +213,7 @@ class DMCS:
     def on_ack_message(self, ch, method, properties, msg_dict):
         LOGGER.info('Processing message in ACK message callback')
         LOGGER.debug('Thread in ACK callback od DMCS is %s', thread.get_ident())
-        LOGGER.debug('Message from ACK callback message body is: %s', str(msg_dict))
+        LOGGER.debug('Message and properties from ACK callback message body is: %s', (str(msg_dict),properties))
 
         handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -486,16 +490,9 @@ class DMCS:
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
 
-#    def get_next_timed_ack_id(self, ack_type):
-#            self._publisher.publish_message(consume_queue, msg)
-#
-#        return acks
-            
- 
-
-
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
+        toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = self.next_timed_ack_id)
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         return retval 
 
@@ -504,10 +501,12 @@ class DMCS:
         sleep(seconds)
         return True
 
+
     def purge_broker(self, vhost, queues):
         for q in queues:
             cmd = "sudo rabbitmqctl -p " + vhost + " purge_queue " + q
             os.system(cmd)
+
 
     def enter_fault_state(self, message):
         # tell other entities to enter fault state via messaging
