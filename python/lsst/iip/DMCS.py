@@ -405,6 +405,7 @@ class DMCS:
         failed_list = []
         keez = results.keys()
         for kee in keez:
+            ## No File == 0; Bad checksum == -1
             if (results[kee] == str(-1)) or (results[kee] == str(0)):
                 failed_list.append(kee)
 

@@ -33,19 +33,19 @@ state_enumeration["FINAL"] =    6
 #STATE\
 #      \ |Offline |Standby |Disabled|Enabled |Fault   |Initial |Final   |
 #------------------------------------------------------------------------ 
-#Offline |        |        |        |        |        |        |  TRUE  |
+#Offline | TRUE   |        |        |        |        |        |  TRUE  |
 #------------------------------------------------------------------------
-#Standby |  TRUE  |        |  TRUE  |        |  TRUE  |        |        |
+#Standby |  TRUE  | TRUE   |  TRUE  |        |  TRUE  |        |        |
 #------------------------------------------------------------------------
-#Disable |        |  TRUE  |        |  TRUE  |  TRUE  |        |        |
+#Disable |        |  TRUE  |  TRUE  |  TRUE  |  TRUE  |        |        |
 #------------------------------------------------------------------------
-#Enable  |        |        |  TRUE  |        |  TRUE  |        |        |
+#Enable  |        |        |  TRUE  |  TRUE  |  TRUE  |        |        |
 #------------------------------------------------------------------------
-#Fault   |        |  TRUE  |        |        |        |        |        |
+#Fault   |        |        |        |        |  TRUE  |        |        |
 #------------------------------------------------------------------------
-#Initial |        |  TRUE  |        |        |        |        |        |
+#Initial |        |  TRUE  |        |        |        | TRUE   |        |
 #------------------------------------------------------------------------
-#Final   |        |        |        |        |        |        |        |
+#Final   |        |        |        |        |        |        | TRUE   |
 #------------------------------------------------------------------------
 
 w, h = 7, 7;
@@ -59,7 +59,6 @@ state_matrix[2][3] = True
 state_matrix[2][4] = True
 state_matrix[3][2] = True
 state_matrix[3][4] = True
-state_matrix[4][1] = True
 state_matrix[5][1] = True
 
 # Set up same state transitions as OK
