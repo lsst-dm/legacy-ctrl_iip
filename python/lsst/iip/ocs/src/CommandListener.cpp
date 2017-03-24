@@ -1,3 +1,4 @@
+#include "Toolsmod.h"
 #include <iostream> 
 #include <sstream> 
 #include <pthread.h>
@@ -155,6 +156,12 @@ void CommandListener::archiver_enable(int cmdId, int timeout, os_time delay_10ms
 	string ack_id = get_next_timed_ack_id("ENABLE"); 
 	message << "{MSG_TYPE: ENABLE, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
 	cout << "ENABLE: " << message.str() << endl; 
+	
+	ostringstream message2; 
+	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
+		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+	cout << "MSG2: " << message2.str() << endl; 
+	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);

@@ -31,7 +31,7 @@ void Consumer::connect() {
 
 void Consumer::on_connection_open() { 
     cout << "Connection was successful" << endl; 
-    setup_exchange(); 
+    // setup_exchange(); 
 } 
 
 void Consumer::on_connection_closed() { 

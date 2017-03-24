@@ -20,20 +20,23 @@ all: CommandListener AckSubscriber SimplePublisher Consumer
 OCS_Bridge: OCS_Bridge.cpp SimplePublisher
 	$(CC) -std=c++11 -I.. -L/usr/local/lib -lSimpleAmqpClient -lyaml-cpp SimplePublisher.o -c -o OCS_Bridge.o OCS_Bridge.cpp
 
-CommandListener: CommandListener.cpp OCS_Bridge
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o SimplePublisher.o -Wall -o CommandListener CommandListener.cpp $(LDLIBS) 
+CommandListener: CommandListener.cpp OCS_Bridge Toolsmod
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o SimplePublisher.o Toolsmod.o -Wall -o CommandListener CommandListener.cpp $(LDLIBS) 
 
 EventListener: EventListener.cpp OCS_Bridge
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o SimplePublisher.o -Wall -o EventListener EventListener.cpp $(LDLIBS) 
 
 AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o Consumer.o SimplePublisher.o -Wall -o AckSubscriber AckSubscriber.cpp $(LDLIBS) 
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o Consumer.o SimplePublisher.o -Wall -g -o AckSubscriber AckSubscriber.cpp $(LDLIBS) 
 
 SimplePublisher: SimplePublisher.cpp
 	$(CC) -L/usr/local/lib -lSimpleAmqpClient -c -o SimplePublisher.o SimplePublisher.cpp
 
 Consumer: Consumer.cpp 
 	$(CC) -L/usr/local/lib -lSimpleAmqpClient -c -o Consumer.o Consumer.cpp
+
+Toolsmod: Toolsmod.cpp
+	$(CC) -std=c++11 -c -o Toolsmod.o Toolsmod.cpp
 
 clean:
 	rm -i *.o CommandListener EventListener AckSubscriber
