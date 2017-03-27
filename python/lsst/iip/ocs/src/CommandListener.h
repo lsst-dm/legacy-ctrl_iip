@@ -32,6 +32,7 @@ class CommandListener : public OCS_Bridge {
 
         /** pthread to listen to messages in the background */ 
 	pthread_t ocsthread; 
+	pthread_t resolvethread;  
 
 	// ack_id 
 	int timed_ack_id;
@@ -44,6 +45,7 @@ class CommandListener : public OCS_Bridge {
 
         /* set up a consumer for OCS commands */
 	void setup_ocs_consumer(); 
+	void setup_resolve_publisher(); 
 
         /** run OCS consumer to consume messages
           * OCS sends commands via devices called start_commander, stop_commander, ...
@@ -52,6 +54,7 @@ class CommandListener : public OCS_Bridge {
           * @param *pargs arguments passed to the thread
           */ 
 	static void *run_ocs_consumer(void *); 
+	static void *run_resolve_publisher(void *); 
 
         /** dm_start is used in run_ocs_consumer to accept messages from OCS system via device called start_commander
           * @param cmdId command id issued by the SAL

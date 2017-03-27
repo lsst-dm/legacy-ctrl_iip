@@ -18,7 +18,7 @@ using namespace archiver;
 int main (int argc, char *argv[])
 { 
   int cmdId;
-  int timeout=10;
+  int timeout=10000;
   int status=0;
 
   archiver_command_enableC myData;

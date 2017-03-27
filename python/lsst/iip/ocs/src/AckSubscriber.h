@@ -23,7 +23,5 @@ class AckSubscriber : public OCS_Bridge {
           * @param string message body
           */ 
         static void on_message(std::string); 
-
-	static int get_time_delta(std::string); 
 }; 
 

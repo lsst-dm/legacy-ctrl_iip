@@ -8,6 +8,7 @@
 #include "unistd.h"
 #include "OCS_Bridge.h"
 #include "AckSubscriber.h"
+#include "Toolsmod.h"
 
 using namespace std; 
 using namespace YAML; 
@@ -66,28 +67,36 @@ void AckSubscriber::on_message(string message) {
 	innerdict["CMD_ID"] = cmdId; 
 
 	ack_book_keeper[ack_id] = innerdict; 
+	cout << "BOOKKEEPING: " << cmdId << endl; 
     } 
     else if (message_value == "RESOLVE_ACK") { 
-	for (auto const &ack_dict : ack_book_keeper) { 
+	for (auto &ack_dict : ack_book_keeper) { 
 	    string check_box = ack_dict.second.find("CHECKBOX")->second; 
+	    string ack_id = ack_dict.first; 
 	    if (check_box == "false") { 
 		string dict_time = ack_dict.second.find("TIME")->second; 
 		string ack_delay = ack_dict.second.find("ACK_DELAY")->second; 
-		int cmdId = stoi(ack_dict.second.find("CMD_ID")->second); 
 
 		int time_delta = get_time_delta(dict_time); 
+		cout << "DTIME: " << to_string(time_delta) << endl;
 		bool timeout_result = time_delta > stoi(ack_delay) ? true : false; 
+
 		if (timeout_result) { 
+		    string cmd_id = ack_dict.second.find("CMD_ID")->second; 
+		    int command_id = stoi(cmd_id); 
+		    
 		    string ack_id = ack_dict.first; 
 		    string construct_msg = ack_id.substr(0, ack_id.find("_")) + "_ACK";  
-		    cout << construct_msg << endl; 
 		    funcptr action = get<1>(action_handler[construct_msg]); 
-		    (mgr.*action)(cmdId, SAL__CMD_TIMEOUT, 0, "TIMEOUT: Never recived the message back.");     
-		    cout << "HERE" << endl; 
-		    // need to checkmark as true
-		} 
-	    }
-	} 
+		    string cmd = get<0>(action_handler[construct_msg]); 
+
+		    mgr.salProcessor(const_cast<char *>(cmd.c_str())); 
+		    (mgr.*action)(command_id, SAL__CMD_COMPLETE, 0, "DONE: OK"); 
+
+		    ack_book_keeper[ack_id]["CHECKBOX"] = "true";
+		}  	
+	    }  
+	}
     } 
     else { 
 	cmdId = stoi(node["CMD_ID"].as<string>()); 
@@ -96,45 +105,25 @@ void AckSubscriber::on_message(string message) {
 	if (!message_value.empty()) { 
 	    mgr.salProcessor(const_cast<char *>(cmd.c_str())); 
 	    funcptr action = get<1>(action_handler[message_value]); 
-	    (mgr.*action)(cmdId, SAL__CMD_COMPLETE, 0, "Done: OK");     
-	    // need to checkmark as true
+
+	    string ack_bool = node["ACK_BOOL"].as<string>(); 
+	    string ack_statement = node["ACK_STATEMENT"].as<string>(); 
+	    
+	    if (ack_bool == "true") { 
+		(mgr.*action)(cmdId, SAL__CMD_COMPLETE, 0, const_cast<char *>(ack_statement.c_str()));     
+	    } 
+	    else { 
+		(mgr.*action)(cmdId, SAL__CMD_COMPLETE, -302, const_cast<char *>(ack_statement.c_str()));     
+	    }  	
+
+	    string ack_id = node["ACK_ID"].as<string>(); 
+	    ack_book_keeper[ack_id]["CHECKBOX"] = "true"; 
 	} 
 	else { 
 	    cout << "MSG_TYPE is not valid." << endl; 
 	} 
     } 
-
-    // iterate book_keeper 
-    for (auto const &ack_dict : ack_book_keeper) { 
-	cout << ack_dict.first << endl; 
-	for (auto const &value : ack_dict.second) { 
-	    cout << "    # " << value.first << ": " << value.second << endl;  
-	}  
-    } 
 } 
-
-int AckSubscriber::get_time_delta(string time_arg) { 
-    time_t t = time(0); 
-    struct tm* now = localtime(&t); 
-    int year = now->tm_year + 1900; 
-    int month = now->tm_mon + 1; 
-    int day = now->tm_mday; 
-    int hour = now->tm_hour; 
-    int cur_min = now->tm_min; 
-    int cur_sec = now->tm_sec; 
-
-    // currently concerning min and sec, more robust should compare years ... 
-    // assuming this is happening in same month and year
-    string hour_min = time_arg.substr(time_arg.find(" "), 9); 
-    string arg_min = hour_min.substr(4, 2); 
-    string arg_sec = hour_min.substr(7, 2); 
-    
-    int cur_time = cur_min * 60 + cur_sec; 
-    int arg_time = stoi(arg_min) * 60 + stoi(arg_sec); 
-    int delta_time = cur_time - arg_time; 
-    
-    return delta_time; 
-}
 
 int main() { 
     AckSubscriber ack; 

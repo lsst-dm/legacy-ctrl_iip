@@ -26,8 +26,8 @@ CommandListener: CommandListener.cpp OCS_Bridge Toolsmod
 EventListener: EventListener.cpp OCS_Bridge
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o SimplePublisher.o -Wall -o EventListener EventListener.cpp $(LDLIBS) 
 
-AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o Consumer.o SimplePublisher.o -Wall -g -o AckSubscriber AckSubscriber.cpp $(LDLIBS) 
+AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o Consumer.o SimplePublisher.o Toolsmod.o -Wall -g -o AckSubscriber AckSubscriber.cpp $(LDLIBS) 
 
 SimplePublisher: SimplePublisher.cpp
 	$(CC) -L/usr/local/lib -lSimpleAmqpClient -c -o SimplePublisher.o SimplePublisher.cpp

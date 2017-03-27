@@ -8,6 +8,9 @@
 #include "SAL_processingcluster.h" 
 #include "OCS_Bridge.h" 
 #include "CommandListener.h"
+#include <unistd.h> 
+#include <thread> 
+#include <chrono> 
 
 using namespace std;
 
@@ -26,6 +29,7 @@ CommandListener::CommandListener() : OCS_Bridge() {
     command_args->queue = OCS_PUBLISH;  
 
     setup_ocs_consumer();
+    setup_resolve_publisher(); 
 } 
 
 CommandListener::~CommandListener(){ 
@@ -34,6 +38,21 @@ CommandListener::~CommandListener(){
 void CommandListener::setup_ocs_consumer() { 
     cout << "Setting up OCS COMMAND consumer" << endl; 
     pthread_create(&ocsthread, NULL, &CommandListener::run_ocs_consumer, command_args); 
+} 
+
+void CommandListener::setup_resolve_publisher() { 
+    cout << "Setting up OCS RESOLVE publisher" << endl; 
+    pthread_create(&resolvethread, NULL, &CommandListener::run_resolve_publisher, command_args); 
+} 
+
+void *CommandListener::run_resolve_publisher(void *pargs) { 
+    usleep(10000000); 
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher *rabbit_publisher = params->publisher; 
+    while (1) { 
+	rabbit_publisher->publish_message("DMCS_OCS_PUBLISH", "{MSG_TYPE: RESOLVE_ACK}"); 
+	usleep(3000000);
+    }  
 } 
 
 void *CommandListener::run_ocs_consumer(void *pargs) { 
