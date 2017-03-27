@@ -5,7 +5,7 @@ import pika
 import redis
 import yaml
 import sys, traceback
-import os
+import os, os.path
 import time
 from time import sleep
 import thread
@@ -39,10 +39,7 @@ class DMCS:
     BACKLOG_SCBD = None
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
-    DMCS_PUBLISH = "dmcs_publish" #Used for Foreman comm
-    DMCS_CONSUME = "dmcs_consume" #Used for Foreman comm
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
-    ACK_PUBLISH = "ack_publish"
     CCD_LIST = [] 
 
 
@@ -139,6 +136,13 @@ class DMCS:
         LOGGER.info('DMCS publisher setup')
         self.setup_publishers()
 
+
+        # Check health of all devices
+
+        # All devices wake up in STANDBY state
+        self.STATE_SCBD.set_device_state("AR","STANDBY")
+        self.STATE_SCBD.set_device_state("PP","STANDBY")
+        self.STATE_SCBD.set_device_state("CU","STANDBY")
         LOGGER.info('DMCS Init complete')
 
 
@@ -235,12 +239,7 @@ class DMCS:
         if transition_check:
             # send new session id to all
             session_id = self.STATE_SCBD.get_next_session_id()
-            ack_timeout = 1
-            ack_id_list = self.send_new_session_msg(session_id, ack_timeout)
-            ## FIX ME - PERSIST ACK_ID_LIST TO SHARED DATA STRUCTURE.
-
-            ## Now check for ack_ids in main execution thread
-            ## ===============================================##
+            self.send_new_session_msg(session_id)
 
 
     def process_disable_command(self, msg):
@@ -431,7 +430,7 @@ class DMCS:
         pass
 
 
-    def send_new_session_msg(self, session_id, ack_delay):
+    def send_new_session_msg(self, session_id):
         ack_ids = [] 
         msg = {}
         msg['MSG_TYPE'] = 'NEW_SESSION'
@@ -458,7 +457,7 @@ class DMCS:
         current_index = toolsmod.state_enumeration[current_state]
         new_index = toolsmod.state_enumeration[new_state]
 
-        if new_state == 'STANDBY' and 'CFG_KEY' in msg_in:
+        if new_state == 'DISABLE' and 'CFG_KEY' in msg_in:
             cfg_result = self.STATE_SCBD.set_device_cfg_key(device, msg_in['CFG_KEY'])
             if cfg_result == True:  ### Consider checking with policy module here...
                 cfg_response = " CFG Key set to %s" % msg_in['CFG_KEY']
