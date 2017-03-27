@@ -25,7 +25,7 @@ ROOT:
   NCSA_BROKER_ADDR: 141.142.237.160:5672/%2fbunny
   INFLUX_DB: L1_Test
   SESSION_ID_FILE: "/var/session_id"
-  DMCS_ACK_ID_FILE: "var/dmcs_ack_id"
+  DMCS_ACK_ID_FILE: "/var/dmcs_ack_id"
   AUDIT_MSG_FORMAT: YAML
   RAFT_LIST:  ['4','6','18','2','1','20','15','16','3','12','5','10','9','14','19','7','13','8','21','17','11']
   CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115']
@@ -40,7 +40,7 @@ ROOT:
     ARCHIVE_IP: 141.142.230.190
     ARCHIVE_HOSTNAME: Archibald
     ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
-    CHECKSUM_INABLED: no
+    CHECKSUM_ENABLED: no
   SCOREBOARDS:
     AR_JOB_SCBD: 1
     AR_FWD_SCBD: 2

@@ -67,8 +67,8 @@ class ArchiveDevice:
             raise
 
 
-        if 'QUEUE_PURGES' in cdm[ROOT]:
-            self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
+        # if 'QUEUE_PURGES' in cdm[ROOT]:
+        #    self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
         self._base_msg_format = self.YAML
 
@@ -239,7 +239,7 @@ class ArchiveDevice:
         ac_timed_ack = self.get_next_timed_ack_id('AR_CTRL_NEW_ITEM')
         start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
         start_int_params['ACK_ID'] = ac_timed_ack
-        start_int_params[JOB_NUM] = job_number
+        start_int_params['JOB_NUM'] = job_number
         start_int_params['VISIT_ID'] = visit_id
         start_int_params['IMAGE_ID'] = image_id
         start_int_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
@@ -428,13 +428,6 @@ class ArchiveDevice:
         self.ack_timer(44)
 
         readout_responses = self.ACK_SCBD.get_components_for_timed_ack(fwdr_readout_ack)
-        print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
-        print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
-        print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
-        print "READOUT_RESPONSES IS:\n%s" % readout_responses
-        print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
-        print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
-        print "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
 
         self.process_readout_responses(readout_ack_id, image_id, readout_responses)
 
@@ -488,7 +481,6 @@ class ArchiveDevice:
         ack_msg['COMPONENT_NAME'] = 'AR_FOREMAN'
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['RESULTS_LIST'] = results
-        print ">>>>>>>>>>>>>  AM I HERE? <<<<<<<<<<<<<<<<<<<"
         self._publisher.publish_message("dmcs_ack_consume", ack_msg)
 
         ### FIXME Set state as complete for Job
