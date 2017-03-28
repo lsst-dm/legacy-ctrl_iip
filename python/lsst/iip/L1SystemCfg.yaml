@@ -250,7 +250,7 @@ ROOT:
 
   BROKER_VHOST: /bunny
   QUEUE_PURGES:
-#    - audit_consume
+    - audit_consume
     - dmcs_consume
     - ocs_dmcs_consume
     - event_dmcs_consume
@@ -261,22 +261,22 @@ ROOT:
     - pp_forwarder_publish
     - ar_foreman_ack_publish
     - ar_foreman_consume
-#    - ar_forwarder_publish
-#    - cu_foreman_ack_publish
-#    - cu_foreman_consume
-#    - cu_forwarder_publish
-#    - archive_ctrl_publish
-#    - archive_ctrl_consume
-#    - f1_consume
-#    - f2_consume
-#    - f3_consume
-#    - f4_consume
-#    - f5_consume
-#    - f6_consume
-#    - f7_consume
-#    - f8_consume
-#    - f9_consume
-#    - f10_consume
+    - ar_forwarder_publish
+    - cu_foreman_ack_publish
+    - cu_foreman_consume
+    - cu_forwarder_publish
+    - archive_ctrl_publish
+    - archive_ctrl_consume
+    - f1_consume
+    - f2_consume
+    - f3_consume
+    - f4_consume
+    - f5_consume
+    - f6_consume
+    - f7_consume
+    - f8_consume
+    - f9_consume
+    - f10_consume
 #    - f11_consume
 #    - f12_consume
 #    - f13_consume
