@@ -1,17 +1,11 @@
 #include "Consumer.h"
 
 /** Rabbitmq subscriber class to ack back messages from OCS after processing */ 
-class AckSubscriber { 
+class AckSubscriber : public OCS_Bridge { 
     public: 
         
         /** Consumer object to listen to messages from rabbitmq */ 
         Consumer* ack_consumer; 
-
-        /** rabbitmq broker address where rabbitmq server resides */ 
-	std::string base_broker_addr; 
-        
-        /** queue name to listen to messages from rabbitmq */ 
-	std::string OCS_CONSUME; 
 
         /** constructor for Rabbitmq ack subscriber to OCS system */ 
 	AckSubscriber(); 

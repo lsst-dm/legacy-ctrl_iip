@@ -274,16 +274,16 @@ class GraphicalOCS:
             print "Dex is none - cannot find active command button"
         else:
             if dex == 3:
-                cmd = self.command_list["standby"]
+                cmd = "standby" #self.command_list["standby"]
                 st_str = "Standby"
             elif dex == 2:
-                cmd = self.command_list["disable"]
+                cmd = "disable" #self.command_list["disable"]
                 st_str = "Disable"
             elif dex == 1:
-                cmd = self.command_list["enable"]
+                cmd = "enable" #self.command_list["enable"]
                 st_str = "Enable"
             else:
-                cmd = self.command_list["exit"]
+                cmd = "abort" #self.command_list["exit"]
                 st_str = "Exit"
         
 
@@ -298,13 +298,15 @@ class GraphicalOCS:
             print "Dex is none - cannot find active device button"
         else:
             if dex == 2:
-                self.device_param = "Archiver"
+                self.device_param = "archiver" #"Archiver"
             elif dex == 1:
-                self.device_param = "PromptProccesor"
+                self.device_param = "processingcluster" #"PromptProccesor"
             else:
-                self.device_param = "CatchupArchiver"
+                self.device_param = "catchuparchiver" #"CatchupArchiver"
 
-        command = cmd + " " + self.device_param
+        #command = cmd + " " + self.device_param
+	command = "./commands/sacpp_" + self.device_param + "_" + cmd + "_commander 0"
+	print "XXXXXXXX command: ", command
         status_str = "\nSending %s command to the %s device" % (st_str,self.device_param)
         cmd_str =  "\nShell command to be run is: %s\n" % command
         
