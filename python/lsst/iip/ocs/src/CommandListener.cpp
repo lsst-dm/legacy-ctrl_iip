@@ -144,6 +144,12 @@ void CommandListener::archiver_start(int cmdId, int timeout, os_time delay_10ms,
 	string ack_id = get_next_timed_ack_id("START"); 
 	message << "{MSG_TYPE: START, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
 	cout << "START: " << message.str() << endl; 
+
+	ostringstream message2; 
+	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
+		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+	cout << "MSG2: " << message2.str() << endl; 
+	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -160,6 +166,12 @@ void CommandListener::archiver_stop(int cmdId, int timeout, os_time delay_10ms, 
 	string ack_id = get_next_timed_ack_id("STOP"); 
 	message << "{MSG_TYPE: STOP, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
 	cout << "STOP: " << message.str() << endl; 
+
+	ostringstream message2; 
+	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
+		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+	cout << "MSG2: " << message2.str() << endl; 
+	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -196,6 +208,12 @@ void CommandListener::archiver_disable(int cmdId, int timeout, os_time delay_10m
 	string ack_id = get_next_timed_ack_id("DISABLE"); 
 	message << "{MSG_TYPE: DISABLE, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
 	cout << "DISABLE: " << message.str() << endl; 
+
+	ostringstream message2; 
+	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
+		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+	cout << "MSG2: " << message2.str() << endl; 
+	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -211,6 +229,12 @@ void CommandListener::archiver_standby(int cmdId, int timeout, os_time delay_10m
 	string ack_id = get_next_timed_ack_id("STANDBY"); 
 	message << "{MSG_TYPE: STANDBY, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
 	cout << "STANDBY: " << message.str() << endl; 
+
+	ostringstream message2; 
+	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
+		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+	cout << "MSG2: " << message2.str() << endl; 
+	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -224,8 +248,14 @@ void CommandListener::archiver_abort(int cmdId, int timeout, os_time delay_10ms,
 	cout << "== ARCHIVER ABORT Command " << endl;
 	ostringstream message; 
 	string ack_id = get_next_timed_ack_id("ABORT"); 
-	message << "{MSG_TYPE: ABORT, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
+	message << "{MSG_TYPE: FAULT, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
 	cout << "ABORT: " << message.str() << endl; 
+
+	ostringstream message2; 
+	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
+		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+	cout << "MSG2: " << message2.str() << endl; 
+	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -241,6 +271,12 @@ void CommandListener::archiver_enterControl(int cmdId, int timeout, os_time dela
 	string ack_id = get_next_timed_ack_id("ENTERCONTROL"); 
 	message << "{MSG_TYPE: ENTERCONTROL, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
 	cout << "ENTERCONTROL: " << message.str() << endl; 
+
+	ostringstream message2; 
+	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
+		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+	cout << "MSG2: " << message2.str() << endl; 
+	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
@@ -254,8 +290,14 @@ void CommandListener::archiver_exitControl(int cmdId, int timeout, os_time delay
 	cout << "== ARCHIVER EXITCONTROL Command " << endl;
 	ostringstream message; 
 	string ack_id = get_next_timed_ack_id("EXITCONTROL"); 
-	message << "{MSG_TYPE: EXITCONTROL, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
-	cout << "EXITCONTROL: " << message.str() << endl; 
+	message << "{MSG_TYPE: OFFLINE, DEVICE: AR, CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id << ", ACK_DELAY: 1}";  
+	cout << "OFFLINE: " << message.str() << endl; 
+
+	ostringstream message2; 
+	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
+		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+	cout << "MSG2: " << message2.str() << endl; 
+	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
     }
     os_nanoSleep(delay_10ms);
