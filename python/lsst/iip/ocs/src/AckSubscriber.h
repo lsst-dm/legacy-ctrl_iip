@@ -1,8 +1,13 @@
 #include "Consumer.h"
+#include <boost/variant.hpp> 
+#include "SAL_archiver.h" 
+#include "SAL_catchuparchiver.h" 
+#include "SAL_processingcluster.h" 
 
 /** Rabbitmq subscriber class to ack back messages from OCS after processing */ 
 class AckSubscriber : public OCS_Bridge { 
     public: 
+	typedef boost::variant<SAL_archiver, SAL_catchuparchiver, SAL_processingcluster> sal_obj; 
         
         /** Consumer object to listen to messages from rabbitmq */ 
         Consumer* ack_consumer; 
@@ -23,5 +28,9 @@ class AckSubscriber : public OCS_Bridge {
           * @param string message body
           */ 
         static void on_message(std::string); 
+
+	static std::string get_salProcessor(std::string, std::string); 
+
+	static sal_obj get_SALObj(std::string); 
 }; 
 

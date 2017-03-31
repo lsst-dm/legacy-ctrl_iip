@@ -147,7 +147,7 @@ void CommandListener::archiver_start(int cmdId, int timeout, os_time delay_10ms,
 
 	ostringstream message2; 
 	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
-		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+		     << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: AR }"; 
 	cout << "MSG2: " << message2.str() << endl; 
 	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
@@ -169,7 +169,7 @@ void CommandListener::archiver_stop(int cmdId, int timeout, os_time delay_10ms, 
 
 	ostringstream message2; 
 	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
-		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+		     << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: AR }"; 
 	cout << "MSG2: " << message2.str() << endl; 
 	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
@@ -190,7 +190,7 @@ void CommandListener::archiver_enable(int cmdId, int timeout, os_time delay_10ms
 	
 	ostringstream message2; 
 	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
-		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+		     << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: AR }"; 
 	cout << "MSG2: " << message2.str() << endl; 
 	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
@@ -211,7 +211,7 @@ void CommandListener::archiver_disable(int cmdId, int timeout, os_time delay_10m
 
 	ostringstream message2; 
 	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
-		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+		     << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: AR }"; 
 	cout << "MSG2: " << message2.str() << endl; 
 	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
@@ -232,7 +232,7 @@ void CommandListener::archiver_standby(int cmdId, int timeout, os_time delay_10m
 
 	ostringstream message2; 
 	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
-		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+		     << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: AR }"; 
 	cout << "MSG2: " << message2.str() << endl; 
 	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
@@ -253,7 +253,7 @@ void CommandListener::archiver_abort(int cmdId, int timeout, os_time delay_10ms,
 
 	ostringstream message2; 
 	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
-		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+		     << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: AR }"; 
 	cout << "MSG2: " << message2.str() << endl; 
 	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
@@ -274,7 +274,7 @@ void CommandListener::archiver_enterControl(int cmdId, int timeout, os_time dela
 
 	ostringstream message2; 
 	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
-		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+		     << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: AR }"; 
 	cout << "MSG2: " << message2.str() << endl; 
 	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
@@ -295,7 +295,7 @@ void CommandListener::archiver_exitControl(int cmdId, int timeout, os_time delay
 
 	ostringstream message2; 
 	message2 << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time() 
-		     << ", CMD_ID: " << to_string(cmdId) << "}"; 
+		     << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: AR }"; 
 	cout << "MSG2: " << message2.str() << endl; 
 	publisher->publish_message("DMCS_OCS_PUBLISH", message2.str());  
         publisher->publish_message(queue, message.str()); 
