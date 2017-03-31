@@ -100,12 +100,16 @@ class DMCS:
         self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
 
         # Messages from OCS Bridge
-        self._OCS_msg_actions = { OFFLINE: self.process_offline_command,
+        self._OCS_msg_actions = { ENTER_CONTROL: self.process_enter_control_command,
+                              START: self.process_start_command,
                               STANDBY: self.process_standby_command,
                               DISABLE: self.process_disable_command,
                               ENABLE: self.process_enable_command,
+                              SET_VALUE: self.process_set_value_command,
                               FAULT: self.process_fault_command,
-                              FINAL: self.process_final_command,
+                              EXIT_CONTROL: self.process_exit_control_command,
+                              ABORT: self.process_abort_command,
+                              STOP: self.process_stop_command,
                               NEXT_VISIT: self.process_next_visit_event,
                               START_INTEGRATION: self.process_start_integration_event,
                               READOUT: self.process_readout_event,
@@ -223,17 +227,18 @@ class DMCS:
         result = handler(msg_dict)
 
 
-    def process_offline_command(self, msg):
-        new_state = "OFFLINE"
+    def process_enter_control_command(self, msg):
+        new_state = toolsmod.next_state[msg['MSG_TYPE']]
+        transition_check = self.validate_transition(new_state, msg)
 
-        # call transition check and ACK
+
+    def process_start_command(self, msg):
+        new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_standby_command(self, msg):
-        new_state = "STANDBY"
-
-        # call transition check
+        new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
         if transition_check:
@@ -243,22 +248,58 @@ class DMCS:
 
 
     def process_disable_command(self, msg):
-        new_state = "DISABLE"
+        new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_enable_command(self, msg):
-        new_state = "ENABLE"
+        new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
+
+
+    def process_set_value_command(self, msg):
+        device = msg['DEVICE']
+        ack_msg = {}
+        ack_msg['MSG_TYPE'] = msg['MSG_TYPE'] + "_ACK"
+        ack_msg['ACK_ID'] = msg['ACK_ID']
+
+        current_state = self.STATE_SCBD.get_device_state(device)
+        if current_state == 'ENABLE':
+            value = msg['VALUE']
+            # Try and do something with value...
+            result = self.set_value(value)
+            if result:
+                ack_msg['ACK_BOOL'] = True 
+                ack_msg['ACK_STATEMENT'] = "Device " + device + " set to new value: " + str(value)
+            else:
+                ack_msg['ACK_BOOL'] = False 
+                ack_msg['ACK_STATEMENT'] = "Value " + str(value) + " is not valid for " + device
+        else:
+            ack_msg['ACK_BOOL'] = False 
+            ack_msg['ACK_STATEMENT'] = "Current state is " + current_state + ". Device \
+                                       state must be in ENABLE state for SET_VALUE command."
+
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, ack_msg)
+
 
 
     def process_fault_command(self, msg):
-        new_state = "FAULT"
+        pass
+
+
+    def process_exit_control_command(self, msg):
+        new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
-    def process_final_command(self, msg):
-        new_state = "FINAL"
+    def process_abort_command(self, msg):
+        new_state = toolsmod.next_state[msg['MSG_TYPE']]
+        # Send out ABORT messages!!!
+        transition_check = self.validate_transition(new_state, msg)
+
+
+    def process_stop_command(self, msg):
+        new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
@@ -457,12 +498,15 @@ class DMCS:
         current_index = toolsmod.state_enumeration[current_state]
         new_index = toolsmod.state_enumeration[new_state]
 
-        if new_state == 'DISABLE' and 'CFG_KEY' in msg_in:
-            cfg_result = self.STATE_SCBD.set_device_cfg_key(device, msg_in['CFG_KEY'])
-            if cfg_result == True:  ### Consider checking with policy module here...
-                cfg_response = " CFG Key set to %s" % msg_in['CFG_KEY']
-            else:
-                cfg_response = " Invalid CFG Key -- using default"
+        if msg_in['MSG_TYPE'] == 'START': 
+            if 'CFG_KEY' in msg_in:
+                cfg_result = self.STATE_SCBD.set_device_cfg_key(device, msg_in['CFG_KEY'])
+                if cfg_result == True:  ### Consider checking with policy module here...
+                    cfg_response = " CFG Key set to %s" % msg_in['CFG_KEY']
+                else:
+                    cfg_response = " Invalid CFG Key -- using default"
+        else:
+            cfg_response = " No CFG Key provided -- using default"
         
 
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]

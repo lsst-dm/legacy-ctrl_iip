@@ -18,6 +18,18 @@ def singleton(object, instantiated=[]):
         "%s is a Singleton class but is already instantiated" % object.__class__
     instantiated.append(object.__class__)
 
+# Dictionary showing the state a transition ends in
+next_state = {}
+next_state["ENTER_CONTROL"] = "STANDBY"
+next_state["EXIT_CONTROL"] = "FINAL"
+next_state["START"] = "DISABLE"
+next_state["ENABLE"] = "ENABLE"
+next_state["DISABLE"] = "DISABLE"
+next_state["STANDBY"] = "STANDBY"
+next_state["SET_VALUE"] = "ENABLE"
+next_state["ABORT"] = "DISABLE"
+next_state["STOP"] = "DISABLE"
+
 state_enumeration = {}
 state_enumeration["OFFLINE"] =  0
 state_enumeration["STANDBY"] =  1
@@ -35,7 +47,7 @@ state_enumeration["FINAL"] =    6
 #------------------------------------------------------------------------ 
 #Offline | TRUE   |        |        |        |        |        |  TRUE  |
 #------------------------------------------------------------------------
-#Standby |  TRUE  | TRUE   |  TRUE  |        |  TRUE  |        |        |
+#Standby |  TRUE  | TRUE   |  TRUE  |        |  TRUE  |        |  TRUE  |
 #------------------------------------------------------------------------
 #Disable |        |  TRUE  |  TRUE  |  TRUE  |  TRUE  |        |        |
 #------------------------------------------------------------------------
@@ -51,6 +63,7 @@ state_enumeration["FINAL"] =    6
 w, h = 7, 7;
 state_matrix = [[False for x in range(w)] for y in range(h)] 
 state_matrix[0][6] = True
+state_matrix[1][6] = True
 state_matrix[1][0] = True
 state_matrix[1][2] = True
 state_matrix[1][4] = True
@@ -61,7 +74,7 @@ state_matrix[3][2] = True
 state_matrix[3][4] = True
 state_matrix[5][1] = True
 
-# Set up same state transitions as OK
+# Set up same state transitions as allowed 
 state_matrix[0][0] = True
 state_matrix[1][1] = True
 state_matrix[2][2] = True
