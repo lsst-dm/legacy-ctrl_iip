@@ -28,8 +28,8 @@ class SAL {
 	{"DISABLE_ACK", &T::ackCommand_disable}, 
 	{"ENTERCONTROL_ACK", &T::ackCommand_enterControl}, 
 	{"STANDBY_ACK", &T::ackCommand_standby}, 
-	{"OFFLINE_ACK", &T::ackCommand_exitControl}, 
-	{"FAULT_ACK", &T::ackCommand_abort}
+	{"EXITCONTROL_ACK", &T::ackCommand_exitControl}, 
+	{"ABORT_ACK", &T::ackCommand_abort}
     }; 
 };  
 
