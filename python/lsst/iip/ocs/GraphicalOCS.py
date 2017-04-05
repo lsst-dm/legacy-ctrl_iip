@@ -48,14 +48,30 @@ class GraphicalOCS:
         cmds_label.set_use_markup(gtk.TRUE)
         cmds_label.set_markup('<span size="16000"><b>Choose Command</b></span>')
         separator1 = gtk.HSeparator()
-        self.standby = gtk.RadioButton(None, "Standby")
+        #v
+        self.enter = gtk.RadioButton(None, "EnterControl")
+        self.enter.connect("toggled", self.run_enter_command, None)
+        self.start = gtk.RadioButton(self.enter, "Start")
+        self.start.connect("toggled", self.run_start_command, None)
+        #^
+        self.standby = gtk.RadioButton(self.enter, "Standby")
         self.standby.connect("toggled", self.run_standby_command, None)
-        self.disable = gtk.RadioButton(self.standby, "Disable")
+        self.disable = gtk.RadioButton(self.enter, "Disable")
         self.disable.connect("toggled", self.run_disable_command, None)
-        self.enable = gtk.RadioButton(self.standby, "Enable")
+        self.enable = gtk.RadioButton(self.enter, "Enable")
         self.enable.connect("toggled", self.run_enable_command, None)
-        self.exit = gtk.RadioButton(self.standby, "Exit")
+        #v
+        #self.set_value = gtk.RadioButton(self.enter, "Set Value")
+        #self.set_value.connect("toggled", self.run_set_value_command, None)
+        #^
+        self.exit = gtk.RadioButton(self.enter, "ExitControl")
         self.exit.connect("toggled", self.run_exit_command, None)
+        #v
+        self.abort = gtk.RadioButton(self.enter, "Abort")
+        self.abort.connect("toggled", self.run_abort_command, None)
+        self.stop = gtk.RadioButton(self.enter, "Stop")
+        self.stop.connect("toggled", self.run_stop_command, None)
+        #^
 
         command_vbox.set_border_width(10)
         command_vbox.pack_start(cmds_label, True, True, 4)
@@ -63,6 +79,12 @@ class GraphicalOCS:
 
         command_vbox.pack_start(separator1, True, True, 4)
         separator1.show()
+
+        command_vbox.pack_start(self.enter, True, True, 4)
+        self.enter.show()
+
+        command_vbox.pack_start(self.start, True, True, 4)
+        self.start.show()
 
         command_vbox.pack_start(self.standby, True, True, 4)
         self.standby.show()
@@ -73,8 +95,17 @@ class GraphicalOCS:
         command_vbox.pack_start(self.enable, True, True, 4)
         self.enable.show()
 
+        #command_vbox.pack_start(self.set_value, True, True, 4)
+        #self.set_value.show()
+
         command_vbox.pack_start(self.exit, True, True, 4)
         self.exit.show()
+
+        command_vbox.pack_start(self.abort, True, True, 4)
+        self.abort.show()
+
+        command_vbox.pack_start(self.stop, True, True, 4)
+        self.stop.show()
 
         command_vbox.show()
 
@@ -240,6 +271,12 @@ class GraphicalOCS:
         self.win.show()
 
 
+    def run_enter_command(self, widget, data=None):
+        pass
+
+    def run_start_command(self, widget, data=None):
+        pass
+
     def run_standby_command(self, widget, data=None):
         pass
 
@@ -249,8 +286,18 @@ class GraphicalOCS:
     def run_enable_command(self, widget, data=None):
         pass
 
+    def run_set_value_command(self, widget, data=None):
+        pass
+
     def run_exit_command(self, widget, data=None):
         pass
+
+    def run_abort_command(self, widget, data=None):
+        pass
+
+    def run_stop_command(self, widget, data=None):
+        pass
+
 
     def run_ar_command(self, widget, data=None):
         pass
@@ -263,7 +310,7 @@ class GraphicalOCS:
 
     def process_send_command(self, widget, data=None):
         st_str = ""
-        c_list = self.standby.get_group()
+        c_list = self.enter.get_group()
         dex = None
         for i in range (0, len(c_list)):
             if c_list[i].get_active():
@@ -273,18 +320,30 @@ class GraphicalOCS:
         if dex == None:
             print "Dex is none - cannot find active command button"
         else:
-            if dex == 3:
-                cmd = "standby" #self.command_list["standby"]
+            if dex == 7:
+                cmd = "enterControl" 
+                st_str = "EnterControl"
+            if dex == 6:
+                cmd = "start" 
+                st_str = "Start"
+            if dex == 5:
+                cmd = "standby" 
                 st_str = "Standby"
-            elif dex == 2:
-                cmd = "disable" #self.command_list["disable"]
+            elif dex == 4:
+                cmd = "disable" 
                 st_str = "Disable"
-            elif dex == 1:
-                cmd = "enable" #self.command_list["enable"]
+            elif dex == 3:
+                cmd = "enable" 
                 st_str = "Enable"
+            elif dex == 2:
+                cmd = "exitControl"
+                st_str = "ExitControl"
+            elif dex == 1:
+                cmd = "abort"
+                st_str = "Abort"
             else:
-                cmd = "abort" #self.command_list["exit"]
-                st_str = "Exit"
+                cmd = "stop" 
+                st_str = "Stop"
         
 
         r_list = self.ar.get_group()

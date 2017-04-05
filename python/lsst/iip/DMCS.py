@@ -532,6 +532,20 @@ class DMCS:
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
+    def send_summary_state_event(self, device):
+        message = {}
+        msesage[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
+        message['DEVICE'] = device
+        message[STATE] = self.STATE_SCBD.get_device_state(device)
+        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+
+    def send_recommended_setting_versions_event(self, device):
+        message = {}
+        msesage[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
+        message['DEVICE'] = device
+        message[STATE] = self.STATE_SCBD.get_device_state(device)
+        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+
 
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
