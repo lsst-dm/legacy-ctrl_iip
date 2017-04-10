@@ -5,11 +5,11 @@ from Consumer import *
 from SimplePublisher import * 
 import yaml 
 
-consumer = Consumer("amqp://ocs:ocs@141.142.208.241/%2fbunny", "OCS_DMCS_CONSUME")
-publisher = SimplePublisher("amqp://ocs:ocs@141.142.208.241/%2fbunny")
+consumer = Consumer("amqp://OCS:OCS@141.142.208.191/%2fbunny", "ocs_dmcs_consume")
+publisher = SimplePublisher("amqp://OCS:OCS@141.142.208.191/%2fbunny")
 
 def callback(ch, method, properties, body): 
-    print "<<<< RUNNING <<<<<<"
+    print "<<<< MESSAGE IS <<<<<<"
     print body
     m = body
     
@@ -23,6 +23,7 @@ def callback(ch, method, properties, body):
     msg["CMD_ID"] = m["CMD_ID"] 
 
     print msg
-    publisher.publish_message("DMCS_OCS_PUBLISH", msg)
+    publisher.publish_message("dmcs_ocs_publish", msg)
 
+print(">>> RUNNING <<<")
 consumer.run(callback)

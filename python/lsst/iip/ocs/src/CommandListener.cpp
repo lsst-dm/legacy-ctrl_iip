@@ -22,19 +22,18 @@ template <typename SAL_device, typename SAL_struct>
 void listenCommand(string device, string command_name, os_time delay_10ms, int cmdId, SimplePublisher* publisher, string publish_q, string consume_q, SAL_device mgr, funcptr<SAL_device, SAL_struct> acceptCommand){ 
     SAL_struct SALInstance; 
     cmdId = (mgr.*acceptCommand)(&SALInstance); 
-    // this shows me that function is not working. 
     if (cmdId > 0) { 
 	cout << "== " << device << " " << command_name << " Command" << endl; 
 	ostringstream ack_msg; 
 	string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
 	ack_msg << "{MSG_TYPE: " << command_name << ", DEVICE: " << device << ", CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id
                 << ", ACK_DELAY: 2}"; 
-	cout << "XXX " << command_name << ": " << ack_msg.str() << endl; 
+	cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
 
 	ostringstream book_keeping; 
 	book_keeping << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time()
 	             << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: " << device << "}"; 
-	cout << "BOOK_KEEPING: " << book_keeping.str() << endl; 
+	cout << "XXX BOOK_KEEPING: " << book_keeping.str() << endl; 
 
 	publisher->publish_message(consume_q, book_keeping.str()); 
 	publisher->publish_message(publish_q, ack_msg.str());  
@@ -76,9 +75,10 @@ void *CommandListener::run_resolve_publisher(void *pargs) {
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
     SimplePublisher *rabbit_publisher = params->publisher; 
     while (1) { 
-	rabbit_publisher->publish_message("DMCS_OCS_PUBLISH", "{MSG_TYPE: RESOLVE_ACK}"); 
+	rabbit_publisher->publish_message("dmcs_ocs_publish", "{MSG_TYPE: RESOLVE_ACK}"); 
 	usleep(3000000);
     }  
+    return 0; 
 } 
 
 void *CommandListener::run_ocs_consumer(void *pargs) { 
