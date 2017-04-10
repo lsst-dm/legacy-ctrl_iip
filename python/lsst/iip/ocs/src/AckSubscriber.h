@@ -28,7 +28,6 @@ class AckSubscriber : public OCS_Bridge {
           */ 
         static void on_message(std::string); 
 
-	static std::string get_salProcessor(std::string, std::string); 
 	static void process__ack(YAML::Node);  
 	static void process_event__SummaryState(YAML::Node);  
 	static void process_event__RecommendedSettings(YAML::Node);  
@@ -37,7 +36,9 @@ class AckSubscriber : public OCS_Bridge {
 	static void process_event__ErrorCode(YAML::Node);  
 	static void process__book_keeping(YAML::Node);  
 	static void process__resolve_ack(YAML::Node);  
-	static std::string getSalEvent(std::string, std::string); 
-	static sal_obj get_SALObj(std::string); 
+
+	static std::string get_salProcessor(std::string, std::string); 
+	static std::string get_salEvent(std::string, std::string); 
+	static sal_obj get_salObj(std::string); 
 }; 
 

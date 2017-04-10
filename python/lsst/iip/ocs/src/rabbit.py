@@ -80,22 +80,43 @@ m6["DEVICE"] = "PP"
 sp.publish_message("dmcs_ocs_publish", m6) 
 
 m7 = {} 
-m7["APPLIED_SETTINGS_MATCHSTART_ISTRUE"] = "1"
+m7["APPLIED_SETTINGS_MATCHSTART_ISTRUE"] = "true"
 m7["PRIORITY"] = "2"
 m7["DEVICE"] = "AR"
 m7["MSG_TYPE"] = "APPLIED_SETTINGS_MATCHSTART"
 sp.publish_message("dmcs_ocs_publish", m7) 
 
 m8 = {} 
-m8["APPLIED_SETTINGS_MATCHSTART_ISTRUE"] = "1"
+m8["APPLIED_SETTINGS_MATCHSTART_ISTRUE"] = "false"
 m8["PRIORITY"] = "2"
 m8["DEVICE"] = "CU"
 m8["MSG_TYPE"] = "APPLIED_SETTINGS_MATCHSTART"
 sp.publish_message("dmcs_ocs_publish", m8) 
 
 m9 = {} 
-m9["APPLIED_SETTINGS_MATCHSTART_ISTRUE"] = "1"
+m9["APPLIED_SETTINGS_MATCHSTART_ISTRUE"] = "true"
 m9["PRIORITY"] = "2"
 m9["DEVICE"] = "PP"
 m9["MSG_TYPE"] = "APPLIED_SETTINGS_MATCHSTART"
 sp.publish_message("dmcs_ocs_publish", m9) 
+
+m10 = {} 
+m10["MSG_TYPE"] = "RECOMMENDED_SETTING_VERSIONS" 
+m10["DEVICE"] = "AR"
+m10["PRIORITY"] = "2" 
+m10["RECOMMENDED_SETTING_VERSION"] = "2"
+sp.publish_message("dmcs_ocs_publish", m10) 
+
+m11 = {} 
+m11["MSG_TYPE"] = "RECOMMENDED_SETTING_VERSIONS" 
+m11["DEVICE"] = "CU"
+m11["PRIORITY"] = "2" 
+m11["RECOMMENDED_SETTING_VERSION"] = "2"
+sp.publish_message("dmcs_ocs_publish", m11) 
+
+m12 = {} 
+m12["MSG_TYPE"] = "RECOMMENDED_SETTING_VERSIONS" 
+m12["DEVICE"] = "PP"
+m12["PRIORITY"] = "2" 
+m12["RECOMMENDED_SETTING_VERSION"] = "2"
+sp.publish_message("dmcs_ocs_publish", m12) 

@@ -27,7 +27,7 @@ class eventSAL {
 	int priority = n["PRIORITY"].as<int>();
 
 	T mgr = T(); 
-	string sal_event = AckSubscriber::getSalEvent(device, message_type); 
+	string sal_event = AckSubscriber::get_salEvent(device, message_type); 
 	mgr.salEvent(const_cast<char *>(sal_event.c_str())); 
 	(mgr.*logEvent)(&data, priority);  
 	mgr.salShutdown(); 
@@ -77,7 +77,7 @@ map<string, funcptr> action_handler = {
     {"EXITCONTROL_ACK", &AckSubscriber::process__ack}, 
     {"ABORT_ACK", &AckSubscriber::process__ack}, 
     {"SUMMARY_STATE", &AckSubscriber::process_event__SummaryState}, 
-    {"RECOMMENDED_SETTINGS_VERSION", &AckSubscriber::process_event__RecommendedSettings}, 
+    {"RECOMMENDED_SETTING_VERSIONS", &AckSubscriber::process_event__RecommendedSettings}, 
     {"SETTINGS_APPLIED", &AckSubscriber::process_event__AppliedSettings}, 
     {"APPLIED_SETTINGS_MATCHSTART", &AckSubscriber::process_event__AppliedSettingsMatchStart}, 
     {"ERROR_CODE", &AckSubscriber::process_event__ErrorCode}, 
@@ -88,7 +88,8 @@ map<string, funcptr> action_handler = {
 map<string, string> eventDict = { 
     {"ERROR_CODE", "ErrorCode"}, 
     {"APPLIED_SETTINGS_MATCHSTART", "AppliedSettingsMatchStart"}, 
-    {"SUMMARY_STATE", "EntitySummaryState"}
+    {"SUMMARY_STATE", "EntitySummaryState"}, 
+    {"RECOMMENDED_SETTING_VERSIONS", "SettingVersions"} 
 }; 
 
 map<string, map<string, string>> ack_book_keeper; 
@@ -135,28 +136,12 @@ void AckSubscriber::process__ack(Node n) {
     v.ack_statement = ack_statement; 
     
     cout << "XXX PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
-    sal_obj mgr = get_SALObj(device); 
+    sal_obj mgr = get_salObj(device); 
     boost::apply_visitor(v, mgr); 
     
     ack_book_keeper[ack_id]["CHECKBOX"] = "true"; 
 }
  
-string AckSubscriber::getSalEvent(string device, string message_type) { 
-    string event_name, device_name, message_name; 
-    if (device == "AR") device_name = "archiver"; 
-    else if (device == "CU") device_name = "catchuparchiver"; 
-    else if (device == "PP") device_name = "processingcluster"; 
-
-    message_name = eventDict[message_type]; 
-    if (message_type == "SUMMARY_STATE") { 
-	event_name = device_name + "_logevent_" + device_name + message_name; 
-    } 
-    else { 
-	event_name = device_name + "_logevent_" + message_name; 
-    } 
-    return event_name; 
-} 
-
 void AckSubscriber::process_event__SummaryState(Node n) {
     string device = n["DEVICE"].as<string>(); 
     if (device == "AR") { 
@@ -167,13 +152,13 @@ void AckSubscriber::process_event__SummaryState(Node n) {
 	data.Name = n["NAME"].as<string>(); 
 	data.Identifier = n["IDENTIFIER"].as<double>(); 
 	data.Timestamp = n["TIMESTAMP"].as<string>(); 
-	data.Address = n["ADDRESS"].as<int>(); 
+	data.Address = n["ADDRESS"].as<long>(); 
 	data.CurrentState = n["CURRENT_STATE"].as<string>(); 
 	data.PreviousState = n["PREVIOUS_STATE"].as<string>(); 
 	data.Executing = n["EXECUTING"].as<string>();  
 	data.CommandsAvailable = n["COMMANDS_AVAILABLE"].as<string>();  
 	data.ConfigurationsAvailable = n["CONFIGURATIONS_AVAILABLE"].as<string>();  
-	data.priority = n["PRIORITY"].as<int>();  
+	data.priority = n["PRIORITY"].as<long>();  
 	archiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "CU") { 
@@ -184,13 +169,13 @@ void AckSubscriber::process_event__SummaryState(Node n) {
 	data.Name = n["NAME"].as<string>(); 
 	data.Identifier = n["IDENTIFIER"].as<double>(); 
 	data.Timestamp = n["TIMESTAMP"].as<string>(); 
-	data.Address = n["ADDRESS"].as<int>(); 
+	data.Address = n["ADDRESS"].as<long>(); 
 	data.CurrentState = n["CURRENT_STATE"].as<string>(); 
 	data.PreviousState = n["PREVIOUS_STATE"].as<string>(); 
 	data.Executing = n["EXECUTING"].as<string>();  
 	data.CommandsAvailable = n["COMMANDS_AVAILABLE"].as<string>();  
 	data.ConfigurationsAvailable = n["CONFIGURATIONS_AVAILABLE"].as<string>();  
-	data.priority = n["PRIORITY"].as<int>();  
+	data.priority = n["PRIORITY"].as<long>();  
 	catchuparchiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "PP") { 
@@ -201,19 +186,48 @@ void AckSubscriber::process_event__SummaryState(Node n) {
 	data.Name = n["NAME"].as<string>(); 
 	data.Identifier = n["IDENTIFIER"].as<double>(); 
 	data.Timestamp = n["TIMESTAMP"].as<string>(); 
-	data.Address = n["ADDRESS"].as<int>(); 
+	data.Address = n["ADDRESS"].as<long>(); 
 	data.CurrentState = n["CURRENT_STATE"].as<string>(); 
 	data.PreviousState = n["PREVIOUS_STATE"].as<string>(); 
 	data.Executing = n["EXECUTING"].as<string>();  
 	data.CommandsAvailable = n["COMMANDS_AVAILABLE"].as<string>();  
 	data.ConfigurationsAvailable = n["CONFIGURATIONS_AVAILABLE"].as<string>();  
-	data.priority = n["PRIORITY"].as<int>();  
+	data.priority = n["PRIORITY"].as<long>();  
 	processingcluster_sum.send_eventState(n, func, data);  
     } 
 } 
 
 void AckSubscriber::process_event__RecommendedSettings(Node n){ 
+    string device = n["DEVICE"].as<string>();  
+    if (device == "AR") { 
+	eventSAL<SAL_archiver, archiver_logevent_SettingVersionsC> archiver_sum; 
+	eventSAL<SAL_archiver, archiver_logevent_SettingVersionsC>::
+		eventStateFunc func = &SAL_archiver::logEvent_SettingVersions; 
+	archiver_logevent_SettingVersionsC data; 
+	data.recommendedSettingVersion = n["RECOMMENDED_SETTING_VERSION"].as<string>(); 
+	data.priority = n["PRIORITY"].as<long>();  
+	archiver_sum.send_eventState(n, func, data);  
+    } 
+    else if (device == "CU") { 
+	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SettingVersionsC> catchuparchiver_sum; 
+	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SettingVersionsC>::
+		eventStateFunc func = &SAL_catchuparchiver::logEvent_SettingVersions; 
+	catchuparchiver_logevent_SettingVersionsC data; 
+	data.recommendedSettingVersion = n["RECOMMENDED_SETTING_VERSION"].as<string>(); 
+	data.priority = n["PRIORITY"].as<long>();  
+	catchuparchiver_sum.send_eventState(n, func, data);  
+    } 
+    else if (device == "PP") { 
+	eventSAL<SAL_processingcluster, processingcluster_logevent_SettingVersionsC> processingcluster_sum; 
+	eventSAL<SAL_processingcluster, processingcluster_logevent_SettingVersionsC>::
+		eventStateFunc func = &SAL_processingcluster::logEvent_SettingVersions; 
+	processingcluster_logevent_SettingVersionsC data; 
+	data.recommendedSettingVersion = n["RECOMMENDED_SETTING_VERSION"].as<string>(); 
+	data.priority = n["PRIORITY"].as<long>();  
+	processingcluster_sum.send_eventState(n, func, data);  
+    } 
 }
+
 void AckSubscriber::process_event__AppliedSettings(Node n){ 
 }
 
@@ -224,8 +238,8 @@ void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){
 	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC>::
 		eventStateFunc func = &SAL_archiver::logEvent_AppliedSettingsMatchStart; 
 	archiver_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<int>(); 
-	data.priority = n["PRIORITY"].as<int>();  
+	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<bool>(); 
+	data.priority = n["PRIORITY"].as<long>();  
 	archiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "CU") { 
@@ -233,8 +247,8 @@ void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){
 	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_AppliedSettingsMatchStartC>::
 		eventStateFunc func = &SAL_catchuparchiver::logEvent_AppliedSettingsMatchStart; 
 	catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<int>(); 
-	data.priority = n["PRIORITY"].as<int>();  
+	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<bool>(); 
+	data.priority = n["PRIORITY"].as<long>();  
 	catchuparchiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "PP") { 
@@ -242,8 +256,8 @@ void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){
 	eventSAL<SAL_processingcluster, processingcluster_logevent_AppliedSettingsMatchStartC>::
 		eventStateFunc func = &SAL_processingcluster::logEvent_AppliedSettingsMatchStart; 
 	processingcluster_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<int>(); 
-	data.priority = n["PRIORITY"].as<int>();  
+	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<bool>(); 
+	data.priority = n["PRIORITY"].as<long>();  
 	processingcluster_sum.send_eventState(n, func, data);  
     } 
 }
@@ -255,8 +269,8 @@ void AckSubscriber::process_event__ErrorCode(Node n){
 	eventSAL<SAL_archiver, archiver_logevent_ErrorCodeC>::
 		eventStateFunc func = &SAL_archiver::logEvent_ErrorCode; 
 	archiver_logevent_ErrorCodeC data; 
-	data.errorCode = n["ERROR_CODE"].as<int>(); 
-	data.priority = n["PRIORITY"].as<int>();  
+	data.errorCode = n["ERROR_CODE"].as<long>(); 
+	data.priority = n["PRIORITY"].as<long>();  
 	archiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "CU") { 
@@ -264,8 +278,8 @@ void AckSubscriber::process_event__ErrorCode(Node n){
 	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_ErrorCodeC>::
 		eventStateFunc func = &SAL_catchuparchiver::logEvent_ErrorCode; 
 	catchuparchiver_logevent_ErrorCodeC data; 
-	data.errorCode = n["ERROR_CODE"].as<int>(); 
-	data.priority = n["PRIORITY"].as<int>();  
+	data.errorCode = n["ERROR_CODE"].as<long>(); 
+	data.priority = n["PRIORITY"].as<long>();  
 	catchuparchiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "PP") { 
@@ -273,8 +287,8 @@ void AckSubscriber::process_event__ErrorCode(Node n){
 	eventSAL<SAL_processingcluster, processingcluster_logevent_ErrorCodeC>::
 		eventStateFunc func = &SAL_processingcluster::logEvent_ErrorCode; 
 	processingcluster_logevent_ErrorCodeC data; 
-	data.errorCode = n["ERROR_CODE"].as<int>(); 
-	data.priority = n["PRIORITY"].as<int>();  
+	data.errorCode = n["ERROR_CODE"].as<long>(); 
+	data.priority = n["PRIORITY"].as<long>();  
 	processingcluster_sum.send_eventState(n, func, data);  
     } 
 }
@@ -308,7 +322,7 @@ void AckSubscriber::process__resolve_ack(Node n) {
 		v.ack_statement = "DONE: OK"; 
 
 		cout << "XXX RESOLVE_ACK: " << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
-		sal_obj mgr = get_SALObj(device); 
+		sal_obj mgr = get_salObj(device); 
 		boost::apply_visitor(v, mgr); 
 
 		ack_book_keeper[ack_id]["CHECKBOX"] = "true";
@@ -336,7 +350,7 @@ void AckSubscriber::process__book_keeping(Node n) {
     cout << "XXX BOOKKEEPING: " << cmdId << endl; 
 } 
 
-AckSubscriber::sal_obj AckSubscriber::get_SALObj(string device) { 
+AckSubscriber::sal_obj AckSubscriber::get_salObj(string device) { 
     sal_obj my_device; 
     if (device == "AR") my_device = SAL_archiver(); 
     else if (device == "CU") my_device = SAL_catchuparchiver(); 
@@ -357,6 +371,23 @@ string AckSubscriber::get_salProcessor(string device, string ack_id) {
 
     return cmd; 
 } 
+
+string AckSubscriber::get_salEvent(string device, string message_type) { 
+    string event_name, device_name, message_name; 
+    if (device == "AR") device_name = "archiver"; 
+    else if (device == "CU") device_name = "catchuparchiver"; 
+    else if (device == "PP") device_name = "processingcluster"; 
+
+    message_name = eventDict[message_type]; 
+    if (message_type == "SUMMARY_STATE") { 
+	event_name = device_name + "_logevent_" + device_name + message_name; 
+    } 
+    else { 
+	event_name = device_name + "_logevent_" + message_name; 
+    } 
+    return event_name; 
+} 
+
 
 int main() { 
     AckSubscriber ack; 
