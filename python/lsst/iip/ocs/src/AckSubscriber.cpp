@@ -22,15 +22,21 @@ class eventSAL {
     public: 
     typedef salReturn (T::*eventStateFunc)(U*, int); 
     void send_eventState(Node n, eventStateFunc logEvent, U data) { 
-	string message_type = n["MSG_TYPE"].as<string>(); 
-	string device = n["DEVICE"].as<string>(); 
-	int priority = n["PRIORITY"].as<int>();
-
-	T mgr = T(); 
-	string sal_event = AckSubscriber::get_salEvent(device, message_type); 
-	mgr.salEvent(const_cast<char *>(sal_event.c_str())); 
-	(mgr.*logEvent)(&data, priority);  
-	mgr.salShutdown(); 
+	string message_type, device; 
+	int priority; 
+	try { 
+	    message_type = n["MSG_TYPE"].as<string>(); 
+	    device = n["DEVICE"].as<string>(); 
+	    priority = n["PRIORITY"].as<int>();
+	    T mgr = T(); 
+	    string sal_event = AckSubscriber::get_salEvent(device, message_type); 
+	    mgr.salEvent(const_cast<char *>(sal_event.c_str())); 
+	    (mgr.*logEvent)(&data, priority);  
+	    mgr.salShutdown(); 
+	} 
+	catch (exception& e) { 
+	    cout << "WARNING: In AckSubscriber -- send_eventState, cannot read fields from message." << endl; 
+	}
     } 
 }; 
 
@@ -113,52 +119,82 @@ void AckSubscriber::run() {
 void AckSubscriber::on_message(string message) { 
     cout << "XXX MSG: " << message << endl; 
     Node node = Load(message); 
-    string message_value = node["MSG_TYPE"].as<string>(); 
-    
-    funcptr action = action_handler[message_value]; 
-    (*action)(node); 
+    string message_value; 
+    try { 
+	message_value = node["MSG_TYPE"].as<string>(); 
+	funcptr action = action_handler[message_value]; 
+	(*action)(node); 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- on_message, cannot read fields from message." << endl; 
+    } 
 } 
 
 void AckSubscriber::process__ack(Node n) {
-    string message_value = n["MSG_TYPE"].as<string>(); 
-    int cmdId = stoi(n["CMD_ID"].as<string>()); 
-    string device = n["DEVICE"].as<string>(); 
-    string ack_id = n["ACK_ID"].as<string>(); 
-    string ack_bool = n["ACK_BOOL"].as<string>(); 
-    string ack_statement = n["ACK_STATEMENT"].as<string>(); 
-    string cmd = get_salProcessor(device, ack_id); 
+    try { 
+	string message_value = n["MSG_TYPE"].as<string>(); 
+	int cmdId = stoi(n["CMD_ID"].as<string>()); 
+	string device = n["DEVICE"].as<string>(); 
+	string ack_id = n["ACK_ID"].as<string>(); 
+	string ack_bool = n["ACK_BOOL"].as<string>(); 
+	string ack_statement = n["ACK_STATEMENT"].as<string>();
+	string cmd = get_salProcessor(device, ack_id); 
 
-    visitor v; 
-    v.dict_key = message_value; 
-    v.cmdId = cmdId; 
-    v.cmd = cmd; 
-    v.error_code = (ack_bool == "true") ? 0: -302; 
-    v.ack_statement = ack_statement; 
-    
-    cout << "XXX PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
-    sal_obj mgr = get_salObj(device); 
-    boost::apply_visitor(v, mgr); 
-    
-    ack_book_keeper[ack_id]["CHECKBOX"] = "true"; 
+	visitor v; 
+	v.dict_key = message_value; 
+	v.cmdId = cmdId; 
+	v.cmd = cmd; 
+	v.error_code = (ack_bool == "true") ? 0: -302; 
+	v.ack_statement = ack_statement; 
+	
+	cout << "XXX PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
+	sal_obj mgr = get_salObj(device); 
+	boost::apply_visitor(v, mgr); 
+	
+	ack_book_keeper[ack_id]["CHECKBOX"] = "true"; 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- process__ack, cannot read fields from message." << endl; 
+    } 
 }
  
 void AckSubscriber::process_event__SummaryState(Node n) {
-    string device = n["DEVICE"].as<string>(); 
+    string device, name, timestamp, current_state, previous_state, executing, commands_available, configurations_available;
+    double identifier; 
+    long priority, address; 
+    try { 
+	device = n["DEVICE"].as<string>(); 
+	name = n["NAME"].as<string>(); 
+	identifier = n["IDENTIFIER"].as<double>(); 
+	timestamp = n["TIMESTAMP"].as<string>(); 
+	address = n["ADDRESS"].as<long>(); 
+	current_state = n["CURRENT_STATE"].as<string>(); 
+	previous_state = n["PREVIOUS_STATE"].as<string>(); 
+	executing = n["EXECUTING"].as<string>();  
+	commands_available = n["COMMANDS_AVAILABLE"].as<string>();  
+	configurations_available = n["CONFIGURATIONS_AVAILABLE"].as<string>();  
+	priority = n["PRIORITY"].as<long>();  
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In Acksubscriber -- process_event__SummaryState, cannot read fields from message." << endl; 
+	return; 
+    } 
     if (device == "AR") { 
 	eventSAL<SAL_archiver, archiver_logevent_archiverEntitySummaryStateC> archiver_sum; 
 	eventSAL<SAL_archiver, archiver_logevent_archiverEntitySummaryStateC>::
 		eventStateFunc func = &SAL_archiver::logEvent_archiverEntitySummaryState; 
 	archiver_logevent_archiverEntitySummaryStateC data; 
-	data.Name = n["NAME"].as<string>(); 
-	data.Identifier = n["IDENTIFIER"].as<double>(); 
-	data.Timestamp = n["TIMESTAMP"].as<string>(); 
-	data.Address = n["ADDRESS"].as<long>(); 
-	data.CurrentState = n["CURRENT_STATE"].as<string>(); 
-	data.PreviousState = n["PREVIOUS_STATE"].as<string>(); 
-	data.Executing = n["EXECUTING"].as<string>();  
-	data.CommandsAvailable = n["COMMANDS_AVAILABLE"].as<string>();  
-	data.ConfigurationsAvailable = n["CONFIGURATIONS_AVAILABLE"].as<string>();  
-	data.priority = n["PRIORITY"].as<long>();  
+
+	data.Name = name; 
+	data.Identifier = identifier; 
+	data.Timestamp = timestamp; 
+	data.Address = address; 
+	data.CurrentState = current_state; 
+	data.PreviousState = previous_state; 
+	data.Executing = executing;  
+	data.CommandsAvailable = commands_available;  
+	data.ConfigurationsAvailable = configurations_available;  
+	data.priority = priority;  
 	archiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "CU") { 
@@ -166,16 +202,16 @@ void AckSubscriber::process_event__SummaryState(Node n) {
 	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_catchuparchiverEntitySummaryStateC>::
 		eventStateFunc func = &SAL_catchuparchiver::logEvent_catchuparchiverEntitySummaryState; 
 	catchuparchiver_logevent_catchuparchiverEntitySummaryStateC data; 
-	data.Name = n["NAME"].as<string>(); 
-	data.Identifier = n["IDENTIFIER"].as<double>(); 
-	data.Timestamp = n["TIMESTAMP"].as<string>(); 
-	data.Address = n["ADDRESS"].as<long>(); 
-	data.CurrentState = n["CURRENT_STATE"].as<string>(); 
-	data.PreviousState = n["PREVIOUS_STATE"].as<string>(); 
-	data.Executing = n["EXECUTING"].as<string>();  
-	data.CommandsAvailable = n["COMMANDS_AVAILABLE"].as<string>();  
-	data.ConfigurationsAvailable = n["CONFIGURATIONS_AVAILABLE"].as<string>();  
-	data.priority = n["PRIORITY"].as<long>();  
+	data.Name = name; 
+	data.Identifier = identifier; 
+	data.Timestamp = timestamp; 
+	data.Address = address; 
+	data.CurrentState = current_state; 
+	data.PreviousState = previous_state; 
+	data.Executing = executing;  
+	data.CommandsAvailable = commands_available;  
+	data.ConfigurationsAvailable = configurations_available;  
+	data.priority = priority;  
 	catchuparchiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "PP") { 
@@ -183,29 +219,40 @@ void AckSubscriber::process_event__SummaryState(Node n) {
 	eventSAL<SAL_processingcluster, processingcluster_logevent_processingclusterEntitySummaryStateC>::
 		eventStateFunc func = &SAL_processingcluster::logEvent_processingclusterEntitySummaryState; 
 	processingcluster_logevent_processingclusterEntitySummaryStateC data; 
-	data.Name = n["NAME"].as<string>(); 
-	data.Identifier = n["IDENTIFIER"].as<double>(); 
-	data.Timestamp = n["TIMESTAMP"].as<string>(); 
-	data.Address = n["ADDRESS"].as<long>(); 
-	data.CurrentState = n["CURRENT_STATE"].as<string>(); 
-	data.PreviousState = n["PREVIOUS_STATE"].as<string>(); 
-	data.Executing = n["EXECUTING"].as<string>();  
-	data.CommandsAvailable = n["COMMANDS_AVAILABLE"].as<string>();  
-	data.ConfigurationsAvailable = n["CONFIGURATIONS_AVAILABLE"].as<string>();  
-	data.priority = n["PRIORITY"].as<long>();  
+	data.Name = name; 
+	data.Identifier = identifier; 
+	data.Timestamp = timestamp; 
+	data.Address = address; 
+	data.CurrentState = current_state; 
+	data.PreviousState = previous_state; 
+	data.Executing = executing;  
+	data.CommandsAvailable = commands_available;  
+	data.ConfigurationsAvailable = configurations_available;  
+	data.priority = priority;  
 	processingcluster_sum.send_eventState(n, func, data);  
     } 
 } 
 
 void AckSubscriber::process_event__RecommendedSettings(Node n){ 
-    string device = n["DEVICE"].as<string>();  
+    string device, recommended_setting_version;
+    long priority; 
+    try { 
+	device = n["DEVICE"].as<string>();  
+	recommended_setting_version = n["RECOMMENDED_SETTING_VERSION"].as<string>(); 
+	priority = n["PRIORITY"].as<long>(); 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In Acksubscriber -- process_event__RecommendedSettings, cannot read fields from message." << endl; 
+	return; 
+    } 
+    
     if (device == "AR") { 
 	eventSAL<SAL_archiver, archiver_logevent_SettingVersionsC> archiver_sum; 
 	eventSAL<SAL_archiver, archiver_logevent_SettingVersionsC>::
 		eventStateFunc func = &SAL_archiver::logEvent_SettingVersions; 
 	archiver_logevent_SettingVersionsC data; 
-	data.recommendedSettingVersion = n["RECOMMENDED_SETTING_VERSION"].as<string>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.recommendedSettingVersion = recommended_setting_version;
+	data.priority = priority;  
 	archiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "CU") { 
@@ -213,8 +260,8 @@ void AckSubscriber::process_event__RecommendedSettings(Node n){
 	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SettingVersionsC>::
 		eventStateFunc func = &SAL_catchuparchiver::logEvent_SettingVersions; 
 	catchuparchiver_logevent_SettingVersionsC data; 
-	data.recommendedSettingVersion = n["RECOMMENDED_SETTING_VERSION"].as<string>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.recommendedSettingVersion = recommended_setting_version; 
+	data.priority = priority;  
 	catchuparchiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "PP") { 
@@ -222,8 +269,8 @@ void AckSubscriber::process_event__RecommendedSettings(Node n){
 	eventSAL<SAL_processingcluster, processingcluster_logevent_SettingVersionsC>::
 		eventStateFunc func = &SAL_processingcluster::logEvent_SettingVersions; 
 	processingcluster_logevent_SettingVersionsC data; 
-	data.recommendedSettingVersion = n["RECOMMENDED_SETTING_VERSION"].as<string>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.recommendedSettingVersion = recommended_setting_version;
+	data.priority = priority;  
 	processingcluster_sum.send_eventState(n, func, data);  
     } 
 }
@@ -232,14 +279,25 @@ void AckSubscriber::process_event__AppliedSettings(Node n){
 }
 
 void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){ 
-    string device = n["DEVICE"].as<string>();  
+    string device;
+    bool applied_settings_matchstart_istrue;
+    long priority; 
+    try {
+	device = n["DEVICE"].as<string>();
+	applied_settings_matchstart_istrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<bool>(); 
+	priority = n["PRIORITY"].as<long>(); 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In Acksubscriber -- process_event__AppliedSettingsMatchStart, cannot read fields from message." << endl; 
+	return; 
+    } 
     if (device == "AR") { 
 	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC> archiver_sum; 
 	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC>::
 		eventStateFunc func = &SAL_archiver::logEvent_AppliedSettingsMatchStart; 
 	archiver_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<bool>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.appliedSettingsMatchStartIsTrue = applied_settings_matchstart_istrue; 
+	data.priority = priority;  
 	archiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "CU") { 
@@ -247,8 +305,8 @@ void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){
 	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_AppliedSettingsMatchStartC>::
 		eventStateFunc func = &SAL_catchuparchiver::logEvent_AppliedSettingsMatchStart; 
 	catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<bool>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.appliedSettingsMatchStartIsTrue = applied_settings_matchstart_istrue; 
+	data.priority = priority;  
 	catchuparchiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "PP") { 
@@ -256,21 +314,31 @@ void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){
 	eventSAL<SAL_processingcluster, processingcluster_logevent_AppliedSettingsMatchStartC>::
 		eventStateFunc func = &SAL_processingcluster::logEvent_AppliedSettingsMatchStart; 
 	processingcluster_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<bool>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.appliedSettingsMatchStartIsTrue = applied_settings_matchstart_istrue; 
+	data.priority = priority;  
 	processingcluster_sum.send_eventState(n, func, data);  
     } 
 }
 
 void AckSubscriber::process_event__ErrorCode(Node n){ 
-    string device = n["DEVICE"].as<string>();  
+    string device; 
+    long error_code, priority; 
+    try { 
+	device = n["DEVICE"].as<string>();  
+	error_code = n["ERROR_CODE"].as<long>(); 
+	priority = n["PRIORITY"].as<long>(); 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In Acksubscriber -- process_event__ErrorCode, cannot read fields from message." << endl; 
+	return; 
+    }
     if (device == "AR") { 
 	eventSAL<SAL_archiver, archiver_logevent_ErrorCodeC> archiver_sum; 
 	eventSAL<SAL_archiver, archiver_logevent_ErrorCodeC>::
 		eventStateFunc func = &SAL_archiver::logEvent_ErrorCode; 
 	archiver_logevent_ErrorCodeC data; 
-	data.errorCode = n["ERROR_CODE"].as<long>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.errorCode = error_code; 
+	data.priority = priority;  
 	archiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "CU") { 
@@ -278,8 +346,8 @@ void AckSubscriber::process_event__ErrorCode(Node n){
 	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_ErrorCodeC>::
 		eventStateFunc func = &SAL_catchuparchiver::logEvent_ErrorCode; 
 	catchuparchiver_logevent_ErrorCodeC data; 
-	data.errorCode = n["ERROR_CODE"].as<long>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.errorCode = error_code; 
+	data.priority = priority;  
 	catchuparchiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "PP") { 
@@ -287,8 +355,8 @@ void AckSubscriber::process_event__ErrorCode(Node n){
 	eventSAL<SAL_processingcluster, processingcluster_logevent_ErrorCodeC>::
 		eventStateFunc func = &SAL_processingcluster::logEvent_ErrorCode; 
 	processingcluster_logevent_ErrorCodeC data; 
-	data.errorCode = n["ERROR_CODE"].as<long>(); 
-	data.priority = n["PRIORITY"].as<long>();  
+	data.errorCode = error_code; 
+	data.priority = priority;  
 	processingcluster_sum.send_eventState(n, func, data);  
     } 
 }
@@ -332,22 +400,27 @@ void AckSubscriber::process__resolve_ack(Node n) {
 }
 
 void AckSubscriber::process__book_keeping(Node n) { 
-    string ack_delay = n["ACK_DELAY"].as<string>(); 
-    string ack_id = n["ACK_ID"].as<string>(); 
-    string time = n["TIME"].as<string>(); 
-    string checkbox = n["CHECKBOX"].as<string>(); 
-    string cmdId = n["CMD_ID"].as<string>(); 
-    string device = n["DEVICE"].as<string>(); 
+    try { 
+	string ack_delay = n["ACK_DELAY"].as<string>(); 
+	string ack_id = n["ACK_ID"].as<string>(); 
+	string time = n["TIME"].as<string>(); 
+	string checkbox = n["CHECKBOX"].as<string>(); 
+	string cmdId = n["CMD_ID"].as<string>(); 
+	string device = n["DEVICE"].as<string>(); 
 
-    map<string, string> innerdict; 
-    innerdict["ACK_DELAY"] = ack_delay; 
-    innerdict["TIME"] = time; 
-    innerdict["CHECKBOX"] = checkbox; 
-    innerdict["CMD_ID"] = cmdId; 
-    innerdict["DEVICE"] = device; 
+	map<string, string> innerdict; 
+	innerdict["ACK_DELAY"] = ack_delay; 
+	innerdict["TIME"] = time; 
+	innerdict["CHECKBOX"] = checkbox; 
+	innerdict["CMD_ID"] = cmdId; 
+	innerdict["DEVICE"] = device; 
 
-    ack_book_keeper[ack_id] = innerdict; 
-    cout << "XXX BOOKKEEPING: " << cmdId << endl; 
+	ack_book_keeper[ack_id] = innerdict; 
+	cout << "XXX BOOKKEEPING: " << cmdId << endl; 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- process__book_keeping, cannot read fields from message.";  
+    } 
 } 
 
 AckSubscriber::sal_obj AckSubscriber::get_salObj(string device) { 

@@ -10,12 +10,26 @@ using namespace YAML;
 
 OCS_Bridge::OCS_Bridge() { 
     Node config_file; 
-    config_file = LoadFile("../../L1SystemCfg.yaml");
+    try { 
+	config_file = LoadFile("../../L1SystemCfg.yaml");
+    }
+    catch (YAML::BadFile& e) { 
+	cout << "ERROR: L1SystemCfg file not found." << endl; 
+	exit(EXIT_FAILURE); 
+    } 
 
-    Node root = config_file["ROOT"]; 
-    string base_name = root["OCS"]["OCS_NAME"].as<string>(); 
-    string base_passwd = root["OCS"]["OCS_PASSWD"].as<string>(); 
-    string base_addr = root["BASE_BROKER_ADDR"].as<string>(); 
+    Node root; 
+    string base_name, base_passwd, base_addr; 
+    try {  
+	root = config_file["ROOT"]; 
+	base_name = root["OCS"]["OCS_NAME"].as<string>(); 
+	base_passwd = root["OCS"]["OCS_PASSWD"].as<string>(); 
+	base_addr = root["BASE_BROKER_ADDR"].as<string>(); 
+    } 
+    catch (YAML::TypedBadConversion<string>& e) { 
+	cout << "ERROR: In L1SystemCfg, cannot read ocs username, password or broker address from file." << endl; 
+	exit(EXIT_FAILURE); 
+    } 
     
     ostringstream broker_url;
     broker_url << "amqp://" << base_name << ":" << base_passwd << "@" << base_addr; 
