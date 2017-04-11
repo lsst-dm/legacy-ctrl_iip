@@ -532,6 +532,7 @@ class DMCS:
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
+
     def send_summary_state_event(self, device):
         message = {}
         msesage[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
@@ -539,9 +540,26 @@ class DMCS:
         message[STATE] = self.STATE_SCBD.get_device_state(device)
         self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
 
+
     def send_recommended_setting_versions_event(self, device):
         message = {}
-        msesage[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
+        msesage[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
+        message['DEVICE'] = device
+        message[STATE] = self.STATE_SCBD.get_device_state(device)
+        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+
+
+    def send_setting_applied_event(self, device):
+        message = {}
+        msesage[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
+        message['DEVICE'] = device
+        message[STATE] = self.STATE_SCBD.get_device_state(device)
+        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+
+
+    def send_applied_setting_match_start_event(self, device):
+        message = {}
+        msesage[MSG_TYPE] = 'APPLIED_SETTINGS_MATCH_START_EVENT'
         message['DEVICE'] = device
         message[STATE] = self.STATE_SCBD.get_device_state(device)
         self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
