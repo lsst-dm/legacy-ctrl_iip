@@ -27,7 +27,7 @@ class eventSAL {
 	try { 
 	    message_type = n["MSG_TYPE"].as<string>(); 
 	    device = n["DEVICE"].as<string>(); 
-	    priority = n["PRIORITY"].as<int>();
+	    priority = 0;
 	    T mgr = T(); 
 	    string sal_event = AckSubscriber::get_salEvent(device, message_type); 
 	    mgr.salEvent(const_cast<char *>(sal_event.c_str())); 
@@ -82,20 +82,21 @@ map<string, funcptr> action_handler = {
     {"STANDBY_ACK", &AckSubscriber::process__ack}, 
     {"EXITCONTROL_ACK", &AckSubscriber::process__ack}, 
     {"ABORT_ACK", &AckSubscriber::process__ack}, 
-    {"SUMMARY_STATE", &AckSubscriber::process_event__SummaryState}, 
-    {"RECOMMENDED_SETTING_VERSIONS", &AckSubscriber::process_event__RecommendedSettings}, 
-    {"SETTINGS_APPLIED", &AckSubscriber::process_event__AppliedSettings}, 
-    {"APPLIED_SETTINGS_MATCHSTART", &AckSubscriber::process_event__AppliedSettingsMatchStart}, 
-    {"ERROR_CODE", &AckSubscriber::process_event__ErrorCode}, 
+    {"SUMMARY_STATE_EVENT", &AckSubscriber::process_event__SummaryState}, 
+    {"RECOMMENDED_SETTINGS_VERSION_EVENT", &AckSubscriber::process_event__RecommendedSettings}, 
+    {"SETTINGS_APPLIED_EVENT", &AckSubscriber::process_event__AppliedSettings}, 
+    {"APPLIED_SETTINGS_MATCH_START_EVENT", &AckSubscriber::process_event__AppliedSettingsMatchStart}, 
+    {"ERROR_CODE_EVENT", &AckSubscriber::process_event__ErrorCode}, 
     {"BOOK_KEEPING", &AckSubscriber::process__book_keeping}, 
     {"RESOLVE_ACK", &AckSubscriber::process__resolve_ack}
 }; 
 
 map<string, string> eventDict = { 
-    {"ERROR_CODE", "ErrorCode"}, 
-    {"APPLIED_SETTINGS_MATCHSTART", "AppliedSettingsMatchStart"}, 
-    {"SUMMARY_STATE", "EntitySummaryState"}, 
-    {"RECOMMENDED_SETTING_VERSIONS", "SettingVersions"} 
+    {"ERROR_CODE_EVENT", "ErrorCode"}, 
+    {"APPLIED_SETTINGS_MATCH_START_EVENT", "AppliedSettingsMatchStart"}, 
+    {"SUMMARY_STATE_EVENT", "SummaryState"}, 
+    {"RECOMMENDED_SETTINGS_VERSION_EVENT", "SettingVersions"}, 
+    {"SETTINGS_APPLIED_EVENT", ""} 
 }; 
 
 map<string, map<string, string>> ack_book_keeper; 
@@ -159,75 +160,45 @@ void AckSubscriber::process__ack(Node n) {
 }
  
 void AckSubscriber::process_event__SummaryState(Node n) {
-    string device, name, timestamp, current_state, previous_state, executing, commands_available, configurations_available;
-    double identifier; 
-    long priority, address; 
+    string device;
+    long summarystatevalue; 
+    long priority; 
     try { 
 	device = n["DEVICE"].as<string>(); 
-	name = n["NAME"].as<string>(); 
-	identifier = n["IDENTIFIER"].as<double>(); 
-	timestamp = n["TIMESTAMP"].as<string>(); 
-	address = n["ADDRESS"].as<long>(); 
-	current_state = n["CURRENT_STATE"].as<string>(); 
-	previous_state = n["PREVIOUS_STATE"].as<string>(); 
-	executing = n["EXECUTING"].as<string>();  
-	commands_available = n["COMMANDS_AVAILABLE"].as<string>();  
-	configurations_available = n["CONFIGURATIONS_AVAILABLE"].as<string>();  
-	priority = n["PRIORITY"].as<long>();  
+	summarystatevalue = n["CURRENT_STATE"].as<long>(); 
+	priority = 0;   
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In Acksubscriber -- process_event__SummaryState, cannot read fields from message." << endl; 
 	return; 
     } 
     if (device == "AR") { 
-	eventSAL<SAL_archiver, archiver_logevent_archiverEntitySummaryStateC> archiver_sum; 
-	eventSAL<SAL_archiver, archiver_logevent_archiverEntitySummaryStateC>::
-		eventStateFunc func = &SAL_archiver::logEvent_archiverEntitySummaryState; 
-	archiver_logevent_archiverEntitySummaryStateC data; 
+	eventSAL<SAL_archiver, archiver_logevent_SummaryStateC> archiver_sum; 
+	eventSAL<SAL_archiver, archiver_logevent_SummaryStateC>::
+		eventStateFunc func = &SAL_archiver::logEvent_SummaryState; 
+	archiver_logevent_SummaryStateC data; 
 
-	data.Name = name; 
-	data.Identifier = identifier; 
-	data.Timestamp = timestamp; 
-	data.Address = address; 
-	data.CurrentState = current_state; 
-	data.PreviousState = previous_state; 
-	data.Executing = executing;  
-	data.CommandsAvailable = commands_available;  
-	data.ConfigurationsAvailable = configurations_available;  
+	data.SummaryStateValue = summarystatevalue; 
 	data.priority = priority;  
 	archiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "CU") { 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_catchuparchiverEntitySummaryStateC> catchuparchiver_sum; 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_catchuparchiverEntitySummaryStateC>::
-		eventStateFunc func = &SAL_catchuparchiver::logEvent_catchuparchiverEntitySummaryState; 
-	catchuparchiver_logevent_catchuparchiverEntitySummaryStateC data; 
-	data.Name = name; 
-	data.Identifier = identifier; 
-	data.Timestamp = timestamp; 
-	data.Address = address; 
-	data.CurrentState = current_state; 
-	data.PreviousState = previous_state; 
-	data.Executing = executing;  
-	data.CommandsAvailable = commands_available;  
-	data.ConfigurationsAvailable = configurations_available;  
+	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SummaryStateC> catchuparchiver_sum; 
+	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SummaryStateC>::
+		eventStateFunc func = &SAL_catchuparchiver::logEvent_SummaryState; 
+	catchuparchiver_logevent_SummaryStateC data; 
+
+	data.SummaryStateValue = summarystatevalue; 
 	data.priority = priority;  
 	catchuparchiver_sum.send_eventState(n, func, data);  
     } 
     else if (device == "PP") { 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_processingclusterEntitySummaryStateC> processingcluster_sum; 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_processingclusterEntitySummaryStateC>::
-		eventStateFunc func = &SAL_processingcluster::logEvent_processingclusterEntitySummaryState; 
-	processingcluster_logevent_processingclusterEntitySummaryStateC data; 
-	data.Name = name; 
-	data.Identifier = identifier; 
-	data.Timestamp = timestamp; 
-	data.Address = address; 
-	data.CurrentState = current_state; 
-	data.PreviousState = previous_state; 
-	data.Executing = executing;  
-	data.CommandsAvailable = commands_available;  
-	data.ConfigurationsAvailable = configurations_available;  
+	eventSAL<SAL_processingcluster, processingcluster_logevent_SummaryStateC> processingcluster_sum; 
+	eventSAL<SAL_processingcluster, processingcluster_logevent_SummaryStateC>::
+		eventStateFunc func = &SAL_processingcluster::logEvent_SummaryState; 
+	processingcluster_logevent_SummaryStateC data; 
+
+	data.SummaryStateValue = summarystatevalue; 
 	data.priority = priority;  
 	processingcluster_sum.send_eventState(n, func, data);  
     } 
@@ -238,8 +209,8 @@ void AckSubscriber::process_event__RecommendedSettings(Node n){
     long priority; 
     try { 
 	device = n["DEVICE"].as<string>();  
-	recommended_setting_version = n["RECOMMENDED_SETTING_VERSION"].as<string>(); 
-	priority = n["PRIORITY"].as<long>(); 
+	recommended_setting_version = n["CFG_KEY"].as<string>(); 
+	priority = 0; 
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In Acksubscriber -- process_event__RecommendedSettings, cannot read fields from message." << endl; 
@@ -284,8 +255,8 @@ void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){
     long priority; 
     try {
 	device = n["DEVICE"].as<string>();
-	applied_settings_matchstart_istrue = n["APPLIED_SETTINGS_MATCHSTART_ISTRUE"].as<bool>(); 
-	priority = n["PRIORITY"].as<long>(); 
+	applied_settings_matchstart_istrue = n["BOOL"].as<bool>(); 
+	priority = 0;  
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In Acksubscriber -- process_event__AppliedSettingsMatchStart, cannot read fields from message." << endl; 
@@ -326,7 +297,7 @@ void AckSubscriber::process_event__ErrorCode(Node n){
     try { 
 	device = n["DEVICE"].as<string>();  
 	error_code = n["ERROR_CODE"].as<long>(); 
-	priority = n["PRIORITY"].as<long>(); 
+	priority = 0; 
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In Acksubscriber -- process_event__ErrorCode, cannot read fields from message." << endl; 
@@ -452,12 +423,7 @@ string AckSubscriber::get_salEvent(string device, string message_type) {
     else if (device == "PP") device_name = "processingcluster"; 
 
     message_name = eventDict[message_type]; 
-    if (message_type == "SUMMARY_STATE") { 
-	event_name = device_name + "_logevent_" + device_name + message_name; 
-    } 
-    else { 
-	event_name = device_name + "_logevent_" + message_name; 
-    } 
+    event_name = device_name + "_logevent_" + message_name; 
     return event_name; 
 } 
 
