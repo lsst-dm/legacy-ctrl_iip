@@ -40,6 +40,7 @@ class DMCS:
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
+    DEFAULT_CFG_FILE = 'L1SystemCfg.yaml'
     CCD_LIST = [] 
 
 
@@ -48,7 +49,7 @@ class DMCS:
         LOGGER.info('DMCS Init beginning')
 
         if filename == None:
-            filename = DEFAULT_CFG_FILE
+            filename = self.DEFAULT_CFG_FILE
 
 
         LOGGER.info('Reading YAML Config file %s' % filename)
@@ -73,6 +74,9 @@ class DMCS:
             ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
             backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
             self.CCD_LIST = cdm[ROOT]['CCD_LIST']
+            self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
+            self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
+            self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
@@ -83,7 +87,7 @@ class DMCS:
             sys.exit(102) 
 
         # Run queue purges in rabbitmqctl
-        self.purge_broker(broker_vhost, queue_purges)
+        #self.purge_broker(broker_vhost, queue_purges)
 
         self._next_timed_ack_id = self.init_ack_id()
 
@@ -99,21 +103,31 @@ class DMCS:
         self.ACK_SCBD = AckScoreboard(ack_db_instance)
         self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
 
+        self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
+
+        self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
+
+        self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
+
+
         # Messages from OCS Bridge
-        self._OCS_msg_actions = { ENTER_CONTROL: self.process_enter_control_command,
-                              START: self.process_start_command,
-                              STANDBY: self.process_standby_command,
-                              DISABLE: self.process_disable_command,
-                              ENABLE: self.process_enable_command,
-                              SET_VALUE: self.process_set_value_command,
-                              FAULT: self.process_fault_command,
-                              EXIT_CONTROL: self.process_exit_control_command,
-                              ABORT: self.process_abort_command,
-                              STOP: self.process_stop_command,
-                              NEXT_VISIT: self.process_next_visit_event,
-                              START_INTEGRATION: self.process_start_integration_event,
-                              READOUT: self.process_readout_event,
-                              TELEMETRY: self.process_telemetry }
+        self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
+                              'START': self.process_start_command,
+                              'STANDBY': self.process_standby_command,
+                              'DISABLE': self.process_disable_command,
+                              'ENABLE': self.process_enable_command,
+                              'SET_VALUE': self.process_set_value_command,
+                              'FAULT': self.process_fault_command,
+                              'EXIT_CONTROL': self.process_exit_control_command,
+                              'ABORT': self.process_abort_command,
+                              'STOP': self.process_stop_command,
+                              'NEXT_VISIT': self.process_next_visit_event,
+                              'START_INTEGRATION': self.process_start_integration_event,
+                              'READOUT': self.process_readout_event,
+                              'TELEMETRY': self.process_telemetry }
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
                               'NEW_SESSION_ACK': self.process_ack,
@@ -151,16 +165,19 @@ class DMCS:
 
 
     def init_ack_id(self):
-        if os.path.isfile(self.ack_id_file):
+        if os.path.isfile(self.dmcs_ack_id_file):
             val = toolsmod.intake_yaml_file(self.dmcs_ack_id_file)
             current_id = val['CURRENT_ACK_ID'] + 1
             if current_id > 999900:
                 current_id = 1
-            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = current_id)
+            val['CURRENT_ACK_ID'] = current_id
+            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
             return current_id
         else:
             current_id = 1
-            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = current_id)
+            val = {}
+            val['CURRENT_ACK_ID'] = current_id
+            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
             return current_id
 
 
@@ -532,24 +549,44 @@ class DMCS:
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
+
     def send_summary_state_event(self, device):
         message = {}
         msesage[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
         message['DEVICE'] = device
-        message[STATE] = self.STATE_SCBD.get_device_state(device)
-        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+        message['STATE'] = toolsmod.summary_state_enum[self.STATE_SCBD.get_device_state(device)]
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+
 
     def send_recommended_setting_versions_event(self, device):
         message = {}
-        msesage[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
+        msesage[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
+        message['DEVICE'] = device
+        message['recommendedSettingVersions'] = self.STATE_SCBD.get_device_state(device)
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+
+
+    def send_setting_applied_event(self, device):
+        message = {}
+        msesage[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
         message['DEVICE'] = device
         message[STATE] = self.STATE_SCBD.get_device_state(device)
-        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+
+
+    def send_applied_setting_match_start_event(self, device):
+        message = {}
+        msesage[MSG_TYPE] = 'APPLIED_SETTINGS_MATCH_START_EVENT'
+        message['DEVICE'] = device
+        message[STATE] = self.STATE_SCBD.get_device_state(device)
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
-        toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = self.next_timed_ack_id)
+        val = {}
+        val['CURRENT_ACK_ID'] = self.next_timed_ack_id
+        toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         return retval 
 

@@ -195,6 +195,29 @@ class StateScoreboard(Scoreboard):
         self._redis.hget(device, 'CFG_KEY')
 
 
+    def add_device_cfg_keys(self, device, keys):
+        if device == 'AR':
+            listname = 'AR_CFG_KEYS'
+        elif device == 'PP':
+            listname = 'PP_CFG_KEYS'
+        elif device == 'CU':
+            listname = 'CU_CFG_KEYS'
+
+        self._redis.rpush(listname, keys)
+
+
+    def get_cfg_from_cfgs(self, device, index):
+        # index 0 is the default
+        if device == 'AR':
+            listname = 'AR_CFG_KEYS'
+        elif device == 'PP':
+            listname = 'PP_CFG_KEYS'
+        elif device == 'CU':
+            listname = 'CU_CFG_KEYS'
+
+        return self._redis.lindex(listname, index)
+
+
     def build_monitor_data(self, params):
         monitor_data = {}
         keez = params.keys()
