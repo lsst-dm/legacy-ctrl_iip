@@ -40,6 +40,7 @@ class DMCS:
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
+    DEFAULT_CFG_FILE = 'L1SystemCfg.yaml'
     CCD_LIST = [] 
 
 
@@ -48,7 +49,7 @@ class DMCS:
         LOGGER.info('DMCS Init beginning')
 
         if filename == None:
-            filename = DEFAULT_CFG_FILE
+            filename = self.DEFAULT_CFG_FILE
 
 
         LOGGER.info('Reading YAML Config file %s' % filename)
@@ -86,7 +87,7 @@ class DMCS:
             sys.exit(102) 
 
         # Run queue purges in rabbitmqctl
-        self.purge_broker(broker_vhost, queue_purges)
+        #self.purge_broker(broker_vhost, queue_purges)
 
         self._next_timed_ack_id = self.init_ack_id()
 
@@ -113,20 +114,20 @@ class DMCS:
 
 
         # Messages from OCS Bridge
-        self._OCS_msg_actions = { ENTER_CONTROL: self.process_enter_control_command,
-                              START: self.process_start_command,
-                              STANDBY: self.process_standby_command,
-                              DISABLE: self.process_disable_command,
-                              ENABLE: self.process_enable_command,
-                              SET_VALUE: self.process_set_value_command,
-                              FAULT: self.process_fault_command,
-                              EXIT_CONTROL: self.process_exit_control_command,
-                              ABORT: self.process_abort_command,
-                              STOP: self.process_stop_command,
-                              NEXT_VISIT: self.process_next_visit_event,
-                              START_INTEGRATION: self.process_start_integration_event,
-                              READOUT: self.process_readout_event,
-                              TELEMETRY: self.process_telemetry }
+        self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
+                              'START': self.process_start_command,
+                              'STANDBY': self.process_standby_command,
+                              'DISABLE': self.process_disable_command,
+                              'ENABLE': self.process_enable_command,
+                              'SET_VALUE': self.process_set_value_command,
+                              'FAULT': self.process_fault_command,
+                              'EXIT_CONTROL': self.process_exit_control_command,
+                              'ABORT': self.process_abort_command,
+                              'STOP': self.process_stop_command,
+                              'NEXT_VISIT': self.process_next_visit_event,
+                              'START_INTEGRATION': self.process_start_integration_event,
+                              'READOUT': self.process_readout_event,
+                              'TELEMETRY': self.process_telemetry }
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
                               'NEW_SESSION_ACK': self.process_ack,
@@ -164,16 +165,19 @@ class DMCS:
 
 
     def init_ack_id(self):
-        if os.path.isfile(self.ack_id_file):
+        if os.path.isfile(self.dmcs_ack_id_file):
             val = toolsmod.intake_yaml_file(self.dmcs_ack_id_file)
             current_id = val['CURRENT_ACK_ID'] + 1
             if current_id > 999900:
                 current_id = 1
-            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = current_id)
+            val['CURRENT_ACK_ID'] = current_id
+            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
             return current_id
         else:
             current_id = 1
-            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = current_id)
+            val = {}
+            val['CURRENT_ACK_ID'] = current_id
+            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
             return current_id
 
 
@@ -580,7 +584,9 @@ class DMCS:
 
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
-        toolsmod.export_yaml_file(self.dmcs_ack_id_file, val['CURRENT_ACK_ID'] = self.next_timed_ack_id)
+        val = {}
+        val['CURRENT_ACK_ID'] = self.next_timed_ack_id
+        toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         return retval 
 
