@@ -73,6 +73,9 @@ class DMCS:
             ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
             backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
             self.CCD_LIST = cdm[ROOT]['CCD_LIST']
+            self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
+            self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
+            self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
@@ -98,6 +101,16 @@ class DMCS:
         self.BACKLOG_SCBD = BacklogScoreboard(backlog_db_instance)
         self.ACK_SCBD = AckScoreboard(ack_db_instance)
         self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
+
+        self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
+
+        self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
+
+        self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
+
 
         # Messages from OCS Bridge
         self._OCS_msg_actions = { ENTER_CONTROL: self.process_enter_control_command,
@@ -537,16 +550,16 @@ class DMCS:
         message = {}
         msesage[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
         message['DEVICE'] = device
-        message[STATE] = self.STATE_SCBD.get_device_state(device)
-        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+        message['STATE'] = toolsmod.summary_state_enum[self.STATE_SCBD.get_device_state(device)]
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
     def send_recommended_setting_versions_event(self, device):
         message = {}
         msesage[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
         message['DEVICE'] = device
-        message[STATE] = self.STATE_SCBD.get_device_state(device)
-        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+        message['recommendedSettingVersions'] = self.STATE_SCBD.get_device_state(device)
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
     def send_setting_applied_event(self, device):
@@ -554,7 +567,7 @@ class DMCS:
         msesage[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
         message['DEVICE'] = device
         message[STATE] = self.STATE_SCBD.get_device_state(device)
-        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
     def send_applied_setting_match_start_event(self, device):
@@ -562,7 +575,7 @@ class DMCS:
         msesage[MSG_TYPE] = 'APPLIED_SETTINGS_MATCH_START_EVENT'
         message['DEVICE'] = device
         message[STATE] = self.STATE_SCBD.get_device_state(device)
-        self._publisher.pubkish_message(self.DMCS_OCS_PUBLISH, message)
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
     def get_next_timed_ack_id(self, ack_type):

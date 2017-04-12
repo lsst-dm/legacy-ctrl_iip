@@ -30,6 +30,12 @@ next_state["SET_VALUE"] = "ENABLE"
 next_state["ABORT"] = "DISABLE"
 next_state["STOP"] = "DISABLE"
 
+summary_state_enum = {'DISABLE':0,
+                      'ENABLE':1, 
+                      'FAULT':2, 
+                      'OFFLINE':3, 
+                      'STANDBY':1}
+
 state_enumeration = {}
 state_enumeration["OFFLINE"] =  0
 state_enumeration["STANDBY"] =  1
