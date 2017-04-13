@@ -311,11 +311,14 @@ class GraphicalOCS:
     def process_send_command(self, widget, data=None):
         st_str = ""
         c_list = self.enter.get_group()
+	print "C_LIST: ", len(c_list)
         dex = None
         for i in range (0, len(c_list)):
             if c_list[i].get_active():
                 dex = i
                 break
+
+	print "DEX: ", dex
 
         if dex == None:
             print "Dex is none - cannot find active command button"
@@ -323,10 +326,10 @@ class GraphicalOCS:
             if dex == 7:
                 cmd = "enterControl" 
                 st_str = "EnterControl"
-            if dex == 6:
+            elif dex == 6:
                 cmd = "start" 
                 st_str = "Start"
-            if dex == 5:
+            elif dex == 5:
                 cmd = "standby" 
                 st_str = "Standby"
             elif dex == 4:
@@ -345,6 +348,7 @@ class GraphicalOCS:
                 cmd = "stop" 
                 st_str = "Stop"
         
+	print "cmd: %s", cmd
 
         r_list = self.ar.get_group()
         dex = None
