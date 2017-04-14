@@ -14,25 +14,66 @@ using namespace std;
 
 int next_timed_ack_id = 0; 
 
-
 template <typename T, typename U> 
 using funcptr = int (T::*)(U*); 
 
 template <typename SAL_device, typename SAL_struct>
-void listenCommand(string device, string command_name, os_time delay_10ms, int cmdId, SimplePublisher* publisher, string publish_q, string consume_q, SAL_device mgr, funcptr<SAL_device, SAL_struct> acceptCommand){ 
+void listenCommand(string device, string command_name, os_time delay_10ms, int cmdId, 
+SimplePublisher* publisher, string publish_q, string consume_q, SAL_device mgr, funcptr<SAL_device, SAL_struct> acceptCommand){ 
     SAL_struct SALInstance; 
     cmdId = (mgr.*acceptCommand)(&SALInstance); 
     if (cmdId > 0) { 
 	cout << "== " << device << " " << command_name << " Command" << endl; 
 	ostringstream ack_msg; 
 	string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
-	ack_msg << "{MSG_TYPE: " << command_name << ", DEVICE: " << device << ", CMD_ID: " << to_string(cmdId) << ", ACK_ID: " << ack_id
-                << ", ACK_DELAY: 2}"; 
+	ack_msg << "{ MSG_TYPE: " << command_name 
+		<< ", DEVICE: " << device 
+		<< ", CMD_ID: " << to_string(cmdId) 
+		<< ", ACK_ID: " << ack_id
+		<< ", ACK_DELAY: 2}"; 
 	cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
 
 	ostringstream book_keeping; 
-	book_keeping << "{MSG_TYPE: BOOK_KEEPING, ACK_ID: " << ack_id << ", ACK_DELAY: 2, CHECKBOX: false, TIME: " << get_current_time()
-	             << ", CMD_ID: " << to_string(cmdId) << ", DEVICE: " << device << "}"; 
+	book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
+		     << ", ACK_ID: " << ack_id 
+		     << ", ACK_DELAY: 2" 
+		     << ", CHECKBOX: false" 
+                     << ", TIME: " << get_current_time()
+	             << ", CMD_ID: " << to_string(cmdId) 
+		     << ", DEVICE: " << device << "}"; 
+	cout << "XXX BOOK_KEEPING: " << book_keeping.str() << endl; 
+
+	publisher->publish_message(consume_q, book_keeping.str()); 
+	publisher->publish_message(publish_q, ack_msg.str());  
+    }
+    os_nanoSleep(delay_10ms); 
+}  
+
+template <typename SAL_device, typename SAL_struct>
+void listenCommand_start(string device, string command_name, os_time delay_10ms, int cmdId, 
+SimplePublisher* publisher, string publish_q, string consume_q, SAL_device mgr, funcptr<SAL_device, SAL_struct> acceptCommand){ 
+    SAL_struct SALInstance; 
+    cmdId = (mgr.*acceptCommand)(&SALInstance); 
+    if (cmdId > 0) { 
+	cout << "== " << device << " " << command_name << " Command" << endl; 
+	ostringstream ack_msg; 
+	string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
+	ack_msg << "{ MSG_TYPE: " << command_name 
+		<< ", DEVICE: " << device 
+		<< ", CMD_ID: " << to_string(cmdId) 
+		<< ", ACK_ID: " << ack_id
+		<< ", CFG_KEY: " << SALInstance.configuration
+		<< ", ACK_DELAY: 2}"; 
+	cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
+
+	ostringstream book_keeping; 
+	book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
+		     << ", ACK_ID: " << ack_id 
+		     << ", ACK_DELAY: 2" 
+		     << ", CHECKBOX: false" 
+                     << ", TIME: " << get_current_time()
+	             << ", CMD_ID: " << to_string(cmdId) 
+		     << ", DEVICE: " << device << "}"; 
 	cout << "XXX BOOK_KEEPING: " << book_keeping.str() << endl; 
 
 	publisher->publish_message(consume_q, book_keeping.str()); 
@@ -152,7 +193,7 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
     string consume_q = "dmcs_ocs_publish"; 
 
     while (1) { 
-	listenCommand<SAL_archiver, archiver_command_startC>("AR", "START", delay_10ms, 
+	listenCommand_start<SAL_archiver, archiver_command_startC>("AR", "START", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, archiver, ar_start);  
 	listenCommand<SAL_archiver, archiver_command_stopC>("AR", "STOP", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, archiver, ar_stop);  
@@ -169,7 +210,7 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
 	listenCommand<SAL_archiver, archiver_command_abortC>("AR", "ABORT", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, archiver, ar_abort);  
 
-	listenCommand<SAL_catchuparchiver, catchuparchiver_command_startC>("CU", "START", delay_10ms, 
+	listenCommand_start<SAL_catchuparchiver, catchuparchiver_command_startC>("CU", "START", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, catchuparchiver, cu_start);  
 	listenCommand<SAL_catchuparchiver, catchuparchiver_command_stopC>("CU", "STOP", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, catchuparchiver, cu_stop);  
@@ -186,7 +227,7 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
 	listenCommand<SAL_catchuparchiver, catchuparchiver_command_abortC>("CU", "ABORT", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, catchuparchiver, cu_abort);  
 
-	listenCommand<SAL_processingcluster, processingcluster_command_startC>("PP", "START", delay_10ms, 
+	listenCommand_start<SAL_processingcluster, processingcluster_command_startC>("PP", "START", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, processingcluster, pp_start);  
 	listenCommand<SAL_processingcluster, processingcluster_command_stopC>("PP", "STOP", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, processingcluster, pp_stop);  
