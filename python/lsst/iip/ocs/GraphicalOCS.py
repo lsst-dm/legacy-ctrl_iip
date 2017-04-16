@@ -128,6 +128,13 @@ class GraphicalOCS:
         device_vbox.pack_start(separator2, True, True, 6)
         separator2.show()
 
+        cfg = gtk.Label("CFG key")
+        device_vbox.pack_start(cfg, True, True, 5)
+        cfg.show()
+        self.cfg_key = gtk.Entry(max=40)
+        device_vbox.pack_start( self.cfg_key, True, True, 5)
+        self.cfg_key.show()
+
         device_vbox.pack_start(self.ar, True, True, 7)
         self.ar.show()
 
@@ -367,8 +374,13 @@ class GraphicalOCS:
             else:
                 self.device_param = "catchuparchiver" #"CatchupArchiver"
 
+	cfg = self.cfg_key.get_text()
         #command = cmd + " " + self.device_param
-	command = "./commands/sacpp_" + self.device_param + "_" + cmd + "_commander 0"
+	if cmd == "start": 
+	    command = "./commands/sacpp_" + self.device_param + "_" + cmd + "_commander " + cfg
+	else: 
+	    command = "./commands/sacpp_" + self.device_param + "_" + cmd + "_commander 0"
+
 	print "XXXXXXXX command: ", command
         status_str = "\nSending %s command to the %s device" % (st_str,self.device_param)
         cmd_str =  "\nShell command to be run is: %s\n" % command
@@ -379,9 +391,15 @@ class GraphicalOCS:
         self.textbuffer.insert(insert_point, cmd_str)
 
         #veritek = os.system(cmd)
-        veritek = subprocess.check_output(command, shell=True)
+        #veritek = subprocess.check_output(command, shell=True)
+	veritek = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+	for line in iter(veritek.stdout.readline, b''): 
+	    insert_point = self.textbuffer.get_end_iter()
+ 	    self.textbuffer.insert(insert_point, line.rstrip())
+ 	    self.textbuffer.insert(insert_point, "\n")
+	    print(line.rstrip())
         insert_point = self.textbuffer.get_end_iter()
-        self.textbuffer.insert(insert_point, veritek)
+        self.textbuffer.insert(insert_point, veritek.stdout.read())
 
 
     def process_event_send_command(self, eidget, data=None):
