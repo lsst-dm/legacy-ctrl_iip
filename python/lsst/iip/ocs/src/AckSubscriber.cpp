@@ -50,9 +50,9 @@ class SAL {
 	{"STOP_ACK", &T::ackCommand_stop}, 
 	{"ENABLE_ACK", &T::ackCommand_enable}, 
 	{"DISABLE_ACK", &T::ackCommand_disable}, 
-	{"ENTERCONTROL_ACK", &T::ackCommand_enterControl}, 
+	{"ENTER_CONTROL_ACK", &T::ackCommand_enterControl}, 
 	{"STANDBY_ACK", &T::ackCommand_standby}, 
-	{"EXITCONTROL_ACK", &T::ackCommand_exitControl}, 
+	{"EXIT_CONTROL_ACK", &T::ackCommand_exitControl}, 
 	{"ABORT_ACK", &T::ackCommand_abort}
     }; 
 };  
@@ -78,9 +78,9 @@ map<string, funcptr> action_handler = {
     {"STOP_ACK", &AckSubscriber::process__ack}, 
     {"ENABLE_ACK", &AckSubscriber::process__ack}, 
     {"DISABLE_ACK", &AckSubscriber::process__ack}, 
-    {"ENTERCONTROL_ACK", &AckSubscriber::process__ack}, 
+    {"ENTER_CONTROL_ACK", &AckSubscriber::process__ack}, 
     {"STANDBY_ACK", &AckSubscriber::process__ack}, 
-    {"EXITCONTROL_ACK", &AckSubscriber::process__ack}, 
+    {"EXIT_CONTROL_ACK", &AckSubscriber::process__ack}, 
     {"ABORT_ACK", &AckSubscriber::process__ack}, 
     {"SUMMARY_STATE_EVENT", &AckSubscriber::process_event__SummaryState}, 
     {"RECOMMENDED_SETTINGS_VERSION_EVENT", &AckSubscriber::process_event__RecommendedSettings}, 
@@ -118,11 +118,11 @@ void AckSubscriber::run() {
 } 
 
 void AckSubscriber::on_message(string message) { 
-    cout << "XXX MSG: " << message << endl; 
     Node node = Load(message); 
     string message_value; 
     try { 
 	message_value = node["MSG_TYPE"].as<string>(); 
+	if (message_value != "RESOLVE_ACK") cout << "XXX MSG: " << message << endl; 
 	funcptr action = action_handler[message_value]; 
 	(*action)(node); 
     } 
@@ -340,10 +340,10 @@ void AckSubscriber::process__resolve_ack(Node n) {
 
 	if (check_box == "false") { 
 	    string dict_time = ack_dict.second.find("TIME")->second; 
-	    string ack_delay = ack_dict.second.find("ACK_DELAY")->second; 
+	    int ack_delay = 2; 
 
 	    int time_delta = get_time_delta(dict_time); 
-	    bool timeout_result = time_delta > stoi(ack_delay) ? true : false; 
+	    bool timeout_result = time_delta > ack_delay ? true : false; 
 
 	    if (timeout_result) { 
 		string cmd_id = ack_dict.second.find("CMD_ID")->second; 
@@ -372,7 +372,6 @@ void AckSubscriber::process__resolve_ack(Node n) {
 
 void AckSubscriber::process__book_keeping(Node n) { 
     try { 
-	string ack_delay = n["ACK_DELAY"].as<string>(); 
 	string ack_id = n["ACK_ID"].as<string>(); 
 	string time = n["TIME"].as<string>(); 
 	string checkbox = n["CHECKBOX"].as<string>(); 
@@ -380,7 +379,6 @@ void AckSubscriber::process__book_keeping(Node n) {
 	string device = n["DEVICE"].as<string>(); 
 
 	map<string, string> innerdict; 
-	innerdict["ACK_DELAY"] = ack_delay; 
 	innerdict["TIME"] = time; 
 	innerdict["CHECKBOX"] = checkbox; 
 	innerdict["CMD_ID"] = cmdId; 
@@ -403,8 +401,12 @@ AckSubscriber::sal_obj AckSubscriber::get_salObj(string device) {
 } 
 
 string AckSubscriber::get_salProcessor(string device, string ack_id) { 
-    string command = ack_id.substr(0, ack_id.find("_")); 
-    transform(command.begin(), command.end(), command.begin(), ::tolower); 
+    string holder = ack_id.substr(0, ack_id.find("_")); 
+    transform(holder.begin(), holder.end(), holder.begin(), ::tolower); 
+    string command; 
+    if ( holder == "enter" ) command = "enterControl"; 
+    else if (holder == "exit") command = "exitControl"; 
+    else command = holder; 
     string device_name; 
 	
     if (device == "AR") { device_name = "archiver"; } 

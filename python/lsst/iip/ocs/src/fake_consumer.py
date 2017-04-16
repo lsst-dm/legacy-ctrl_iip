@@ -19,7 +19,6 @@ def callback(ch, method, properties, body):
     msg["ACK_ID"] = m["ACK_ID"]
     msg["ACK_BOOL"] = "true"
     msg["ACK_STATEMENT"] = "everything works"
-    msg["ACK_DELAY"] = str(m["ACK_DELAY"])
     msg["CMD_ID"] = m["CMD_ID"] 
 
     print msg

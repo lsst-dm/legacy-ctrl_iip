@@ -30,13 +30,12 @@ SimplePublisher* publisher, string publish_q, string consume_q, SAL_device mgr, 
 		<< ", DEVICE: " << device 
 		<< ", CMD_ID: " << to_string(cmdId) 
 		<< ", ACK_ID: " << ack_id
-		<< ", ACK_DELAY: 2}"; 
+		<< "}"; 
 	cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
 
 	ostringstream book_keeping; 
 	book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
 		     << ", ACK_ID: " << ack_id 
-		     << ", ACK_DELAY: 2" 
 		     << ", CHECKBOX: false" 
                      << ", TIME: " << get_current_time()
 	             << ", CMD_ID: " << to_string(cmdId) 
@@ -63,13 +62,12 @@ SimplePublisher* publisher, string publish_q, string consume_q, SAL_device mgr, 
 		<< ", CMD_ID: " << to_string(cmdId) 
 		<< ", ACK_ID: " << ack_id
 		<< ", CFG_KEY: " << SALInstance.configuration
-		<< ", ACK_DELAY: 2}"; 
+		<< "}"; 
 	cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
 
 	ostringstream book_keeping; 
 	book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
 		     << ", ACK_ID: " << ack_id 
-		     << ", ACK_DELAY: 2" 
 		     << ", CHECKBOX: false" 
                      << ", TIME: " << get_current_time()
 	             << ", CMD_ID: " << to_string(cmdId) 
@@ -203,9 +201,9 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
 	    cmdId, rabbit_publisher, publish_q, consume_q, archiver, ar_disable);  
 	listenCommand<SAL_archiver, archiver_command_standbyC>("AR", "STANDBY", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, archiver, ar_standby);  
-	listenCommand<SAL_archiver, archiver_command_enterControlC>("AR", "ENTERCONTROL", delay_10ms, 
+	listenCommand<SAL_archiver, archiver_command_enterControlC>("AR", "ENTER_CONTROL", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, archiver, ar_enterControl);
-	listenCommand<SAL_archiver, archiver_command_exitControlC>("AR", "EXITCONTROL", delay_10ms, 
+	listenCommand<SAL_archiver, archiver_command_exitControlC>("AR", "EXIT_CONTROL", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, archiver, ar_exitControl);  
 	listenCommand<SAL_archiver, archiver_command_abortC>("AR", "ABORT", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, archiver, ar_abort);  
@@ -220,9 +218,9 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
 	    cmdId, rabbit_publisher, publish_q, consume_q, catchuparchiver, cu_disable);  
 	listenCommand<SAL_catchuparchiver, catchuparchiver_command_standbyC>("CU", "STANDBY", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, catchuparchiver, cu_standby);  
-	listenCommand<SAL_catchuparchiver, catchuparchiver_command_enterControlC>("CU", "ENTERCONTROL", delay_10ms, 
+	listenCommand<SAL_catchuparchiver, catchuparchiver_command_enterControlC>("CU", "ENTER_CONTROL", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, catchuparchiver, cu_enterControl);
-	listenCommand<SAL_catchuparchiver, catchuparchiver_command_exitControlC>("CU", "EXITCONTROL", delay_10ms, 
+	listenCommand<SAL_catchuparchiver, catchuparchiver_command_exitControlC>("CU", "EXIT_CONTROL", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, catchuparchiver, cu_exitControl);  
 	listenCommand<SAL_catchuparchiver, catchuparchiver_command_abortC>("CU", "ABORT", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, catchuparchiver, cu_abort);  
@@ -237,9 +235,9 @@ void *CommandListener::run_ocs_consumer(void *pargs) {
 	    cmdId, rabbit_publisher, publish_q, consume_q, processingcluster, pp_disable);  
 	listenCommand<SAL_processingcluster, processingcluster_command_standbyC>("PP", "STANDBY", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, processingcluster, pp_standby);  
-	listenCommand<SAL_processingcluster, processingcluster_command_enterControlC>("PP", "ENTERCONTROL", delay_10ms, 
+	listenCommand<SAL_processingcluster, processingcluster_command_enterControlC>("PP", "ENTER_CONTROL", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, processingcluster, pp_enterControl);
-	listenCommand<SAL_processingcluster, processingcluster_command_exitControlC>("PP", "EXITCONTROL", delay_10ms, 
+	listenCommand<SAL_processingcluster, processingcluster_command_exitControlC>("PP", "EXIT_CONTROL", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, processingcluster, pp_exitControl);  
 	listenCommand<SAL_processingcluster, processingcluster_command_abortC>("PP", "ABORT", delay_10ms, 
 	    cmdId, rabbit_publisher, publish_q, consume_q, processingcluster, pp_abort);  
