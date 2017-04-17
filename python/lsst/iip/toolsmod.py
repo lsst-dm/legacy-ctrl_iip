@@ -51,7 +51,7 @@ state_enumeration["FINAL"] =    6
 #STATE\
 #      \ |Offline |Standby |Disabled|Enabled |Fault   |Initial |Final   |
 #------------------------------------------------------------------------ 
-#Offline | TRUE   |        |        |        |        |        |  TRUE  |
+#Offline | TRUE   | TRUE   |        |        |        |        |  TRUE  |
 #------------------------------------------------------------------------
 #Standby |  TRUE  | TRUE   |  TRUE  |        |  TRUE  |        |  TRUE  |
 #------------------------------------------------------------------------
@@ -69,6 +69,7 @@ state_enumeration["FINAL"] =    6
 w, h = 7, 7;
 state_matrix = [[False for x in range(w)] for y in range(h)] 
 state_matrix[0][6] = True
+state_matrix[0][1] = True
 state_matrix[1][6] = True
 state_matrix[1][0] = True
 state_matrix[1][2] = True
