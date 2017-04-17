@@ -191,7 +191,7 @@ class StateScoreboard(Scoreboard):
         self._redis.hset(device, 'CFG_KEY', key)
 
 
-    def get_device_cfg_key(self, device, key):
+    def get_device_cfg_key(self, device):
         self._redis.hget(device, 'CFG_KEY')
 
 

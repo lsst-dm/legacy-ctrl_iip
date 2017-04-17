@@ -554,6 +554,9 @@ class DMCS:
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
+        self.send_appropriate_events_by_state(msg_in['DEVICE'])
+
+
     def send_appropriate_events_by_state(self, dev):
         current_state = self.STATE_SCBD.get_device_state(dev)
 
