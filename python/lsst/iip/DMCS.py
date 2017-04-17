@@ -158,9 +158,15 @@ class DMCS:
         # Check health of all devices
 
         # All devices wake up in STANDBY state
-        self.STATE_SCBD.set_device_state("AR","STANDBY")
-        self.STATE_SCBD.set_device_state("PP","STANDBY")
-        self.STATE_SCBD.set_device_state("CU","STANDBY")
+        self.STATE_SCBD.set_device_state("AR","OFFLINE")
+        self.send_appropriate_events_by_state('AR')
+
+        self.STATE_SCBD.set_device_state("PP","OFFLINE")
+        self.send_appropriate_events_by_state('PP')
+
+        self.STATE_SCBD.set_device_state("CU","OFFLINE")
+        self.send_appropriate_events_by_state('CU')
+
         LOGGER.info('DMCS Init complete')
 
 
@@ -489,22 +495,24 @@ class DMCS:
 
 
     def send_new_session_msg(self, session_id):
-        ack_ids = [] 
-        msg = {}
-        msg['MSG_TYPE'] = 'NEW_SESSION'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['SESSION_ID'] = session_id
-        msg['ACK_DELAY'] = ack_delay
+        pass
 
-        ddict = self.STATE_SCBD.get_devices()
-        for k in ddict.keys():
-            consume_queue = ddict[k]
-            ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
-            msg['ACK_ID'] = ack_id
-            ack_ids.append(ack_id)
-            self._publisher.publish_message(consume_queue, msg)
+        #ack_ids = [] 
+        #msg = {}
+        #msg['MSG_TYPE'] = 'NEW_SESSION'
+        #msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        #msg['SESSION_ID'] = session_id
+        #msg['ACK_DELAY'] = ack_delay
 
-        return ack_ids
+        #ddict = self.STATE_SCBD.get_devices()
+        #for k in ddict.keys():
+        #    consume_queue = ddict[k]
+        #    ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
+        #    msg['ACK_ID'] = ack_id
+        #    ack_ids.append(ack_id)
+        #    self._publisher.publish_message(consume_queue, msg)
+
+        #return ack_ids
 
 
     def validate_transition(self, new_state, msg_in):
@@ -543,16 +551,34 @@ class DMCS:
     def send_ocs_ack(self, transition_check, response, msg_in):
         message = {}
         message['MSG_TYPE'] = msg_in['MSG_TYPE'] + "_ACK"
+        message['DEVICE'] = msg_in['DEVICE']
         message['ACK_ID'] = msg_in['ACK_ID']
-        message['ACK_DELAY'] = msg_in['ACK_DELAY']
+        message['CMD_ID'] = msg_in['CMD_ID']
         message['ACK_BOOL'] = transition_check
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
+    def send_appropriate_events_by_state(self, dev):
+        current_state = self.STATE_SCBD.get_device_state(dev)
+
+        if current_state == 'DISABLE':
+            self.send_setting_applied_event(dev)
+            self.send_summary_state_event(dev)
+            self.applied_setting_match_start(dev)
+        elif current_state == 'ENABLE':
+            self.send_summary_state_event(dev)
+        elif current_state == 'FAULT':
+            self.send_error_code_event(dev)
+        elif current_state == 'OFFLINE':
+            self.send_summary_state_event(dev)
+        elif current_state == 'STANDBY':
+            self.send_summary_state_event(dev)
+            self.recommended_setting_versions_event(dev)
+
 
     def send_summary_state_event(self, device):
         message = {}
-        msesage[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
+        message[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
         message['DEVICE'] = device
         message['STATE'] = toolsmod.summary_state_enum[self.STATE_SCBD.get_device_state(device)]
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
@@ -560,25 +586,33 @@ class DMCS:
 
     def send_recommended_setting_versions_event(self, device):
         message = {}
-        msesage[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
+        message[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
         message['DEVICE'] = device
-        message['recommendedSettingVersions'] = self.STATE_SCBD.get_device_state(device)
+        message['RECOMMENDED_SETTINGS_VERSION_EVENT'] = self.STATE_SCBD.get_device_cfg_key(device)
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
     def send_setting_applied_event(self, device):
         message = {}
-        msesage[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
+        message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
         message['DEVICE'] = device
-        message[STATE] = self.STATE_SCBD.get_device_state(device)
+        message['CFG_KEY'] = self.STATE_SCBD.get_device_cfg_key(device)
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
     def send_applied_setting_match_start_event(self, device):
         message = {}
-        msesage[MSG_TYPE] = 'APPLIED_SETTINGS_MATCH_START_EVENT'
+        message[MSG_TYPE] = 'APPLIED_SETTINGS_MATCH_START_EVENT'
         message['DEVICE'] = device
-        message[STATE] = self.STATE_SCBD.get_device_state(device)
+        message['APPLIED'] = True
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+
+
+    def send_error_code_event(self, device):
+        message = {}
+        message[MSG_TYPE] = 'ERROR_CODE_EVENT'
+        message['DEVICE'] = device
+        message['ERROR_CODE'] = 102
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
