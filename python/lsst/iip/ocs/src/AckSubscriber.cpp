@@ -255,7 +255,7 @@ void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){
     long priority; 
     try {
 	device = n["DEVICE"].as<string>();
-	applied_settings_matchstart_istrue = n["BOOL"].as<bool>(); 
+	applied_settings_matchstart_istrue = n["APPLIED"].as<bool>(); 
 	priority = 0;  
     } 
     catch (exception& e) { 
@@ -350,11 +350,19 @@ void AckSubscriber::process__resolve_ack(Node n) {
 		int command_id = stoi(cmd_id); 
 		
 		string ack_id = ack_dict.first; 
-		string construct_msg = ack_id.substr(0, ack_id.find("_")) + "_ACK";  
+		string holder = ack_id.substr(0, ack_id.find("_")); 
+		transform(holder.begin(), holder.end(), holder.begin(), ::tolower); 
+		string command; 
+		cout << "### RESOLVE_HOLDER: " << holder << endl; 
+		if ( holder == "enter" ) command = "ENTER_CONTROL_ACK"; 
+		else if (holder == "exit") command = "EXIT_CONTROL_ACK"; 
+		else command = holder + "_ACK"; 
+		cout << "### RESOLVE_NAME: " << command << endl; 
+
 		string cmd = get_salProcessor(device, ack_id); 
 		
 		visitor v; 
-		v.dict_key = construct_msg; 
+		v.dict_key = command; 
 		v.cmd = cmd; 
 		v.cmdId = command_id; 
 		v.error_code = -302; 
