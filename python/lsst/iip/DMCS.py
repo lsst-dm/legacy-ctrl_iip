@@ -450,10 +450,6 @@ class DMCS:
         pass
 
 
-    def process_start_command(self):
-        pass
-
-
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
 
