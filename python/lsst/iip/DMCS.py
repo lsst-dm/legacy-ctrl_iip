@@ -103,15 +103,6 @@ class DMCS:
         self.ACK_SCBD = AckScoreboard(ack_db_instance)
         self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
 
-        self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
-        self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
-
-        self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
-        self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
-
-        self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
-        self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
-
 
         # Messages from OCS Bridge
         self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
@@ -159,14 +150,26 @@ class DMCS:
 
         # All devices wake up in STANDBY state
         self.STATE_SCBD.set_device_state("AR","OFFLINE")
-        self.send_appropriate_events_by_state('AR')
 
         self.STATE_SCBD.set_device_state("PP","OFFLINE")
-        self.send_appropriate_events_by_state('PP')
 
         self.STATE_SCBD.set_device_state("CU","OFFLINE")
-        self.send_appropriate_events_by_state('CU')
 
+        self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
+        print "CFG_KEYS is %s" % self.ar_cfg_keys
+        self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
+        #self.STATE_SCBD.set_device_cfg_key('AR','archiver-Normal')
+        print "Chosen CFG Key is: %s" % self.STATE_SCBD.get_cfg_from_cfgs('AR', 0)
+
+        self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
+
+        self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
+
+        self.send_appropriate_events_by_state('AR')
+        self.send_appropriate_events_by_state('PP')
+        self.send_appropriate_events_by_state('CU')
         LOGGER.info('DMCS Init complete')
 
 
@@ -563,7 +566,7 @@ class DMCS:
         if current_state == 'DISABLE':
             self.send_setting_applied_event(dev)
             self.send_summary_state_event(dev)
-            self.applied_setting_match_start(dev)
+            self.send_applied_setting_match_start_event(dev)
         elif current_state == 'ENABLE':
             self.send_summary_state_event(dev)
         elif current_state == 'FAULT':
@@ -572,7 +575,7 @@ class DMCS:
             self.send_summary_state_event(dev)
         elif current_state == 'STANDBY':
             self.send_summary_state_event(dev)
-            self.recommended_setting_versions_event(dev)
+            self.send_recommended_setting_versions_event(dev)
 
 
     def send_summary_state_event(self, device):
@@ -587,7 +590,9 @@ class DMCS:
         message = {}
         message[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
         message['DEVICE'] = device
-        message['RECOMMENDED_SETTINGS_VERSION_EVENT'] = self.STATE_SCBD.get_device_cfg_key(device)
+        message['CFG_KEY'] = self.STATE_SCBD.get_device_cfg_key(device)
+        print " REAL_CFG_KEY is %s" % self.STATE_SCBD.get_device_cfg_key(device)
+        print "Now CFG_KEY being sent is : %s" % message['CFG_KEY']
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 

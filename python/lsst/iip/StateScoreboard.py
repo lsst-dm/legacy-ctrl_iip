@@ -192,7 +192,7 @@ class StateScoreboard(Scoreboard):
 
 
     def get_device_cfg_key(self, device):
-        self._redis.hget(device, 'CFG_KEY')
+        return self._redis.hget(device, 'CFG_KEY')
 
 
     def add_device_cfg_keys(self, device, keys):
