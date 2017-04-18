@@ -527,12 +527,9 @@ class DMCS:
                 good_cfg = self.STATE_SCBD.check_cfgs_for_cfg(device,msg_in['CFG_KEY'])
                 if good_cfg:
                     cfg_result = self.STATE_SCBD.set_device_cfg_key(device, msg_in['CFG_KEY'])
-                if cfg_result == True:  ### Consider checking with policy module here...
                     cfg_response = " CFG Key set to %s" % msg_in['CFG_KEY']
                 else:
                     cfg_response = " Bad CFG Key"
-        else:
-            cfg_response = " No CFG Key provided"
         
 
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
@@ -578,8 +575,6 @@ class DMCS:
             self.send_summary_state_event(dev)
         elif transition == 'FAULT':
             self.send_error_code_event(dev)
-        elif transition == 'ENTER_CONTROL':
-            self.send_summary_state_event(dev)
         elif transition == 'OFFLINE':
             self.send_summary_state_event(dev)
         elif transition == 'ENTER_CONTROL':
