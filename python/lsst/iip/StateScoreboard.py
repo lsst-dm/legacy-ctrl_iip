@@ -218,7 +218,7 @@ class StateScoreboard(Scoreboard):
         return self._redis.lindex(listname, index)
 
 
-    def check_cfgs_for_cfg(self, device, cfg):
+    def check_cfgs_for_cfg(self, device, cfg_key):
         if device == 'AR':
             listname = 'AR_CFG_KEYS'
         elif device == 'PP':
