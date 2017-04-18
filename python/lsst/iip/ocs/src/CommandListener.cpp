@@ -115,7 +115,7 @@ void *CommandListener::run_resolve_publisher(void *pargs) {
     SimplePublisher *rabbit_publisher = params->publisher; 
     while (1) { 
 	rabbit_publisher->publish_message("dmcs_ocs_publish", "{MSG_TYPE: RESOLVE_ACK}"); 
-	usleep(3000000);
+	usleep(5000000);
     }  
     return 0; 
 } 
@@ -259,6 +259,8 @@ string CommandListener::get_next_timed_ack_id(string ack_type) {
 
 int main() { 
     CommandListener cmd; 
-    pthread_exit(NULL); 
+    while (1) { 
+
+    } 
     return 0; 
 } 

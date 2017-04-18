@@ -63,7 +63,9 @@ struct visitor : public boost::static_visitor<> {
 	    SAL<T> t; 
 	    typename SAL<T>::funcptr action = t.action_handler[dict_key]; 
 	    op.salProcessor(const_cast<char *>(cmd.c_str())); 
-	    (op.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str()));
+	    (op.*action)(cmdId, SAL__CMD_COMPLETE, 0, "DONE: OK");
+	    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+		 << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
 	}
 	
 	string dict_key; 
@@ -247,6 +249,45 @@ void AckSubscriber::process_event__RecommendedSettings(Node n){
 }
 
 void AckSubscriber::process_event__AppliedSettings(Node n){ 
+    string device;
+    bool settings_applied;
+    long priority; 
+    try {
+	device = n["DEVICE"].as<string>();
+	settings_applied = n["APPLIED"].as<bool>(); 
+	priority = 0;  
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In Acksubscriber -- process_event__SettingsApplied, cannot read fields from message." << endl; 
+	return; 
+    } 
+    if (device == "AR") { 
+	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC> archiver_sum; 
+	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC>::
+		eventStateFunc func = &SAL_archiver::logEvent_AppliedSettingsMatchStart; 
+	archiver_logevent_AppliedSettingsMatchStartC data; 
+	data.appliedSettingsMatchStartIsTrue = settings_applied; 
+	data.priority = priority;  
+	archiver_sum.send_eventState(n, func, data);  
+    } 
+    else if (device == "CU") { 
+	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_AppliedSettingsMatchStartC> catchuparchiver_sum; 
+	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_AppliedSettingsMatchStartC>::
+		eventStateFunc func = &SAL_catchuparchiver::logEvent_AppliedSettingsMatchStart; 
+	catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
+	data.appliedSettingsMatchStartIsTrue = settings_applied; 
+	data.priority = priority;  
+	catchuparchiver_sum.send_eventState(n, func, data);  
+    } 
+    else if (device == "PP") { 
+	eventSAL<SAL_processingcluster, processingcluster_logevent_AppliedSettingsMatchStartC> processingcluster_sum; 
+	eventSAL<SAL_processingcluster, processingcluster_logevent_AppliedSettingsMatchStartC>::
+		eventStateFunc func = &SAL_processingcluster::logEvent_AppliedSettingsMatchStart; 
+	processingcluster_logevent_AppliedSettingsMatchStartC data; 
+	data.appliedSettingsMatchStartIsTrue = settings_applied; 
+	data.priority = priority;  
+	processingcluster_sum.send_eventState(n, func, data);  
+    } 
 }
 
 void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){ 
@@ -351,11 +392,11 @@ void AckSubscriber::process__resolve_ack(Node n) {
 		
 		string ack_id = ack_dict.first; 
 		string holder = ack_id.substr(0, ack_id.find("_")); 
-		transform(holder.begin(), holder.end(), holder.begin(), ::tolower); 
+		//transform(holder.begin(), holder.end(), holder.begin(), ::tolower); 
 		string command; 
 		cout << "### RESOLVE_HOLDER: " << holder << endl; 
-		if ( holder == "enter" ) command = "ENTER_CONTROL_ACK"; 
-		else if (holder == "exit") command = "EXIT_CONTROL_ACK"; 
+		if ( holder == "ENTER" ) command = "ENTER_CONTROL_ACK"; 
+		else if (holder == "EXIT") command = "EXIT_CONTROL_ACK"; 
 		else command = holder + "_ACK"; 
 		cout << "### RESOLVE_NAME: " << command << endl; 
 
