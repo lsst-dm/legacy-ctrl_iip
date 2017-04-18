@@ -227,7 +227,7 @@ class StateScoreboard(Scoreboard):
             listname = 'CU_CFG_KEYS'
 
         list_len = self._redis.llen(listname)
-        if list_len == 0 or list_len == Null:
+        if list_len == 0 or list_len == None:
             return True
 
         for item in range(0,list_len):
