@@ -218,6 +218,25 @@ class StateScoreboard(Scoreboard):
         return self._redis.lindex(listname, index)
 
 
+    def check_cfgs_for_cfg(self, device, cfg):
+        if device == 'AR':
+            listname = 'AR_CFG_KEYS'
+        elif device == 'PP':
+            listname = 'PP_CFG_KEYS'
+        elif device == 'CU':
+            listname = 'CU_CFG_KEYS'
+
+        list_len = self._redis.llen(listname)
+        if list_len == 0 or list_len == Null:
+            return True
+
+        for item in range(0,list_len):
+            if cfg_key == item:
+                return True
+
+        return False
+
+
     def build_monitor_data(self, params):
         monitor_data = {}
         keez = params.keys()

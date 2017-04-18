@@ -21,7 +21,7 @@ def singleton(object, instantiated=[]):
 # Dictionary showing the state a transition ends in
 next_state = {}
 next_state["ENTER_CONTROL"] = "STANDBY"
-next_state["EXIT_CONTROL"] = "FINAL"
+next_state["EXIT_CONTROL"] = "OFFLINE"
 next_state["START"] = "DISABLE"
 next_state["ENABLE"] = "ENABLE"
 next_state["DISABLE"] = "DISABLE"
@@ -34,7 +34,7 @@ summary_state_enum = {'DISABLE':0,
                       'ENABLE':1, 
                       'FAULT':2, 
                       'OFFLINE':3, 
-                      'STANDBY':1}
+                      'STANDBY':4}
 
 state_enumeration = {}
 state_enumeration["OFFLINE"] =  0

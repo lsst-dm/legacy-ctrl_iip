@@ -167,9 +167,9 @@ class DMCS:
         self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
         self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
 
-        self.send_appropriate_events_by_state('AR')
-        self.send_appropriate_events_by_state('PP')
-        self.send_appropriate_events_by_state('CU')
+        self.send_appropriate_events_by_state('AR', 'OFFLINE')
+        self.send_appropriate_events_by_state('PP', 'OFFLINE')
+        self.send_appropriate_events_by_state('CU', 'OFFLINE')
         LOGGER.info('DMCS Init complete')
 
 
@@ -524,24 +524,26 @@ class DMCS:
 
         if msg_in['MSG_TYPE'] == 'START': 
             if 'CFG_KEY' in msg_in:
-                cfg_result = self.STATE_SCBD.set_device_cfg_key(device, msg_in['CFG_KEY'])
+                good_cfg = self.STATE_SCBD.check_cfgs_for_cfg(device,msg_in['CFG_KEY'])
+                if good_cfg:
+                    cfg_result = self.STATE_SCBD.set_device_cfg_key(device, msg_in['CFG_KEY'])
                 if cfg_result == True:  ### Consider checking with policy module here...
                     cfg_response = " CFG Key set to %s" % msg_in['CFG_KEY']
                 else:
-                    cfg_response = " Invalid CFG Key -- using default"
+                    cfg_response = " Bad CFG Key"
         else:
-            cfg_response = " No CFG Key provided -- using default"
+            cfg_response = " No CFG Key provided"
         
 
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
         if transition_is_valid == True:
             self.STATE_SCBD.set_device_state(device, new_state)
-            response = "The " + str(device) + " device is in " + new_state
+            response = str(device) + " device in " + new_state
             response = response + cfg_response
             self.send_ocs_ack(transition_is_valid, response, msg_in)
         else:
-            response = "Invalid transition from " + str(current_state) + " to " + new_state
-            response = response + ". Device remaining in " + current_state + " state."
+            response = "Invalid transition: " + str(current_state) + " to " + new_state
+            #response = response + ". Device remaining in " + current_state + " state."
             self.send_ocs_ack(transition_is_valid, response, msg_in)
 
         return transition_is_valid
@@ -557,26 +559,51 @@ class DMCS:
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
-        self.send_appropriate_events_by_state(msg_in['DEVICE'])
+        self.send_appropriate_events_by_state(msg_in['DEVICE'], msg_in['MSG_TYPE'])
 
 
-    def send_appropriate_events_by_state(self, dev):
-        current_state = self.STATE_SCBD.get_device_state(dev)
+    def send_appropriate_events_by_state(self, dev, transition):
 
-        if current_state == 'DISABLE':
+        if transition == 'START':
             self.send_setting_applied_event(dev)
             self.send_summary_state_event(dev)
             self.send_applied_setting_match_start_event(dev)
-        elif current_state == 'ENABLE':
+        elif transition == 'ENABLE':
             self.send_summary_state_event(dev)
-        elif current_state == 'FAULT':
+        elif transition == 'DISABLE':
+            self.send_summary_state_event(dev)
+        elif transition == 'STANDBY':
+            self.send_summary_state_event(dev)
+        elif transition == 'EXIT_CONTROL':
+            self.send_summary_state_event(dev)
+        elif transition == 'FAULT':
             self.send_error_code_event(dev)
-        elif current_state == 'OFFLINE':
+        elif transition == 'ENTER_CONTROL':
             self.send_summary_state_event(dev)
-        elif current_state == 'STANDBY':
+        elif transition == 'OFFLINE':
+            self.send_summary_state_event(dev)
+        elif transition == 'ENTER_CONTROL':
             self.send_summary_state_event(dev)
             self.send_recommended_setting_versions_event(dev)
 
+
+#    def send_appropriate_events_by_state(self, dev):
+#        current_state = self.STATE_SCBD.get_device_state(dev)
+#
+#        if current_state == 'DISABLE':
+#            self.send_setting_applied_event(dev)
+#            self.send_summary_state_event(dev)
+#            self.send_applied_setting_match_start_event(dev)
+#        elif current_state == 'ENABLE':
+#            self.send_summary_state_event(dev)
+#        elif current_state == 'FAULT':
+#            self.send_error_code_event(dev)
+#        elif current_state == 'OFFLINE':
+#            self.send_summary_state_event(dev)
+#        elif current_state == 'STANDBY':
+#            self.send_summary_state_event(dev)
+#            self.send_recommended_setting_versions_event(dev)
+#
 
     def send_summary_state_event(self, device):
         message = {}
