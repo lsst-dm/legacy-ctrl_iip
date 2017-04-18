@@ -31,7 +31,11 @@ class eventSAL {
 	    T mgr = T(); 
 	    string sal_event = AckSubscriber::get_salEvent(device, message_type); 
 	    mgr.salEvent(const_cast<char *>(sal_event.c_str())); 
+	    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+		 << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
 	    (mgr.*logEvent)(&data, priority);  
+	    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+		 << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
 	    mgr.salShutdown(); 
 	} 
 	catch (exception& e) { 
@@ -63,7 +67,9 @@ struct visitor : public boost::static_visitor<> {
 	    SAL<T> t; 
 	    typename SAL<T>::funcptr action = t.action_handler[dict_key]; 
 	    op.salProcessor(const_cast<char *>(cmd.c_str())); 
-	    (op.*action)(cmdId, SAL__CMD_COMPLETE, 0, "DONE: OK");
+
+	    string result = ack_statement; // 32 char 
+	    (op.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(result.c_str()));
 	    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
 		 << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
 	}
@@ -392,9 +398,8 @@ void AckSubscriber::process__resolve_ack(Node n) {
 		
 		string ack_id = ack_dict.first; 
 		string holder = ack_id.substr(0, ack_id.find("_")); 
-		//transform(holder.begin(), holder.end(), holder.begin(), ::tolower); 
+
 		string command; 
-		cout << "### RESOLVE_HOLDER: " << holder << endl; 
 		if ( holder == "ENTER" ) command = "ENTER_CONTROL_ACK"; 
 		else if (holder == "EXIT") command = "EXIT_CONTROL_ACK"; 
 		else command = holder + "_ACK"; 
@@ -434,7 +439,6 @@ void AckSubscriber::process__book_keeping(Node n) {
 	innerdict["DEVICE"] = device; 
 
 	ack_book_keeper[ack_id] = innerdict; 
-	cout << "XXX BOOKKEEPING: " << cmdId << endl; 
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In AckSubscriber -- process__book_keeping, cannot read fields from message.";  
