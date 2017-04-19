@@ -104,7 +104,7 @@ map<string, string> eventDict = {
     {"APPLIED_SETTINGS_MATCH_START_EVENT", "AppliedSettingsMatchStart"}, 
     {"SUMMARY_STATE_EVENT", "SummaryState"}, 
     {"RECOMMENDED_SETTINGS_VERSION_EVENT", "SettingVersions"}, 
-    {"SETTINGS_APPLIED_EVENT", ""} 
+    {"SETTINGS_APPLIED_EVENT", "AppliedSettingsMatchStart"} 
 }; 
 
 map<string, map<string, string>> ack_book_keeper; 
@@ -130,7 +130,10 @@ void AckSubscriber::on_message(string message) {
     string message_value; 
     try { 
 	message_value = node["MSG_TYPE"].as<string>(); 
-	if (message_value != "RESOLVE_ACK") cout << "XXX MSG: " << message << endl; 
+	if (message_value != "RESOLVE_ACK"){
+	    cout << "=== MSG: " << message << endl;
+	    cout << "[" << message_value << "] ..." << endl; 
+	}   
 	funcptr action = action_handler[message_value]; 
 	(*action)(node); 
     } 
@@ -156,7 +159,7 @@ void AckSubscriber::process__ack(Node n) {
 	v.error_code = (ack_bool == "true") ? 0: -302; 
 	v.ack_statement = ack_statement; 
 	
-	cout << "XXX PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
+	cout << "=== PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
 	sal_obj mgr = get_salObj(device); 
 	boost::apply_visitor(v, mgr); 
 	
@@ -414,7 +417,7 @@ void AckSubscriber::process__resolve_ack(Node n) {
 		v.error_code = -302; 
 		v.ack_statement = "DONE: OK"; 
 
-		cout << "XXX RESOLVE_ACK: " << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
+		cout << "=== RESOLVE_ACK: " << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
 		sal_obj mgr = get_salObj(device); 
 		boost::apply_visitor(v, mgr); 
 
