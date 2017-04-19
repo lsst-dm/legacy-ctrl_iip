@@ -622,7 +622,7 @@ class DMCS:
         message = {}
         message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
         message['DEVICE'] = device
-        message['CFG_KEY'] = self.STATE_SCBD.get_device_cfg_key(device)
+        message['APPLIED'] = True
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
