@@ -585,24 +585,6 @@ class DMCS:
             self.send_recommended_setting_versions_event(dev)
 
 
-#    def send_appropriate_events_by_state(self, dev):
-#        current_state = self.STATE_SCBD.get_device_state(dev)
-#
-#        if current_state == 'DISABLE':
-#            self.send_setting_applied_event(dev)
-#            self.send_summary_state_event(dev)
-#            self.send_applied_setting_match_start_event(dev)
-#        elif current_state == 'ENABLE':
-#            self.send_summary_state_event(dev)
-#        elif current_state == 'FAULT':
-#            self.send_error_code_event(dev)
-#        elif current_state == 'OFFLINE':
-#            self.send_summary_state_event(dev)
-#        elif current_state == 'STANDBY':
-#            self.send_summary_state_event(dev)
-#            self.send_recommended_setting_versions_event(dev)
-#
-
     def send_summary_state_event(self, device):
         message = {}
         message[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
