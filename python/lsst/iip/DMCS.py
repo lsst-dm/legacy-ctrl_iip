@@ -556,7 +556,8 @@ class DMCS:
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
 
-        self.send_appropriate_events_by_state(msg_in['DEVICE'], msg_in['MSG_TYPE'])
+        if transition_check:
+            self.send_appropriate_events_by_state(msg_in['DEVICE'], msg_in['MSG_TYPE'])
 
 
     def send_appropriate_events_by_state(self, dev, transition):
