@@ -529,7 +529,9 @@ class DMCS:
                     cfg_result = self.STATE_SCBD.set_device_cfg_key(device, msg_in['CFG_KEY'])
                     cfg_response = " CFG Key set to %s" % msg_in['CFG_KEY']
                 else:
-                    cfg_response = " Bad CFG Key"
+                    cfg_response = " Bad CFG Key - remaining in %s" % current_state
+                    self.send_ocs_ack(False, cfg_response, msg_in)
+                    return False
         
 
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
