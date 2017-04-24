@@ -95,6 +95,7 @@ class JobScoreboard(Scoreboard):
 #        #set up auto sequence
 #        self._redis.set(self.JOB_SEQUENCE_NUM, job_num_seed)
       
+        LOGGER.info('JobScoreboard initialization is complete')
     
 
     def connect(self):
@@ -175,6 +176,7 @@ class JobScoreboard(Scoreboard):
             #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             #self.persist(self.build_monitor_data(params))
         else:
+            LOGGER.error('Unable to job params; Redis connection unavailable')
             return False
 
     def set_job_state(self, job_number, state):
