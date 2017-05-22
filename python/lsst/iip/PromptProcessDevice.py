@@ -41,7 +41,7 @@ class BaseForeman:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self._config_file = 'L1SystemCfg.yaml'
+        self._config_file = CFG_FILE
         if filename != None:
             self._config_file = filename
 
@@ -84,10 +84,12 @@ class BaseForeman:
         self.JOB_SCBD = JobScoreboard(self._scbd_dict['PP_JOB_SCBD'])
         self.ACK_SCBD = AckScoreboard(self._scbd_dict['PP_ACK_SCBD'])
 
-        self._msg_actions = { 'NEW_JOB': self.process_dmcs_new_job,
+        self._msg_actions = { 'NEW_SESSION': self.set_session,
+                              'NEXT_VISIT': self.set_visit, 
+                              'START_INTEGRATION': self.process_start_integration,
                               'READOUT': self.process_dmcs_readout,
                               'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
-                              'NCSA_STANDBY_ACK': self.process_ack,
+                              'NCSA_START_INTEGRATION_ACK': self.process_ack,
                               'NCSA_READOUT_ACK': self.process_ack,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
@@ -130,7 +132,7 @@ class BaseForeman:
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread on all consumer methods')
 
-        self._dmcs_consumer = Consumer(self._base_broker_url, self.DMCS_PUBLISH, self._base_msg_format)
+        self._dmcs_consumer = Consumer(self._base_broker_url, self.PP_FOREMAN_CONSUME, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
         except:
@@ -151,7 +153,7 @@ class BaseForeman:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
             sys.exit(101)
 
-        self._ack_consumer = Consumer(self._base_broker_url, self.ACK_PUBLISH, self._base_msg_format)
+        self._ack_consumer = Consumer(self._base_broker_url, self.PP_FOREMAN_ACK_PUBLISH, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
         except:
@@ -224,9 +226,39 @@ class BaseForeman:
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
-    
 
-    def process_dmcs_new_job(self, params):
+ 
+    def set_visit(self, params):
+        self.JOB_SCBD.set_visit_id(params['VISIT_ID'])
+        ack_id = params['ACK_ID']
+        msg = {}
+        ## XXX FIXME Do something with the bore sight in params['BORE_SIGHT']
+        ncsa_result = self.send_boresight_to_ncsa(params['VISIT_ID'], params['BORE_SIGHT'])
+
+        msg['MSG_TYPE'] = 'AR_NEXT_VISIT_ACK'
+        msg['COMPONENT_NAME'] = 'AR_FOREMAN'
+        msg['ACK_ID'] = ack_id
+        msg['ACK_BOOL'] = True
+        route_key = params['RESPONSE_QUEUE']
+        self._publisher.publish_message(route_key, msg)
+
+
+    def send_boresight_to_ncsa(self, visit_id, bore_sight):
+        msg = {}
+        msg['MSG_TYPE'] = 'SET_VISIT'
+        msg['VISIT_ID'] = visit_id
+        msg['BORE_SIGHT'] = bore_sight
+        msg['SESSION_ID'] = self.JOB_SCBD.get_current_session()
+        msg['ACK_ID'] = self.get_next_timed_ack_id('NCSA_SET_VISIT_ACK')
+        msg['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
+        self._publisher.publish_message(self.NCSA_CONSUME, msg)
+
+        self.ack_timer(2)
+
+        ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+
+
+    def process_start_integration(self, params):
         input_params = params
         needed_workers = len(input_params[RAFTS])
         ack_id = self.forwarder_health_check(input_params)
@@ -523,8 +555,7 @@ class BaseForeman:
 
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
-        retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
-        return retval 
+        return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
 
 
     def ack_timer(self, seconds):

@@ -91,11 +91,6 @@ class DMCS:
 
         self._next_timed_ack_id = self.init_ack_id()
 
-        # TEMPORARY ONLY - Will be removed when config key nature is finalized
-        # Build ccd_list as if a config key is being used... range val is numbee of CCDs to handle
-        for i in range (1, 21):
-            self.CCD_LIST
-
 
         LOGGER.info('Setting up DMCS Scoreboards')
         self.JOB_SCBD = JobScoreboard(job_db_instance)
@@ -494,24 +489,24 @@ class DMCS:
 
 
     def send_new_session_msg(self, session_id):
-        pass
 
-        #ack_ids = [] 
-        #msg = {}
-        #msg['MSG_TYPE'] = 'NEW_SESSION'
-        #msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        #msg['SESSION_ID'] = session_id
-        #msg['ACK_DELAY'] = ack_delay
+        ack_ids = [] 
+        msg = {}
+        msg['MSG_TYPE'] = 'NEW_SESSION'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['SESSION_ID'] = session_id
+        msg['ACK_DELAY'] = ack_delay
 
-        #ddict = self.STATE_SCBD.get_devices()
-        #for k in ddict.keys():
-        #    consume_queue = ddict[k]
-        #    ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
-        #    msg['ACK_ID'] = ack_id
-        #    ack_ids.append(ack_id)
-        #    self._publisher.publish_message(consume_queue, msg)
+        ddict = self.STATE_SCBD.get_devices()
+        for k in ddict.keys():
+            consume_queue = ddict[k]
+            ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
+            msg['ACK_ID'] = ack_id
+            ack_ids.append(ack_id)
+            self._publisher.publish_message(consume_queue, msg)
 
-        #return ack_ids
+        # Non-blocking Acks placed directly into ack_scoreboard
+        return ack_ids
 
 
     def validate_transition(self, new_state, msg_in):
