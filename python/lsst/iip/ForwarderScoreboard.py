@@ -11,11 +11,13 @@ LOGGER = logging.getLogger(__name__)
 class ForwarderScoreboard(Scoreboard):
     FORWARDER_ROWS = 'forwarder_rows'
     PUBLISH_QUEUE = 'forwarder_publish'
+    DB_TYPE = ""
     DB_INSTANCE = None
   
 
-    def __init__(self, db_instance, fdict):
+    def __init__(self, db_type, db_instance, fdict):
         LOGGER.info('Setting up ForwarderScoreboard')
+        self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._redis = self.connect()
         self._redis.flushdb()

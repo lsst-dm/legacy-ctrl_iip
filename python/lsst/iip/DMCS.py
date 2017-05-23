@@ -93,10 +93,10 @@ class DMCS:
 
 
         LOGGER.info('Setting up DMCS Scoreboards')
-        self.JOB_SCBD = JobScoreboard(job_db_instance)
-        self.BACKLOG_SCBD = BacklogScoreboard(backlog_db_instance)
-        self.ACK_SCBD = AckScoreboard(ack_db_instance)
-        self.STATE_SCBD = StateScoreboard(state_db_instance, ddict)
+        self.JOB_SCBD = JobScoreboard('DMCS_JOB_SCBD', job_db_instance)
+        self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', backlog_db_instance)
+        self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', ack_db_instance)
+        self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', state_db_instance, ddict)
 
 
         # Messages from OCS Bridge

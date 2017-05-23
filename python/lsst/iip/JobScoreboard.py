@@ -37,14 +37,14 @@ class JobScoreboard(Scoreboard):
     SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
-    DBTYPE = "Job scoreboard"
+    DBTYPE = ""
     DB_INSTANCE = None
     AR = 'AR'
     PP = 'PP'
     CU = 'CU'
   
 
-    def __init__(self, db_instance):
+    def __init__(self, db_type, db_instance):
         """After connecting to the Redis database instance 
            JOB_SCOREBOARD_DB, this redis database is flushed 
            for a clean start. A 'charge_database' method is 
@@ -70,6 +70,7 @@ class JobScoreboard(Scoreboard):
            TERMINATED
         """
         LOGGER.info('Setting up JobScoreboard')
+        self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
         try:
@@ -143,19 +144,19 @@ class JobScoreboard(Scoreboard):
             self._redis.hset(job_number, 'VISIT_ID', visit_id)
             self._redis.lpush(self.JOBS, job_number)
 
-            #params = {}
-            #params[self.SUB_TYPE] = self.JOB_STATE
-            #params[JOB_NUM] = job_number
-            #params['IMAGE_ID'] = image_id
-            #params[self.STATE] = 'NEW'
-            #self.persist(self.build_monitor_data(params))
+            params = {}
+            params[self.SUB_TYPE] = self.JOB_STATE
+            params[JOB_NUM] = job_number
+            params['IMAGE_ID'] = image_id
+            params[self.STATE] = 'NEW'
+            self.persist(self.build_monitor_data(params))
 
-            #params = {}
-            #params[self.SUB_TYPE] = self.JOB_STATUS
-            #params[JOB_NUM] = job_number
-            #params['IMAGE_ID'] = image_id
-            #params[self.STATUS] = 'active'
-            #self.persist(self.build_monitor_data(params))
+            params = {}
+            params[self.SUB_TYPE] = self.JOB_STATUS
+            params[JOB_NUM] = job_number
+            params['IMAGE_ID'] = image_id
+            params[self.STATUS] = 'active'
+            self.persist(self.build_monitor_data(params))
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
 
@@ -169,12 +170,13 @@ class JobScoreboard(Scoreboard):
         if self.check_connection():
             for kee in in_params.keys():
                 self._redis.hset(job_number, kee, in_params[kee])
-            #params = {}
-            #params[JOB_NUM] = job_number
-            #params['SUB_TYPE'] = self.JOB_STATE
-            #params['STATE'] = in_params['STATE']
-            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            #self.persist(self.build_monitor_data(params))
+
+            params = {}
+            params[JOB_NUM] = job_number
+            params['SUB_TYPE'] = self.JOB_STATE
+            params['STATE'] = in_params['STATE']
+            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            self.persist(self.build_monitor_data(params))
         else:
             LOGGER.error('Unable to job params; Redis connection unavailable')
             return False
@@ -182,6 +184,12 @@ class JobScoreboard(Scoreboard):
     def set_job_state(self, job_number, state):
         if self.check_connection():
             self._redis.hset(job_number, STATE, state)
+            params = {}
+            params[JOB_NUM] = job_number
+            params['SUB_TYPE'] = self.JOB_STATE
+            params['STATE'] = state
+            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            self.persist(self.build_monitor_data(params))
 
 
     def get_job_state(self, job_number):
@@ -195,6 +203,7 @@ class JobScoreboard(Scoreboard):
             return self._redis.hset(job, self.STATUS, status)
             params = {}
             params[JOB_NUM] = job
+            params['SUB_TYPE'] = self.JOB_STATUS
             params[self.STATUS] = status
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))

@@ -36,9 +36,11 @@ class BacklogScoreboard(Scoreboard):
     JOB_STATUS = 'JOB_STATUS'
     STATUS = 'STATUS'
     SUB_TYPE = 'SUB_TYPE'
+    DB_TYPE = ""
   
 
-    def __init__(self, db_instance):
+    def __init__(self, db_type, db_instance):
+        self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
         try:
@@ -122,7 +124,7 @@ class BacklogScoreboard(Scoreboard):
         monitor_data['SESSION_ID'] = self.get_current_session()
         monitor_data['VISIT_ID'] = self.get_current_visit()
         monitor_data['TIME'] = get_epoch_timestamp()
-        monitor_data['DATA_TYPE'] = self.DBTYPE
+        monitor_data['DATA_TYPE'] = self.DB_TYPE
         return monitor_data
 
 

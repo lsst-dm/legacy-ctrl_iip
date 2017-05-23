@@ -35,12 +35,14 @@ class StateScoreboard(Scoreboard):
     SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM'
     CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
     DB_INSTANCE = None
+    DB_TYPE = ""
     AR = "AR"
     PP = "PP"
     CU = "CU"
   
 
-    def __init__(self, db_instance, ddict):
+    def __init__(self, db_type, db_instance, ddict):
+        self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
         try:
@@ -101,7 +103,7 @@ class StateScoreboard(Scoreboard):
             self.set_device_state(self.AR, 'STANDBY')
 
             self._redis.hset(self.PP, 'CONSUME_QUEUE', ddict[self.PP])
-            self.set_device_state(self.AR, 'STANDBY')
+            self.set_device_state(self.PP, 'STANDBY')
 
             self._redis.hset(self.CU, 'CONSUME_QUEUE', ddict[self.CU])
             self.set_device_state(self.CU, 'STANDBY')

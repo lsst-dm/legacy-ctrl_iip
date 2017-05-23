@@ -29,10 +29,11 @@ class AckScoreboard(Scoreboard):
     TIMED_ACK_IDS = 'TIMED_ACK_IDS'
     ACK_FETCH = 'ACK_FETCH'
     ACK_IDS = 'ACK_IDS'
+    DB_TYPE = ""
     DB_INSTANCE = None
   
 
-    def __init__(self, db_instance):
+    def __init__(self, db_type, db_instance):
         """After connecting to the Redis database instance 
            ACK_SCOREBOARD_DB, this redis database is flushed 
            for a clean start. 
@@ -45,6 +46,7 @@ class AckScoreboard(Scoreboard):
            4) After a timer event elapses, the scoreboard is locked and checked  to see which ACKs were received.
         """
         LOGGER.info('Setting up AckScoreboard')
+        self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         try:
             Scoreboard.__init__(self)
@@ -114,14 +116,14 @@ class AckScoreboard(Scoreboard):
             # ACK_IDS are for unit tests and for printing out entire scoreboard
             #self._redis.lpush(self.ACK_IDS, ack_id_string)
             
-            #params = {}
-            #params['SUB_TYPE'] = ack_sub_type
-            #params['ACK_ID'] = ack_id_string
-            #params['JOB_NUM'] = ack_msg_body['JOB_NUM']
-            #params['COMPONENT_NAME'] = ack_component_name
-            #params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
-            #params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
-            #self.persist(self.build_audit_data(params))
+            params = {}
+            params['SUB_TYPE'] = ack_sub_type
+            params['ACK_ID'] = ack_id_string
+            params['JOB_NUM'] = ack_msg_body['JOB_NUM']
+            params['COMPONENT_NAME'] = ack_component_name
+            params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
+            params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
+            self.persist(self.build_audit_data(params))
             
         else:
             LOGGER.error('Unable to add new ACK; Redis connection unavailable')
@@ -146,10 +148,10 @@ class AckScoreboard(Scoreboard):
                 print "WAIT: Component_dict is:\n%s" % component_dict
                 return component_dict
                 
-                #params = {}
-                #params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
-                #params['ACK_ID'] = timed_ack
-                #self.persist(self.build_audit_data(params))
+                params = {}
+                params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
+                params['ACK_ID'] = timed_ack
+                self.persist(self.build_audit_data(params))
                 
             else:
                 return None
@@ -160,8 +162,8 @@ class AckScoreboard(Scoreboard):
         keez = params.keys()
         for kee in keez:
             audit_data[kee] = params[kee]
-        #audit_data['TIME'] = get_epoch_timestamp()
-        #audit_data['DATA_TYPE'] = self.DBTYPE
+        audit_data['TIME'] = get_epoch_timestamp()
+        audit_data['DATA_TYPE'] = self.DB_TYPE
         return audit_data
 
 
