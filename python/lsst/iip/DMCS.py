@@ -375,7 +375,7 @@ class DMCS:
         image_id = params[IMAGE_ID]
         job_num = self.STATE_SCBD.get_next_job_num( str(get_current_session_id()))
         self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
-        self.JOB_SCBD.set_value_for_job(job_num, 'DEVICE', 'AR')
+        self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', 'AR')
 
         ack_id = self.get_next_timed_ack_id("START_INT_ACK")
 
@@ -430,7 +430,7 @@ class DMCS:
         msg_params[MSG_TYPE] = 'READOUT'
         ## XXX Fix lime below and get rid of working line so device is simple passed in.
         #msg_params[JOB_NUM] = self.JOB_SCBD.get_open_job_num_for_device(device)
-        msg_params[JOB_NUM] = self.JOB_SCBD.get_current_device_job(device)
+        msg_params[JOB_NUM] = self.STATE_SCBD.get_current_device_job(device)
         msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session_id()
         msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
         msg_params[IMAGE_ID] = image_id

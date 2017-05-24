@@ -322,7 +322,6 @@ class JobScoreboard(Scoreboard):
             self._redis.rpush(self.VISIT_ID_LIST, visit_id)
             params = {}
             params['SUB_TYPE'] = 'VISIT'
-            params['DATA_TYPE'] = self.DB_TYPE
             params['VISIT_ID'] = visit_id
             self.persist(self.build_monitor_data(params))
 
@@ -344,7 +343,7 @@ class JobScoreboard(Scoreboard):
             monitor_data[kee] = params[kee]
         monitor_data['SESSION_ID'] = self.get_current_session()
         monitor_data['VISIT_ID'] = self.get_current_visit()
-        monitor_data['TIME'] = get_epoch_timestamp()
+        monitor_data['TIME'] = get_timestamp()
         monitor_data['DATA_TYPE'] = self.DB_TYPE
         return monitor_data
 
