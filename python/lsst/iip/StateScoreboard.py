@@ -244,18 +244,6 @@ class StateScoreboard(Scoreboard):
         return False
 
 
-    def build_monitor_data(self, params):
-        monitor_data = {}
-        keez = params.keys()
-        for kee in keez:
-            monitor_data[kee] = params[kee]
-        monitor_data['SESSION_ID'] = self.get_current_session()
-        monitor_data['VISIT_ID'] = self.get_current_visit()
-        monitor_data['TIME'] = get_epoch_timestamp()
-        monitor_data['DATA_TYPE'] = self.DBTYPE
-        return monitor_data
-
-
     def get_next_session_id(self):
         if self.check_connection():
             self._redis.incr(self.SESSION_SEQUENCE_NUM)
@@ -291,6 +279,37 @@ class StateScoreboard(Scoreboard):
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
 
+
+    def set_current_device_job(self, job_number, device):
+        if self.check_connection():
+            if device == self.AR:
+                self._redis.rpush('AR_JOBS', job_number)
+            if device == self.PP:
+                self._redis.rpush('PP_JOBS', job_number)
+            if device == self.CU:
+                self._redis.rpush('CU_JOBS', job_number)
+
+
+    def get_current_device_job(self, device):
+        if self.check_connection():
+            if device == self.AR:
+                return self._redis.lindex('AR_JOBS', 0)
+            if device == self.PP:
+                return self._redis.lindex('PP_JOBS', 0)
+            if device == self.CU:
+                return self._redis.lindex('CU_JOBS', 0)
+
+
+    def build_monitor_data(self, params):
+        monitor_data = {}
+        keez = params.keys()
+        for kee in keez:
+            monitor_data[kee] = params[kee]
+        monitor_data['SESSION_ID'] = self.get_current_session()
+        monitor_data['VISIT_ID'] = self.get_current_visit()
+        monitor_data['TIME'] = get_epoch_timestamp()
+        monitor_data['DATA_TYPE'] = self.DB_TYPE
+        return monitor_data
 
 
     def print_all(self):

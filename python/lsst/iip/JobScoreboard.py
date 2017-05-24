@@ -37,7 +37,7 @@ class JobScoreboard(Scoreboard):
     SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
-    DBTYPE = ""
+    DB_TYPE = ""
     DB_INSTANCE = None
     AR = 'AR'
     PP = 'PP'
@@ -136,27 +136,12 @@ class JobScoreboard(Scoreboard):
         """
         # XXX Needs try, catch block
         if self.check_connection():
-            #self._redis.hset(job_number, self.CCDS, yaml.dump(ccds))
-            self.set_ccds_for_job(job_number, ccds)
-            self.set_job_state(job_number, 'NEW')
-            self.set_job_status(job_number, 'ACTIVE')
             self._redis.hset(job_number, 'IMAGE_ID', image_id)
             self._redis.hset(job_number, 'VISIT_ID', visit_id)
             self._redis.lpush(self.JOBS, job_number)
-
-            params = {}
-            params[self.SUB_TYPE] = self.JOB_STATE
-            params[JOB_NUM] = job_number
-            params['IMAGE_ID'] = image_id
-            params[self.STATE] = 'NEW'
-            self.persist(self.build_monitor_data(params))
-
-            params = {}
-            params[self.SUB_TYPE] = self.JOB_STATUS
-            params[JOB_NUM] = job_number
-            params['IMAGE_ID'] = image_id
-            params[self.STATUS] = 'active'
-            self.persist(self.build_monitor_data(params))
+            self.set_ccds_for_job(job_number, ccds)
+            self.set_job_state(job_number, 'NEW')
+            self.set_job_status(job_number, 'ACTIVE')
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
 
@@ -178,7 +163,7 @@ class JobScoreboard(Scoreboard):
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
         else:
-            LOGGER.error('Unable to job params; Redis connection unavailable')
+            LOGGER.error('Unable to set job params; Redis connection unavailable')
             return False
 
     def set_job_state(self, job_number, state):
@@ -208,6 +193,7 @@ class JobScoreboard(Scoreboard):
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
 
+
     def set_value_for_job(self, job_number, kee, val):
         """Set a specific field in a job row with a key and value.
 
@@ -217,7 +203,13 @@ class JobScoreboard(Scoreboard):
         """
         if self.check_connection():
             job = str(job_number) 
-            return self._redis.hset(job, kee, val)
+            if kee == 'STATE':
+                self.set_job_state(job, val)
+            elif kee == 'STATUS':
+                elif self.set_job_status(job, val)
+            else:
+                self._redis.hset(job, kee, val)
+            return True
         else:
            return False
 
@@ -320,22 +312,9 @@ class JobScoreboard(Scoreboard):
     def set_session(self, session_id):
         self._redis.set(self.CURRENT_SESSION_ID, session_id)
 
+
     def get_current_session(self):
         return self._redis.get(self.CURRENT_SESSION_ID)
-
-
-#    def set_session(self, session_id):
-#        if self.check_connection():
-#            self._redis.rpush(self.SESSIONS, session_id)
-#            params = {}
-#            params['SUB_TYPE'] = 'SESSION'
-#            params['SESSION_ID'] = session_id
-#            params['DATA_TYPE'] = self.DBTYPE
-#            # skipping build_audit_data, so put TIME in here - see comment below
-#            params['TIME'] = get_epoch_timestamp()
-#
-#            # Send directly without adding fields in 'build_audit_data', as no visit yet
-#            self.persist(params)
 
 
     def set_visit_id(self, visit_id):
@@ -343,18 +322,15 @@ class JobScoreboard(Scoreboard):
             self._redis.rpush(self.VISIT_ID_LIST, visit_id)
             params = {}
             params['SUB_TYPE'] = 'VISIT'
-            params['DATA_TYPE'] = self.DBTYPE
+            params['DATA_TYPE'] = self.DB_TYPE
             params['VISIT_ID'] = visit_id
             self.persist(self.build_monitor_data(params))
 
 
-#    def get_current_session(self):
-#        if self.check_connection():
-#            return self._redis.lindex(self.SESSIONS, 0)
-
     def get_current_visit(self):
         if self.check_connection():
             return self._redis.lindex(self.VISIT_ID_LIST, 0)
+
              
     def delete_job(self, job_number):
         #self._redis.hdel(self.JOBS, str(job_number))
@@ -369,47 +345,28 @@ class JobScoreboard(Scoreboard):
         monitor_data['SESSION_ID'] = self.get_current_session()
         monitor_data['VISIT_ID'] = self.get_current_visit()
         monitor_data['TIME'] = get_epoch_timestamp()
-        monitor_data['DATA_TYPE'] = self.DBTYPE
+        monitor_data['DATA_TYPE'] = self.DB_TYPE
         return monitor_data
 
-
-#    def get_next_job_num(self, prefix):
-#        if prefix == None:
-#            prefix = "job"
-#        if self.check_connection():
-#            self._redis.incr(self.JOB_SEQUENCE_NUM)
-#            job_num_str = prefix + "-" + str( self._redis.hget(self.JOB_SEQUENCE_NUM))
-#            return job_num_str
-#        else:
-#            LOGGER.error('Unable to increment job number due to lack of redis connection')
-#            #RAISE exception to catch in DMCS.py
-
-
-#    def get_next_job_num(self):
-#        if self.check_connection():
-#            self._redis.incr(self.JOB_SEQUENCE_NUM)
-#            return self._redis.get(self.JOB_SEQUENCE_NUM)
-#        else:
-#            LOGGER.error('Unable to increment job number due to lack of redis connection')
-#            #RAISE exception to catch in DMCS.py
 
     def set_current_device_job(self, job_number, device):
         if self.check_connection():
             if device == self.AR:
-                self._redis.set('AR_JOBS', job_number)
+                self._redis.rpush('AR_JOBS', job_number)
             if device == self.PP:
-                self._redis.set('PP_JOBS', job_number)
+                self._redis.rpush('PP_JOBS', job_number)
             if device == self.CU:
-                self._redis.set('CU_JOBS', job_number)
+                self._redis.rpush('CU_JOBS', job_number)
+
 
     def get_current_device_job(self, device):
         if self.check_connection():
             if device == self.AR:
-                return self._redis.get('AR_JOBS') 
+                return self._redis.lindex('AR_JOBS', 0) 
             if device == self.PP:
-                return self._redis.get('PP_JOBS') 
+                return self._redis.lindex('PP_JOBS', 0) 
             if device == self.CU:
-                return self._redis.get('CU_JOBS') 
+                return self._redis.lindex('CU_JOBS', 0) 
 
 
     def print_all(self):
