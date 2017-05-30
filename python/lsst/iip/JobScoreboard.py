@@ -185,13 +185,14 @@ class JobScoreboard(Scoreboard):
     def set_job_status(self, job_number, status):
         if self.check_connection():
             job = str(job_number)
-            return self._redis.hset(job, self.STATUS, status)
+            result = self._redis.hset(job, self.STATUS, status)
             params = {}
             params[JOB_NUM] = job
             params['SUB_TYPE'] = self.JOB_STATUS
             params[self.STATUS] = status
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
+            return result
 
 
     def set_value_for_job(self, job_number, kee, val):
@@ -206,7 +207,7 @@ class JobScoreboard(Scoreboard):
             if kee == 'STATE':
                 self.set_job_state(job, val)
             elif kee == 'STATUS':
-                elif self.set_job_status(job, val)
+                self.set_job_status(job, val)
             else:
                 self._redis.hset(job, kee, val)
             return True
@@ -319,7 +320,7 @@ class JobScoreboard(Scoreboard):
 
     def set_visit_id(self, visit_id):
         if self.check_connection():
-            self._redis.rpush(self.VISIT_ID_LIST, visit_id)
+            self._redis.lpush(self.VISIT_ID_LIST, visit_id)
             params = {}
             params['SUB_TYPE'] = 'VISIT'
             params['VISIT_ID'] = visit_id
