@@ -7,6 +7,7 @@ import yaml
 import sys, traceback
 import os, os.path
 import time
+import datetime
 from time import sleep
 import thread
 from const import *
@@ -62,29 +63,7 @@ class DMCS:
             sys.exit(101) 
 
         LOGGER.info('Extracting values from Config dictionary')
-        try:
-            self._msg_name = cdm[ROOT]['DMCS_BROKER_NAME']      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT]['DMCS_BROKER_PASSWD']
-            self._pub_name = cdm[ROOT]['DMCS_BROKER_PUB_NAME']
-            self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
-            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
-            state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
-            job_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_JOB_SCBD']
-            ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
-            backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
-            self.CCD_LIST = cdm[ROOT]['CCD_LIST']
-            self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
-            self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
-            self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
-            broker_vhost = cdm[ROOT]['BROKER_VHOST']
-            queue_purges = cdm[ROOT]['QUEUE_PURGES']
-            self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
-        except KeyError, e:
-            trace = traceback.print_exc()
-            emsg = "Unable to find key in CDM representation of %s\n" % filename
-            LOGGER.critical(emsg + trace)
-            sys.exit(102) 
+        self.extract_config_values(cdm)
 
         # Run queue purges in rabbitmqctl
         #self.purge_broker(broker_vhost, queue_purges)
@@ -143,7 +122,7 @@ class DMCS:
 
         # Check health of all devices
 
-        # All devices wake up in STANDBY state
+        # All devices wake up in OFFLINE state
         self.STATE_SCBD.set_device_state("AR","OFFLINE")
 
         self.STATE_SCBD.set_device_state("PP","OFFLINE")
@@ -226,7 +205,6 @@ class DMCS:
     def setup_publishers(self):
         LOGGER.info('Setting up Base publisher on %s', self.pub_base_broker_url)
         self._publisher = SimplePublisher(self.pub_base_broker_url, YAML)
-
 
 
     def on_ocs_message(self, ch, method, properties, msg_dict):
@@ -349,18 +327,18 @@ class DMCS:
             self._publisher.publish_message(consume_queue, msg)
 
         self.ack_timer(2)
-#        for a in acks:
-#            ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
-#
-#            if ack_responses != None:
-#                responses = ack_responses.keys()
-#                for response in responses:
-#                    if response[ACK_BOOL] == False:
-#                        # Mark this device as messed up...maybe enter fault.
-#                        pass 
-#            else:
-#                #Enter a fault state, as no devices are responding
-#                pass
+        for a in acks:
+            ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
+
+            if ack_responses != None:
+                responses = ack_responses.keys()
+                for response in responses:
+                    if response[ACK_BOOL] == False:
+                        # Mark this device as messed up...maybe enter fault.
+                        pass 
+            else:
+                #Enter a fault state, as no devices are responding
+                pass
             
             
 
@@ -371,40 +349,40 @@ class DMCS:
         ## FIX - see temp hack below...
         ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         ccd_list = self.CCD_LIST
-        visit_id = self.JOB_SCBD.get_current_visit()
-        image_id = params[IMAGE_ID]
-        job_num = self.STATE_SCBD.get_next_job_num( str(get_current_session_id()))
-        self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
-        self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', 'AR')
-
-        ack_id = self.get_next_timed_ack_id("START_INT_ACK")
-
         msg_params = {}
         msg_params[MSG_TYPE] = 'START_INTEGRATION'
-        msg_params[JOB_NUM] = job_num
-        msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session_id()
         msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
-        msg_params[IMAGE_ID] = image_id
-        msg_params['IMAGE_SRC'] = 'Blah'
+        msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
         msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
-        msg_params[ACK_ID] = ack_id
         msg_params['CCD_LIST'] = ccd_list
-        self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(device), msg_params)
-        self.JOB_SCBD.set_job_state(job_num, "DISPATCHED")
-
-        self.ack_timer(3)
-        ## XXX Don't check for responses right now...
+        session_id = self.STATE_SCBD.get_current_session_id()
+        msg_params['SESSION_ID'] = session_id
 
 
-####### # Right now, using only Archive...
-#        enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLED)
-#        ack_prefix = 
-#        acks = {}
-#        for k in enabled_devices.keys():
-#            consume_queue = enabled_devices[k]
-#            ack = self.get_next_timed_ack_id("NEXT_VISIT_ACK")
-#            acks.append(ack)
-#            self._publisher.publish_message(consume_queue, msg)
+        enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLED)
+        acks = []
+        for k in enabled_devices.keys():
+            ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
+            acks.append(ack_id)
+            job_num = self.STATE_SCBD.get_next_job_num( session_id)
+            self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
+            self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
+
+            msg_params[JOB_NUM] = job_num
+            msg_params[ACK_ID] = ack_id
+            msg_params['DEVICE'] = str(k)
+            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+            self.JOB_SCBD.set_job_state(job_num, "DISPATCHED")
+
+        start_time = datetime.datetime.now().time()
+        expiry_time = self.add_seconds(start_time, 4)
+        ack_msg = {}
+        ack_msg[MSG_TYPE] = 'PENDING_ACK'
+        ack_msg['EXPIRY_TIME'] = expiry_time
+        for ack in acks:
+            ack_msg[ACK_ID] = ack
+            self._publisher.publish_message("dmcs_ack_consume", ack_msg)
+
 
 
 
@@ -634,6 +612,39 @@ class DMCS:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
+    def extract_config_values(self, cdm):
+        try:
+            self._msg_name = cdm[ROOT]['DMCS_BROKER_NAME']      # Message broker user & passwd
+            self._msg_passwd = cdm[ROOT]['DMCS_BROKER_PASSWD']
+            self._pub_name = cdm[ROOT]['DMCS_BROKER_PUB_NAME']
+            self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
+            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
+            ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
+            state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
+            job_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_JOB_SCBD']
+            ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
+            backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
+            self.CCD_LIST = cdm[ROOT]['CCD_LIST']
+            self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
+            self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
+            self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
+            broker_vhost = cdm[ROOT]['BROKER_VHOST']
+            queue_purges = cdm[ROOT]['QUEUE_PURGES']
+            self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
+        except KeyError, e:
+            trace = traceback.print_exc()
+            emsg = "Unable to find key in CDM representation of %s\n" % filename
+            LOGGER.critical(emsg + trace)
+            sys.exit(102)
+
+        return True
+
+
+    def add_seconds(self, intime, secs):
+        basetime = datetime.datetime(100, 1, 1, intime.hour, intime.minute, intime.second)
+        newtime = basetime + datetime.timedelta(seconds=secs)
+        return newtime.time()
 
 
     def purge_broker(self, vhost, queues):
