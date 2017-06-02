@@ -4,6 +4,8 @@ from toolsmod import get_epoch_timestamp
 from toolsmod import L1RedisError
 from toolsmod import L1RabbitConnectionError
 import yaml
+import copy
+import datetime
 import logging
 from time import sleep
 from const import *
@@ -156,8 +158,38 @@ class AckScoreboard(Scoreboard):
             else:
                 return None
 
+
+    def add_pending_nonblock_ack(params):
+        ack_id_string = params['ACK_ID']
+        if self.check_connection():
+            self._redis.hset('PENDING_ACKS', ack_id_string, params['EXPIRY_TIME'])
+
+
+    def resolve_pending_nonblock_acks(self):
+        # For ack_ids in pending acks,
+        #     check for ack by calling get_timed_ack with ack_id
+        #     If there, grab it and remove entry from pending acks with HDEL
+        #         If more than one component, there is a problem - pending acks are all unique components and IDs
+        #     If not there and EXPIRY time exceeded, raise 'no ack' alarm 
+        if self._redis.exists('PENDING_ACKS')
+            keez = self._redis.hkeys('PENDING_ACKS')
+            for kee in keez:
+                if self._redis.exists(kee): # ack is here - don't check time
+                    self._redis.hdel('PENDING_ACKS', kee) # Remove so we don't check again
+                else:
+                    expiry = self._redis.hget('PENDING_ACKS', kee)
+                    now = datetime.datetime.now().time()
+                    if now > expiry:  # if timeout is expired...else do nothing and check next time
+                        self._redis.lpush('MISSING_NONBLOCK_ACKS', kee) # handled by self.check_missing_acks()
+                        self._redis.hdel('PENDING_ACKS', kee)
+
+
+
+    def check_missing_acks(self):
+        pass
+
+
     def build_audit_data(self, params):
-        
         audit_data = {}
         keez = params.keys()
         for kee in keez:

@@ -99,6 +99,7 @@ class DMCS:
                               'AR_NEXT_VISIT_ACK': self.process_ack,
                               'AR_START_INTEGRATION_ACK': self.process_ack,
                               'AR_READOUT_ACK': self.process_readout_results_ack,
+                              'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
 
 
@@ -366,60 +367,49 @@ class DMCS:
             acks.append(ack_id)
             job_num = self.STATE_SCBD.get_next_job_num( session_id)
             self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
-            self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
+            self.JOB_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
+            self.STATE_SCBD.set_current_device_job(job_num, str(k))
 
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
             msg_params['DEVICE'] = str(k)
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
-            self.JOB_SCBD.set_job_state(job_num, "DISPATCHED")
 
-        start_time = datetime.datetime.now().time()
-        expiry_time = self.add_seconds(start_time, 4)
-        ack_msg = {}
-        ack_msg[MSG_TYPE] = 'PENDING_ACK'
-        ack_msg['EXPIRY_TIME'] = expiry_time
-        for ack in acks:
-            ack_msg[ACK_ID] = ack
-            self._publisher.publish_message("dmcs_ack_consume", ack_msg)
+        self.JOB_SCBD.set_job_state(job_num, "DISPATCHED")
 
-
-
-
-    #####################################################################
-    # FIX How will this work? Will one readout event be sent, and then 
-    #     all enabled devices respond? Or will a separate READOUT event
-    #     be sent for each device? I am thinking the former - but this
-    #     method only handles Archive readouts and must be modified
-    #     to include Prompt Processing.
-    #
-    #     In addition, will the Start Integration message be device
-    #     specific? How will job numbers be created and tracked?
-
+        wait_time = 5  # seconds...
+        self.set_pending_nonblock_acks(acks, wait_time)
 
  
     def process_readout_event(self, params):
-        image_id = params['IMAGE_ID']
-        device = params['DEVICE']
-
-        ack_id = self.get_next_timed_ack_id("READOUT_ACK")
+        ## FIX - see temp hack below...
+        ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
+        ccd_list = self.CCD_LIST
 
         msg_params = {}
         msg_params[MSG_TYPE] = 'READOUT'
-        ## XXX Fix lime below and get rid of working line so device is simple passed in.
-        #msg_params[JOB_NUM] = self.JOB_SCBD.get_open_job_num_for_device(device)
-        msg_params[JOB_NUM] = self.STATE_SCBD.get_current_device_job(device)
-        msg_params[SESSION_ID] = self.STATE_SCBD.get_current_session_id()
         msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
-        msg_params[IMAGE_ID] = image_id
-        msg_params['IMAGE_SRC'] = 'Blah'
+        msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
         msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
-        msg_params[ACK_ID] = ack_id
-        self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(device), msg_params)
-        # Update job scbd
+        msg_params['CCD_LIST'] = ccd_list
+        session_id = self.STATE_SCBD.get_current_session_id()
+        msg_params['SESSION_ID'] = session_id
+
+        enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLED)
+        acks = []
+        for k in enabled_devices.keys():
+            ack_id = self.get_next_timed_ack_id( str(k) + "_READOUT_ACK")
+            acks.append(ack_id)
+            msg_params[ACK_ID] = ack_id
+            msg_params[JOB_NUM] = self.STATE_SCBD.get_current_device_job(str(k))
+            msg_params['DEVICE'] = str(k)
+            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+
+        self.JOB_SCBD.set_job_state(job_num, "READOUT")
+
+        wait_time = 5  # seconds...
+        self.set_pending_nonblock_acks(acks, wait_time)
         # add in two additional acks for format and transfer complete
-        # Figure out how separate devices will be done using a device param in incoming msg
-        # How will it know what job num to use???
 
 
     def process_telemetry(self, msg):
@@ -428,6 +418,10 @@ class DMCS:
 
     def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
+
+
+    def process_pending_ack(self, params):
+        self.ACK_SCBD.add_pending_nonblock_ack(params)
 
 
     def process_readout_results_ack(params):
@@ -520,6 +514,17 @@ class DMCS:
 
         return transition_is_valid
  
+
+    def set_pending_nonblock_acks(self, acks, wait_time)
+        start_time = datetime.datetime.now().time()
+        expiry_time = self.add_seconds(start_time, wait_time)
+        ack_msg = {}
+        ack_msg[MSG_TYPE] = 'PENDING_ACK'
+        ack_msg['EXPIRY_TIME'] = expiry_time
+        for ack in acks:
+            ack_msg[ACK_ID] = ack
+            self._publisher.publish_message("dmcs_ack_consume", ack_msg)
+
 
     def send_ocs_ack(self, transition_check, response, msg_in):
         message = {}

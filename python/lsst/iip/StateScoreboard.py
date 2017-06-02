@@ -283,11 +283,11 @@ class StateScoreboard(Scoreboard):
     def set_current_device_job(self, job_number, device):
         if self.check_connection():
             if device == self.AR:
-                self._redis.rpush('AR_JOBS', job_number)
+                self._redis.lpush('AR_JOBS', job_number)
             if device == self.PP:
-                self._redis.rpush('PP_JOBS', job_number)
+                self._redis.lpush('PP_JOBS', job_number)
             if device == self.CU:
-                self._redis.rpush('CU_JOBS', job_number)
+                self._redis.lpush('CU_JOBS', job_number)
 
 
     def get_current_device_job(self, device):
