@@ -49,16 +49,18 @@ class DMCS:
         toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
-        if filename == None:
-            filename = self.DEFAULT_CFG_FILE
+        self._config_file = 'L1SystemCfg.yaml'
+        if filename != None:
+            self._config_file = filename
 
 
-        LOGGER.info('Reading YAML Config file %s' % filename)
+        LOGGER.info('Reading YAML Config file %s' % self._config_file)
+
         try:
-            cdm = toolsmod.intake_yaml_file(filename)
+            cdm = toolsmod.intake_yaml_file(self._config_file)
         except IOError, e:
             trace = traceback.print_exc()
-            emsg = "Unable to find CFG Yaml file %s\n" % filename
+            emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
             LOGGER.critical(emsg + trace)
             sys.exit(101) 
 
@@ -72,10 +74,10 @@ class DMCS:
 
 
         LOGGER.info('Setting up DMCS Scoreboards')
-        self.JOB_SCBD = JobScoreboard('DMCS_JOB_SCBD', job_db_instance)
-        self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', backlog_db_instance)
-        self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', ack_db_instance)
-        self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', state_db_instance, ddict)
+        self.JOB_SCBD = JobScoreboard('DMCS_JOB_SCBD', self.job_db_instance)
+        self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', self.backlog_db_instance)
+        self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance)
+        self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict)
 
 
         # Messages from OCS Bridge
@@ -515,7 +517,7 @@ class DMCS:
         return transition_is_valid
  
 
-    def set_pending_nonblock_acks(self, acks, wait_time)
+    def set_pending_nonblock_acks(self, acks, wait_time):
         start_time = datetime.datetime.now().time()
         expiry_time = self.add_seconds(start_time, wait_time)
         ack_msg = {}
@@ -625,11 +627,11 @@ class DMCS:
             self._pub_name = cdm[ROOT]['DMCS_BROKER_PUB_NAME']
             self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
-            state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
-            job_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_JOB_SCBD']
-            ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
-            backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
+            self.ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
+            self.state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
+            self.job_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_JOB_SCBD']
+            self.ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
+            self.backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
             self.CCD_LIST = cdm[ROOT]['CCD_LIST']
             self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
             self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']

@@ -43,28 +43,16 @@ class ArchiveDevice:
         if filename != None:
             self._config_file = filename
 
-        cdm = toolsmod.intake_yaml_file(self._config_file)
-
         try:
-            self._msg_name = cdm[ROOT][AFM_BROKER_NAME]      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT][AFM_BROKER_PASSWD]   
-            self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
-            self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
-            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['ARCHIVE_FORWARDERS']
-            self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
-        except KeyError as e:
-            print "Dictionary error"
-            print "Bailing out..."
-            sys.exit(99)
+            cdm = toolsmod.intake_yaml_file(self._config_file)
+        except IOError, e:
+            trace = traceback.print_exc()
+            emsg = "Unable to find CFG Yaml file %s\n" % filename
+            LOGGER.critical(emsg + trace)
+            sys.exit(101)
 
-        try:
-            self.archive_fqn = cdm[ROOT]['ARCHIVE']['ARCHIVE_NAME']
-            self.archive_name = cdm[ROOT]['ARCHIVE']['ARCHIVE_LOGIN']
-            self.archive_ip = cdm[ROOT]['ARCHIVE']['ARCHIVE_IP']
-        except KeyError as e:
-            raise
+        LOGGER.info('Extracting values from Config dictionary')
+        self.extract_config_values(cdm)
 
 
         # if 'QUEUE_PURGES' in cdm[ROOT]:
@@ -556,6 +544,28 @@ class ArchiveDevice:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
+
+    def extract_config_values(self, cdm):
+        try:
+            self._msg_name = cdm[ROOT][AFM_BROKER_NAME]      # Message broker user & passwd
+            self._msg_passwd = cdm[ROOT][AFM_BROKER_PASSWD]   
+            self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
+            self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
+            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['ARCHIVE_FORWARDERS']
+            self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
+
+            # Placeholder until eventually worked out by Data Backbone team
+            self.archive_fqn = cdm[ROOT]['ARCHIVE']['ARCHIVE_NAME']
+            self.archive_name = cdm[ROOT]['ARCHIVE']['ARCHIVE_LOGIN']
+            self.archive_ip = cdm[ROOT]['ARCHIVE']['ARCHIVE_IP']
+        except KeyError as e:
+            print "Dictionary error"
+            print "Bailing out..."
+            sys.exit(99)
+
 
     def purge_broker(self, queues):
         for q in queues:

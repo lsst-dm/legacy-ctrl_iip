@@ -171,7 +171,7 @@ class AckScoreboard(Scoreboard):
         #     If there, grab it and remove entry from pending acks with HDEL
         #         If more than one component, there is a problem - pending acks are all unique components and IDs
         #     If not there and EXPIRY time exceeded, raise 'no ack' alarm 
-        if self._redis.exists('PENDING_ACKS')
+        if self._redis.exists('PENDING_ACKS'):
             keez = self._redis.hkeys('PENDING_ACKS')
             for kee in keez:
                 if self._redis.exists(kee): # ack is here - don't check time
