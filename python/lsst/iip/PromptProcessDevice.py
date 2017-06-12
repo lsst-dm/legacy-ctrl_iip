@@ -81,7 +81,7 @@ class BaseForeman:
         # Create Redis Forwarder table with Forwarder info
 
         self.FWD_SCBD = ForwarderScoreboard(self._scbd_dict['PP_FWD_SCBD'], forwarder_dict)
-        self.JOB_SCBD = JobScoreboard(self._scbd_dict['PP_JOB_SCBD'])
+        self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
         self.ACK_SCBD = AckScoreboard(self._scbd_dict['PP_ACK_SCBD'])
 
         self._msg_actions = { 'NEW_SESSION': self.set_session,

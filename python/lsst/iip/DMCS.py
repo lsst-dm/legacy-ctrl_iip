@@ -354,15 +354,18 @@ class DMCS:
         ccd_list = self.CCD_LIST
         msg_params = {}
         msg_params[MSG_TYPE] = 'START_INTEGRATION'
-        msg_params[VISIT_ID] = self.JOB_SCBD.get_current_visit()
-        msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
+        # visit_id and image_id msg_params *could* be set in one line, BUT: the values are needed again below...
+        visit_id = self.JOB_SCBD.get_current_visit()
+        msg_params[VISIT_ID] = visit_id
+        image_id = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
+        msg_params[IMAGE_ID] = image_id
         msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
         msg_params['CCD_LIST'] = ccd_list
         session_id = self.STATE_SCBD.get_current_session_id()
         msg_params['SESSION_ID'] = session_id
 
 
-        enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLED)
+        enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
         acks = []
         for k in enabled_devices.keys():
             ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
@@ -371,13 +374,12 @@ class DMCS:
             self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
             self.JOB_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
             self.STATE_SCBD.set_current_device_job(job_num, str(k))
-
+            self.JOB_SCBD.set_job_state(job_num, "DISPATCHED")
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
             msg_params['DEVICE'] = str(k)
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
-        self.JOB_SCBD.set_job_state(job_num, "DISPATCHED")
 
         wait_time = 5  # seconds...
         self.set_pending_nonblock_acks(acks, wait_time)
@@ -397,17 +399,18 @@ class DMCS:
         session_id = self.STATE_SCBD.get_current_session_id()
         msg_params['SESSION_ID'] = session_id
 
-        enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLED)
+        enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
         acks = []
         for k in enabled_devices.keys():
             ack_id = self.get_next_timed_ack_id( str(k) + "_READOUT_ACK")
             acks.append(ack_id)
+            job_num = self.STATE_SCBD.get_current_device_job(str(k))
             msg_params[ACK_ID] = ack_id
-            msg_params[JOB_NUM] = self.STATE_SCBD.get_current_device_job(str(k))
+            msg_params[JOB_NUM] = job_num
             msg_params['DEVICE'] = str(k)
+            self.JOB_SCBD.set_job_state(job_num, "READOUT")
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
-        self.JOB_SCBD.set_job_state(job_num, "READOUT")
 
         wait_time = 5  # seconds...
         self.set_pending_nonblock_acks(acks, wait_time)
@@ -469,7 +472,6 @@ class DMCS:
         msg['MSG_TYPE'] = 'NEW_SESSION'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['SESSION_ID'] = session_id
-        msg['ACK_DELAY'] = ack_delay
 
         ddict = self.STATE_SCBD.get_devices()
         for k in ddict.keys():
@@ -480,7 +482,8 @@ class DMCS:
             self._publisher.publish_message(consume_queue, msg)
 
         # Non-blocking Acks placed directly into ack_scoreboard
-        return ack_ids
+        wait_time = 3  # seconds...
+        self.set_pending_nonblock_acks(ack_ids, wait_time)
 
 
     def validate_transition(self, new_state, msg_in):
@@ -610,7 +613,7 @@ class DMCS:
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         val = {}
-        val['CURRENT_ACK_ID'] = self.next_timed_ack_id
+        val['CURRENT_ACK_ID'] = self._next_timed_ack_id
         toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         return retval 

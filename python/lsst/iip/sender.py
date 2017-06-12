@@ -1,5 +1,5 @@
 import pika
-from FirehoseConsumer import FirehoseConsumer
+#from FirehoseConsumer import FirehoseConsumer
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 import sys
@@ -13,16 +13,20 @@ class Premium:
     logging.basicConfig()
     #os.system('rabbitmqctl -p /tester purge_queue firehose')
     #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
-    broker_url = 'amqp://BASE:BASE@141.142.208.191:5672/%2Fbunny'
+    #broker_url = 'amqp://BASE:BASE@141.142.208.191:5672/%2Fbunny'
+    #broker_url = 'amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?heartbeat=300'
+    broker_url = 'amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?autoAck=true'
     #broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
     #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
     #self._cons = FirehoseConsumer(broker_url, 'firehose', "YAML")
-    #self._cons = Consumer(broker_url, 'ar_foreman_consume', "YAML")
-    #try:
-    #  thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
-    #except e:
-    #  print "Cannot start thread"
-    #  print e
+    self._cons = Consumer(broker_url, 'ocs_dmcs_consume', "YAML")
+    try:
+      thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
+    except e:
+      print "Cannot start thread"
+      print e
+
+    time.sleep(420)
     
   def mycallback(self, ch, methon, properties, body):
     print "  "
@@ -44,7 +48,8 @@ class Premium:
 
 def main():
   premium = Premium()
-  sp1 = SimplePublisher('amqp://BASE:BASE@141.142.208.191:5672/%2Fbunny', "YAML")
+  #sp1 = SimplePublisher('amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?heartbeat=300', "YAML")
+  sp1 = SimplePublisher('amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny', "YAML")
   #sp2 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
   #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
   #cons = Consumer(broker_url, 'F8_consume')
@@ -58,21 +63,31 @@ def main():
   msg = {}
   msg['MSG_TYPE'] = "STANDBY"
   msg['DEVICE'] = 'AR'
-  time.sleep(5)
+  time.sleep(29)
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
   msg['MSG_TYPE'] = "DISABLE"
   msg['DEVICE'] = 'AR'
-  time.sleep(5)
+  time.sleep(45)
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
   msg['MSG_TYPE'] = "ENABLE"
   msg['DEVICE'] = 'AR'
-  time.sleep(4)
+  time.sleep(74)
   sp1.publish_message("ocs_dmcs_consume", msg)
 
+  msg = {}
+  msg['MSG_TYPE'] = "WORKING"
+  msg['DEVICE'] = 'AR'
+  time.sleep(150)
+  sp1.publish_message("ocs_dmcs_consume", msg)
+
+  time.sleep(5)
+
+
+  """
   msg = {}
   msg['MSG_TYPE'] = "NEXT_VISIT"
   msg['VISIT_ID'] = 'XX_28272'
@@ -93,7 +108,7 @@ def main():
   msg['DEVICE'] = 'AR'
   time.sleep(4)
   sp1.publish_message("ocs_dmcs_consume", msg)
-
+  """ 
 
   print "Sender done"
 

@@ -159,7 +159,7 @@ class AckScoreboard(Scoreboard):
                 return None
 
 
-    def add_pending_nonblock_ack(params):
+    def add_pending_nonblock_ack(self, params):
         ack_id_string = params['ACK_ID']
         if self.check_connection():
             self._redis.hset('PENDING_ACKS', ack_id_string, params['EXPIRY_TIME'])
