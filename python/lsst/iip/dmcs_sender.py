@@ -69,7 +69,8 @@ def main():
   msg['ACK_ID'] = 'AR_4'
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278812'
-  time.sleep(9)
+  time.sleep(3)
+  print "AR STANDBY"
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -79,8 +80,9 @@ def main():
   msg['ACK_ID'] = 'PP_7'
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278813'
-  time.sleep(7)
-  sp1.publish_message("ocs_dmcs_consume", msg)
+  time.sleep(3)
+  print "PP STANDBY"
+  #sp1.publish_message("ocs_dmcs_consume", msg)
 
   #msg = {}
   #msg['MSG_TYPE'] = "NEW_SESSION"
@@ -96,7 +98,8 @@ def main():
   msg['ACK_ID'] = 'AR_6'
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278814'
-  time.sleep(7)
+  time.sleep(3)
+  print "AR DISABLE"
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -105,8 +108,9 @@ def main():
   msg['ACK_ID'] = 'PP_8'
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278815'
-  time.sleep(7)
-  sp1.publish_message("ocs_dmcs_consume", msg)
+  time.sleep(3)
+  print "PP DISABLE"
+  #sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
   msg['MSG_TYPE'] = "ENABLE"
@@ -114,7 +118,8 @@ def main():
   msg['ACK_ID'] = 'AR_11'
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278816'
-  time.sleep(7)
+  time.sleep(3)
+  print "AR ENABLE"
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -123,8 +128,9 @@ def main():
   msg['ACK_ID'] = 'PP_12'
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278817'
-  time.sleep(7)
-  sp1.publish_message("ocs_dmcs_consume", msg)
+  time.sleep(3)
+  print "PP ENABLE"
+  #sp1.publish_message("ocs_dmcs_consume", msg)
 
 
   """
@@ -152,6 +158,7 @@ def main():
   msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
   msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
   time.sleep(7)
+  print "Next Visit Message"
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -165,6 +172,7 @@ def main():
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['CCD_LIST'] = premium.ccd_list
   time.sleep(7)
+  print "Start Integration Message"
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -177,6 +185,7 @@ def main():
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['ACK_ID'] = 'READOUT_ACK_78'
   time.sleep(7)
+  print "READOUT Message"
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   time.sleep(15)

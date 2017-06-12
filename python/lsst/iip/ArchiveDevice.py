@@ -69,9 +69,9 @@ class ArchiveDevice:
 
 
         # Create Redis Forwarder table with Forwarder info
-        self.FWD_SCBD = ForwarderScoreboard(self._scbd_dict['AR_FWD_SCBD'], self._forwarder_dict)
-        self.JOB_SCBD = JobScoreboard(self._scbd_dict['AR_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard(self._scbd_dict['AR_ACK_SCBD'])
+        self.FWD_SCBD = ForwarderScoreboard('AR_FWD_SCBD', self._scbd_dict['AR_FWD_SCBD'], self._forwarder_dict)
+        self.JOB_SCBD = JobScoreboard('AR_JOB_SCBD', self._scbd_dict['AR_JOB_SCBD'])
+        self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
         self._msg_actions = { 'START_INTEGRATION': self.process_start_integration,
                               'NEW_SESSION': self.set_session,
@@ -195,7 +195,6 @@ class ArchiveDevice:
         visit_id = self.get_current_visit()
         job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
-        image_src = params[IMAGE_SRC]
         ccds = params['CCD_LIST']
         start_int_ack_id = params[ACK_ID]
 
@@ -205,8 +204,7 @@ class ArchiveDevice:
 
         # Add job scbd entry
         self.JOB_SCBD.add_job(job_number, image_id, visit_id, ccds)
-        self.JOB_SCBD.set_job_params(job_number, {'IMAGE_SRC': image_src, 
-                                                  'SESSION_ID': session_id, 
+        self.JOB_SCBD.set_job_params(job_number, {'SESSION_ID': session_id, 
                                                   'VISIT_ID': visit_id})
         self.ack_timer(1.5)
 

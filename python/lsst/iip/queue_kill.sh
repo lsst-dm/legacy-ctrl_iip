@@ -1,5 +1,6 @@
 rabbitmqctl -p /bunny purge_queue ocs_dmcs_consume
 rabbitmqctl -p /bunny purge_queue dmcs_ack_consume
+rabbitmqctl -p /bunny purge_queue dmcs_ocs_publish
 rabbitmqctl -p /bunny purge_queue pp_foreman_consume
 rabbitmqctl -p /bunny purge_queue ar_foreman_consume
 rabbitmqctl -p /bunny purge_queue cu_foreman_consume

@@ -334,9 +334,13 @@ class DMCS:
             ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
 
             if ack_responses != None:
+                print "Printing ack responses..."
+                print ack_responses
                 responses = ack_responses.keys()
+                print "Printing ack responses..."
+                print responses
                 for response in responses:
-                    if response[ACK_BOOL] == False:
+                    if ack_responses[response]['ACK_BOOL'] == False:
                         # Mark this device as messed up...maybe enter fault.
                         pass 
             else:

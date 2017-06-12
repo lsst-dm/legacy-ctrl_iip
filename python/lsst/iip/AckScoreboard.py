@@ -121,10 +121,12 @@ class AckScoreboard(Scoreboard):
             params = {}
             params['SUB_TYPE'] = ack_sub_type
             params['ACK_ID'] = ack_id_string
-            params['JOB_NUM'] = ack_msg_body['JOB_NUM']
+            if 'JOB_NUM' in ack_msg_body:
+                params['JOB_NUM'] = ack_msg_body['JOB_NUM']
+            if 'IMAGE_ID' in ack_msg_body:
+                params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
             params['COMPONENT_NAME'] = ack_component_name
             params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
-            params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
             self.persist(self.build_audit_data(params))
             
         else:
