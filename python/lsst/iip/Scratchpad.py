@@ -1,12 +1,12 @@
-from toolsmod import get_timestamp
-from const import *
+from .toolsmod import get_timestamp
+from .const import *
 import yaml
 import os
 import sys
 import logging
 import time
 import pika
-from SimplePublisher import SimplePublisher
+from .SimplePublisher import SimplePublisher
 
 
 class Scratchpad:
@@ -38,7 +38,7 @@ class Scratchpad:
         self._pad[job_number]['STATE'] = state 
 
     def keys(self):
-        return self._pad.keys()
+        return list(self._pad.keys())
 
 
 

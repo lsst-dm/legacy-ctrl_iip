@@ -1,5 +1,5 @@
-import toolsmod
-from toolsmod import get_timestamp
+from . import toolsmod
+from .toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -9,15 +9,15 @@ import os, os.path
 import time
 import datetime
 from time import sleep
-import thread
-from const import *
-from Scoreboard import Scoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from StateScoreboard import StateScoreboard
-from BacklogScoreboard import BacklogScoreboard
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+import _thread
+from .const import *
+from .Scoreboard import Scoreboard
+from .JobScoreboard import JobScoreboard
+from .AckScoreboard import AckScoreboard
+from .StateScoreboard import StateScoreboard
+from .BacklogScoreboard import BacklogScoreboard
+from .Consumer import Consumer
+from .SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -58,7 +58,7 @@ class DMCS:
 
         try:
             cdm = toolsmod.intake_yaml_file(self._config_file)
-        except IOError, e:
+        except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
             LOGGER.critical(emsg + trace)
@@ -133,10 +133,10 @@ class DMCS:
         self.STATE_SCBD.set_device_state("CU","OFFLINE")
 
         self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
-        print "CFG_KEYS is %s" % self.ar_cfg_keys
+        print("CFG_KEYS is %s" % self.ar_cfg_keys)
         self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
         #self.STATE_SCBD.set_device_cfg_key('AR','archiver-Normal')
-        print "Chosen CFG Key is: %s" % self.STATE_SCBD.get_cfg_from_cfgs('AR', 0)
+        print("Chosen CFG Key is: %s" % self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
 
         self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
         self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
@@ -173,8 +173,8 @@ class DMCS:
 
         self._ocs_bdg_consumer = Consumer(self._base_broker_url, self.OCS_BDG_PUBLISH, "YAML")
         try:
-            thread.start_new_thread( self.run_ocs_bdg_consumer, ("thread-dmcs-consumer", 2,) )
-        except Exception, e: # Catching naked exception as thread exceptions can be many
+            _thread.start_new_thread( self.run_ocs_bdg_consumer, ("thread-dmcs-consumer", 2,) )
+        except Exception as e: # Catching naked exception as thread exceptions can be many
             trace = traceback.print_exc()
             emsg = "Unable to start new thread for OCS Bridge consumer"
             LOGGER.critical(emsg + trace)
@@ -184,24 +184,24 @@ class DMCS:
 
         self._ack_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_ACK_PUBLISH, "YAML")
         try:
-            thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
-        except Exception, e:
+            _thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
+        except Exception as e:
             trace = traceback.print_exc()
             emsg = "Unable to start new thread for OCS Bridge consumer"
             LOGGER.critical(emsg + trace)
             LOGGER.critical('Cannot start ACK consumer thread for DMCS, exiting...')
-            print "Cannot start ACK consumer for DMCS!"
+            print("Cannot start ACK consumer for DMCS!")
             sys.exit(104)
 
         LOGGER.info('Finished starting all three consumer threads')
 
 
     def run_ocs_bdg_consumer(self, threadname, delay):
-        LOGGER.debug('Thread ID in OCS Bridge consumer callback is %s', thread.get_ident())
+        LOGGER.debug('Thread ID in OCS Bridge consumer callback is %s', _thread.get_ident())
         self._ocs_bdg_consumer.run(self.on_ocs_message)
 
     def run_ack_consumer(self, threadname, delay):
-        LOGGER.debug('Thread ID in ACK consumer callback is %s', thread.get_ident())
+        LOGGER.debug('Thread ID in ACK consumer callback is %s', _thread.get_ident())
         self._ack_consumer.run(self.on_ack_message)
 
 
@@ -211,9 +211,9 @@ class DMCS:
 
 
     def on_ocs_message(self, ch, method, properties, msg_dict):
-        print "DUMPING msg_dict: %s" % msg_dict
+        print("DUMPING msg_dict: %s" % msg_dict)
         LOGGER.info('Processing message in OCS message callback')
-        LOGGER.debug('Thread in OCS message callback of DMCS is %s', thread.get_ident())
+        LOGGER.debug('Thread in OCS message callback of DMCS is %s', _thread.get_ident())
         LOGGER.debug('Message and properties from DMCS callback message body is: %s', (str(msg_dict),properties))
 
         handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
@@ -222,7 +222,7 @@ class DMCS:
 
     def on_ack_message(self, ch, method, properties, msg_dict):
         LOGGER.info('Processing message in ACK message callback')
-        LOGGER.debug('Thread in ACK callback od DMCS is %s', thread.get_ident())
+        LOGGER.debug('Thread in ACK callback od DMCS is %s', _thread.get_ident())
         LOGGER.debug('Message and properties from ACK callback message body is: %s', (str(msg_dict),properties))
 
         handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
@@ -315,7 +315,7 @@ class DMCS:
         enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
 
         acks = []
-        for k in enabled_devices.keys():
+        for k in list(enabled_devices.keys()):
             consume_queue = enabled_devices[k]
             ## FIXME - Must each enabled device use its own ack_id? Or
             ## can we use the same method for broadcasting Forwarder messages?  
@@ -334,11 +334,11 @@ class DMCS:
             ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
 
             if ack_responses != None:
-                print "Printing ack responses..."
-                print ack_responses
-                responses = ack_responses.keys()
-                print "Printing ack responses..."
-                print responses
+                print("Printing ack responses...")
+                print(ack_responses)
+                responses = list(ack_responses.keys())
+                print("Printing ack responses...")
+                print(responses)
                 for response in responses:
                     if ack_responses[response]['ACK_BOOL'] == False:
                         # Mark this device as messed up...maybe enter fault.
@@ -371,7 +371,7 @@ class DMCS:
 
         enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
         acks = []
-        for k in enabled_devices.keys():
+        for k in list(enabled_devices.keys()):
             ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
             acks.append(ack_id)
             job_num = self.STATE_SCBD.get_next_job_num( session_id)
@@ -405,7 +405,7 @@ class DMCS:
 
         enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
         acks = []
-        for k in enabled_devices.keys():
+        for k in list(enabled_devices.keys()):
             ack_id = self.get_next_timed_ack_id( str(k) + "_READOUT_ACK")
             acks.append(ack_id)
             job_num = self.STATE_SCBD.get_current_device_job(str(k))
@@ -445,7 +445,7 @@ class DMCS:
         self.JOB_SCBD.set_results_for_job(job_num, results)
 
         failed_list = []
-        keez = results.keys()
+        keez = list(results.keys())
         for kee in keez:
             ## No File == 0; Bad checksum == -1
             if (results[kee] == str(-1)) or (results[kee] == str(0)):
@@ -478,7 +478,7 @@ class DMCS:
         msg['SESSION_ID'] = session_id
 
         ddict = self.STATE_SCBD.get_devices()
-        for k in ddict.keys():
+        for k in list(ddict.keys()):
             consume_queue = ddict[k]
             ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
             msg['ACK_ID'] = ack_id
@@ -585,8 +585,8 @@ class DMCS:
         message[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
         message['DEVICE'] = device
         message['CFG_KEY'] = self.STATE_SCBD.get_device_cfg_key(device)
-        print " REAL_CFG_KEY is %s" % self.STATE_SCBD.get_device_cfg_key(device)
-        print "Now CFG_KEY being sent is : %s" % message['CFG_KEY']
+        print(" REAL_CFG_KEY is %s" % self.STATE_SCBD.get_device_cfg_key(device))
+        print("Now CFG_KEY being sent is : %s" % message['CFG_KEY'])
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
@@ -646,7 +646,7 @@ class DMCS:
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
-        except KeyError, e:
+        except KeyError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find key in CDM representation of %s\n" % filename
             LOGGER.critical(emsg + trace)
@@ -681,7 +681,7 @@ class DMCS:
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     dmsc = DMCS()
-    print "Beginning DMCS event loop..."
+    print("Beginning DMCS event loop...")
     try:
         while 1:
             # dmcs.get_next_backlog_item() ???
@@ -689,8 +689,8 @@ def main():
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "DMCS Done."
+    print("")
+    print("DMCS Done.")
 
 
 if __name__ == "__main__": main()

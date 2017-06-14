@@ -1,5 +1,5 @@
-import toolsmod
-from toolsmod import get_timestamp
+from . import toolsmod
+from .toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -9,14 +9,14 @@ import os
 import copy
 import time
 from time import sleep
-import thread
-from const import *
-from Scoreboard import Scoreboard
-from ForwarderScoreboard import ForwarderScoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+import _thread
+from .const import *
+from .Scoreboard import Scoreboard
+from .ForwarderScoreboard import ForwarderScoreboard
+from .JobScoreboard import JobScoreboard
+from .AckScoreboard import AckScoreboard
+from .Consumer import Consumer
+from .SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -45,7 +45,7 @@ class ArchiveDevice:
 
         try:
             cdm = toolsmod.intake_yaml_file(self._config_file)
-        except IOError, e:
+        except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % filename
             LOGGER.critical(emsg + trace)
@@ -119,21 +119,21 @@ class ArchiveDevice:
 
         self._dmcs_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_CONSUME, self._base_msg_format)
         try:
-            thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
+            _thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
             sys.exit(99)
         
         self._ar_ctrl_consumer = Consumer(self._base_broker_url, self.ARCHIVE_CTRL_PUBLISH, self._base_msg_format)
         try:
-            thread.start_new_thread( self.run_ar_ctrl_consumer, ("thread-forwarder-consumer", 2,) )
+            _thread.start_new_thread( self.run_ar_ctrl_consumer, ("thread-forwarder-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start Archive Ctrl consumer thread, exiting...')
             sys.exit(100)
         
         self._ar_ack_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_ACK_PUBLISH, self._base_msg_format)
         try:
-            thread.start_new_thread( self.run_ar_ack_consumer, ("thread-ncsa-consumer", 2,) )
+            _thread.start_new_thread( self.run_ar_ack_consumer, ("thread-ncsa-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
             sys.exit(101)
@@ -161,7 +161,7 @@ class ArchiveDevice:
         #msg_dict = yaml.load(body) 
         msg_dict = body 
         LOGGER.info('In DMCS message callback')
-        LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
+        LOGGER.debug('Thread in DMCS callback is %s', _thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -169,8 +169,8 @@ class ArchiveDevice:
     
 
     def on_archive_message(self, ch, method, properties, body):
-        LOGGER.info('In Forwarder message callback, thread is %s', thread.get_ident())
-        LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
+        LOGGER.info('In Forwarder message callback, thread is %s', _thread.get_ident())
+        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('forwarder callback msg body is: %s', str(body))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -178,9 +178,9 @@ class ArchiveDevice:
 
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
-        print "Incoming ack message:\n%s" % body
+        print("Incoming ack message:\n%s" % body)
         LOGGER.info('In ACK message callback')
-        LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
+        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -209,7 +209,7 @@ class ArchiveDevice:
         self.ack_timer(1.5)
 
         healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
-        print "HEALTHY_FWDRS list IS:\n%s" % healthy_fwdrs
+        print("HEALTHY_FWDRS list IS:\n%s" % healthy_fwdrs)
         if healthy_fwdrs == None:
             self.refuse_job(params, "No forwarders available")
             self.JOB_SCBD.set_job_state(job_number, 'SCRUBBED')
@@ -230,7 +230,7 @@ class ArchiveDevice:
         start_int_params['IMAGE_ID'] = image_id
         start_int_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
         self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
-        print "OUTGOING New Archive Item msg is:\n%s" % start_int_params
+        print("OUTGOING New Archive Item msg is:\n%s" % start_int_params)
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
         self.ack_timer(2)
         
@@ -260,8 +260,8 @@ class ArchiveDevice:
         
 
         # divide image fetch across forwarders
-        print "Before divide_work, ccds is: %s" % ccds
-        work_schedule = self.divide_work(healthy_fwdrs.keys(), ccds)
+        print("Before divide_work, ccds is: %s" % ccds)
+        work_schedule = self.divide_work(list(healthy_fwdrs.keys()), ccds)
 
         # send image_id, target dir, and job, session,visit and work to do to healthy forwarders
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
@@ -334,7 +334,7 @@ class ArchiveDevice:
         ## XXX FIX if num_ccds == none or 1:
         ##    Throw exception
 
-        print "Num ccds: %d" % len(ccd_list)
+        print("Num ccds: %d" % len(ccd_list))
 
         schedule = {}
         if num_fwdrs == 1:
@@ -359,8 +359,8 @@ class ArchiveDevice:
 
 
     def send_xfer_params(self, params, work_schedule):
-        print "In Send_xfer_params top...work_schedule is:\n%s" % work_schedule
-        fwdrs = work_schedule.keys()
+        print("In Send_xfer_params top...work_schedule is:\n%s" % work_schedule)
+        fwdrs = list(work_schedule.keys())
         for fwdr in fwdrs:
             params['XFER_PARAMS']['CCD_LIST'] = work_schedule[fwdr] 
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
@@ -368,7 +368,7 @@ class ArchiveDevice:
 
 
     def accept_job(self, params):
-        print "ACCEPT_JOB - params are:\n%s" % params
+        print("ACCEPT_JOB - params are:\n%s" % params)
         dmcs_message = {}
         dmcs_message['JOB_NUM'] = params['JOB_NUM']
         dmcs_message[MSG_TYPE] = 'AR_START_INTEGRATION_ACK'
@@ -396,7 +396,7 @@ class ArchiveDevice:
 
 
     def process_dmcs_readout(self, params):
-        print "\n\nIn readout, in params are:\n%s" % params
+        print("\n\nIn readout, in params are:\n%s" % params)
         readout_ack_id = params[ACK_ID]
         job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
@@ -435,10 +435,10 @@ class ArchiveDevice:
         job_number = None
         image_id = None
         confirm_ack = self.get_next_timed_ack_id('AR_ITEMS_XFERD_ACK')
-        fwdrs = readout_responses.keys()
+        fwdrs = list(readout_responses.keys())
         work_confirm_dict = {}
         for fwdr in fwdrs:
-            ccds = readout_responses[fwdr]['RESULTS'].keys()
+            ccds = list(readout_responses[fwdr]['RESULTS'].keys())
             for ccd in ccds:
                 msg = {}
                 msg['FILENAME'] = readout_responses[fwdr]['RESULTS'][ccd]['FILENAME']
@@ -458,7 +458,7 @@ class ArchiveDevice:
         self.ack_timer(26) 
 
         xfer_check_responses = self.ACK_SCBD.get_components_for_timed_ack(confirm_ack)
-        print "xfer_check_responses['ARCHIVE_CTRL'] is %s" % xfer_check_responses
+        print("xfer_check_responses['ARCHIVE_CTRL'] is %s" % xfer_check_responses)
         results = xfer_check_responses['ARCHIVE_CTRL']['RESULTS']
 
         ack_msg = {}
@@ -485,10 +485,10 @@ class ArchiveDevice:
         ro_params['ACK_ID'] = readout_ack
         ro_params['RESPONSE_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH 
         work_schedule = self.JOB_SCBD.get_ccds_for_job(job_number)
-        print "\n\nWORK_SCHEDULE, HOT FROM SCRATCHPAD:\n%s\n\n" % work_schedule
-        fwdrs = work_schedule.keys()
+        print("\n\nWORK_SCHEDULE, HOT FROM SCRATCHPAD:\n%s\n\n" % work_schedule)
+        fwdrs = list(work_schedule.keys())
         for fwdr in fwdrs:
-            print "\n\nIn SEND readout, out params are:\n%s\n--------\n" % ro_params
+            print("\n\nIn SEND readout, out params are:\n%s\n--------\n" % ro_params)
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
             self._publisher.publish_message(route_key, ro_params)
 
@@ -497,7 +497,7 @@ class ArchiveDevice:
 
  
     def process_ack(self, params):
-        print "ACK_MESSAGE IS:\n%s" % params
+        print("ACK_MESSAGE IS:\n%s" % params)
         self.ACK_SCBD.add_timed_ack(params)
         
 
@@ -560,8 +560,8 @@ class ArchiveDevice:
             self.archive_name = cdm[ROOT]['ARCHIVE']['ARCHIVE_LOGIN']
             self.archive_ip = cdm[ROOT]['ARCHIVE']['ARCHIVE_IP']
         except KeyError as e:
-            print "Dictionary error"
-            print "Bailing out..."
+            print("Dictionary error")
+            print("Bailing out...")
             sys.exit(99)
 
 
@@ -574,15 +574,15 @@ class ArchiveDevice:
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     a_fm = ArchiveDevice()
-    print "Beginning ArchiveForeman event loop..."
+    print("Beginning ArchiveForeman event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "Archive Device Done."
+    print("")
+    print("Archive Device Done.")
 
 
 

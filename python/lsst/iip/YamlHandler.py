@@ -30,4 +30,4 @@ class YamlHandler:
 
 
     def print_yaml(self, body):
-        print str(body)
+        print(str(body))

@@ -140,7 +140,7 @@ class SimJobs:
         self.jscbd.set_job_params("PP_14009", {'STATE':'_COMPLETE'})
 
         self.jscbd.set_job_status("PP_14009", 'COMPLETE')
-        print "Job SCBD Load done"
+        print("Job SCBD Load done")
 
 
 

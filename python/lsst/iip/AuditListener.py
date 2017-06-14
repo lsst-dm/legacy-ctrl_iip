@@ -1,10 +1,10 @@
-from const import *
-import toolsmod
-from toolsmod import get_timestamp
-from Consumer import Consumer
+from .const import *
+from . import toolsmod
+from .toolsmod import get_timestamp
+from .Consumer import Consumer
 import yaml
 import time
-import thread
+import _thread
 import os
 import sys
 from influxdb import InfluxDBClient
@@ -18,7 +18,7 @@ class AuditListener:
         try:
             f = open(file)
         except IOError:
-            print "Can't open %s" % file
+            print("Can't open %s" % file)
             raise L1Error
 
         self.cdm = yaml.safe_load(f)
@@ -58,7 +58,7 @@ class AuditListener:
 
         self.influx_consumer = Consumer(self.broker_url, "audit_consume", format)
         try:
-            thread.start_new_thread( self.run_influx_consumer, ("thread-influx-consumer", 2,) )
+            _thread.start_new_thread( self.run_influx_consumer, ("thread-influx-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start influx consumer thread, exiting...')
             sys.exit(99)
@@ -208,7 +208,7 @@ class AuditListener:
         pass
 
     def run(self):
-        print "Starting AuditListener..."
+        print("Starting AuditListener...")
         while (1):
             pass
 
@@ -219,7 +219,7 @@ def main():
     try:
         al.run()
     except KeyboardInterrupt:
-        print "AuditListener shutting down."
+        print("AuditListener shutting down.")
         pass
 
 #    time.sleep(2)

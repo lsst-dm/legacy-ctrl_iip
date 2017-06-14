@@ -4,7 +4,7 @@ import yaml
 import sys
 import os
 from time import sleep
-import thread
+import _thread
 import pytest
 import random
 import logging
@@ -93,9 +93,9 @@ class TestDistributeBaseJobParams:
     def setup_consumer(self, test_broker_url, Q, format, callback):
         consumer = Consumer(test_broker_url, Q, format)
         try:
-            thread.start_new_thread( self.run_consumer, ("thread-test-consume", 2, {'csume': consumer, 'cb': callback}))
+            _thread.start_new_thread( self.run_consumer, ("thread-test-consume", 2, {'csume': consumer, 'cb': callback}))
         except:
-            print "Bad trouble creating consumer thread for testing...exiting..."
+            print("Bad trouble creating consumer thread for testing...exiting...")
             sys.exit(101)
 
 
@@ -106,8 +106,8 @@ class TestDistributeBaseJobParams:
         try:
             f = open('ForemanCfgTest.yaml')
         except IOError:
-            print "Can't open ForemanCfgTest.yaml"
-            print "Bailing out on test_forwarder_check_health..."
+            print("Can't open ForemanCfgTest.yaml")
+            print("Bailing out on test_forwarder_check_health...")
             sys.exit(99)
 
         self.CDM = yaml.safe_load(f)
@@ -130,8 +130,8 @@ class TestDistributeBaseJobParams:
             rafts.append(self.CDM['ROOT']['RAFT_LIST'][i])
 
         pairs = {}
-        keez = forwarders.keys()
-        deekeez = distributors.keys()
+        keez = list(forwarders.keys())
+        deekeez = list(distributors.keys())
         for i in range (0, (needed_forwarders)):
             inner_dict = {}
             inner_dict[FQN] = deekeez[i]
@@ -155,7 +155,7 @@ class TestDistributeBaseJobParams:
 
         ### CHECK SCOREBOARDS FOR PROPER STATES
         ack_responses = bf.ACK_SCBD.get_components_for_timed_ack(self.ACK_REPLACEMENT)
-        akkeez = ack_responses.keys()
+        akkeez = list(ack_responses.keys())
 
         assert len(akkeez) == needed_forwarders
         assert ack_responses[akkeez[0]]['ACK_BOOL'] == True

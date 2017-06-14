@@ -54,7 +54,7 @@ class AckScoreboard(Scoreboard):
             Scoreboard.__init__(self)
         except L1RabbitConnectionError as e:
             LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print "No Auditing for YOU"
+            print("No Auditing for YOU")
             raise L1Error('Calling super.init in AckScoreboard init caused: ', e.arg)
 
         self._redis = self.connect()
@@ -149,7 +149,7 @@ class AckScoreboard(Scoreboard):
                 for key in keys:
                    component_dict[key] = yaml.load(self._redis.hget(timed_ack, key))
 
-                print "WAIT: Component_dict is:\n%s" % component_dict
+                print("WAIT: Component_dict is:\n%s" % component_dict)
                 return component_dict
                 
                 params = {}
@@ -193,7 +193,7 @@ class AckScoreboard(Scoreboard):
 
     def build_audit_data(self, params):
         audit_data = {}
-        keez = params.keys()
+        keez = list(params.keys())
         for kee in keez:
             audit_data[kee] = params[kee]
         audit_data['TIME'] = get_epoch_timestamp()
@@ -206,7 +206,7 @@ class AckScoreboard(Scoreboard):
         acks = self._redis.lrange(self.ACK_IDS, 0, -1)
         for ack in acks:
             x = self._redis.hgetall(ack)
-            print x
+            print(x)
             print ("---------")
 
 
@@ -232,7 +232,7 @@ def main():
 
 #    comps = asb.get_components_for_timed_ack('NCSA_16')
     sleep(2)
-    print "AckScoreboard seems to be running OK."
+    print("AckScoreboard seems to be running OK.")
 
 
 if __name__ == "__main__": main()

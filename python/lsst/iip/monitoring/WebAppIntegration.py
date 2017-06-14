@@ -51,14 +51,14 @@ class WebAppIntegration:
         """ Create a file called influximport.txt in compatibility with InfluxDB """
         filename = open("influximport.txt", "w")
         currentTime = time.time() 
-        for item, value in self._bDict.iteritems(): 
+        for item, value in self._bDict.items(): 
             writeLine = "machine,machine_name=" + item + " "
-            for kee, val in value.iteritems(): 
+            for kee, val in value.items(): 
                 if val in self._conversionTable: 
                     writeLine += kee + "=" + str(self._conversionTable[val])
                 else: 
                     writeLine += kee + "=" + str(-1)
-                if kee != value.keys()[-1]: 
+                if kee != list(value.keys())[-1]: 
                     writeLine += ","
             writeLine += " " + str(currentTime).split(".")[0]
             filename.write(writeLine + "\n")
@@ -89,7 +89,7 @@ def main():
     except:
         print("Importing to InfluxDB failed.")
 
-    print "Execution time is %s." % (time.time() - start_time)
+    print("Execution time is %s." % (time.time() - start_time))
 
 
 if __name__ ==  "__main__": 

@@ -2,12 +2,12 @@ import pika
 import os.path
 import hashlib
 import yaml
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
-from const import *
-import toolsmod  # here so reader knows where intake yaml method resides
-from toolsmod import *
-import thread
+from .Consumer import Consumer
+from .SimplePublisher import SimplePublisher
+from .const import *
+from . import toolsmod  # here so reader knows where intake yaml method resides
+from .toolsmod import *
+import _thread
 import logging
 
 
@@ -73,7 +73,7 @@ class ArchiveController:
 
         self._archive_consumer = Consumer(self._base_broker_url, self.ARCHIVE_CTRL_CONSUME, self._base_msg_format)
         try:
-            thread.start_new_thread( self.run_archive_consumer, ("thread-archive-consumer", 2,) )
+            _thread.start_new_thread( self.run_archive_consumer, ("thread-archive-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start Archive consumer thread, exiting...')
             raise L1Error
@@ -91,7 +91,7 @@ class ArchiveController:
 
 
     def on_archive_message(self, ch, method, properties, msg_dict):
-        print "INCOMING On_archive_message, msg is:\n%s" % msg_dict
+        print("INCOMING On_archive_message, msg is:\n%s" % msg_dict)
         LOGGER.info('Message from Archive callback message body is: %s', str(msg_dict))
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -112,23 +112,23 @@ class ArchiveController:
         
 
     def process_new_archive_item(self, params):
-        print "Incoming archive ctrl new archive item msg is:\n%s" % params
+        print("Incoming archive ctrl new archive item msg is:\n%s" % params)
         self.send_audit_message("received_", params)
         target_dir = self.construct_send_target_dir(params)
         self.send_new_item_ack(target_dir, params)
 
 
     def process_transfer_complete(self, params):
-        print "Incoming process transfer msg is:\n%s" % params
-        print "\n\n" 
+        print("Incoming process transfer msg is:\n%s" % params)
+        print("\n\n") 
         transfer_results = {}
         ccd_list = params['CCD_LIST']
-        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-        print "The CCD_LIST is %s" % ccd_list
-        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-        ccds = ccd_list.keys()
-        print "The ccds are %s" % ccds
-        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("The CCD_LIST is %s" % ccd_list)
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        ccds = list(ccd_list.keys())
+        print("The ccds are %s" % ccds)
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
         for ccd in ccds:
             pathway = ccd_list[ccd]['FILENAME']
             csum = ccd_list[ccd]['CHECKSUM']
@@ -202,12 +202,12 @@ class ArchiveController:
         if os.path.isdir(target_dir_visit):
             pass
         else:
-            os.mkdir(target_dir_visit, 0766)
+            os.mkdir(target_dir_visit, 0o766)
 
         if os.path.isdir(target_dir_image):
             pass
         else:
-            os.mkdir(target_dir_image, 0766)
+            os.mkdir(target_dir_image, 0o766)
 
         return target_dir_image
 
@@ -221,13 +221,13 @@ class ArchiveController:
         ack_params['IMAGE_ID'] = params['IMAGE_ID']
         ack_params['COMPONENT_NAME'] = self._name
         ack_params['ACK_BOOL'] = True
-        print "Outgoing new archive item ack is:\n%s" % ack_params
+        print("Outgoing new archive item ack is:\n%s" % ack_params)
         self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
 
     def send_transfer_complete_ack(self, transfer_results, params):
         ack_params = {}
-        keez = params.keys()
+        keez = list(params.keys())
         for kee in keez:
             if kee == 'MSG_TYPE' or kee == 'CCD_LIST':
                 continue
@@ -249,15 +249,15 @@ class ArchiveController:
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     a_c = ArchiveController()
-    print "Beginning ArchiveController event loop..."
+    print("Beginning ArchiveController event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "Archive Controller Done."
+    print("")
+    print("Archive Controller Done.")
 
 
 

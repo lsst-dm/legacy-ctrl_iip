@@ -318,17 +318,17 @@ class GraphicalOCS:
     def process_send_command(self, widget, data=None):
         st_str = ""
         c_list = self.enter.get_group()
-	print "C_LIST: ", len(c_list)
+	print("C_LIST: ", len(c_list))
         dex = None
         for i in range (0, len(c_list)):
             if c_list[i].get_active():
                 dex = i
                 break
 
-	print "DEX: ", dex
+	print("DEX: ", dex)
 
         if dex == None:
-            print "Dex is none - cannot find active command button"
+            print("Dex is none - cannot find active command button")
         else:
             if dex == 7:
                 cmd = "enterControl" 
@@ -355,7 +355,7 @@ class GraphicalOCS:
                 cmd = "stop" 
                 st_str = "Stop"
         
-	print "cmd: %s", cmd
+	print("cmd: %s", cmd)
 
         r_list = self.ar.get_group()
         dex = None
@@ -365,7 +365,7 @@ class GraphicalOCS:
                 break
 
         if dex == None:
-            print "Dex is none - cannot find active device button"
+            print("Dex is none - cannot find active device button")
         else:
             if dex == 2:
                 self.device_param = "archiver" #"Archiver"
@@ -381,7 +381,7 @@ class GraphicalOCS:
 	else: 
 	    command = "./commands/sacpp_" + self.device_param + "_" + cmd + "_commander 0"
 
-	print "XXXXXXXX command: ", command
+	print("XXXXXXXX command: ", command)
         status_str = "\nSending %s command to the %s device" % (st_str,self.device_param)
         cmd_str =  "\nShell command to be run is: %s\n" % command
         
@@ -397,7 +397,7 @@ class GraphicalOCS:
 	    insert_point = self.textbuffer.get_end_iter()
  	    self.textbuffer.insert(insert_point, line.rstrip())
  	    self.textbuffer.insert(insert_point, "\n")
-	    print(line.rstrip())
+	    print((line.rstrip()))
         insert_point = self.textbuffer.get_end_iter()
         self.textbuffer.insert(insert_point, veritek.stdout.read())
 
@@ -415,7 +415,7 @@ class GraphicalOCS:
                 break
 
         if dex == None:
-            print "Dex is none - cannot find active device button"
+            print("Dex is none - cannot find active device button")
         else:
             if dex == 2:
                 cmd = self.event_list['next_visit'] 

@@ -135,7 +135,7 @@ class Setup:
 def main():
     setup = Setup()
 
-    print "Rabbit setup complete."
+    print("Rabbit setup complete.")
 
 
 if __name__ == '__main__':

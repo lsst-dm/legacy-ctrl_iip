@@ -4,7 +4,7 @@ import yaml
 import sys
 import os
 from time import sleep
-import thread
+import _thread
 import pytest
 import random
 import logging
@@ -73,7 +73,7 @@ class TestNCSAResourceQueryNegative:
         msg_dict = body
 
         fail_dict = {}
-        needed_distributors = len(msg_dict[FORWARDERS].keys())
+        needed_distributors = len(list(msg_dict[FORWARDERS].keys()))
         fail_dict['NEEDED_DISTRIBUTORS'] = str(needed_distributors)
         fail_dict['AVAILABLE_DISTRIBUTORS'] = str(needed_distributors - 1) 
         fail_dict['BASE_RESOURCES'] = '1'
@@ -97,9 +97,9 @@ class TestNCSAResourceQueryNegative:
     def setup_consumer(self, test_broker_url, Q, format, callback):
         consumer = Consumer(test_broker_url, Q, format)
         try:
-            thread.start_new_thread( self.run_consumer, ("thread-test-consume", 2, {'csume': consumer, 'cb': callback}))
+            _thread.start_new_thread( self.run_consumer, ("thread-test-consume", 2, {'csume': consumer, 'cb': callback}))
         except:
-            print "Bad trouble creating consumer thread for testing...exiting..."
+            print("Bad trouble creating consumer thread for testing...exiting...")
             sys.exit(101)
 
 
@@ -110,8 +110,8 @@ class TestNCSAResourceQueryNegative:
         try:
             f = open('ForemanCfgTest.yaml')
         except IOError:
-            print "Can't open ForemanCfgTest.yaml"
-            print "Bailing out on test_forwarder_check_health..."
+            print("Can't open ForemanCfgTest.yaml")
+            print("Bailing out on test_forwarder_check_health...")
             sys.exit(99)
 
         self.CDM = yaml.safe_load(f)
@@ -132,7 +132,7 @@ class TestNCSAResourceQueryNegative:
             L.append(self.CDM['ROOT']['RAFT_LIST'][i])
 
         F = []
-        keez = forwarders.keys()
+        keez = list(forwarders.keys())
         for i in range (0, (needed_forwarders)):
             F.append(keez[i])
 
@@ -154,7 +154,7 @@ class TestNCSAResourceQueryNegative:
         #print ">>>>>>>>>>>>>>> Printing Ack Scoreboard <<<<<<<<<<<<<"
         ack_responses = bf.ACK_SCBD.get_components_for_timed_ack(self.ACK_REPLACEMENT)
 
-        assert len(ack_responses.keys()) == 1
+        assert len(list(ack_responses.keys())) == 1
         assert ack_responses['NCSA_FOREMAN']['ACK_BOOL'] == False
         assert ack_responses['NCSA_FOREMAN']['JOB_NUM'] == this_job_num
 

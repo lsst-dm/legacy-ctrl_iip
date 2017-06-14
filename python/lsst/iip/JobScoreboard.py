@@ -77,14 +77,14 @@ class JobScoreboard(Scoreboard):
             Scoreboard.__init__(self)
         except L1RabbitConnectionError as e:
             LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print "No Monitoring for YOU"
+            print("No Monitoring for YOU")
             raise L1Error('Calling super.init in JobScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()
         except L1RedisError as e:
             LOGGER.error("Cannot make connection to Redis:  " , e)  
-            print "No Redis for YOU"
+            print("No Redis for YOU")
             raise L1Error('Calling redis connect in JobScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
@@ -153,7 +153,7 @@ class JobScoreboard(Scoreboard):
            :param dict params: A python dict of key/value pairs.
         """  
         if self.check_connection():
-            for kee in in_params.keys():
+            for kee in list(in_params.keys()):
                 self._redis.hset(job_number, kee, in_params[kee])
 
             params = {}
@@ -339,7 +339,7 @@ class JobScoreboard(Scoreboard):
 
     def build_monitor_data(self, params):
         monitor_data = {}
-        keez = params.keys()
+        keez = list(params.keys())
         for kee in keez:
             monitor_data[kee] = params[kee]
         monitor_data['SESSION_ID'] = self.get_current_session()
@@ -378,14 +378,14 @@ class JobScoreboard(Scoreboard):
             dump_dict[job] = x
 
         f.write(yaml.dump(dump_dict))
-        print dump_dict
+        print(dump_dict)
 
 
 def main():
   jbs = JobScoreboard()
-  print "Job Scoreboard seems to be running OK"
+  print("Job Scoreboard seems to be running OK")
   time.sleep(2)
-  print "Done."
+  print("Done.")
   #jbs.charge_database()
   #jbs.print_all()
   #Ps = jbs.get_value_for_job(str(1), 'PAIRS')
