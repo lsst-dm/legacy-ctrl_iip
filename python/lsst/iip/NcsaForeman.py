@@ -58,7 +58,8 @@ class NcsaForeman:
         self.DIST_SCBD = DistributorScoreboard(distributor_dict)
         self.JOB_SCBD = JobScoreboard()
         self.ACK_SCBD = AckScoreboard()
-        self._msg_actions = { 'NCSA_RESOURCES_QUERY': self.process_base_resources_query,
+        self._msg_actions = { 'NEXT_VISIT': self.process_next_visit,
+                              'NCSA_START_INTEGRATION': self.process_start_integration,
                               'NCSA_READOUT': self.process_base_readout,
                               'DISTRIBUTOR_HEALTH_ACK': self.process_distributor_health_ack,
                               'DISTRIBUTOR_JOB_PARAMS_ACK': self.process_distributor_job_params_ack,
@@ -168,7 +169,7 @@ class NcsaForeman:
         result = handler(msg_dict)
     
 
-    def process_base_resources_query(self, params):
+    def process_start_integration(self, params):
         job_num = str(params[JOB_NUM])
         LOGGER.info('NCSA received message from Base asking for available resources')#
        

@@ -36,6 +36,7 @@ class BaseForeman:
     YAML = 'YAML'
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'direct'
+    MAX_CCDS_PER_FWDR = 10
 
 
     def __init__(self, filename=None):
@@ -85,7 +86,7 @@ class BaseForeman:
         self.ACK_SCBD = AckScoreboard(self._scbd_dict['PP_ACK_SCBD'])
 
         self._msg_actions = { 'NEW_SESSION': self.set_session,
-                              'NEXT_VISIT': self.set_visit, 
+                              'NEXT_VISIT': self.next_visit, 
                               'START_INTEGRATION': self.process_start_integration,
                               'READOUT': self.process_dmcs_readout,
                               'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
@@ -228,12 +229,13 @@ class BaseForeman:
         result = handler(msg_dict)
 
  
-    def set_visit(self, params):
+    def next_visit(self, params):
         self.JOB_SCBD.set_visit_id(params['VISIT_ID'])
         ack_id = params['ACK_ID']
         msg = {}
-        ## XXX FIXME Do something with the bore sight in params['BORE_SIGHT']
-        ncsa_result = self.send_boresight_to_ncsa(params['VISIT_ID'], params['BORE_SIGHT'])
+        ## XXX In case params['BORE_SIGHT'] is not set, use this for testing...
+        bore_sight =  "231,123786456342, -45.3457156906, FK5"
+        ncsa_result = self.send_boresight_to_ncsa(params['VISIT_ID'], boresight)
 
         msg['MSG_TYPE'] = 'AR_NEXT_VISIT_ACK'
         msg['COMPONENT_NAME'] = 'AR_FOREMAN'
@@ -245,11 +247,11 @@ class BaseForeman:
 
     def send_boresight_to_ncsa(self, visit_id, bore_sight):
         msg = {}
-        msg['MSG_TYPE'] = 'SET_VISIT'
+        msg['MSG_TYPE'] = 'NEXT_VISIT'
         msg['VISIT_ID'] = visit_id
         msg['BORE_SIGHT'] = bore_sight
         msg['SESSION_ID'] = self.JOB_SCBD.get_current_session()
-        msg['ACK_ID'] = self.get_next_timed_ack_id('NCSA_SET_VISIT_ACK')
+        msg['ACK_ID'] = self.get_next_timed_ack_id('NCSA_NEXT_VISIT_ACK')
         msg['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         self._publisher.publish_message(self.NCSA_CONSUME, msg)
 
@@ -259,9 +261,10 @@ class BaseForeman:
 
 
     def process_start_integration(self, params):
-        input_params = params
-        needed_workers = len(input_params[RAFTS])
-        ack_id = self.forwarder_health_check(input_params)
+        needed_workers = len(params[CCD_LIST]) / self.MAX_CCDS_PER_FWDR
+        if (len(params[CCD_LIST]) % self.MAX_CCDS_PER_FWDR) != 0:
+            needed_workers = needed_workers + 1
+        ack_id = self.forwarder_health_check(params)
         
         self.ack_timer(7)  # This is a HUGE num seconds for now..final setting will be milliseconds
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
