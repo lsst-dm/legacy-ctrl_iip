@@ -1,14 +1,14 @@
 import redis
-from .toolsmod import get_timestamp
-from .toolsmod import get_epoch_timestamp
-from .toolsmod import L1RedisError
-from .toolsmod import L1RabbitConnectionError
+from toolsmod import get_timestamp
+from toolsmod import get_epoch_timestamp
+from toolsmod import L1RedisError
+from toolsmod import L1RabbitConnectionError
 import yaml
 import logging
 import time
 import subprocess
-from .Scoreboard import Scoreboard
-from .const import *
+from Scoreboard import Scoreboard
+from const import *
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -232,10 +232,10 @@ class StateScoreboard(Scoreboard):
         if list_len == 0 or list_len == None:
             return True
 
-	list_keys = self._redis.lrange(listname, 0, -1)
+        list_keys = self._redis.lrange(listname, 0, -1)
         #for item in range(0,list_len):
-	for item in list_keys:
-	    print("CFG_KEY COMPARI: ", (cfg_key, item))
+        for item in list_keys:
+            print("CFG_KEY COMPARI: ", (cfg_key, item))
             if cfg_key == item:
                 print("FOUND CFG KEY")
                 return True

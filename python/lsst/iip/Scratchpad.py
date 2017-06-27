@@ -1,12 +1,12 @@
-from .toolsmod import get_timestamp
-from .const import *
+from toolsmod import get_timestamp
+from const import *
 import yaml
 import os
 import sys
 import logging
 import time
 import pika
-from .SimplePublisher import SimplePublisher
+from SimplePublisher import SimplePublisher
 
 
 class Scratchpad:

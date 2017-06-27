@@ -1,5 +1,5 @@
-from . import toolsmod
-from .toolsmod import get_timestamp
+import toolsmod
+from toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -10,14 +10,14 @@ import time
 import datetime
 from time import sleep
 import _thread
-from .const import *
-from .Scoreboard import Scoreboard
-from .JobScoreboard import JobScoreboard
-from .AckScoreboard import AckScoreboard
-from .StateScoreboard import StateScoreboard
-from .BacklogScoreboard import BacklogScoreboard
-from .Consumer import Consumer
-from .SimplePublisher import SimplePublisher
+from const import *
+from Scoreboard import Scoreboard
+from JobScoreboard import JobScoreboard
+from AckScoreboard import AckScoreboard
+from StateScoreboard import StateScoreboard
+from BacklogScoreboard import BacklogScoreboard
+from Consumer import Consumer
+from SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

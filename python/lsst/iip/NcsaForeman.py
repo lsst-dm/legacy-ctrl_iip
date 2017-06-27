@@ -283,7 +283,7 @@ class NcsaForeman:
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
         date = get_timestamp()
         ack_id = self.get_next_timed_ack_id(DISTRIBUTOR_READOUT)
-        self.JOB_SCBD.set_value_for_job(job_number, START_READOUT, date) 
+        self.JOB_SCBD.set_value_for_job(job_number, "START_READOUT", date) 
         # The following line extracts the distributor FQNs from pairs dict using
         # list comprehension values; faster than for loops
         distributors = [v['FQN'] for v in list(pairs.values())]
@@ -293,20 +293,21 @@ class NcsaForeman:
             msg_params[JOB_NUM] = job_number
             msg_params[ACK_ID] = ack_id
             routing_key = self.DIST_SCBD.get_routing_key(distributor)
-            self.DIST_SCBD.set_distributor_state(distributor, START_READOUT)
-            self._publisher.publish_message(routing_key, yaml.dump(msg_params))
+            self.DIST_SCBD.set_distributor_state(distributor, "START_READOUT")
+            self._publisher.publish_message(routing_key, msg_params)
 
 
         self.ack_timer(4)
 
         distributor_responses = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+        print("DIST_RESPONSE: %s" % distributor_responses)
         if len(distributor_responses) == len(distributors):
             ncsa_params = {}
             ncsa_params[MSG_TYPE] = NCSA_READOUT_ACK
             ncsa_params[JOB_NUM] = job_number
             ncsa_params[ACK_ID] = response_ack_id
             ncsa_params[ACK_BOOL] = True
-            self.publisher.publish_message("ncsa_publish", yaml.dump(msg_params))
+            self.publisher.publish_message("ncsa_publish", msg_params)
         else:
             ncsa_params = {}
             ncsa_params[MSG_TYPE] = NCSA_READOUT_ACK
@@ -324,7 +325,7 @@ class NcsaForeman:
                 else:
                     missing_distributors[forwarder[MATE]] = forwarder[RAFT]
             ncsa_params[MISSING_DISTRIBUTORS] = missing_distributors
-            self.publisher.publish_message("ncsa_publish", yaml.dump(msg_params))
+            self.publisher.publish_message("ncsa_publish", msg_params)
              
 
 

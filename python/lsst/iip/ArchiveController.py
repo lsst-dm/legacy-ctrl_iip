@@ -2,11 +2,11 @@ import pika
 import os.path
 import hashlib
 import yaml
-from .Consumer import Consumer
-from .SimplePublisher import SimplePublisher
-from .const import *
-from . import toolsmod  # here so reader knows where intake yaml method resides
-from .toolsmod import *
+from Consumer import Consumer
+from SimplePublisher import SimplePublisher
+from const import *
+from toolsmod import *
+import toolsmod
 import _thread
 import logging
 

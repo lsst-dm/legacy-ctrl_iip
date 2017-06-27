@@ -500,7 +500,7 @@ class BaseForeman:
         ncsa_params = {}
         ncsa_params[MSG_TYPE] = 'NCSA_READOUT'
         ncsa_params[ACK_ID] = ack_id
-        self._ncsa_publisher.publish_message(NCSA_CONSUME, yaml.dump(ncsa_params))
+        self._ncsa_publisher.publish_message(NCSA_CONSUME, ncsa_params)
 
 
         self.ack_timer(4)
@@ -518,7 +518,7 @@ class BaseForeman:
                     msg_params[JOB_NUM] = job_number
                     msg_params['ACK_ID'] = fwd_ack_id
                     self.FWD_SCBD.set_forwarder_state(forwarder, START_READOUT)
-                    self._publisher.publish_message(routing_key, yaml.dump(msg_params))
+                    self._publisher.publish_message(routing_key, msg_params)
                 self.ack_timer(4)
                 forwarder_responses = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
                 if len(forwarder_responses) == len(forwarders):
@@ -527,7 +527,7 @@ class BaseForeman:
                     dmcs_params[JOB_NUM] = job_number
                     dmcs_params['ACK_BOOL'] = True
                     dmcs_params['COMMENT'] = "Readout begun at %s" % get_timestamp()
-                    self._publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+                    self._publisher.publish_message('dmcs_consume', dmcs_params)
                     
             else:
                 #send problem with ncsa to DMCS
@@ -536,7 +536,7 @@ class BaseForeman:
                 dmcs_params[JOB_NUM] = job_number
                 dmcs_params['ACK_BOOL'] = False
                 dmcs_params['COMMENT'] = 'Readout Failed: Problem at NCSA - Expected Distributor Acks is %s, Number of Distributor Acks received is %s' % (ncsa_response['EXPECTED_DISTRIBUTOR_ACKS'], ncsa_response['RECEIVED_DISTRIBUTOR_ACKS'])
-                self._base_publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+                self._base_publisher.publish_message('dmcs_consume', dmcs_params)
                     
         else:
             #send 'no response from ncsa' to DMCS               )
@@ -545,7 +545,7 @@ class BaseForeman:
             dmcs_params[JOB_NUM] = job_number
             dmcs_params['ACK_BOOL'] = False
             dmcs_params['COMMENT'] = "Readout Failed: No Response from NCSA"
-            self._base_publisher.publish_message('dmcs_consume', yaml.dump(dmcs_params))
+            self._base_publisher.publish_message('dmcs_consume', dmcs_params)
                     
         
 

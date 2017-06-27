@@ -1,7 +1,7 @@
-from .const import *
-from . import toolsmod
-from .toolsmod import get_timestamp
-from .Consumer import Consumer
+from const import *
+import toolsmod
+from toolsmod import get_timestamp
+from Consumer import Consumer
 import yaml
 import time
 import _thread
