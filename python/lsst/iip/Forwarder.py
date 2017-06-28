@@ -1,7 +1,7 @@
 import pika
-from .Scratchpad import Scratchpad
-from .toolsmod import get_timestamp
-from .toolsmod import get_epoch_timestamp
+from Scratchpad import Scratchpad
+from toolsmod import get_timestamp
+from toolsmod import get_epoch_timestamp
 import yaml
 import sys
 import time
@@ -14,9 +14,9 @@ import subprocess
 import _thread
 #import pyfits 
 #import numpy as np
-from .const import *
-from .Consumer import Consumer
-from .SimplePublisher import SimplePublisher
+from const import *
+from Consumer import Consumer
+from SimplePublisher import SimplePublisher
 
 
 class Forwarder:
@@ -334,7 +334,7 @@ Saved here for temp...
         msg_params['EVENT_TIME'] = "Transfer completion time = %s" % datetime2
         msg_params['SOURCE_DIR'] = source_dir
         msg_params['COMMAND'] = cmd
-        self._publisher.publish_message('reports', yaml.dump(msg_params))
+        self._publisher.publish_message('reports', msg_params)
 ###########XXXXXXXXXXXXX###############
 """
 

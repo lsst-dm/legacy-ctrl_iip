@@ -576,7 +576,7 @@ class DMCS:
         message = {}
         message[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
         message['DEVICE'] = device
-        message['CURRENT_STATE'] = toolsmod.summary_state_enum[self.STATE_SCBD.get_device_state(device)]
+        message['CURRENT_STATE'] = toolsmod.summary_state_enum[self.STATE_SCBD.get_device_state(device).decode("utf-8")]
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
