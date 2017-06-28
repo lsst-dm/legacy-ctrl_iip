@@ -12,16 +12,16 @@
 # Unique identifiers
 NAME: D1
 PASSWD: D1
-NCSA_BROKER_ADDR: 141.142.237.171:5672/%2fbunny
+NCSA_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
 FQN: D1_DISTRIBUTOR
 HOSTNAME: lsst-wf-dist01.ncsa.illinois.edu
-IP_ADDR: 141.142.237.161
+IP_ADDR: 141.142.208.160
 
 XFER_APP: scp
 XFER_FILE: 16.7meg
 
-CONSUME_QUEUE: D1_consume
-PUBLISH_QUEUE: distributor_publish
+CONSUME_QUEUE: d1_consume
+PUBLISH_QUEUE: ncsa_foreman_ack_publish
 
 SENTINEL_FILE: sentinel.fits
 TARGET_DIR: /home/D1/xfer_dir/

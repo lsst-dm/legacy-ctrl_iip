@@ -7,7 +7,7 @@ import time
 import logging
 import os
 import subprocess
-import thread
+import _thread
 from const import *
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -47,8 +47,8 @@ class Distributor:
             self._sentinel_file = cdm[SENTINEL_FILE]
         except KeyError as e:
             LOGGER.critical(e)
-            print "Key error reading cfg file."
-            print "Bailing out..."
+            print("Key error reading cfg file.")
+            print("Bailing out...")
             sys.exit(99)
 
 
@@ -75,7 +75,7 @@ class Distributor:
 
         self._consumer = Consumer(self._ncsa_broker_url, self._consume_queue)
         try:
-            thread.start_new_thread(self.run_consumer, (threadname, 2,) )
+            _thread.start_new_thread(self.run_consumer, (threadname, 2,) )
             LOGGER.info('Started distributor consumer thread %s', threadname)
         except:
             LOGGER.critical('Cannot start Distributor consumer thread, exiting...')
@@ -86,9 +86,10 @@ class Distributor:
         self._consumer.run(self.on_message)
 
     def on_message(self, ch, method, properties, body):
-        msg_dict = yaml.load(body)
+        msg_dict = body
+        print("GOT: %s", msg_dict)
         LOGGER.info('In %s message callback', self._name)
-        LOGGER.debug('Thread in %s callback is %s', self._name, thread.get_ident())
+        LOGGER.debug('Thread in %s callback is %s', self._name, _thread.get_ident())
         LOGGER.debug('%s callback message body is: %s', self._name, str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -103,7 +104,8 @@ class Distributor:
 
 
     def process_job_params(self, params):
-        transfer_params = params[TRANSFER_PARAMS]
+        job_number = params[JOB_NUM]
+        transfer_params = params["TRANSFER_PARAMS"]
         self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], transfer_params)
         self._job_scratchpad.set_job_value(job_number, "STATE", "READY_WITH_PARAMS")
         self._job_scratchpad.set_job_value(job_number, "READY_WITH_PARAMS_TIME", get_timestamp())
@@ -114,12 +116,13 @@ class Distributor:
         LOGGER.info('At Top of Distributor readout')
         job_number = params[JOB_NUM]
         cmd = self._target_dir + "check_sentinel.sh"
+        print("CMD: %s" % cmd)
         result = subprocess.check_output(cmd, shell=True)
+        print("RESULT: %s" % result) 
         LOGGER.info('check_sentinel test is complete')
         # xfer complete
         #xfer_time = ""
 
-        """
 ###########XXXXXXXXXXXXXXX###############
 ####  Checking for and processing image file goes here
         command = "cat " + self._target_dir + "rcv_logg.test"
@@ -137,7 +140,7 @@ class Distributor:
         msg['COMMENT1'] = "Result from xfer command is: %s" % result
         msg['COMMENT2'] = "cat_result is -->  %s" % cat_result
         msg['COMMENT3'] = "Command used to call check_sentinel.sh is %s" % cmd
-        self._publisher.publish_message("reports", yaml.dump(msg))
+        self._publisher.publish_message("reports", msg)
 
         readout_dict = {}
         readout_dict[MSG_TYPE] = "DISTRIBUTOR_READOUT_ACK"
@@ -145,23 +148,25 @@ class Distributor:
         readout_dict["COMPONENT_NAME"] = self._fqn_name
         readout_dict["ACK_BOOL"] = True
         readout_dict["ACK_ID"] = params["TIMED_ACK_ID"]
-        self._publisher.publish_message(self._publish_queue, yaml.dump(readout_dict))
+        print("PUBLISH_Q " % self._publish_queue)
+        self._publisher.publish_message(self._publish_queue, readout_dict)
 
     def send_ack_response(self, type, params):
-        timed_ack = params.get("TIMED_ACK_ID")
+        timed_ack = params.get("ACK_ID")
         job_num = params.get(JOB_NUM)
         if timed_ack is None:
-            LOGGER.info('%s failed, missing TIMED_ACK_ID', type)
+            LOGGER.info('%s failed, missing ACK_ID', type)
         elif job_num is None:
             LOGGER.info('%s failed, missing JOB_NUM for ACK ID: %s', type)
         else:
             msg_params = {}
             msg_params[MSG_TYPE] = type
             msg_params[JOB_NUM] = job_num
-            msg_params[NAME] = "DISTRIBUTOR_" + self._name
+            msg_params["COMPONENT_NAME"] = "DISTRIBUTOR_" + self._name[self._name.find("D")+1:]
             msg_params[ACK_BOOL] = "TRUE"
-            msg_params[TIMED_ACK] = timed_ack
-            self._publisher.publish_message("reports", yaml.dump(msg_params))
+            msg_params[ACK_ID] = timed_ack
+            self._publisher.publish_message("ncsa_foreman_ack_publish", msg_params)
+            print("ACK_ID: %s is sent." % timed_ack)
             LOGGER.info('%s sent for ACK ID: %s and JOB_NUM: %s', type, timed_ack, job_num)
 
 
@@ -179,22 +184,15 @@ class Distributor:
 def main():
     logging.basicConfig(filename='logs/distributor.log', level=logging.INFO, format=LOG_FORMAT)
     dist = Distributor()
-    print "Starting Distributor event loop..."
+    print("Starting Distributor event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "Distributor Finished"
+    print("")
+    print("Distributor Finished")
 
 
 if __name__ == "__main__": main()
-
-
-
-
-
-
-

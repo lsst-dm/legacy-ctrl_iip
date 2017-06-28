@@ -22,9 +22,11 @@ class Scratchpad:
 
 
     def set_job_value(self, job_number, kee, val):
-        #tmp_dict = {}
-        #tmp_dict[kee] = val
-        self._pad[job_number][kee] = val 
+        if job_number in list(self._pad.keys()): 
+       	    self._pad[job_number][kee] = val 
+        else: 
+            self._pad[job_number] = {} 
+            self._pad[job_number][kee] = val
 
     def get_job_value(self, job_number, kee):
         return self._pad[job_number]['XFER_PARAMS'][kee]
