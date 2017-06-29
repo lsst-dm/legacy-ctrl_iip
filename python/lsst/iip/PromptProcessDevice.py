@@ -55,7 +55,7 @@ class BaseForeman:
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            forwarder_dict = cdm[ROOT][XFER_COMPONENTS][PP_FORWARDERS]
+            forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
         except KeyError as e:
             print "Dictionary error"
@@ -81,9 +81,9 @@ class BaseForeman:
 
         # Create Redis Forwarder table with Forwarder info
 
-        self.FWD_SCBD = ForwarderScoreboard(self._scbd_dict['PP_FWD_SCBD'], forwarder_dict)
+        self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', self._scbd_dict['PP_FWD_SCBD'], forwarder_dict)
         self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard(self._scbd_dict['PP_ACK_SCBD'])
+        self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
 
         self._msg_actions = { 'NEW_SESSION': self.set_session,
                               'NEXT_VISIT': self.next_visit, 
@@ -228,17 +228,29 @@ class BaseForeman:
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
+    def set_session(self, params):
+        self.JOB_SCBD.set_session(params['SESSION_ID'])
+        ack_id = params['ACK_ID']
+        msg = {}
+        msg['MSG_TYPE'] = 'NEW_SESSION_ACK'
+        msg['COMPONENT_NAME'] = 'AR_FOREMAN'
+        msg['ACK_ID'] = ack_id
+        msg['ACK_BOOL'] = True
+        route_key = params['RESPONSE_QUEUE']
+        self._publisher.publish_message(route_key, msg)
+
  
-    def next_visit(self, params):
-        self.JOB_SCBD.set_visit_id(params['VISIT_ID'])
+    def set_visit(self, params):
+        bore_sight = params['BORE_SIGHT']
+        visit_id = params['VISIT_ID'] 
+        self.JOB_SCBD.set_visit_id(visit_id, bore_sight)
         ack_id = params['ACK_ID']
         msg = {}
         ## XXX In case params['BORE_SIGHT'] is not set, use this for testing...
-        bore_sight =  "231,123786456342, -45.3457156906, FK5"
-        ncsa_result = self.send_boresight_to_ncsa(params['VISIT_ID'], boresight)
+        ncsa_result = self.send_boresight_to_ncsa(visit_id, bore_sight)
 
-        msg['MSG_TYPE'] = 'AR_NEXT_VISIT_ACK'
-        msg['COMPONENT_NAME'] = 'AR_FOREMAN'
+        msg['MSG_TYPE'] = 'PP_NEXT_VISIT_ACK'
+        msg['COMPONENT_NAME'] = 'PP_FOREMAN'
         msg['ACK_ID'] = ack_id
         msg['ACK_BOOL'] = True
         route_key = params['RESPONSE_QUEUE']
