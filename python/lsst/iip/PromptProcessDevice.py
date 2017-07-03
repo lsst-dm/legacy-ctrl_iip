@@ -49,10 +49,14 @@ class BaseForeman:
         cdm = toolsmod.intake_yaml_file(self._config_file)
 
         try:
-            self._msg_name = cdm[ROOT][PFM_BROKER_NAME]      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT][PFM_BROKER_PASSWD]   
-            self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
-            self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
+            self._sub_name = cdm[ROOT][PFM_BROKER_NAME]      # Message broker user & passwd
+            self._sub_passwd = cdm[ROOT][PFM_BROKER_PASSWD]   
+            self._pub_name = cdm[ROOT]['PFM_BROKER_PUB_NAME']      # Message broker user & passwd
+            self._pub_passwd = cdm[ROOT]['PFM_BROKER_PUB_PASSWD']   
+            self._sub_ncsa_name = cdm[ROOT]['PFM_NCSA_BROKER_NAME']     
+            self._sub_ncsa_passwd = cdm[ROOT]['PFM_NCSA_BROKER_PASSWD']   
+            self._pub_ncsa_name = cdm[ROOT]['PFM_NCSA_BROKER_PUB_NAME']     
+            self._pub_ncsa_passwd = cdm[ROOT]['PFM_NCSA_BROKER_PUB_PASSWD']   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
@@ -86,7 +90,7 @@ class BaseForeman:
         self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
 
         self._msg_actions = { 'NEW_SESSION': self.set_session,
-                              'NEXT_VISIT': self.next_visit, 
+                              'NEXT_VISIT': self.set_visit, 
                               'START_INTEGRATION': self.process_start_integration,
                               'READOUT': self.process_dmcs_readout,
                               'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
@@ -98,8 +102,22 @@ class BaseForeman:
                               'NEW_JOB_ACK': self.process_ack }
 
 
-        self._base_broker_url = "amqp://" + self._msg_name + ":" + self._msg_passwd + "@" + str(self._base_broker_addr)
-        self._ncsa_broker_url = "amqp://" + self._ncsa_name + ":" + self._ncsa_passwd + "@" + str(self._ncsa_broker_addr)
+        self._base_broker_url = "amqp://" + self._sub_name + ":" + \
+                                            self._sub_passwd + "@" + \
+                                            str(self._base_broker_addr)
+
+        self._pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
+                                                self._pub_passwd + "@" + \
+                                                str(self._base_broker_addr)
+
+        self._ncsa_broker_url = "amqp://" + self._sub_ncsa_name + ":" + \
+                                            self._sub_ncsa_passwd + "@" + \
+                                            str(self._ncsa_broker_addr)
+
+        self._pub_ncsa_broker_url = "amqp://" + self._pub_ncsa_name + ":" + \
+                                                self._pub_ncsa_passwd + "@" + \
+                                                str(self._ncsa_broker_addr)
+
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
         LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
 
@@ -147,7 +165,7 @@ class BaseForeman:
             LOGGER.critical('Cannot start FORWARDERS consumer thread, exiting...')
             sys.exit(100)
 
-        self._ncsa_consumer = Consumer(self._base_broker_url, self.NCSA_PUBLISH, self._base_msg_format)
+        self._ncsa_consumer = Consumer(self._ncsa_broker_url, self.NCSA_PUBLISH, self._base_msg_format)
         try:
             thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
         except:
@@ -183,8 +201,8 @@ class BaseForeman:
     def setup_publishers(self):
         LOGGER.info('Setting up Base publisher on %s using %s', self._base_broker_url, self._base_msg_format)
         LOGGER.info('Setting up NCSA publisher on %s using %s', self._ncsa_broker_url, self._ncsa_msg_format)
-        self._base_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
-        self._ncsa_publisher = SimplePublisher(self._ncsa_broker_url, self._ncsa_msg_format)
+        self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
+        self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
 
 
 #    def setup_federated_exchange(self):
@@ -247,7 +265,7 @@ class BaseForeman:
         ack_id = params['ACK_ID']
         msg = {}
         ## XXX In case params['BORE_SIGHT'] is not set, use this for testing...
-        ncsa_result = self.send_boresight_to_ncsa(visit_id, bore_sight)
+        ncsa_result = self.send_visit_boresight_to_ncsa(visit_id, bore_sight)
 
         msg['MSG_TYPE'] = 'PP_NEXT_VISIT_ACK'
         msg['COMPONENT_NAME'] = 'PP_FOREMAN'
@@ -257,7 +275,7 @@ class BaseForeman:
         self._publisher.publish_message(route_key, msg)
 
 
-    def send_boresight_to_ncsa(self, visit_id, bore_sight):
+    def send_visit_boresight_to_ncsa(self, visit_id, bore_sight):
         msg = {}
         msg['MSG_TYPE'] = 'NEXT_VISIT'
         msg['VISIT_ID'] = visit_id
@@ -265,7 +283,7 @@ class BaseForeman:
         msg['SESSION_ID'] = self.JOB_SCBD.get_current_session()
         msg['ACK_ID'] = self.get_next_timed_ack_id('NCSA_NEXT_VISIT_ACK')
         msg['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
-        self._publisher.publish_message(self.NCSA_CONSUME, msg)
+        self._ncsa_publisher.publish_message(self.NCSA_CONSUME, msg)
 
         self.ack_timer(2)
 
