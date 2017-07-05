@@ -146,8 +146,9 @@ class AckScoreboard(Scoreboard):
             if exists:
                 component_dict = {}
                 keys = self._redis.hkeys(timed_ack)
+                print("KEYS: %s" % keys)
                 for key in keys:
-                   component_dict[key] = yaml.load(self._redis.hget(timed_ack, key))
+                   component_dict[key] = yaml.load(self._redis.hget(timed_ack, key).decode("utf-8"))
 
                 print("WAIT: Component_dict is:\n%s" % component_dict)
                 return component_dict
@@ -179,7 +180,7 @@ class AckScoreboard(Scoreboard):
                 if self._redis.exists(kee): # ack is here - don't check time
                     self._redis.hdel('PENDING_ACKS', kee) # Remove so we don't check again
                 else:
-                    expiry = self._redis.hget('PENDING_ACKS', kee)
+                    expiry = self._redis.hget('PENDING_ACKS', kee).decode("utf-8")
                     now = datetime.datetime.now().time()
                     if now > expiry:  # if timeout is expired...else do nothing and check next time
                         self._redis.lpush('MISSING_NONBLOCK_ACKS', kee) # handled by self.check_missing_acks()

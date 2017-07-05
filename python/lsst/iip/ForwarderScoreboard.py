@@ -54,7 +54,7 @@ class ForwarderScoreboard(Scoreboard):
         healthy_forwarders = []
         forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
         for forwarder in forwarders:
-            if self._redis.hget(forwarder, 'STATUS') == 'HEALTHY':
+            if self._redis.hget(forwarder, 'STATUS').decode("utf-8") == 'HEALTHY':
                 healthy_forwarders.append(forwarder)
 
         return healthy_forwarders
@@ -64,9 +64,9 @@ class ForwarderScoreboard(Scoreboard):
         available_forwarders = []
         forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
         for forwarder in forwarders:
-            if ((self._redis.hget(forwarder, 'STATUS')) == 'HEALTHY') and ((self._redis.hget(forwarder, 'STATE'))  == 'IDLE'):
+            if ((self._redis.hget(forwarder, 'STATUS').decode("utf-8")) == 'HEALTHY')  \
+                    and ((self._redis.hget(forwarder, 'STATE').decode("utf-8"))  == 'IDLE'):
                 available_forwarders.append(forwarder)
-
         return available_forwarders
 
 
@@ -90,7 +90,7 @@ class ForwarderScoreboard(Scoreboard):
 
 
     def get_value_for_forwarder(self, forwarder, kee):
-        return self._redis.hget(forwarder, kee)
+        return self._redis.hget(forwarder, kee).decode("utf-8")
 
 
     def set_forwarder_state(self, forwarder, state):
@@ -104,7 +104,7 @@ class ForwarderScoreboard(Scoreboard):
 
 
     def get_routing_key(self, forwarder):
-        return self._redis.hget(forwarder,'ROUTING_KEY')
+        return self._redis.hget(forwarder,'ROUTING_KEY').decode("utf-8")
 
 
     def print_all(self):
