@@ -7,7 +7,7 @@ import yaml
 import sys
 import os
 import time
-import _thread
+import _thread 
 from const import *
 from Scoreboard import Scoreboard
 from DistributorScoreboard import DistributorScoreboard
@@ -167,6 +167,7 @@ class NcsaForeman:
         ack_params[MSG_TYPE] = "DISTRIBUTOR_HEALTH_CHECK"
         ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
+        ack_params["REPLY_QUEUE"] = self.ACK_PUBLISH
         for distributor in distributors:
             self._publisher.publish_message(self.DIST_SCBD.get_value_for_distributor
                                               (distributor,"CONSUME_QUEUE"), ack_params)

@@ -79,10 +79,10 @@ class BaseForeman:
 
 
         # Create Redis Forwarder table with Forwarder info
-
-        self.FWD_SCBD = ForwarderScoreboard(self._scbd_dict['PP_FWD_SCBD'], forwarder_dict)
+        print("FORWARDER %s" % forwarder_dict)
+        self.FWD_SCBD = ForwarderScoreboard("PP_FWD_SCBD", self._scbd_dict['PP_FWD_SCBD'], forwarder_dict)
         self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard(self._scbd_dict['PP_ACK_SCBD'])
+        self.ACK_SCBD = AckScoreboard("PP_ACK_SCBD", self._scbd_dict['PP_ACK_SCBD'])
 
         self._msg_actions = { 'NEW_SESSION': self.set_session,
                               'NEXT_VISIT': self.set_visit, 
@@ -264,7 +264,9 @@ class BaseForeman:
         ack_id = self.forwarder_health_check(input_params)
         
         self.ack_timer(7)  # This is a HUGE num seconds for now..final setting will be milliseconds
-        healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
+        healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+
+        print("### HEALTHY_FORWARDERS: %s" % healthy_forwarders)
 
         num_healthy_forwarders = len(healthy_forwarders)
         if needed_workers > num_healthy_forwarders:
@@ -274,12 +276,13 @@ class BaseForeman:
             healthy_status = {"STATUS": "HEALTHY", "STATE":"READY_WITHOUT_PARAMS"}
             self.FWD_SCBD.set_forwarder_params(healthy_forwarders, healthy_status)
 
-            ack_id = self.ncsa_resources_query(input_params, healthy_forwarders)
+            ack_id = self.ncsa_resources_query(input_params, list(healthy_forwarders.keys()))
 
             self.ack_timer(3)
 
             #Check ACK scoreboard for response from NCSA
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            print("### NCSA_RESPONSE: %s" % ncsa_response) 
             if ncsa_response:
                 pairs = {}
                 ack_bool = None
@@ -311,8 +314,8 @@ class BaseForeman:
 
             else:
                 result = self.ncsa_no_response(input_params)
-                idle_param = {'STATE': 'IDLE'}
-                self.FWD_SCBD.set_forwarder_params(list(forwarder_candidate_dict.keys()), idle_params)
+                idle_params = {'STATE': 'IDLE'}
+                self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_params)
                 return result
                     
 
@@ -321,10 +324,12 @@ class BaseForeman:
         job_num = str(params[JOB_NUM])
         raft_list = params['RAFTS']
         needed_workers = len(raft_list)
+        visit_id = params["VISIT_ID"] 
+        ccds = params["CCDS"] 
 
-        self.JOB_SCBD.add_job(job_num, needed_workers)
+        self.JOB_SCBD.add_job(job_num, None, visit_id, ccds) # needed_workers)
         self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ADDED", get_timestamp())
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ADDED_E", get_epoch_timestamp())
+        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ADDED_E", toolsmod.get_epoch_timestamp())
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
 
         # run forwarder health check
@@ -332,6 +337,7 @@ class BaseForeman:
         timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
         forwarders = self.FWD_SCBD.return_available_forwarders_list()
+        print("forwarders: %s" % forwarders)
         # Mark all healthy Forwarders Unknown
         state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
         self.FWD_SCBD.set_forwarder_params(forwarders, state_status)
@@ -340,18 +346,20 @@ class BaseForeman:
         ack_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
         ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
+        ack_params["REPLY_QUEUE"] = self.PP_FOREMAN_ACK_PUBLISH
         
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
         self.JOB_SCBD.set_value_for_job(job_num, "TIME_BASE_RESOURCE_QUERY", get_timestamp())
-        audit_params = {}
-        audit_params['DATA_TYPE'] = 'FOREMAN_ACK_REQUEST'
-        audit_params['SUB_TYPE'] = 'FORWARDER_HEALTH_CHECK_ACK'
-        audit_params['ACK_ID'] = timed_ack
-        audit_parsms['COMPONENT_NAME'] = 'BASE_FOREMAN'
-        audit_params['TIME'] = get_epoch_timestamp()
+        # audit_params = {}
+        # audit_params['DATA_TYPE'] = 'FOREMAN_ACK_REQUEST'
+        # audit_params['SUB_TYPE'] = 'FORWARDER_HEALTH_CHECK_ACK'
+        # audit_params['ACK_ID'] = timed_ack
+        # audit_parsms['COMPONENT_NAME'] = 'BASE_FOREMAN'
+        # audit_params['TIME'] = get_epoch_timestamp()
         for forwarder in forwarders:
-            self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
-                                            ack_params)
+            forwarder_consume_q = self.FWD_SCBD.get_value_for_forwarder(forwarder, "CONSUME_QUEUE")
+            self._base_publisher.publish_message(forwarder_consume_q, ack_params)
+            print("HEALTH_CHECK is sent to %s with params %s" % (forwarder_consume_q, ack_params))
 
         return timed_ack
 
@@ -400,6 +408,7 @@ class BaseForeman:
         LOGGER.info('Sufficient forwarders have been found. Checking NCSA')
         self._pairs_dict = {}
         forwarder_candidate_dict = {}
+        print("### HEALTHY_FWD: %s, RAFT_LIST: %s" % (healthy_forwarders, raft_list))
         for i in range (0, needed_workers):
             forwarder_candidate_dict[healthy_forwarders[i]] = raft_list[i]
             self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES_QUERY)
@@ -566,6 +575,9 @@ class BaseForeman:
         for q in queues:
             cmd = "rabbitmqctl -p /tester purge_queue " + q
             os.system(cmd)
+
+    def set_session(self, params): 
+        self.SESSION_ID = params["SESSION_ID"]
 
 
 def main():

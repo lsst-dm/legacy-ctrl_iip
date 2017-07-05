@@ -10,9 +10,3 @@ msg["ACK_ID"] = "NCSA_000001"
 msg["FORWARDERS"] = { "FORWARDER_1": 1 }
 sp.publish_message("ncsa_consume", msg)
 
-t.sleep(10)
-msg = {}
-msg["MSG_TYPE"] = "NCSA_READOUT"
-msg["JOB_NUM"] = 6
-msg["ACK_ID"] = "READOUT_0000001"
-sp.publish_message("ncsa_consume", msg)
