@@ -152,6 +152,7 @@ class Distributor:
         self._publisher.publish_message(self._publish_queue, readout_dict)
 
     def send_ack_response(self, type, params):
+        print("PARAMS: %s" % params)
         timed_ack = params.get("ACK_ID")
         job_num = params.get(JOB_NUM)
         if timed_ack is None:
@@ -162,10 +163,10 @@ class Distributor:
             msg_params = {}
             msg_params[MSG_TYPE] = type
             msg_params[JOB_NUM] = job_num
-            msg_params["COMPONENT_NAME"] = "DISTRIBUTOR_" + self._name[self._name.find("D")+1:]
+            msg_params["COMPONENT_NAME"] = self._fqn_name
             msg_params[ACK_BOOL] = "TRUE"
             msg_params[ACK_ID] = timed_ack
-            self._publisher.publish_message("ncsa_foreman_ack_publish", msg_params)
+            self._publisher.publish_message(params["REPLY_QUEUE"], msg_params)
             print("ACK_ID: %s is sent." % timed_ack)
             LOGGER.info('%s sent for ACK ID: %s and JOB_NUM: %s', type, timed_ack, job_num)
 
