@@ -35,8 +35,6 @@ class NcsaForeman:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self._name = 'NCSA_FM'      # Message broker user & passwd
-        self._passwd = 'NCSA_FM'   
         self._base_broker_url = 'amqp_url'
         self._ncsa_broker_url = 'amqp_url'
         self._pairing_dict = {}
@@ -51,6 +49,8 @@ class NcsaForeman:
             self.job_db_instance = cdm[ROOT]["SCOREBOARDS"]["NCSA_JOB_SCBD"]
             self.ack_db_instance = cdm[ROOT]["SCOREBOARDS"]["NCSA_ACK_SCBD"]
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
+            self._name = cdm[ROOT]["NCSA_BROKER_NAME"]
+            self._passwd = cdm[ROOT]["NCSA_BROKER_PASSWD"]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
         except KeyError as e:
