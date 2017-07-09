@@ -270,6 +270,20 @@ class StateScoreboard(Scoreboard):
             #RAISE exception to catch in DMCS.py
 
 
+    def set_visit_id(self, visit_id):
+        if self.check_connection():
+            self._redis.lpush(self.VISIT_ID_LIST, visit_id)
+            params = {}
+            params['SUB_TYPE'] = 'VISIT'
+            params['VISIT_ID'] = visit_id
+            self.persist(self.build_monitor_data(params))
+
+
+    def get_current_visit(self):
+        if self.check_connection():
+            return self._redis.lindex(self.VISIT_ID_LIST, 0)
+
+
     def get_next_job_num(self, prefix):
         if self.check_connection():
             self._redis.incr(self.JOB_SEQUENCE_NUM)
@@ -278,6 +292,54 @@ class StateScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
+
+    def add_job(self, job_number, image_id, visit_id, ccds):
+        """All job rows created in the scoreboard begin with this method
+           where initial attributes are inserted.
+        """
+        if self.check_connection():
+            self._redis.hset(job_number, 'IMAGE_ID', image_id)
+            self._redis.hset(job_number, 'VISIT_ID', visit_id)
+            self._redis.lpush(self.JOBS, job_number)
+            self.set_ccds_for_job(job_number, ccds)
+            self.set_job_state(job_number, 'NEW')
+            self.set_job_status(job_number, 'ACTIVE')
+        else:
+            LOGGER.error('Unable to add new job; Redis connection unavailable')
+            #raise exception
+            ### FIX add adit message?
+
+
+    def set_job_state(self, job_number, state):
+        if self.check_connection():
+            self._redis.hset(job_number, STATE, state)
+            params = {}
+            params[JOB_NUM] = job_number
+            params['SUB_TYPE'] = self.JOB_STATE
+            params['STATE'] = state
+            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            self.persist(self.build_monitor_data(params))
+
+
+    def set_value_for_job(self, job_number, kee, val):
+        """Set a specific field in a job row with a key and value.
+
+           :param str job_number: Cast as str below.
+           :param str kee: Represents the field (or key) to be set.
+           :param str val: The value to be used for above key.
+        """
+        if self.check_connection():
+            job = str(job_number)
+            if kee == 'STATE':
+                self.set_job_state(job, val)
+            elif kee == 'STATUS':
+                self.set_job_status(job, val)
+            else:
+                self._redis.hset(job, kee, val)
+            return True
+        else:
+           return False
+
 
 
     def set_current_device_job(self, job_number, device):
@@ -298,6 +360,14 @@ class StateScoreboard(Scoreboard):
                 return self._redis.lindex('PP_JOBS', 0)
             if device == self.CU:
                 return self._redis.lindex('CU_JOBS', 0)
+
+    def set_results_for_job(self, job_number, results):
+        if self.check_connection():
+            self._redis.hset(str(job_number), 'RESULTS', yaml.dump(results))
+            return True
+        else:
+            return False
+
 
 
     def build_monitor_data(self, params):
