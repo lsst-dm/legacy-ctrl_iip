@@ -66,7 +66,7 @@ class DistributorScoreboard(Scoreboard):
 
     def get_healthy_distributors_list(self): 
         healthy_distributors = []
-        distributors = self._redis.lrange(self.DISTRIBUTOR_ROWS, 0, -1)
+        distributors = self._redis.lrange(self.DISTRIBUTOR_ROWS, 0, -1).decode("utf-8")
         for distributor in distributors:
             print("Checking health")
             if self._redis.hget(distributor, 'STATUS') == 'HEALTHY':
@@ -101,7 +101,7 @@ class DistributorScoreboard(Scoreboard):
 
 
     def get_value_for_distributor(self, distributor, kee):
-        return self._redis.hget(distributor, kee)
+        return self._redis.hget(distributor, kee).decode("utf-8")
 
 
     def set_distributor_state(self, distributor, state):
@@ -115,7 +115,7 @@ class DistributorScoreboard(Scoreboard):
 
 
     def get_routing_key(self, distributor):
-        return self._redis.hget(distributor,'ROUTING_KEY')
+        return self._redis.hget(distributor,'ROUTING_KEY').decode("utf-8")
 
 
 

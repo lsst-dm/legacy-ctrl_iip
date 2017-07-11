@@ -179,7 +179,7 @@ class JobScoreboard(Scoreboard):
 
     def get_job_state(self, job_number):
         if self.check_connection():
-            return self._redis.hget(job_number, STATE)
+            return self._redis.hget(job_number, STATE).decode("utf-8")
 
 
     def set_job_status(self, job_number, status):
@@ -221,7 +221,7 @@ class JobScoreboard(Scoreboard):
            :param str kee: The name of the field to retrieve desired data.
         """
         if self.check_connection():
-            return self._redis.hget(str(job_number), kee)
+            return self._redis.hget(str(job_number), kee).decode("utf-8")
         else:
             return None
 
@@ -252,7 +252,7 @@ class JobScoreboard(Scoreboard):
            :rtype dict
         """
         if self.check_connection():
-            pairs =  self._redis.hget(str(job_number), 'PAIRS')
+            pairs =  self._redis.hget(str(job_number), 'PAIRS').decode("utf-8")
         ### XXX FIX - Check for existence of pairs...
         if pairs:
             return yaml.load(pairs)
@@ -280,7 +280,7 @@ class JobScoreboard(Scoreboard):
 
     def get_ccds_for_job(self, job_number):
         if self.check_connection():
-            ccds =  self._redis.hget(str(job_number), 'CCDS')
+            ccds =  self._redis.hget(str(job_number), 'CCDS').decode("utf-8")
         ### XXX FIX - Check for existence of pairs...
         if ccds:
             return yaml.load(ccds)
@@ -298,7 +298,7 @@ class JobScoreboard(Scoreboard):
 
     def get_results_for_job(self, job_number):
         if self.check_connection():
-            results =  self._redis.hget(str(job_number), 'RESULTS')
+            results =  self._redis.hget(str(job_number), 'RESULTS').decode("utf-8")
         if results:
             return yaml.load(results)
         else:
@@ -307,7 +307,7 @@ class JobScoreboard(Scoreboard):
 
     def get_device_for_job(self, job_number):
         if self.check_connection():
-            return self._redis.hget(job_number, 'DEVICE')
+            return self._redis.hget(job_number, 'DEVICE').decode("utf-8")
             
 
     def set_session(self, session_id):
@@ -315,7 +315,7 @@ class JobScoreboard(Scoreboard):
 
 
     def get_current_session(self):
-        return self._redis.get(self.CURRENT_SESSION_ID)
+        return self._redis.get(self.CURRENT_SESSION_ID).decode("utf-8")
 
 
     def set_visit_id(self, visit_id):
@@ -329,7 +329,7 @@ class JobScoreboard(Scoreboard):
 
     def get_current_visit(self):
         if self.check_connection():
-            return self._redis.lindex(self.VISIT_ID_LIST, 0)
+            return self._redis.lindex(self.VISIT_ID_LIST, 0).decode("utf-8")
 
              
     def delete_job(self, job_number):
@@ -362,11 +362,11 @@ class JobScoreboard(Scoreboard):
     def get_current_device_job(self, device):
         if self.check_connection():
             if device == self.AR:
-                return self._redis.lindex('AR_JOBS', 0) 
+                return self._redis.lindex('AR_JOBS', 0).decode("utf-8") 
             if device == self.PP:
-                return self._redis.lindex('PP_JOBS', 0) 
+                return self._redis.lindex('PP_JOBS', 0).decode("utf-8") 
             if device == self.CU:
-                return self._redis.lindex('CU_JOBS', 0) 
+                return self._redis.lindex('CU_JOBS', 0).decode("utf-8") 
 
 
     def print_all(self):

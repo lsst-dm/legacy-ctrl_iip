@@ -116,7 +116,7 @@ class StateScoreboard(Scoreboard):
 
     def get_archive_state(self):
         if self.check_connection():
-            return self._redis.hget(self.AR, STATE)
+            return self._redis.hget(self.AR, STATE).decode("utf-8")
 
 
     def set_prompt_process_state(self, state):
@@ -125,7 +125,7 @@ class StateScoreboard(Scoreboard):
 
     def get_prompt_process_state(self):
         if self.check_connection():
-            return self._redis.hget(self.PP, STATE)
+            return self._redis.hget(self.PP, STATE).decode("utf-8")
 
 
     def set_catchup_archive_state(self, state):
@@ -135,7 +135,7 @@ class StateScoreboard(Scoreboard):
 
     def get_catchup_archive_state(self):
         if self.check_connection():
-            return self._redis.hget(self.CU, STATE)
+            return self._redis.hget(self.CU, STATE).decode("utf-8")
 
 
     def get_device_state(self, device):
@@ -159,27 +159,28 @@ class StateScoreboard(Scoreboard):
     def get_device_consume_queue(self, device):
         if self.check_connection():
             if device == self.AR:
-                return self._redis.hget(self.AR, "CONSUME_QUEUE")
+                return self._redis.hget(self.AR, "CONSUME_QUEUE").decode("utf-8")
             if device == self.PP:
-                return self._redis.hget(self.PP, "CONSUME_QUEUE")
+                return self._redis.hget(self.PP, "CONSUME_QUEUE").decode("utf-8")
             if device == self.CU:
-                return self._redis.hget(self.CU, "CONSUME_QUEUE")
+                return self._redis.hget(self.CU, "CONSUME_QUEUE").decode("utf-8")
+
 
 
     def get_devices_by_state(self, state):
         edict = {}
         if self.check_connection:
             if state == None:
-                edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
-                edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
-                edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
+                edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE").decode("utf-8")
+                edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE").decode("utf-8")
+                edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE").decode("utf-8")
             else:
                 if self.get_archive_state() == state:
-                    edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
+                    edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE").decode("utf-8")
                 if self.get_prompt_process_state() == state:
-                    edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
+                    edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE").decode("utf-8")
                 if self.get_catchup_archive_state() == state:
-                    edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
+                    edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE").decode("utf-8")
         else:
             print("BIG TROUBLE IN LITTLE CHINA")
         return edict
@@ -194,7 +195,7 @@ class StateScoreboard(Scoreboard):
 
 
     def get_device_cfg_key(self, device):
-        return self._redis.hget(device, 'CFG_KEY')
+        return self._redis.hget(device, 'CFG_KEY').decode("utf-8")
 
 
     def add_device_cfg_keys(self, device, keys):
@@ -217,7 +218,7 @@ class StateScoreboard(Scoreboard):
         elif device == 'CU':
             listname = 'CU_CFG_KEYS'
 
-        return self._redis.lindex(listname, index)
+        return self._redis.lindex(listname, index).decode("utf-8")
 
 
     def check_cfgs_for_cfg(self, device, cfg_key):
@@ -247,7 +248,7 @@ class StateScoreboard(Scoreboard):
     def get_next_session_id(self):
         if self.check_connection():
             self._redis.incr(self.SESSION_SEQUENCE_NUM)
-            session_id = self._redis.get(self.SESSION_SEQUENCE_NUM)
+            session_id = self._redis.get(self.SESSION_SEQUENCE_NUM).decode("utf-8")
             #if device == "AR":
             #    self._redis.hset(self.AR, 'SESSION_ID', session_id)
             #if device == "PP":
@@ -264,7 +265,7 @@ class StateScoreboard(Scoreboard):
 
     def get_current_session_id(self):
         if self.check_connection():
-            return self._redis.get(self.CURRENT_SESSION_ID)
+            return self._redis.get(self.CURRENT_SESSION_ID).decode("utf-8")
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
@@ -293,11 +294,11 @@ class StateScoreboard(Scoreboard):
     def get_current_device_job(self, device):
         if self.check_connection():
             if device == self.AR:
-                return self._redis.lindex('AR_JOBS', 0)
+                return self._redis.lindex('AR_JOBS', 0).decode("utf-8")
             if device == self.PP:
-                return self._redis.lindex('PP_JOBS', 0)
+                return self._redis.lindex('PP_JOBS', 0).decode("utf-8")
             if device == self.CU:
-                return self._redis.lindex('CU_JOBS', 0)
+                return self._redis.lindex('CU_JOBS', 0).decode("utf-8")
 
 
     def build_monitor_data(self, params):
