@@ -161,7 +161,7 @@ class JobScoreboard(Scoreboard):
             params['SUB_TYPE'] = self.JOB_STATE
             params['STATE'] = in_params['STATE']
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+            # self.persist(self.build_monitor_data(params))
         else:
             LOGGER.error('Unable to set job params; Redis connection unavailable')
             return False
@@ -174,7 +174,7 @@ class JobScoreboard(Scoreboard):
             params['SUB_TYPE'] = self.JOB_STATE
             params['STATE'] = state
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+            # self.persist(self.build_monitor_data(params))
 
 
     def get_job_state(self, job_number):
@@ -191,7 +191,7 @@ class JobScoreboard(Scoreboard):
             params['SUB_TYPE'] = self.JOB_STATUS
             params[self.STATUS] = status
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+            # self.persist(self.build_monitor_data(params))
             return result
 
 
@@ -324,7 +324,7 @@ class JobScoreboard(Scoreboard):
             params = {}
             params['SUB_TYPE'] = 'VISIT'
             params['VISIT_ID'] = visit_id
-            self.persist(self.build_monitor_data(params))
+            # self.persist(self.build_monitor_data(params))
 
 
     def get_current_visit(self):
