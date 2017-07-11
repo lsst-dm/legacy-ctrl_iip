@@ -147,8 +147,9 @@ class Distributor:
         readout_dict[JOB_NUM] = params[JOB_NUM]
         readout_dict["COMPONENT_NAME"] = self._fqn_name
         readout_dict["ACK_BOOL"] = True
-        readout_dict["ACK_ID"] = params["TIMED_ACK_ID"]
-        print("PUBLISH_Q " % self._publish_queue)
+        # readout_dict["ACK_ID"] = params["TIMED_ACK_ID"]
+        readout_dict["ACK_ID"] = params["ACK_ID"]
+        print("PUBLISH_Q: %s" % self._publish_queue)
         self._publisher.publish_message(self._publish_queue, readout_dict)
 
     def send_ack_response(self, type, params):
