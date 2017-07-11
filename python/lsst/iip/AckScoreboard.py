@@ -148,7 +148,7 @@ class AckScoreboard(Scoreboard):
                 keys = self._redis.hkeys(timed_ack)
                 print("KEYS: %s" % keys)
                 for key in keys:
-                   component_dict[key] = yaml.load(self._redis.hget(timed_ack, key).decode("utf-8"))
+                   component_dict[key.decode("utf-8")] = yaml.load(self._redis.hget(timed_ack, key).decode("utf-8"))
 
                 print("WAIT: Component_dict is:\n%s" % component_dict)
                 return component_dict
