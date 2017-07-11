@@ -119,25 +119,26 @@ class Forwarder:
                     
         """
         job_params = copy.deepcopy(params)
-        xfer_params = job_params['XFER_PARAMS']
+        xfer_params = job_params['TRANSFER_PARAMS']
+        print("### XFER_PARAMS: %s" % xfer_params)
 
         # Also RM fits files in xfer_dir
-        cmd = "rm " + self._DAQ_PATH + "*.fits"
-        os.system(cmd)
+        # cmd = "rm " + self._DAQ_PATH + "*.fits"
+        # os.system(cmd)
 
 
-        filename_stub = str(job_params['JOB_NUM']) + "_" + str(job_params['VISIT_ID']) + "_" + str(job_params['IMAGE_ID']) + "_"
+        # filename_stub = str(job_params['JOB_NUM']) + "_" + str(job_params['VISIT_ID']) + "_" + str(job_params['IMAGE_ID']) + "_"
 
         login_str = str(xfer_params['NAME']) + "@" + str(xfer_params['IP_ADDR']) + ":"
 
-        target_dir = str(job_params['TARGET_DIR'])
+        target_dir = str(xfer_params['TARGET_DIR'])
 
         #xfer_params = transfer_params['XFER_PARAMS']
         s_params = {}
-        s_params['CCD_LIST'] = xfer_params['CCD_LIST']
+        # s_params['CCD_LIST'] = xfer_params['CCD_LIST']
         s_params['LOGIN_STR'] = login_str
         s_params['TARGET_DIR'] = target_dir
-        s_params['FILENAME_STUB'] = filename_stub
+        # s_params['FILENAME_STUB'] = filename_stub
 
         print("S_params are: %s" % s_params)
         
@@ -145,12 +146,12 @@ class Forwarder:
         self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], s_params)
         self._job_scratchpad.set_job_state(params['JOB_NUM'], "READY_WITH_PARAMS")
 
-        self.send_ack_response('AR_XFER_PARAMS_ACK', params)
+        self.send_ack_response(params["MSG_TYPE"] + "_ACK", params)
 
 
     def process_foreman_readout(self, params):
-        # self.send_ack_response("FORWARDER_READOUT_ACK", params)
-        reply_queue = params['RESPONSE_QUEUE']
+        self.send_ack_response("FORWARDER_READOUT_ACK", params)
+        reply_queue = params['REPLY_QUEUE']
 
         job_number = params[JOB_NUM]
         # Check and see if scratchpad has this job_num
@@ -165,20 +166,21 @@ class Forwarder:
 
         results = self.forward(job_number, final_filenames)
 
-        msg = {}
-        msg['MSG_TYPE'] = 'AR_ITEMS_XFERD_ACK'
-        msg['JOB_NUM'] = job_number
-        msg['IMAGE_ID'] = params['IMAGE_ID']
-        msg['COMPONENT_NAME'] = self._fqn
-        msg['ACK_ID'] = params['ACK_ID']
-        msg['ACK_BOOL'] = True  # See if num keys of results == len(ccd_list) from orig msg params
-        msg['RESULTS'] = results
-        self._publisher.publish_message(reply_queue, msg)
+        #msg = {}
+        #msg['MSG_TYPE'] = 'AR_ITEMS_XFERD_ACK'
+        #msg['JOB_NUM'] = job_number
+        #msg['IMAGE_ID'] = params['IMAGE_ID']
+        #msg['COMPONENT_NAME'] = self._fqn
+        #msg['ACK_ID'] = params['ACK_ID']
+        #msg['ACK_BOOL'] = True  # See if num keys of results == len(ccd_list) from orig msg params
+        #msg['RESULTS'] = results
+        #self._publisher.publish_message(reply_queue, msg)
 
 
 
     def fetch(self, job_num):
         raw_files_dict = {}
+        print("JOB_NUM: %s, %s" % (job_num, self._job_scratchpad._pad))
         ccd_list = self._job_scratchpad.get_job_value(job_num, 'CCD_LIST')
         for ccd in ccd_list:
             filename = "ccd_" + str(ccd) + ".data"
@@ -280,7 +282,7 @@ class Forwarder:
         msg_params['COMPONENT_NAME'] = self._fqn
         msg_params[ACK_BOOL] = "TRUE"
         msg_params[ACK_ID] = timed_ack
-        print("Outgoing fwd_health_chk ack: \n%s" % msg_params)
+        print("Outgoing ack: \n%s" % msg_params)
         self._publisher.publish_message(reply_queue, msg_params)
 
 

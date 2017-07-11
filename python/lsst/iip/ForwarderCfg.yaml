@@ -11,7 +11,7 @@
 
 NAME: F1
 DAQ_PATH: /home/F1/xfer_dir/
-BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
+BASE_BROKER_ADDR: 141.142.208.241:5672/%2fbunny
 CONSUME_QUEUE: f1_consume
 PUBLISH_QUEUE: ar_forwarder_publish
 
