@@ -63,7 +63,7 @@ class NcsaForeman:
         self.DIST_SCBD = DistributorScoreboard(distributor_dict)
         self.JOB_SCBD = JobScoreboard("NCSA_JOB_SCBD", self.job_db_instance)
         self.ACK_SCBD = AckScoreboard("NCSA_ACK_SCBD", self.ack_db_instance)
-        self._msg_actions = { 'NCSA_RESOURCES_QUERY': self.process_base_resources_query,
+        self._msg_actions = { 'NCSA_RESOURCE_QUERY': self.process_base_resources_query,
                               'NCSA_READOUT': self.process_base_readout,
                               'DISTRIBUTOR_HEALTH_ACK': self.process_distributor_health_ack,
                               'DISTRIBUTOR_JOB_PARAMS_ACK': self.process_distributor_job_params_ack,
@@ -201,8 +201,9 @@ class NcsaForeman:
             # send response msg to base refusing job
             LOGGER.info('Reporting to base insufficient healthy distributors for job #%s', job_num)
             ncsa_params = {}
-            ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY_ACK"
+            ncsa_params[MSG_TYPE] = "NCSA_RESOURCE_QUERY_ACK"
             ncsa_params[JOB_NUM] = job_num
+            ncsa_params[COMPONENT_NAME] = "NCSA_FOREMAN"
             ncsa_params["ACK_BOOL"] = False
             ncsa_params["ACK_ID"] = response_timed_ack_id
             ncsa_params[AVAILABLE_DISTRIBUTORS] = str(num_healthy_distributors)
@@ -228,14 +229,16 @@ class NcsaForeman:
               tmp_msg["TRANSFER_PARAMS"] = fwdr
               tmp_msg[JOB_NUM] = job_num
               tmp_msg[ACK_ID] = job_params_ack
+              tmp_msg["REPLY_QUEUE"] = self.ACK_PUBLISH
               route_key = self.DIST_SCBD.get_value_for_distributor(pairs_dict[fwdr][FQN], ROUTING_KEY)
               print(("ROUTE_KEY: %s" % route_key))
               self._publisher.publish_message(route_key, tmp_msg)
             
             # Now inform NCSA that all is in ready state
             ncsa_params = {}
-            ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY_ACK"
+            ncsa_params[MSG_TYPE] = "NCSA_RESOURCE_QUERY_ACK"
             ncsa_params[JOB_NUM] = job_num
+            ncsa_params[COMPONENT_NAME] = "NCSA_FOREMAN" 
             ncsa_params[ACK_BOOL] = True
             ncsa_params["ACK_ID"] = response_timed_ack_id
             ncsa_params["PAIRS"] = pairs_dict
@@ -267,7 +270,7 @@ class NcsaForeman:
             tmp_dict = {}
             distributor = healthy_distributors[i]
             tmp_dict['FQN'] = distributor
-            tmp_dict['RAFT'] = forwarders_dict[keez[i]]
+            tmp_dict['CCD'] = forwarders_dict[keez[i]]
             tmp_dict['HOSTNAME'] = self.DIST_SCBD.get_value_for_distributor(distributor, HOSTNAME)
             tmp_dict['NAME'] = self.DIST_SCBD.get_value_for_distributor(distributor, NAME)
             tmp_dict['IP_ADDR'] = self.DIST_SCBD.get_value_for_distributor(distributor, IP_ADDR)
@@ -279,7 +282,7 @@ class NcsaForeman:
 
 
     def process_base_readout(self, params):
-        job_number = params[JOB_NUM]
+        job_number = params["JOB_NUM"]
         response_ack_id = params[ACK_ID]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
         date = get_timestamp()
@@ -302,18 +305,20 @@ class NcsaForeman:
 
         distributor_responses = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
         print("DIST_RESPONSE: %s" % distributor_responses)
+        print("DISTRIBUTORS: %s" % distributors)
         if len(distributor_responses) == len(distributors):
             ncsa_params = {}
             ncsa_params[MSG_TYPE] = NCSA_READOUT_ACK
             ncsa_params[JOB_NUM] = job_number
+            ncsa_params["COMPONENT_NAME"] = "NCSA_FOREMAN"
             ncsa_params[ACK_ID] = response_ack_id
             ncsa_params[ACK_BOOL] = True
-            self.publisher.publish_message("ncsa_publish", msg_params)
+            self._publisher.publish_message("pp_foreman_ack_publish", ncsa_params)
         else:
             ncsa_params = {}
             ncsa_params[MSG_TYPE] = NCSA_READOUT_ACK
             ncsa_params[JOB_NUM] = job_number
-            ncsa_params['COMPONENT_NAME'] = NCSA
+            ncsa_params['COMPONENT_NAME'] = "NCSA_FOREMAN"
             ncsa_params[ACK_ID] = response_ack_id
             ncsa_params[ACK_BOOL] = FALSE
             ncsa_params[EXPECTED_DISTRIBUTOR_ACKS] = len(distributors)
@@ -324,9 +329,9 @@ class NcsaForeman:
                 if forwarder['MATE'] in distributor_responses:
                     continue
                 else:
-                    missing_distributors[forwarder[MATE]] = forwarder[RAFT]
+                    missing_distributors[forwarder[MATE]] = forwarder["CCD_LIST"]
             ncsa_params[MISSING_DISTRIBUTORS] = missing_distributors
-            self.publisher.publish_message("ncsa_publish", msg_params)
+            self.publisher.publish_message("pp_foreman_ack_publish", ncsa_params)
              
 
 
