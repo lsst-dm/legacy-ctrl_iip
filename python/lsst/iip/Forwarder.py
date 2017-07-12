@@ -12,8 +12,8 @@ import os
 import copy
 import subprocess
 import _thread
-#import pyfits 
-#import numpy as np
+import pyfits 
+import numpy as np
 from const import *
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -128,17 +128,18 @@ class Forwarder:
 
 
         # filename_stub = str(job_params['JOB_NUM']) + "_" + str(job_params['VISIT_ID']) + "_" + str(job_params['IMAGE_ID']) + "_"
+        filename_stub = str(job_params["JOB_NUM"]) + "_" + str(xfer_params["CCD"]) + "_" 
 
         login_str = str(xfer_params['NAME']) + "@" + str(xfer_params['IP_ADDR']) + ":"
 
-        target_dir = str(xfer_params['TARGET_DIR'])
+        target_dir = str(xfer_params['TARGET_DIR']) + "/"
 
         #xfer_params = transfer_params['XFER_PARAMS']
         s_params = {}
-        # s_params['CCD_LIST'] = xfer_params['CCD_LIST']
+        s_params['CCD'] = xfer_params['CCD']
         s_params['LOGIN_STR'] = login_str
         s_params['TARGET_DIR'] = target_dir
-        # s_params['FILENAME_STUB'] = filename_stub
+        s_params['FILENAME_STUB'] = filename_stub
 
         print("S_params are: %s" % s_params)
         
@@ -147,7 +148,6 @@ class Forwarder:
         self._job_scratchpad.set_job_state(params['JOB_NUM'], "READY_WITH_PARAMS")
 
         self.send_ack_response(params["MSG_TYPE"] + "_ACK", params)
-
 
     def process_foreman_readout(self, params):
         self.send_ack_response("FORWARDER_READOUT_ACK", params)
@@ -161,8 +161,31 @@ class Forwarder:
 
         # raw_files_dict is of the form { ccd: filename} like { 2: /home/F1/xfer_dir/ccd_2.data
         raw_files_dict = self.fetch(job_number)
+        print("### FETCH_RESULT: %s\n--------------------" % raw_files_dict)
 
-        final_filenames = self.format(job_number, raw_files_dict)
+        # FIX ME: This is temporary data
+        p_data = {} 
+        p_data["BORE_SIGHT"] = "123123123 Degree East"
+        p_data["SESSION_"] = "SSS Indianapolis"
+        
+        s_data = {} 
+        s_data['DETSIZE'] = '[1:29400,1:29050]'  
+        s_data['TRIMSEC'] = '[57:2104,51:4146]'  
+        s_data['DATASEC'] = '[57:2104,51:4146]' 
+        s_data['DETSEC']  = '[12289:14336,1:4096]' 
+        s_data['CCDSEC']  = '[1:2048,1:4096]'   
+        s_data['TRIMSECA']= '[1081:2104,51:4146]' 
+        s_data['DETSECA'] = '[13313:14336,1:4096]'
+
+        temp_dict = {} 
+        temp_dict["primary_metadata_chunk"] = p_data
+        temp_dict["secondary_metadata_chunk"] = s_data 
+
+        mdata = {} 
+        mdata["100"] = temp_dict
+        
+        final_filenames = self.format(raw_files_dict, mdata)
+        print("### FORMAT_RESULT: %s\n---------------------" % final_filenames)
 
         results = self.forward(job_number, final_filenames)
 
@@ -180,13 +203,12 @@ class Forwarder:
 
     def fetch(self, job_num):
         raw_files_dict = {}
-        print("JOB_NUM: %s, %s" % (job_num, self._job_scratchpad._pad))
-        ccd_list = self._job_scratchpad.get_job_value(job_num, 'CCD_LIST')
+        ccd_list = [self._job_scratchpad.get_job_value(str(job_num), 'CCD')]
         for ccd in ccd_list:
             filename = "ccd_" + str(ccd) + ".data"
-            raw_files_dict[ccd] = filename
+            raw_files_dict[str(ccd)] = filename
 
-        print("In Forwarder Fetch method, raw_files_dict is: \n%s" % raw_files_dict)
+        print("In Forwarder Fetch method, raw_files_dict is: \n%s\n--------------------" % raw_files_dict)
         return raw_files_dict
 
 
@@ -196,7 +218,8 @@ class Forwarder:
         :param mdata: primary meta data stream fetched from camera daq
     """ 
     def format(self, file_list, mdata): 
-        final_filenames = [] 
+        final_filenames = {} 
+        path = "/home/" + self._name + "/xfer_dir/"
         for ccd_id, raw_file_name in file_list.items(): 
             image_array = np.fromfile(raw_file_name, dtype=np.int32)
             header_data = mdata[ccd_id]["primary_metadata_chunk"]
@@ -207,39 +230,40 @@ class Forwarder:
             for key, value in header_data.items(): 
                 primary_header[key] = value
             fits_file = pyfits.PrimaryHDU(header=primary_header, data=image_array)
-            fits_file.writeto(ccd_id + ".fits")
-            final_filenames.append(ccd_id + ".fits")
+            fits_file.writeto(path + ccd_id + ".fits")
+            final_filenames[ccd_id] = ccd_id + ".fits" 
         return final_filenames
 
-    def format(self, job_num, raw_files_dict):
-        keez = list(raw_files_dict.keys())
-        filename_stub = self._job_scratchpad.get_job_value(job_num, 'FILENAME_STUB')
-        final_filenames = {}
-        for kee in keez:
-            final_filename = filename_stub + "_" + kee + ".fits"
-            target = self._DAQ_PATH + final_filename
-            print("Final filename is %s" % final_filename) 
-            print("target is %s" % target) 
-            cmd1 = 'cat ' + self._DAQ_PATH + "ccd.header" + " >> " + target
-            cmd2 = 'cat ' + self._DAQ_PATH + raw_files_dict[kee] + " >> " + target
-            dte = get_epoch_timestamp()
-            print("DTE IS %s" % dte)
-            cmd3 = 'echo ' + str(dte) +  " >> " + target
-            print("cmd1 is %s" % cmd1)
-            print("cmd2 is %s" % cmd2)
-            os.system(cmd1)
-            os.system(cmd2)
-            os.system(cmd3)
-            final_filenames[kee] = final_filename 
-            
-            print("Done in format()...file list is: %s" % final_filenames)
-
-        print("In format method, final_filenames are:\n%s" % final_filenames)
-        return final_filenames        
+    # def format(self, job_num, raw_files_dict):
+        # keez = list(raw_files_dict.keys())
+        # filename_stub = self._job_scratchpad.get_job_value(job_num, 'FILENAME_STUB')
+        # final_filenames = {}
+        # for kee in keez:
+            # final_filename = filename_stub + "_" + kee + ".fits"
+            # target = self._DAQ_PATH + final_filename
+            # print("Final filename is %s" % final_filename) 
+            # print("target is %s" % target) 
+            # cmd1 = 'cat ' + self._DAQ_PATH + "ccd.header" + " >> " + target
+            # cmd2 = 'cat ' + self._DAQ_PATH + raw_files_dict[kee] + " >> " + target
+            # dte = get_epoch_timestamp()
+            # print("DTE IS %s" % dte)
+            # cmd3 = 'echo ' + str(dte) +  " >> " + target
+            # print("cmd1 is %s" % cmd1)
+            # print("cmd2 is %s" % cmd2)
+            # os.system(cmd1)
+            # os.system(cmd2)
+            # os.system(cmd3)
+            # final_filenames[kee] = final_filename 
+           #  
+            # print("Done in format()...file list is: %s" % final_filenames)
+# 
+        # print("In format method, final_filenames are:\n%s" % final_filenames)
+        # return final_filenames        
 
 
     def forward(self, job_num, final_filenames):
         print("Start Time of READOUT IS: %s" % get_timestamp())
+        print("ScratchPad Problem again: %s" % self._job_scratchpad._pad)
         login_str = self._job_scratchpad.get_job_value(job_num, 'LOGIN_STR')
         target_dir = self._job_scratchpad.get_job_value(job_num, 'TARGET_DIR')
         results = {}
@@ -258,7 +282,7 @@ class Forwarder:
                 minidict = {}
                 minidict['CHECKSUM'] = resulting_md5
                 minidict['FILENAME'] = target_dir + final_file
-                cmd = 'scp ' + pathway + " " + login_str + target_dir + final_file
+                cmd = 'scp -i ~/.ssh/ftot ' + pathway + " " + login_str + target_dir + final_file
                 print("Finish Time of SCP'ing %s IS: %s" % (pathway, get_timestamp()))
                 print("In forward() method, cmd is %s" % cmd)
                 os.system(cmd)
