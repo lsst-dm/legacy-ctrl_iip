@@ -28,7 +28,9 @@ class StateScoreboard(Scoreboard):
     JOB_NUM = 'JOB_NUM'
     WORKER_NUM = 'worker_num'
     STATE = 'STATE'
+    JOB_STATE = 'JOB_STATE'
     JOB_STATUS = 'JOB_STATUS'
+    VISIT_ID_LIST = 'VISIT_ID_LIST'
     STATUS = 'STATUS'
     SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
@@ -120,6 +122,7 @@ class StateScoreboard(Scoreboard):
 
 
     def set_prompt_process_state(self, state):
+        print "Setting PP state - value is %s" % state
         if self.check_connection():
             self._redis.hset(self.PP, STATE, state)
 
@@ -262,11 +265,11 @@ class StateScoreboard(Scoreboard):
             #RAISE exception to catch in DMCS.py
 
 
-    def get_current_session_id(self):
+    def get_current_session(self):
         if self.check_connection():
             return self._redis.get(self.CURRENT_SESSION_ID)
         else:
-            LOGGER.error('Unable to increment job number due to lack of redis connection')
+            LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
 
 
@@ -303,7 +306,7 @@ class StateScoreboard(Scoreboard):
             self._redis.lpush(self.JOBS, job_number)
             self.set_ccds_for_job(job_number, ccds)
             self.set_job_state(job_number, 'NEW')
-            self.set_job_status(job_number, 'ACTIVE')
+            self.set_value_for_job(job_number, STATUS, 'ACTIVE')
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
             #raise exception
@@ -332,8 +335,6 @@ class StateScoreboard(Scoreboard):
             job = str(job_number)
             if kee == 'STATE':
                 self.set_job_state(job, val)
-            elif kee == 'STATUS':
-                self.set_job_status(job, val)
             else:
                 self._redis.hset(job, kee, val)
             return True
@@ -360,6 +361,36 @@ class StateScoreboard(Scoreboard):
                 return self._redis.lindex('PP_JOBS', 0)
             if device == self.CU:
                 return self._redis.lindex('CU_JOBS', 0)
+
+
+    def set_ccds_for_job(self, job_number, ccds):
+        """Pairs is a temporary relationship between Forwarders
+           and Distributors that lasts for one job. Note the use of yaml...
+           Unlike python dicts, Redis is not a nested level database. For a
+           field to have a dict attached to it, it is necessary to serialize
+           the dict using yaml, json, or pickle. Pyyaml is already in use
+           for conf files.
+
+           :param str job_number: cast as str below just to make certain.
+           :param  dict pairs: Forwarders and Distributors arranged in a
+           dictionary.
+        """
+        if self.check_connection():
+            self._redis.hset(str(job_number), 'CCDS', yaml.dump(ccds))
+            return True
+        else:
+            return False
+
+
+    def get_ccds_for_job(self, job_number):
+        if self.check_connection():
+            ccds =  self._redis.hget(str(job_number), 'CCDS')
+        ### XXX FIX - Check for existence of pairs...
+        if ccds:
+            return yaml.load(ccds)
+        else:
+            return None
+
 
     def set_results_for_job(self, job_number, results):
         if self.check_connection():
@@ -395,7 +426,7 @@ class StateScoreboard(Scoreboard):
 
 
 def main():
-  jbs = JobScoreboard()
+  jbs = StateScoreboard()
   print "Job Scoreboard seems to be running OK"
   time.sleep(2)
   print "Done."

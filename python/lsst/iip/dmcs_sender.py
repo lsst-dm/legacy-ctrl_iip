@@ -20,29 +20,52 @@ class Premium:
     #broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
     #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
     #self._cons = FirehoseConsumer(broker_url, 'firehose', "YAML")
-#    self._cons = Consumer(broker_url, 'ocs_dmcs_consume', "YAML")
-#    try:
-#      thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
-#    except e:
-#      print "Cannot start thread"
-#      print e
+
+    self._cons = Consumer(broker_url, 'ar_foreman_consume', "YAML")
+    try:
+      thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
+    except e:
+      print "Cannot start thread"
+      print e
+
+    self._cons2 = Consumer(broker_url, 'pp_foreman_consume', "YAML")
+    try:
+      thread.start_new_thread( self.do_it2, ("thread-3", 2,)  )
+    except e:
+      print "Cannot start thread"
+      print e
+
     cdm = toolsmod.intake_yaml_file("L1SystemCfg.yaml")
     self.ccd_list = cdm['ROOT']['CCD_LIST']
     
   def mycallback(self, ch, methon, properties, body):
     print "  "
     print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
-    print(" [x] method Received %r" % methon)
-    print(" [y] properties Received %r" % properties)
     print(" [z] body Received %r" % body)
+    print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
 
-    print("Message done")
-    print("Still listening...")
+    #print("Message done")
+    #print("Still listening...")
+
+  def mycallback2(self, ch, methon, properties, body):
+    print "  "
+    print "++++++++++++++-----------+++++++++++++++"
+    print(" [z] body Received %r" % body)
+    print "++++++++++++++-----------+++++++++++++++"
+
+    #print("Message done")
+    #print("Still listening...")
 
   def do_it(self, threadname, delay):
     #example = ExampleConsumer('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
     print "Before run call"
     self._cons.run(self.mycallback)
+    print "After run call - not blocking"
+
+  def do_it2(self, threadname, delay):
+    #example = ExampleConsumer('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
+    print "Before run call"
+    self._cons2.run(self.mycallback2)
     print "After run call - not blocking"
 
   
@@ -82,7 +105,7 @@ def main():
   msg['CMD_ID'] = '4434278813'
   time.sleep(3)
   print "PP STANDBY"
-  #sp1.publish_message("ocs_dmcs_consume", msg)
+  sp1.publish_message("ocs_dmcs_consume", msg)
 
   #msg = {}
   #msg['MSG_TYPE'] = "NEW_SESSION"
@@ -110,7 +133,7 @@ def main():
   msg['CMD_ID'] = '4434278815'
   time.sleep(3)
   print "PP DISABLE"
-  #sp1.publish_message("ocs_dmcs_consume", msg)
+  sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
   msg['MSG_TYPE'] = "ENABLE"
@@ -130,7 +153,7 @@ def main():
   msg['CMD_ID'] = '4434278817'
   time.sleep(3)
   print "PP ENABLE"
-  #sp1.publish_message("ocs_dmcs_consume", msg)
+  sp1.publish_message("ocs_dmcs_consume", msg)
 
 
   """
@@ -139,7 +162,7 @@ def main():
   msg['DEVICE'] = 'AR'
   msg['ACK_ID'] = 'AR_10'
   msg['ACK_DELAY'] = 2
-  time.sleep(7)
+  time.sleep(5)
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -147,7 +170,7 @@ def main():
   msg['DEVICE'] = 'AR'
   msg['ACK_ID'] = 'AR_12'
   msg['ACK_DELAY'] = 2
-  time.sleep(7)
+  time.sleep(5)
   sp1.publish_message("ocs_dmcs_consume", msg)
   """ 
 
@@ -157,34 +180,53 @@ def main():
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
   msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
-  time.sleep(7)
+  time.sleep(5)
   print "Next Visit Message"
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
   msg['MSG_TYPE'] = "START_INTEGRATION"
-  msg['JOB_NUM'] = 'JAR_66756'
   msg['IMAGE_ID'] = 'IMG_4276'
   msg['IMAGE_SRC'] = 'MAIN'
-  msg['SESSION_ID'] = 'SI_469976'
   msg['VISIT_ID'] = 'V_1443'
-  msg['ACK_ID'] = 'START_INT_ACK_77'
+  msg['ACK_ID'] = 'START_INT_ACK_76'
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['CCD_LIST'] = premium.ccd_list
-  time.sleep(7)
+  time.sleep(5)
   print "Start Integration Message"
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
   msg['MSG_TYPE'] = "READOUT"
-  msg['JOB_NUM'] = 'JAR_66756'
-  msg['SESSION_ID'] = 'SI_469976'
   msg['VISIT_ID'] = 'V_1443'
-  msg['IMAGE_ID'] = 'IMG_444244'
+  msg['IMAGE_ID'] = 'IMG_4276'
   msg['IMAGE_SRC'] = 'MAIN'
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-  msg['ACK_ID'] = 'READOUT_ACK_78'
-  time.sleep(7)
+  msg['ACK_ID'] = 'READOUT_ACK_77'
+  time.sleep(5)
+  print "READOUT Message"
+  sp1.publish_message("ocs_dmcs_consume", msg)
+
+  msg = {}
+  msg['MSG_TYPE'] = "START_INTEGRATION"
+  msg['IMAGE_ID'] = 'IMG_4277'
+  msg['IMAGE_SRC'] = 'MAIN'
+  msg['VISIT_ID'] = 'V_1443'
+  msg['ACK_ID'] = 'START_INT_ACK_78'
+  msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+  msg['CCD_LIST'] = premium.ccd_list
+  time.sleep(5)
+  print "Start Integration Message"
+  sp1.publish_message("ocs_dmcs_consume", msg)
+
+  msg = {}
+  msg['MSG_TYPE'] = "READOUT"
+  msg['VISIT_ID'] = 'V_1443'
+  msg['IMAGE_ID'] = 'IMG_4277'
+  msg['IMAGE_SRC'] = 'MAIN'
+  msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+  msg['ACK_ID'] = 'READOUT_ACK_79'
+  time.sleep(5)
   print "READOUT Message"
   sp1.publish_message("ocs_dmcs_consume", msg)
 

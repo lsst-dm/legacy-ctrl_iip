@@ -363,7 +363,7 @@ class DMCS:
         msg_params[IMAGE_ID] = image_id
         msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
         msg_params['CCD_LIST'] = ccd_list
-        session_id = self.STATE_SCBD.get_current_session_id()
+        session_id = self.STATE_SCBD.get_current_session()
         msg_params['SESSION_ID'] = session_id
 
 
@@ -373,6 +373,7 @@ class DMCS:
             ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
             acks.append(ack_id)
             job_num = self.STATE_SCBD.get_next_job_num( session_id)
+            print "--- JOB NUM is %s ---" % job_num
             self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
             self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
             self.STATE_SCBD.set_current_device_job(job_num, str(k))
@@ -398,7 +399,7 @@ class DMCS:
         msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
         msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
         msg_params['CCD_LIST'] = ccd_list
-        session_id = self.STATE_SCBD.get_current_session_id()
+        session_id = self.STATE_SCBD.get_current_session()
         msg_params['SESSION_ID'] = session_id
 
         enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
