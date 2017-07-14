@@ -46,25 +46,18 @@ class BaseForeman:
         if filename != None:
             self._config_file = filename
 
-        cdm = toolsmod.intake_yaml_file(self._config_file)
-
         try:
-            self._sub_name = cdm[ROOT][PFM_BROKER_NAME]      # Message broker user & passwd
-            self._sub_passwd = cdm[ROOT][PFM_BROKER_PASSWD]   
-            self._pub_name = cdm[ROOT]['PFM_BROKER_PUB_NAME']      # Message broker user & passwd
-            self._pub_passwd = cdm[ROOT]['PFM_BROKER_PUB_PASSWD']   
-            self._sub_ncsa_name = cdm[ROOT]['PFM_NCSA_BROKER_NAME']     
-            self._sub_ncsa_passwd = cdm[ROOT]['PFM_NCSA_BROKER_PASSWD']   
-            self._pub_ncsa_name = cdm[ROOT]['PFM_NCSA_BROKER_PUB_NAME']     
-            self._pub_ncsa_passwd = cdm[ROOT]['PFM_NCSA_BROKER_PUB_PASSWD']   
-            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
-            self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
-        except KeyError as e:
-            print "Dictionary error"
-            print "Bailing out..."
-            sys.exit(99)
+            cdm = toolsmod.intake_yaml_file(self._config_file)
+        except IOError, e:
+            trace = traceback.print_exc()
+            emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
+            LOGGER.critical(emsg + trace)
+            sys.exit(102)
+
+        LOGGER.info('Extracting values from Config dictionary')
+        self.extract_config_values(cdm)
+
+
 
         #if 'QUEUE_PURGES' in cdm[ROOT]:
         #    self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
@@ -264,7 +257,7 @@ class BaseForeman:
         self.JOB_SCBD.set_visit_id(visit_id, bore_sight)
         ack_id = params['ACK_ID']
         msg = {}
-        ## XXX In case params['BORE_SIGHT'] is not set, use this for testing...
+
         ncsa_result = self.send_visit_boresight_to_ncsa(visit_id, bore_sight)
 
         msg['MSG_TYPE'] = 'PP_NEXT_VISIT_ACK'
@@ -281,23 +274,26 @@ class BaseForeman:
         msg['VISIT_ID'] = visit_id
         msg['BORE_SIGHT'] = bore_sight
         msg['SESSION_ID'] = self.JOB_SCBD.get_current_session()
-        msg['ACK_ID'] = self.get_next_timed_ack_id('NCSA_NEXT_VISIT_ACK')
+        ack_id = self.get_next_timed_ack_id('NCSA_NEXT_VISIT_ACK')
+        msg['ACK_ID'] = ack_id
         msg['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         self._ncsa_publisher.publish_message(self.NCSA_CONSUME, msg)
 
-        self.ack_timer(2)
+        wait_time = 4
+        self.set_pending_nonblock_acks(ack_id, wait_time)
 
-        ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
 
-
-    def process_start_integration(self, params):
-        needed_workers = len(params[CCD_LIST]) / self.MAX_CCDS_PER_FWDR
-        if (len(params[CCD_LIST]) % self.MAX_CCDS_PER_FWDR) != 0:
-            needed_workers = needed_workers + 1
-        ack_id = self.forwarder_health_check(params)
+    def process_start_integration(self, input_params):
         
-        self.ack_timer(7)  # This is a HUGE num seconds for now..final setting will be milliseconds
-        healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
+        #needed_workers = len(params[CCD_LIST]) / self.MAX_CCDS_PER_FWDR
+        #if (len(params[CCD_LIST]) % self.MAX_CCDS_PER_FWDR) != 0:
+        #    needed_workers = needed_workers + 1
+        #ack_id = self.forwarder_health_check(params)
+        # 
+        # self.ack_timer(7)  # This is a HUGE num seconds for now..final setting will be milliseconds
+        #healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
+
+        ccd_list = params['CCD_LIST']
 
         num_healthy_forwarders = len(healthy_forwarders)
         if needed_workers > num_healthy_forwarders:
@@ -307,7 +303,9 @@ class BaseForeman:
             healthy_status = {"STATUS": "HEALTHY", "STATE":"READY_WITHOUT_PARAMS"}
             self.FWD_SCBD.set_forwarder_params(healthy_forwarders, healthy_status)
 
-            ack_id = self.ncsa_resources_query(input_params, healthy_forwarders)
+            work_schedule = self.divide_work(healthy_forwarders, ccd_list) 
+
+            ack_id = self.ncsa_resources_query(input_params, work_schedule)
 
             self.ack_timer(3)
 
@@ -322,7 +320,8 @@ class BaseForeman:
                         pairs = ncsa_response[PAIRS] 
                 except KeyError, e:
                     pass 
-                # Distribute job params and tell DMCS I'm ready.
+
+                # Distribute job params and tell DMCS we are ready.
                 if ack_bool == TRUE:
                     fwd_ack_id = self.distribute_job_params(input_params, pairs)
                     self.ack_timer(3)
@@ -424,6 +423,36 @@ class BaseForeman:
         idle_state = {"STATE": "IDLE"}
         self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_state)
         return False
+
+
+    def divide_work(self, fwdrs_list, ccd_list):
+        num_fwdrs = len(fwdrs_list)
+        num_ccds = len(ccd_list)
+        ## XXX FIX if num_ccds == none or 1:
+        ##    Throw exception
+
+        print "Num ccds: %d" % len(ccd_list)
+
+        schedule = {}
+        if num_fwdrs == 1:
+            schedule[fwdrs_list[0]] = ccd_list
+            return schedule
+
+        if num_ccds <= num_fwdrs:
+            for k in range (0, num_ccds):
+                schedule[fwdrs_list[k]] = ccd_list[k]
+        else:
+            ccds_per_fwdr = len(ccd_list) / (num_fwdrs - 1)
+            offset = 0
+            for i in range(0, num_fwdrs):
+                schedule[fwdrs_list[i]] = []
+                for j in range (offset, (ccds_per_fwdr + offset)):
+                    if (j) >= num_ccds:
+                        break
+                    schedule[fwdrs_list[i]].append(ccd_list[j])
+                offset = offset + ccds_per_fwdr
+
+        return schedule
 
 
     def ncsa_resources_query(self, params, healthy_forwarders):
@@ -594,6 +623,27 @@ class BaseForeman:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
+    def extract_config_values(self, cdm):
+        try:
+            self._sub_name = cdm[ROOT][PFM_BROKER_NAME]      # Message broker user & passwd
+            self._sub_passwd = cdm[ROOT][PFM_BROKER_PASSWD]
+            self._pub_name = cdm[ROOT]['PFM_BROKER_PUB_NAME']      # Message broker user & passwd
+            self._pub_passwd = cdm[ROOT]['PFM_BROKER_PUB_PASSWD']
+            self._sub_ncsa_name = cdm[ROOT]['PFM_NCSA_BROKER_NAME']
+            self._sub_ncsa_passwd = cdm[ROOT]['PFM_NCSA_BROKER_PASSWD']
+            self._pub_ncsa_name = cdm[ROOT]['PFM_NCSA_BROKER_PUB_NAME']
+            self._pub_ncsa_passwd = cdm[ROOT]['PFM_NCSA_BROKER_PUB_PASSWD']
+            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
+            self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
+        except KeyError as e:
+            print "Dictionary error"
+            print "Bailing out..."
+            sys.exit(99)
+
+
 
     def purge_broker(self, queues):
         for q in queues:
