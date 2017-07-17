@@ -89,6 +89,10 @@ class ForwarderScoreboard(Scoreboard):
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
+    def setall_forwarders_params(self, params):
+        forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
+        self.set_forwarder_params(forwarders, params)
+
     def get_value_for_forwarder(self, forwarder, kee):
         return self._redis.hget(forwarder, kee)
 

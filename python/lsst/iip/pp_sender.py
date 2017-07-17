@@ -71,13 +71,13 @@ def main():
   #time.sleep(5)
   #sp1.publish_message("ocs_dmcs_consume", msg)
 
-  msg = {}
-  msg['MSG_TYPE'] = 'AR_ITEMS_XFERD'
-  msg['IMAGE_ID'] = "IMG_442"
-  msg['CCD_LIST'] = {'4':{ 'FILENAME':'/mnt/xfer_dir/101_100_4.fits','CHECKSUM':'348e1dbe4956e9d8d2dfa97535744561'}}
-  msg['ACK_ID'] = 'AR_ITEMS_ACK_2241'
-  time.sleep(5)
-  sp1.publish_message("archive_ctrl_consume", msg)
+  #msg = {}
+  #msg['MSG_TYPE'] = 'AR_ITEMS_XFERD'
+  #msg['IMAGE_ID'] = "IMG_442"
+  #msg['CCD_LIST'] = {'4':{ 'FILENAME':'/mnt/xfer_dir/101_100_4.fits','CHECKSUM':'348e1dbe4956e9d8d2dfa97535744561'}}
+  #msg['ACK_ID'] = 'AR_ITEMS_ACK_2241'
+  #time.sleep(5)
+  #sp1.publish_message("archive_ctrl_consume", msg)
 
   """
   msg = {}
@@ -99,10 +99,12 @@ def main():
 
   msg = {}
   msg['MSG_TYPE'] = "START_INTEGRATION"
+  msg['JOB_NUM'] = '121163'
   msg['IMAGE_ID'] = 'IMG_444244'
-  msg['DEVICE'] = 'AR'
+  msg['VISIT_ID'] = 'VV1X004'
+  msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
   time.sleep(4)
-  sp1.publish_message("ocs_dmcs_consume", msg)
+  sp1.publish_message("pp_foreman_consume", msg)
 
   msg = {}
   msg['MSG_TYPE'] = "READOUT"

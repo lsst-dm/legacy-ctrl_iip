@@ -78,7 +78,7 @@ class BaseForeman:
 
         # Create Redis Forwarder table with Forwarder info
 
-        self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', self._scbd_dict['PP_FWD_SCBD'], forwarder_dict)
+        self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', self._scbd_dict['PP_FWD_SCBD'], self.forwarder_dict)
         self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
         self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
 
@@ -95,6 +95,7 @@ class BaseForeman:
                               'NEW_JOB_ACK': self.process_ack }
 
 
+        # Build all necessary Broker connection URLs
         self._base_broker_url = "amqp://" + self._sub_name + ":" + \
                                             self._sub_passwd + "@" + \
                                             str(self._base_broker_addr)
@@ -113,12 +114,10 @@ class BaseForeman:
 
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
         LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
-
+        LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         self.setup_publishers()
         self.setup_consumers()
 
-        #self._ncsa_broker_url = "" 
-        #self.setup_federated_exchange()
 
 
     def setup_consumers(self):
@@ -141,7 +140,6 @@ class BaseForeman:
            callback for processing.
 
         """
-        LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread on all consumer methods')
 
         self._dmcs_consumer = Consumer(self._base_broker_url, self.PP_FOREMAN_CONSUME, self._base_msg_format)
@@ -197,12 +195,6 @@ class BaseForeman:
         self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
         self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
 
-
-#    def setup_federated_exchange(self):
-#        # Set up connection URL for NCSA Broker here.
-#        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
-#        LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
-#        pass
 
 
     def on_dmcs_message(self, ch, method, properties, body):
@@ -284,30 +276,63 @@ class BaseForeman:
 
 
     def process_start_integration(self, input_params):
-        
-        #needed_workers = len(params[CCD_LIST]) / self.MAX_CCDS_PER_FWDR
-        #if (len(params[CCD_LIST]) % self.MAX_CCDS_PER_FWDR) != 0:
-        #    needed_workers = needed_workers + 1
-        #ack_id = self.forwarder_health_check(params)
-        # 
-        # self.ack_timer(7)  # This is a HUGE num seconds for now..final setting will be milliseconds
-        #healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
+        """
+        Add job to Job Scoreboard
+        Check forwarder health
+        Check Policy, bail if necessary
+        Mark Forwarder scoreboard as a result of above
+        Divide work and assemble as a forwarder dictionary for NCSA
+        Send work division to NCSA
+        Check Policy, bail if necessary
+        Persist pairings to Job Scoreboard
+        Send params to Forwarders
+        Confirm Forwarder Acks
+        Send confirm to DMCS
+        """
 
-        ccd_list = params['CCD_LIST']
+        ccd_list = input_params['CCD_LIST']
+        job_num = str(params[JOB_NUM])
+        visit_id = params['VISIT_ID']
+        image_id = params['IMAGE_ID']
+        self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
+
+        needed_workers = len(ccd_list) / self._policy_max_ccds_per_fwdr
+        if (len(ccd_list) % self._policy_max_ccds_per_fwdr) != 0:
+            needed_workers = needed_workers + 1
+
+        unknown_status = {"STATUS": "UNKNOWN", "STATE":"UNRESPONSIVE"}
+        self.FWD_SCBD.setall_forwarder_params(unknown_status)
+
+        ack_id = self.forwarder_health_check(params)
+         
+        self.ack_timer(2.5) 
+        healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+
+
 
         num_healthy_forwarders = len(healthy_forwarders)
+        # Check policy here...assign an optimal number of ccds to long haul forwarders
         if needed_workers > num_healthy_forwarders:
+            idle_status = {"STATUS": "HEALTHY", "STATE":"IDLE"}
+            self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_status)
             result = self.insufficient_base_resources(input_params, healthy_forwarders)
             return result
         else:
-            healthy_status = {"STATUS": "HEALTHY", "STATE":"READY_WITHOUT_PARAMS"}
-            self.FWD_SCBD.set_forwarder_params(healthy_forwarders, healthy_status)
+            needed_forwarders = healthy_forwarders.range(0, needed_workers - 1)
+            ready_status = {"STATUS": "HEALTHY", "STATE":"READY_WITHOUT_PARAMS"}
+            self.FWD_SCBD.set_forwarder_params(needed_forwarders, ready_status)
 
+            extra_forwarders = healthy_forwarders.range(needed_workers, -1)
+            idle_status = {"STATUS": "HEALTHY", "STATE":"IDLE"}
+            self.FWD_SCBD.set_forwarder_params(extra_forwarders, idle_status)
+
+            # Why not send all healthy forwarders to work? Because Long Haul Transfer 
+            # wants 9 - 10 ccds/fwdr optimum
             work_schedule = self.divide_work(healthy_forwarders, ccd_list) 
 
             ack_id = self.ncsa_resources_query(input_params, work_schedule)
 
-            self.ack_timer(3)
+            self.ack_timer(5)
 
             #Check ACK scoreboard for response from NCSA
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
@@ -326,10 +351,9 @@ class BaseForeman:
                     fwd_ack_id = self.distribute_job_params(input_params, pairs)
                     self.ack_timer(3)
 
-                    fwd_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
-                    if fwd_params_response and (len(fwd_params_response) == len(fwders)):
-                        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_TASK_PARAMS_SENT")
-                        self.JOB_SCBD.set_value_for_job(job_num, "TIME_BASE_TASK_PARAMS_SENT", get_timestamp())
+                    fwdr_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
+                    if fwdr_params_response and (len(fwdr_params_response) == len(pairs.keys())):
+                        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "FWDR_PARAMS_RECEIVED")
                         in_ready_state = {'STATE':'READY_WITH_PARAMS'}
                         self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
                         # Tell DMCS we are ready
@@ -350,37 +374,17 @@ class BaseForeman:
 
  
     def forwarder_health_check(self, params):
-        job_num = str(params[JOB_NUM])
-        raft_list = params['RAFTS']
-        needed_workers = len(raft_list)
-
-        self.JOB_SCBD.add_job(job_num, needed_workers)
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ADDED", get_timestamp())
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ADDED_E", get_epoch_timestamp())
-        LOGGER.info('Received new job %s. Needed workers is %s', job_num, needed_workers)
-
-        # run forwarder health check
         # get timed_ack_id
         timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
         forwarders = self.FWD_SCBD.return_available_forwarders_list()
-        # Mark all healthy Forwarders Unknown
-        state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
-        self.FWD_SCBD.set_forwarder_params(forwarders, state_status)
         # send health check messages
-        ack_params = {}
-        ack_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
-        ack_params["ACK_ID"] = timed_ack
-        ack_params[JOB_NUM] = job_num
-        
-        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "BASE_RESOURCE_QUERY")
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_BASE_RESOURCE_QUERY", get_timestamp())
-        audit_params = {}
-        audit_params['DATA_TYPE'] = 'FOREMAN_ACK_REQUEST'
-        audit_params['SUB_TYPE'] = 'FORWARDER_HEALTH_CHECK_ACK'
-        audit_params['ACK_ID'] = timed_ack
-        audit_parsms['COMPONENT_NAME'] = 'BASE_FOREMAN'
-        audit_params['TIME'] = get_epoch_timestamp()
+        msg_params = {}
+        msg_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
+        msg_params["ACK_ID"] = timed_ack
+        msg_params[JOB_NUM] = job_num
+       
+        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "HEALTH_CHECK")
         for forwarder in forwarders:
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             ack_params)
@@ -455,11 +459,8 @@ class BaseForeman:
         return schedule
 
 
-    def ncsa_resources_query(self, params, healthy_forwarders):
+    def ncsa_resources_query(self, params, work_schedule):
         job_num = str(params[JOB_NUM])
-        raft_list = params[RAFTS]
-        needed_workers = len(raft_list)
-        LOGGER.info('Sufficient forwarders have been found. Checking NCSA')
         self._pairs_dict = {}
         forwarder_candidate_dict = {}
         for i in range (0, needed_workers):
@@ -467,18 +468,19 @@ class BaseForeman:
             self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES_QUERY)
             # Call this method for testing...
             # There should be a message sent to NCSA here asking for available resources
-        timed_ack_id = self.get_next_timed_ack_id("NCSA_Ack") 
+        timed_ack_id = self.get_next_timed_ack_id("NCSA_Start_Int_Ack") 
         ncsa_params = {}
-        ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY"
+        ncsa_params[MSG_TYPE] = "NCSA_START_INTEGRATION"
         ncsa_params[JOB_NUM] = job_num
-        #ncsa_params[RAFT_NUM] = needed_workers
+        ncsa_params['VISIT_ID'] = params['VISIT_ID']
+        ncsa_params['IMAGE_ID'] = params['IMAGE_ID']
+        ncsa_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         ncsa_params[ACK_ID] = timed_ack_id
-        ncsa_params["FORWARDERS"] = forwarder_candidate_dict
-        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "NCSA_RESOURCES_QUERY_SENT")
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_NCSA_RESOURCES_QUERY_SENT", get_timestamp())
+        ncsa_params["FORWARDERS"] = work_schedule
+        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "NCSA_START_INT_SENT")
         self._ncsa_publisher.publish_message(self.NCSA_CONSUME, ncsa_params) 
-        LOGGER.info('The following forwarders have been sent to NCSA for pairing:')
-        LOGGER.info(forwarder_candidate_dict)
+        LOGGER.info('The following forwarders schedule has been sent to NCSA for pairing:')
+        LOGGER.info(work_schedule)
         return timed_ack_id
 
 
@@ -486,7 +488,6 @@ class BaseForeman:
         #ncsa has enough resources...
         job_num = str(params[JOB_NUM])
         self.JOB_SCBD.set_pairs_for_job(job_num, pairs)          
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_PAIRS_ADDED", get_timestamp())
         LOGGER.info('The following pairs will be used for Job #%s: %s',
                      job_num, pairs)
         fwd_ack_id = self.get_next_timed_ack_id("FWD_PARAMS_ACK")
@@ -494,6 +495,8 @@ class BaseForeman:
         fwd_params = {}
         fwd_params[MSG_TYPE] = "FORWARDER_JOB_PARAMS"
         fwd_params[JOB_NUM] = job_num
+        fwd_params['IMAGE_ID'] = params['IMAGE_ID']
+        fwd_params['VISIT_ID'] = params['VISIT_ID']
         fwd_params[ACK_ID] = fwd_ack_id
         for fwder in fwders:
             fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
@@ -636,8 +639,9 @@ class BaseForeman:
             self._pub_ncsa_passwd = cdm[ROOT]['PFM_NCSA_BROKER_PUB_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
+            self.forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
+            self._policy_max_ccds_per_fwdr = int(cdm[ROOT]['POLICY']['MAX_CCDS_PER_FWDR'])
         except KeyError as e:
             print "Dictionary error"
             print "Bailing out..."
