@@ -46,6 +46,14 @@ class SimplePublisher:
     if self._channel == None:
       LOGGER.error('No channel - connection channel is None')
 
+  def publish(self, route_key, msg): 
+      try: 
+          self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=msg)
+      except pika.exceptions.ConnectionClosed: 
+          LOGGER.critical("Connection timed out. Reconnected and republish message")
+          self.connect()
+          self.publish(route_key, msg)
+
   def publish_message(self, route_key, msg):
     if self._channel == None or self._channel.is_closed == True:
        try:
@@ -62,7 +70,7 @@ class SimplePublisher:
             valid = self._xml_handler.validate(xmlRoot)
             if valid: 
                 xmlMsg = self._xml_handler.tostring(xmlRoot)
-                self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=xmlMsg)
+                self.publish(route_key, xmlMsg)
             else: 
                 raise L1MessageError("Message is invalid XML.")
         except L1MessageError, e:
@@ -72,4 +80,4 @@ class SimplePublisher:
         #print "In Simple Publisher, msg is %s" % str(msg)
         yamldict = self._message_handler.encode_message(msg)
         #print "In Simple Publisher,  fter encoding message, yamldict is %s" % str(yamldict)
-        self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=yamldict)
+        self.publish(route_key, yamldict)

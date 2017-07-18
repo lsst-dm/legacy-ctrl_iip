@@ -209,6 +209,7 @@ class DMCS:
 
 
     def on_ocs_message(self, ch, method, properties, msg_dict):
+        ch.basic_ack(method.delivery_tag) 
         print "DUMPING msg_dict: %s" % msg_dict
         LOGGER.info('Processing message in OCS message callback')
         LOGGER.debug('Thread in OCS message callback of DMCS is %s', thread.get_ident())
@@ -219,6 +220,7 @@ class DMCS:
     
 
     def on_ack_message(self, ch, method, properties, msg_dict):
+        ch.basic_ack(method.delivery_tag) 
         LOGGER.info('Processing message in ACK message callback')
         LOGGER.debug('Thread in ACK callback od DMCS is %s', thread.get_ident())
         LOGGER.debug('Message and properties from ACK callback message body is: %s', (str(msg_dict),properties))

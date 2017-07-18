@@ -29,6 +29,7 @@ class Premium:
     time.sleep(420)
     
   def mycallback(self, ch, methon, properties, body):
+    ch.basic_ack(methon.delivery_tag) 
     print "  "
     print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
     print(" [x] method Received %r" % methon)

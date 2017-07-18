@@ -91,6 +91,7 @@ class ArchiveController:
 
 
     def on_archive_message(self, ch, method, properties, msg_dict):
+        ch.basic_ack(method.delivery_tag)
         print "INCOMING On_archive_message, msg is:\n%s" % msg_dict
         LOGGER.info('Message from Archive callback message body is: %s', str(msg_dict))
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])

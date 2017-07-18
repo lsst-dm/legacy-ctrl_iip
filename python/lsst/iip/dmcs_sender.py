@@ -39,6 +39,7 @@ class Premium:
     self.ccd_list = cdm['ROOT']['CCD_LIST']
     
   def mycallback(self, ch, methon, properties, body):
+    ch.basic_ack(methon.delivery_tag) 
     print "  "
     print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
     print(" [z] body Received %r" % body)
@@ -48,6 +49,7 @@ class Premium:
     #print("Still listening...")
 
   def mycallback2(self, ch, methon, properties, body):
+    ch.basic_ack(methon.delivery_tag) 
     print "  "
     print "++++++++++++++-----------+++++++++++++++"
     print(" [z] body Received %r" % body)

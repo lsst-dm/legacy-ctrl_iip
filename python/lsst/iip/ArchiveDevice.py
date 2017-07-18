@@ -158,6 +158,7 @@ class ArchiveDevice:
 
 
     def on_dmcs_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         #msg_dict = yaml.load(body) 
         msg_dict = body 
         LOGGER.info('In DMCS message callback')
@@ -169,6 +170,7 @@ class ArchiveDevice:
     
 
     def on_archive_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         LOGGER.info('In Forwarder message callback, thread is %s', thread.get_ident())
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
         LOGGER.info('forwarder callback msg body is: %s', str(body))
@@ -177,6 +179,7 @@ class ArchiveDevice:
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         msg_dict = body 
         print "Incoming ack message:\n%s" % body
         LOGGER.info('In ACK message callback')

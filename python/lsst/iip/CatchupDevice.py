@@ -182,6 +182,7 @@ class BaseForeman:
 
 
     def on_dmcs_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         #msg_dict = yaml.load(body) 
         msg_dict = body 
         LOGGER.info('In DMCS message callback')
@@ -193,11 +194,13 @@ class BaseForeman:
     
 
     def on_forwarder_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         LOGGER.info('In Forwarder message callback, thread is %s', thread.get_ident())
         LOGGER.info('forwarder callback msg body is: %s', str(body))
         pass
 
     def on_ncsa_message(self,ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         LOGGER.info('In ncsa message callback, thread is %s', thread.get_ident())
         #msg_dict = yaml.load(body)
         msg_dict = body
@@ -207,6 +210,7 @@ class BaseForeman:
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())

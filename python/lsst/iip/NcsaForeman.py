@@ -142,6 +142,7 @@ class NcsaForeman:
 
 
     def on_distributor_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         msg_dict = yaml.load(body) 
         LOGGER.info('In Distributor message callback')
         LOGGER.debug('Thread in Distributor callback is %s', thread.get_ident())
@@ -152,6 +153,7 @@ class NcsaForeman:
     
 
     def on_base_message(self,ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         LOGGER.info('In base message callback, thread is %s', thread.get_ident())
         msg_dict = yaml.load(body)
         LOGGER.info('base msg callback body is: %s', str(msg_dict))
@@ -160,6 +162,7 @@ class NcsaForeman:
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         msg_dict = yaml.load(body) 
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
