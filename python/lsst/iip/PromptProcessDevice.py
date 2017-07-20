@@ -22,7 +22,7 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
 LOGGER = logging.getLogger(__name__)
 
 
-class BaseForeman:
+class PromptProcessDevice:
     PP_JOB_SCBD = None
     PP_FWD_SCBD = None
     PP_ACK_SCBD = None
@@ -117,7 +117,7 @@ class BaseForeman:
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         self.setup_publishers()
         self.setup_consumers()
-
+        print "Done with init"
 
 
     def setup_consumers(self):
@@ -200,6 +200,7 @@ class BaseForeman:
     def on_dmcs_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
         msg_dict = body 
+        print body
         LOGGER.info('In DMCS message callback')
         LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
@@ -240,7 +241,7 @@ class BaseForeman:
         msg['ACK_ID'] = ack_id
         msg['ACK_BOOL'] = True
         route_key = params['RESPONSE_QUEUE']
-        self._publisher.publish_message(route_key, msg)
+        self._base_publisher.publish_message(route_key, msg)
 
  
     def set_visit(self, params):
@@ -257,7 +258,7 @@ class BaseForeman:
         msg['ACK_ID'] = ack_id
         msg['ACK_BOOL'] = True
         route_key = params['RESPONSE_QUEUE']
-        self._publisher.publish_message(route_key, msg)
+        self._base_publisher.publish_message(route_key, msg)
 
 
     def send_visit_boresight_to_ncsa(self, visit_id, bore_sight):
@@ -290,6 +291,7 @@ class BaseForeman:
         Send confirm to DMCS
         """
 
+        print "Entering SI"
         ccd_list = input_params['CCD_LIST']
         job_num = str(params[JOB_NUM])
         visit_id = params['VISIT_ID']
@@ -378,6 +380,8 @@ class BaseForeman:
         timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
         forwarders = self.FWD_SCBD.return_available_forwarders_list()
+        print "Forwarders receiving health check..."
+        print forwarders
         # send health check messages
         msg_params = {}
         msg_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
@@ -386,6 +390,8 @@ class BaseForeman:
        
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "HEALTH_CHECK")
         for forwarder in forwarders:
+            xx = self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE")
+            print "consume queue for %s is %s" % (forwarder, xx) 
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             ack_params)
 
@@ -657,7 +663,7 @@ class BaseForeman:
 
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
-    b_fm = BaseForeman()
+    b_fm = PromptProcessDevice()
     print "Beginning BaseForeman event loop..."
     try:
         while 1:

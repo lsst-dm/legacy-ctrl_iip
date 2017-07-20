@@ -13,6 +13,7 @@ rabbitmqctl -p /bunny purge_queue f1_consume
 rabbitmqctl -p /bunny purge_queue f2_consume
 rabbitmqctl -p /bunny purge_queue f3_consume
 rabbitmqctl -p /bunny purge_queue f4_consume
+rabbitmqctl -p /bunny purge_queue ncsa_consume
 rabbitmqctl -p /bunny purge_queue audit_consume
 rabbitmqctl -p /bunny purge_queue dmcs_consume
 

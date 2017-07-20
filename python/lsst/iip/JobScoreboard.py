@@ -318,12 +318,13 @@ class JobScoreboard(Scoreboard):
         return self._redis.get(self.CURRENT_SESSION_ID)
 
 
-    def set_visit_id(self, visit_id):
+    def set_visit_id(self, visit_id, bore_sight):
         if self.check_connection():
             self._redis.lpush(self.VISIT_ID_LIST, visit_id)
             params = {}
             params['SUB_TYPE'] = 'VISIT'
             params['VISIT_ID'] = visit_id
+            params['BORE_SIGHT'] = bore_sight
             self.persist(self.build_monitor_data(params))
 
 
