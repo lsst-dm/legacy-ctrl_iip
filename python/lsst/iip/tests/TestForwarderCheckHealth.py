@@ -4,7 +4,7 @@ import yaml
 import sys
 import os
 from time import sleep
-import thread
+import _thread
 import pytest
 import random
 import logging
@@ -93,9 +93,9 @@ class TestForwarderCheckHealth:
     def setup_consumer(self, test_broker_url, Q, format, callback):
         consumer = Consumer(test_broker_url, Q, format)
         try:
-            thread.start_new_thread( self.run_consumer, ("thread-test-consume", 2, {'csume': consumer, 'cb': callback}))
+            _thread.start_new_thread( self.run_consumer, ("thread-test-consume", 2, {'csume': consumer, 'cb': callback}))
         except:
-            print "Bad trouble creating consumer thread for testing...exiting..."
+            print("Bad trouble creating consumer thread for testing...exiting...")
             sys.exit(101)
 
 
@@ -106,8 +106,8 @@ class TestForwarderCheckHealth:
         try:
            f = open('ForemanCfgTest.yaml')
         except IOError:
-            print "Can't open ForemanCfgTest.yaml"
-            print "Bailing out on test_forwarder_check_health..."
+            print("Can't open ForemanCfgTest.yaml")
+            print("Bailing out on test_forwarder_check_health...")
             sys.exit(99)
 
         self.CDM = yaml.safe_load(f)
@@ -147,7 +147,7 @@ class TestForwarderCheckHealth:
         ack_responses = bf.ACK_SCBD.get_components_for_timed_ack(self.ACK_REPLACEMENT)
         assert ack_responses != None
         assert len(ack_responses) == int(number_of_pairs)
-        print "Done with forwarder_health_check test"
+        print("Done with forwarder_health_check test")
 
 
 

@@ -51,14 +51,14 @@ class StateScoreboard(Scoreboard):
             Scoreboard.__init__(self)
         except L1RabbitConnectionError as e:
             LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print "No Monitoring for YOU"
+            print("No Monitoring for YOU")
             raise L1Error('Calling super.init in StateScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()
         except L1RedisError as e:
             LOGGER.error("Cannot make connection to Redis:  " , e)  
-            print "No Redis for YOU"
+            print("No Redis for YOU")
             raise L1Error('Calling redis connect in StateScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
@@ -122,7 +122,7 @@ class StateScoreboard(Scoreboard):
 
 
     def set_prompt_process_state(self, state):
-        print "Setting PP state - value is %s" % state
+        print("Setting PP state - value is %s" % state)
         if self.check_connection():
             self._redis.hset(self.PP, STATE, state)
 
@@ -184,7 +184,7 @@ class StateScoreboard(Scoreboard):
                 if self.get_catchup_archive_state() == state:
                     edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
         else:
-            print "BIG TROUBLE IN LITTLE CHINA"
+            print("BIG TROUBLE IN LITTLE CHINA")
         return edict
 
 
@@ -235,16 +235,16 @@ class StateScoreboard(Scoreboard):
         if list_len == 0 or list_len == None:
             return True
 
-	list_keys = self._redis.lrange(listname, 0, -1)
-        #for item in range(0,list_len):
-	for item in list_keys:
-	    print "CFG_KEY COMPARI: ", (cfg_key, item)
-            if cfg_key == item:
-                print "FOUND CFG KEY"
+        list_keys = self._redis.lrange(listname, 0, -1)
+            #for item in range(0,list_len):
+        for item in list_keys:
+            print("CFG_KEY COMPARI: ", (cfg_key, item))
+            if cfg_key == item: 
+                print("FOUND CFG KEY")
                 return True
-
-        print "Couldnt find cfg_key %s" % cfg_key
-        return False
+            
+            print("Couldnt find cfg_key %s" % cfg_key)
+            return False
 
 
     def get_next_session_id(self):
@@ -403,7 +403,7 @@ class StateScoreboard(Scoreboard):
 
     def build_monitor_data(self, params):
         monitor_data = {}
-        keez = params.keys()
+        keez = list(params.keys())
         for kee in keez:
             monitor_data[kee] = params[kee]
         monitor_data['SESSION_ID'] = self.get_current_session()
@@ -422,14 +422,14 @@ class StateScoreboard(Scoreboard):
             dump_dict[job] = x
 
         f.write(yaml.dump(dump_dict))
-        print dump_dict
+        print(dump_dict)
 
 
 def main():
   jbs = StateScoreboard()
-  print "Job Scoreboard seems to be running OK"
+  print("Job Scoreboard seems to be running OK")
   time.sleep(2)
-  print "Done."
+  print("Done.")
   #jbs.charge_database()
   #jbs.print_all()
   #Ps = jbs.get_value_for_job(str(1), 'PAIRS')

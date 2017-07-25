@@ -38,7 +38,7 @@ class Scratchpad:
         self._pad[job_number]['STATE'] = state 
 
     def keys(self):
-        return self._pad.keys()
+        return list(self._pad.keys())
 
 
 

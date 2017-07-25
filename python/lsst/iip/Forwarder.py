@@ -11,7 +11,7 @@ import logging
 import os
 import copy
 import subprocess
-import thread
+import _thread
 #import pyfits 
 #import numpy as np
 from const import *
@@ -43,7 +43,7 @@ class Forwarder:
             ## XXX FIX: Put in config file
             self.CHECKSUM_ENABLED = False 
         except KeyError as e:
-            print "Missing base keywords in yaml file... Bailing out..."
+            print("Missing base keywords in yaml file... Bailing out...")
             sys.exit(99)
 
         #self._DAQ_PATH = "/home/F1/xfer_dir/"
@@ -67,12 +67,12 @@ class Forwarder:
  
     def setup_consumers(self):
         threadname = "thread-" + self._consume_queue
-        print "Threadname is %s" % threadname
+        print("Threadname is %s" % threadname)
 
         self._consumer = Consumer(self._base_broker_url, self._consume_queue)
         try:
-            thread.start_new_thread( self.run_consumer, (threadname, 2,) )
-            print "Started Consumer Thread"
+            _thread.start_new_thread( self.run_consumer, (threadname, 2,) )
+            print("Started Consumer Thread")
         except:
             sys.exit(99)
 
@@ -82,7 +82,7 @@ class Forwarder:
 
 
     def on_message(self, ch, method, properties, body):
-        print "INcoming PARAMS, body is:\n%s" % body
+        print("INcoming PARAMS, body is:\n%s" % body)
         msg_dict = body
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -90,7 +90,7 @@ class Forwarder:
 
 
     def process_health_check(self, params):
-        print "Incoming fwd_health_chk params:\n %s" % params
+        print("Incoming fwd_health_chk params:\n %s" % params)
         self.send_ack_response("FORWARDER_HEALTH_ACK", params)
 
 
@@ -139,7 +139,7 @@ class Forwarder:
         s_params['TARGET_DIR'] = target_dir
         s_params['FILENAME_STUB'] = filename_stub
 
-        print "S_params are: %s" % s_params
+        print("S_params are: %s" % s_params)
         
         # Now, s_params should have all we need for job. Place as value for job_num key 
         self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], s_params)
@@ -154,7 +154,7 @@ class Forwarder:
 
         job_number = params[JOB_NUM]
         # Check and see if scratchpad has this job_num
-        if job_number not in self._job_scratchpad.keys():
+        if job_number not in list(self._job_scratchpad.keys()):
             # Raise holy hell...
             pass
 
@@ -184,7 +184,7 @@ class Forwarder:
             filename = "ccd_" + str(ccd) + ".data"
             raw_files_dict[ccd] = filename
 
-        print "In Forwarder Fetch method, raw_files_dict is: \n%s" % raw_files_dict
+        print("In Forwarder Fetch method, raw_files_dict is: \n%s" % raw_files_dict)
         return raw_files_dict
 
 
@@ -195,14 +195,14 @@ class Forwarder:
     """ 
     def format(self, file_list, mdata): 
         final_filenames = [] 
-        for ccd_id, raw_file_name in file_list.iteritems(): 
+        for ccd_id, raw_file_name in file_list.items(): 
             image_array = np.fromfile(raw_file_name, dtype=np.int32)
             header_data = mdata[ccd_id]["primary_metadata_chunk"]
             secondary_data = mdata[ccd_id]["secondary_metadata_chunk"]
             header_data.update(secondary_data)
 
             primary_header = pyfits.Header()
-            for key, value in header_data.iteritems(): 
+            for key, value in header_data.items(): 
                 primary_header[key] = value
             fits_file = pyfits.PrimaryHDU(header=primary_header, data=image_array)
             fits_file.writeto(ccd_id + ".fits")
@@ -210,60 +210,60 @@ class Forwarder:
         return final_filenames
 
     def format(self, job_num, raw_files_dict):
-        keez = raw_files_dict.keys()
+        keez = list(raw_files_dict.keys())
         filename_stub = self._job_scratchpad.get_job_value(job_num, 'FILENAME_STUB')
         final_filenames = {}
         for kee in keez:
             final_filename = filename_stub + "_" + kee + ".fits"
             target = self._DAQ_PATH + final_filename
-            print "Final filename is %s" % final_filename 
-            print "target is %s" % target 
+            print("Final filename is %s" % final_filename) 
+            print("target is %s" % target) 
             cmd1 = 'cat ' + self._DAQ_PATH + "ccd.header" + " >> " + target
             cmd2 = 'cat ' + self._DAQ_PATH + raw_files_dict[kee] + " >> " + target
             dte = get_epoch_timestamp()
-            print "DTE IS %s" % dte
+            print("DTE IS %s" % dte)
             cmd3 = 'echo ' + str(dte) +  " >> " + target
-            print "cmd1 is %s" % cmd1
-            print "cmd2 is %s" % cmd2
+            print("cmd1 is %s" % cmd1)
+            print("cmd2 is %s" % cmd2)
             os.system(cmd1)
             os.system(cmd2)
             os.system(cmd3)
             final_filenames[kee] = final_filename 
             
-            print "Done in format()...file list is: %s" % final_filenames
+            print("Done in format()...file list is: %s" % final_filenames)
 
-        print "In format method, final_filenames are:\n%s" % final_filenames
+        print("In format method, final_filenames are:\n%s" % final_filenames)
         return final_filenames        
 
 
     def forward(self, job_num, final_filenames):
-        print "Start Time of READOUT IS: %s" % get_timestamp()
+        print("Start Time of READOUT IS: %s" % get_timestamp())
         login_str = self._job_scratchpad.get_job_value(job_num, 'LOGIN_STR')
         target_dir = self._job_scratchpad.get_job_value(job_num, 'TARGET_DIR')
         results = {}
-        ccds = final_filenames.keys()
+        ccds = list(final_filenames.keys())
         for ccd in ccds:
             final_file = final_filenames[ccd]
             pathway = self._DAQ_PATH + final_file
             with open(pathway) as file_to_calc:
-                print "Start Time of MD5 for %s IS: %s" % (pathway, get_timestamp())
+                print("Start Time of MD5 for %s IS: %s" % (pathway, get_timestamp()))
                 if self.CHECKSUM_ENABLED:
                     data = file_to_calc.read()
                     resulting_md5 = hashlib.md5(data).hexdigest()
-                    print "Finish Time of MD5 for %s IS: %s" % (pathway, get_timestamp())
+                    print("Finish Time of MD5 for %s IS: %s" % (pathway, get_timestamp()))
                 else:
                     resulting_md5 = 'none'
                 minidict = {}
                 minidict['CHECKSUM'] = resulting_md5
                 minidict['FILENAME'] = target_dir + final_file
                 cmd = 'scp ' + pathway + " " + login_str + target_dir + final_file
-                print "Finish Time of SCP'ing %s IS: %s" % (pathway, get_timestamp())
-                print "In forward() method, cmd is %s" % cmd
+                print("Finish Time of SCP'ing %s IS: %s" % (pathway, get_timestamp()))
+                print("In forward() method, cmd is %s" % cmd)
                 os.system(cmd)
                 results[ccd] = minidict
 
-        print "END Time of READOUT XFER IS: %s" % get_timestamp()
-        print "In forward method, results are: \n%s" % results
+        print("END Time of READOUT XFER IS: %s" % get_timestamp())
+        print("In forward method, results are: \n%s" % results)
         return results
             
         #cmd = 'cd ~/xfer_dir && scp -r $(ls -t)' + ' ' + str(self._xfer_login) + ':xfer_dir'
@@ -280,7 +280,7 @@ class Forwarder:
         msg_params['COMPONENT_NAME'] = self._fqn
         msg_params[ACK_BOOL] = "TRUE"
         msg_params[ACK_ID] = timed_ack
-        print "Outgoing fwd_health_chk ack: \n%s" % msg_params
+        print("Outgoing fwd_health_chk ack: \n%s" % msg_params)
         self._publisher.publish_message(reply_queue, msg_params)
 
 
@@ -302,8 +302,8 @@ def main():
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "Forwarder Finished"
+    print("")
+    print("Forwarder Finished")
 
 
 """

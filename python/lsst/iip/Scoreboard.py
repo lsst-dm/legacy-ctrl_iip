@@ -25,7 +25,7 @@ class Scoreboard:
         try:
             f = open(file)
         except IOError:
-            print "Can't open %s" % file
+            print("Can't open %s" % file)
             raise L1Error
 
         self.cdm = yaml.safe_load(f)
@@ -43,7 +43,7 @@ class Scoreboard:
             self.audit_publisher = SimplePublisher(self.broker_url, self.audit_format)
         except L1RabbitConnectionError as e:
             LOGGER.error("Scoreboard Parent Class cannot create SimplePublisher:  ", e.arg)
-            print "No Publisher for YOU"
+            print("No Publisher for YOU")
             raise L1Error('Cant create SimplePublisher'. e.arg)
 
 

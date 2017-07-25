@@ -22,7 +22,7 @@ class ForwarderScoreboard(Scoreboard):
         self._redis = self.connect()
         self._redis.flushdb()
 
-        forwarders = fdict.keys()
+        forwarders = list(fdict.keys())
         for forwarder in forwarders:
             fields = fdict[forwarder]
             name = fields['NAME']
@@ -83,7 +83,7 @@ class ForwarderScoreboard(Scoreboard):
            :param dict params: One or many fields can be set depending on number of entries in this arg.
         """
         for forwarder in forwarders:
-            kees = params.keys()
+            kees = list(params.keys())
             for kee in kees:
                 self._redis.hset(forwarder, kee, params[kee])
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
@@ -114,9 +114,9 @@ class ForwarderScoreboard(Scoreboard):
     def print_all(self):
         all_forwarders = self.return_forwarders_list()
         for forwarder in all_forwarders:
-            print forwarder
-            print self._redis.hgetall(forwarder)
-        print "--------Finished In print_all--------"
+            print(forwarder)
+            print(self._redis.hgetall(forwarder))
+        print("--------Finished In print_all--------")
 
 
     # def add_forwarder_row(self, fdict): #NAME, HOSTNAME, IP_ADDR, STATUS, STATE

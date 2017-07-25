@@ -6,7 +6,7 @@ import sys
 import os
 import time
 import logging
-import thread
+import _thread
 
 class Premium:
   def __init__(self):
@@ -14,26 +14,26 @@ class Premium:
     broker_url = 'amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?autoAck=true'
     self._cons = Consumer(broker_url, 'ocs_dmcs_consume', "YAML")
     try:
-      thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
+      _thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
     except e:
-      print "Cannot start thread"
-      print e
+      print("Cannot start thread")
+      print(e)
 
     
   def mycallback(self, ch, methon, properties, body):
-    print "  "
-    print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
-    print(" [x] method Received %r" % methon)
-    print(" [y] properties Received %r" % properties)
-    print(" [z] body Received %r" % body)
+    print("  ")
+    print(">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<")
+    print((" [x] method Received %r" % methon))
+    print((" [y] properties Received %r" % properties))
+    print((" [z] body Received %r" % body))
 
     print("Message done")
     print("Still listening...")
 
   def do_it(self, threadname, delay):
-    print "Before run call"
+    print("Before run call")
     self._cons.run(self.mycallback)
-    print "After run call - not blocking"
+    print("After run call - not blocking")
 
   
 
@@ -73,7 +73,7 @@ def main():
 
 
 
-  print "Sender done"
+  print("Sender done")
 
 
 

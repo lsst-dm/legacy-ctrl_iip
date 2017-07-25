@@ -17,7 +17,7 @@ def format(meta, params, path):
 
     hdu = pyfits.PrimaryHDU(data_array)
     hdu_header = hdu.header
-    for key, value in header.iteritems(): 
+    for key, value in header.items(): 
         if key not in not_write: 
             hdu_header[key] = value 
     fitsname = "RAWCCD-" + str(header["CCDN"]) + "." + str(header["IMAGE_ID"]) \

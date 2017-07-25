@@ -6,7 +6,7 @@ import sys
 import os
 import time
 import logging
-import thread
+import _thread
 import toolsmod
 
 class Premium:
@@ -23,50 +23,50 @@ class Premium:
 
     self._cons = Consumer(broker_url, 'ar_foreman_consume', "YAML")
     try:
-      thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
+      _thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
     except e:
-      print "Cannot start thread"
-      print e
+      print("Cannot start thread")
+      print(e)
 
     self._cons2 = Consumer(broker_url, 'pp_foreman_consume', "YAML")
     try:
-      thread.start_new_thread( self.do_it2, ("thread-3", 2,)  )
+      _thread.start_new_thread( self.do_it2, ("thread-3", 2,)  )
     except e:
-      print "Cannot start thread"
-      print e
+      print("Cannot start thread")
+      print(e)
 
     cdm = toolsmod.intake_yaml_file("L1SystemCfg.yaml")
     self.ccd_list = cdm['ROOT']['CCD_LIST']
     
   def mycallback(self, ch, methon, properties, body):
-    print "  "
-    print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
-    print(" [z] body Received %r" % body)
-    print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
+    print("  ")
+    print(">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<")
+    print((" [z] body Received %r" % body))
+    print(">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<")
 
     #print("Message done")
     #print("Still listening...")
 
   def mycallback2(self, ch, methon, properties, body):
-    print "  "
-    print "++++++++++++++-----------+++++++++++++++"
-    print(" [z] body Received %r" % body)
-    print "++++++++++++++-----------+++++++++++++++"
+    print("  ")
+    print("++++++++++++++-----------+++++++++++++++")
+    print((" [z] body Received %r" % body))
+    print("++++++++++++++-----------+++++++++++++++")
 
     #print("Message done")
     #print("Still listening...")
 
   def do_it(self, threadname, delay):
     #example = ExampleConsumer('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
-    print "Before run call"
+    print("Before run call")
     self._cons.run(self.mycallback)
-    print "After run call - not blocking"
+    print("After run call - not blocking")
 
   def do_it2(self, threadname, delay):
     #example = ExampleConsumer('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
-    print "Before run call"
+    print("Before run call")
     self._cons2.run(self.mycallback2)
-    print "After run call - not blocking"
+    print("After run call - not blocking")
 
   
 
@@ -93,7 +93,7 @@ def main():
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278812'
   time.sleep(3)
-  print "AR STANDBY"
+  print("AR STANDBY")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -104,7 +104,7 @@ def main():
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278813'
   time.sleep(3)
-  print "PP STANDBY"
+  print("PP STANDBY")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   #msg = {}
@@ -122,7 +122,7 @@ def main():
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278814'
   time.sleep(3)
-  print "AR DISABLE"
+  print("AR DISABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -132,7 +132,7 @@ def main():
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278815'
   time.sleep(3)
-  print "PP DISABLE"
+  print("PP DISABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -142,7 +142,7 @@ def main():
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278816'
   time.sleep(3)
-  print "AR ENABLE"
+  print("AR ENABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -152,7 +152,7 @@ def main():
   msg['ACK_DELAY'] = 2
   msg['CMD_ID'] = '4434278817'
   time.sleep(3)
-  print "PP ENABLE"
+  print("PP ENABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
 
@@ -181,7 +181,7 @@ def main():
   msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
   msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
   time.sleep(5)
-  print "Next Visit Message"
+  print("Next Visit Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -193,7 +193,7 @@ def main():
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['CCD_LIST'] = premium.ccd_list
   time.sleep(5)
-  print "Start Integration Message"
+  print("Start Integration Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -204,7 +204,7 @@ def main():
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['ACK_ID'] = 'READOUT_ACK_77'
   time.sleep(5)
-  print "READOUT Message"
+  print("READOUT Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -216,7 +216,7 @@ def main():
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['CCD_LIST'] = premium.ccd_list
   time.sleep(5)
-  print "Start Integration Message"
+  print("Start Integration Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
@@ -227,12 +227,12 @@ def main():
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['ACK_ID'] = 'READOUT_ACK_79'
   time.sleep(5)
-  print "READOUT Message"
+  print("READOUT Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   time.sleep(15)
 
-  print "Sender done"
+  print("Sender done")
 
 
 

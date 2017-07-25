@@ -9,8 +9,8 @@ consumer = Consumer("amqp://OCS:OCS@141.142.208.191/%2fbunny", "ocs_dmcs_consume
 publisher = SimplePublisher("amqp://OCS:OCS@141.142.208.191/%2fbunny")
 
 def callback(ch, method, properties, body): 
-    print "<<<< MESSAGE IS <<<<<<"
-    print body
+    print("<<<< MESSAGE IS <<<<<<")
+    print(body)
     m = body
     
     msg = {} 
@@ -21,7 +21,7 @@ def callback(ch, method, properties, body):
     msg["ACK_STATEMENT"] = "everything works"
     msg["CMD_ID"] = m["CMD_ID"] 
 
-    print msg
+    print(msg)
     publisher.publish_message("dmcs_ocs_publish", msg)
 
 print(">>> RUNNING <<<")

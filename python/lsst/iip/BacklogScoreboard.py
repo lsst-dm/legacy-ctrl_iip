@@ -47,14 +47,14 @@ class BacklogScoreboard(Scoreboard):
             Scoreboard.__init__(self)
         except L1RabbitConnectionError as e:
             LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print "No Monitoring for YOU"
+            print("No Monitoring for YOU")
             raise L1Error('Calling super.init in StateScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()
         except L1RedisError as e:
             LOGGER.error("Cannot make connection to Redis:  " , e)  
-            print "No Redis for YOU"
+            print("No Redis for YOU")
             raise L1Error('Calling redis connect in StateScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
@@ -118,7 +118,7 @@ class BacklogScoreboard(Scoreboard):
 
     def build_monitor_data(self, params):
         monitor_data = {}
-        keez = params.keys()
+        keez = list(params.keys())
         for kee in keez:
             monitor_data[kee] = params[kee]
         monitor_data['SESSION_ID'] = self.get_current_session()
@@ -132,9 +132,9 @@ class BacklogScoreboard(Scoreboard):
 
 def main():
   bls = BacklogScoreboard()
-  print "Backlog Scoreboard seems to be running OK"
+  print("Backlog Scoreboard seems to be running OK")
   time.sleep(2)
-  print "Done."
+  print("Done.")
   #jbs.charge_database()
   #jbs.print_all()
   #Ps = jbs.get_value_for_job(str(1), 'PAIRS')

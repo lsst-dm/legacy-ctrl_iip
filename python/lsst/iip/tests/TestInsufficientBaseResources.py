@@ -4,7 +4,7 @@ import yaml
 import sys
 import os
 from time import sleep
-import thread
+import _thread
 import pytest
 import random
 import logging
@@ -95,9 +95,9 @@ class TestInsufficientBaseResources:
     def setup_consumer(self, test_broker_url, Q, format, callback):
         consumer = Consumer(test_broker_url, Q, format)
         try:
-            thread.start_new_thread( self.run_consumer, ("thread-test-consume", 2, {'csume': consumer, 'cb': callback}))
+            _thread.start_new_thread( self.run_consumer, ("thread-test-consume", 2, {'csume': consumer, 'cb': callback}))
         except:
-            print "Bad trouble creating consumer thread for testing...exiting..."
+            print("Bad trouble creating consumer thread for testing...exiting...")
             sys.exit(101)
 
     def purge_queues(self, queues):
@@ -114,8 +114,8 @@ class TestInsufficientBaseResources:
         try:
            f = open('ForemanCfgTest.yaml')
         except IOError:
-            print "Can't open ForemanCfgTest.yaml"
-            print "Bailing out on test_forwarder_check_health..."
+            print("Can't open ForemanCfgTest.yaml")
+            print("Bailing out on test_forwarder_check_health...")
             sys.exit(99)
 
         self.CDM = yaml.safe_load(f)
@@ -134,7 +134,7 @@ class TestInsufficientBaseResources:
         self.test_broker_url = "amqp://" + name + ":" + passwd + "@" + str(test_broker_address)
         self.setup_publisher()
         self.setup_consumer(self.test_broker_url, 'dmcs_consume', self.base_format, self.on_insufficient_base_message )
-        forwarders = self.CDM['ROOT']['XFER_COMPONENTS']['FORWARDERS'].keys()
+        forwarders = list(self.CDM['ROOT']['XFER_COMPONENTS']['FORWARDERS'].keys())
         needed_forwarders = 4
         available_forwarders = 3
         L = []
@@ -160,7 +160,7 @@ class TestInsufficientBaseResources:
         assert len(ack_responses) == 1
         assert ack_responses['BASE']['JOB_NUM'] == this_job_num
         assert 'FAIL_DETAILS' in ack_responses['BASE'] 
-        print "Done with insufficient_base_resources test"
+        print("Done with insufficient_base_resources test")
 
 
 

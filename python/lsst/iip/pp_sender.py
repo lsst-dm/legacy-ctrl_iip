@@ -5,7 +5,7 @@ import sys
 import os
 import time
 import logging
-import thread
+import _thread
 
 class Premium:
   def __init__(self):
@@ -20,37 +20,37 @@ class Premium:
     #self._cons = Consumer(broker_url, 'pp_foreman_consume', "YAML")
     self._cons2 = Consumer(broker_url, 'ncsa_consume', "YAML")
     try:
-      thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
+      _thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
     except e:
-      print "Cannot start thread"
-      print e
+      print("Cannot start thread")
+      print(e)
     
     try:
-      thread.start_new_thread( self.do_it2, ("thread-2", 2,)  )
+      _thread.start_new_thread( self.do_it2, ("thread-2", 2,)  )
     except e:
-      print "Cannot start thread"
-      print e
+      print("Cannot start thread")
+      print(e)
     
   def mycallback(self, ch, methon, properties, body):
-    print "  "
-    print "+++++++++++++=========++++++++++++++++"
+    print("  ")
+    print("+++++++++++++=========++++++++++++++++")
     print(" f1_consume msg:")
-    print body
+    print(body)
 
 
   def mycallback2(self, ch, methon, properties, body):
-    print "  "
-    print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
+    print("  ")
+    print(">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<")
     print(" f2_consume msg:")
-    print body
+    print(body)
 
 
   def do_it(self, threadname, delay):
-    print "Before run call"
+    print("Before run call")
     self._cons.run(self.mycallback)
 
   def do_it2(self, threadname, delay):
-    print "Before run call"
+    print("Before run call")
     self._cons2.run(self.mycallback2)
 
   
@@ -129,7 +129,7 @@ def main():
   #sp1.publish_message("ocs_dmcs_consume", msg)
  
 
-  print "Sender done"
+  print("Sender done")
 
 
     #sp2.publish_message("ack_publish", "No, It's COLD")
