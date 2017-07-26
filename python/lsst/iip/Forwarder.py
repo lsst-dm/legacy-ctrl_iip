@@ -91,7 +91,7 @@ class Forwarder:
 
     def process_health_check(self, params):
         print "Incoming fwd_health_chk params:\n %s" % params
-        self.send_ack_response("FORWARDER_HEALTH_ACK", params)
+        return self.send_ack_response("FORWARDER_HEALTH_ACK", params)
 
 
     def process_job_params(self, params):
@@ -124,7 +124,7 @@ class Forwarder:
         # Also RM fits files in xfer_dir
         cmd = "rm " + self._DAQ_PATH + "*.fits"
         os.system(cmd)
-
+	
 
         filename_stub = str(job_params['JOB_NUM']) + "_" + str(job_params['VISIT_ID']) + "_" + str(job_params['IMAGE_ID']) + "_"
 
@@ -146,8 +146,8 @@ class Forwarder:
         self._job_scratchpad.set_job_state(params['JOB_NUM'], "READY_WITH_PARAMS")
 
         self.send_ack_response('AR_XFER_PARAMS_ACK', params)
-
-
+	return s_params
+	
     def process_foreman_readout(self, params):
         # self.send_ack_response("FORWARDER_READOUT_ACK", params)
         reply_queue = params['RESPONSE_QUEUE']
@@ -174,7 +174,7 @@ class Forwarder:
         msg['ACK_BOOL'] = True  # See if num keys of results == len(ccd_list) from orig msg params
         msg['RESULTS'] = results
         self._publisher.publish_message(reply_queue, msg)
-
+	return msg
 
 
     def fetch(self, job_num):
@@ -187,27 +187,6 @@ class Forwarder:
         print "In Forwarder Fetch method, raw_files_dict is: \n%s" % raw_files_dict
         return raw_files_dict
 
-
-    """
-        format raw files to fits file with header data
-        :param file_list: dictionary of file_name against raw file name 
-        :param mdata: primary meta data stream fetched from camera daq
-    """ 
-    def format(self, file_list, mdata): 
-        final_filenames = [] 
-        for ccd_id, raw_file_name in file_list.iteritems(): 
-            image_array = np.fromfile(raw_file_name, dtype=np.int32)
-            header_data = mdata[ccd_id]["primary_metadata_chunk"]
-            secondary_data = mdata[ccd_id]["secondary_metadata_chunk"]
-            header_data.update(secondary_data)
-
-            primary_header = pyfits.Header()
-            for key, value in header_data.iteritems(): 
-                primary_header[key] = value
-            fits_file = pyfits.PrimaryHDU(header=primary_header, data=image_array)
-            fits_file.writeto(ccd_id + ".fits")
-            final_filenames.append(ccd_id + ".fits")
-        return final_filenames
 
     def format(self, job_num, raw_files_dict):
         keez = raw_files_dict.keys()
@@ -282,6 +261,7 @@ class Forwarder:
         msg_params[ACK_ID] = timed_ack
         print "Outgoing fwd_health_chk ack: \n%s" % msg_params
         self._publisher.publish_message(reply_queue, msg_params)
+	return msg_params
 
 
     def register(self):

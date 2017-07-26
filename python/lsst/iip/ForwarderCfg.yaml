@@ -1,0 +1,11 @@
+BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
+CONSUME_QUEUE: f1_consume
+PUBLISH_QUEUE: ar_forwarder_publish
+XFER_APP: scp
+XFER_FILE: 16.7meg
+NAME: F1
+PASSWD: F1
+FQN: FORWARDER_F1
+HOSTNAME: lsst-wf-base01.ncsa.illinois.edu
+IP_ADDR: 141.142.238.161
+
