@@ -111,11 +111,14 @@ def main():
   time.sleep(4)
   sp1.publish_message("pp_foreman_consume", msg)
 
+  ccd_list = [1,2,12,17,9,22,43,44,46,47,55,71,15,78,79,82,84,85]
   msg = {}
   msg['MSG_TYPE'] = "START_INTEGRATION"
   msg['JOB_NUM'] = '121163'
   msg['IMAGE_ID'] = 'IMG_444244'
   msg['VISIT_ID'] = 'VV1X004'
+  msg['CCD_LIST'] = ccd_list
+  
   msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
   time.sleep(4)
   sp1.publish_message("pp_foreman_consume", msg)

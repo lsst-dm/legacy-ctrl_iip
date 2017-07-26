@@ -10,7 +10,7 @@ class Setup:
     def __init__(self):
 
         #Choose a connection...
-#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2ftester'))
+#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2fbunny'))
         self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.160:5672/%2fbunny'))
         #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
         #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2ftester'))
@@ -21,7 +21,7 @@ class Setup:
         ## queue_bind(callback, queue, exchange, routing_key=None, nowait=False, arguments=None)
         
         ### Exchange Declares - message' is primary exchange for lsst 
-        self.channel.exchange_declare(exchange='message', type='direct', durable=True)
+        #self.channel.exchange_declare(exchange='message', type='direct', durable=True)
         #self.channel.exchange_delete(exchange='message')
         time.sleep(2)
                  
@@ -29,7 +29,7 @@ class Setup:
         ## start with pool of queues for 40 forwarders and 24 distributors
         #self.delete_forwarder_queues(30)
         #self.delete_distributor_queues(24)
-        
+        """    
         self.setup_forwarders(30)        
         self.setup_distributors(24)        
         
@@ -100,7 +100,12 @@ class Setup:
                
         self.channel.queue_declare(queue='dmcs_ocs_publish',durable=True)
         self.channel.queue_bind(queue='dmcs_ocs_publish', exchange='message', routing_key='dmcs_ocs_publish' )
-        
+        self.channel.queue_delete(queue='c1_consume') 
+        self.channel.queue_delete(queue='c2_consume') 
+        self.channel.queue_delete(queue='c3_consume') 
+        """
+        self.channel.queue_declare(queue='ncsa_consume',durable=True)
+        self.channel.queue_bind(queue='ncsa_consume', exchange='message',routing_key='ncsa_consume')
          
         self.connection.close()
 

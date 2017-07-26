@@ -8,6 +8,7 @@ rabbitmqctl -p /bunny purge_queue f_consume
 rabbitmqctl -p /bunny purge_queue archive_ctrl_consume
 rabbitmqctl -p /bunny purge_queue archive_ctrl_publish
 rabbitmqctl -p /bunny purge_queue ar_foreman_ack_publish
+rabbitmqctl -p /bunny purge_queue pp_foreman_ack_publish
 rabbitmqctl -p /bunny purge_queue audit_consume
 rabbitmqctl -p /bunny purge_queue f1_consume
 rabbitmqctl -p /bunny purge_queue f2_consume
@@ -16,4 +17,5 @@ rabbitmqctl -p /bunny purge_queue f4_consume
 rabbitmqctl -p /bunny purge_queue ncsa_consume
 rabbitmqctl -p /bunny purge_queue audit_consume
 rabbitmqctl -p /bunny purge_queue dmcs_consume
+rabbitmqctl -p /bunny purge_queue event_dmcs_consume
 

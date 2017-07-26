@@ -22,7 +22,9 @@ class ForwarderScoreboard(Scoreboard):
         self._redis = self.connect()
         self._redis.flushdb()
 
+        print "In forwarder scoreboard, inserting fdict"
         forwarders = fdict.keys()
+        print "fdict keys are > %s <" % forwarders
         for forwarder in forwarders:
             fields = fdict[forwarder]
             name = fields['NAME']
@@ -33,7 +35,7 @@ class ForwarderScoreboard(Scoreboard):
                 self._redis.hset(forwarder, field, fields[field])
                 self._redis.hset(forwarder, 'STATE', 'IDLE')
                 self._redis.hset(forwarder, 'STATUS', 'HEALTHY')
-                self._redis.hset(forwarder, 'ROUTING_KEY', routing_key)
+                self._redis.hset(forwarder, 'CONSUME_QUEUE', routing_key)
       
             self._redis.lpush(self.FORWARDER_ROWS, forwarder)
     
@@ -89,7 +91,7 @@ class ForwarderScoreboard(Scoreboard):
         #self.persist_snapshot(self._redis, "forwarderscoreboard")
 
 
-    def setall_forwarders_params(self, params):
+    def setall_forwarder_params(self, params):
         forwarders = self._redis.lrange(self.FORWARDER_ROWS, 0, -1)
         self.set_forwarder_params(forwarders, params)
 

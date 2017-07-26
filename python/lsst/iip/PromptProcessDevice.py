@@ -7,6 +7,7 @@ import yaml
 import sys
 import os
 import time
+import datetime
 from time import sleep
 import thread
 from const import *
@@ -92,6 +93,7 @@ class PromptProcessDevice:
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack,
+                              'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
 
 
@@ -216,7 +218,6 @@ class PromptProcessDevice:
 
     def on_ncsa_message(self,ch, method, properties, body):
         LOGGER.info('In ncsa message callback, thread is %s', thread.get_ident())
-        #msg_dict = yaml.load(body)
         msg_dict = body
         LOGGER.info('ncsa msg callback body is: %s', str(msg_dict))
 
@@ -225,6 +226,8 @@ class PromptProcessDevice:
 
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
+        print "In on_ack_message - msg_dict[MSG_TYPE] value is %s" % msg_dict[MSG_TYPE]
+        print "YAAH! Msg_dict value above"
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
@@ -273,7 +276,9 @@ class PromptProcessDevice:
         self._ncsa_publisher.publish_message(self.NCSA_CONSUME, msg)
 
         wait_time = 4
-        self.set_pending_nonblock_acks(ack_id, wait_time)
+        acks = []
+        acks.append(ack_id)
+        self.set_pending_nonblock_acks(acks, wait_time)
 
 
     def process_start_integration(self, input_params):
@@ -293,9 +298,9 @@ class PromptProcessDevice:
 
         print "Entering SI"
         ccd_list = input_params['CCD_LIST']
-        job_num = str(params[JOB_NUM])
-        visit_id = params['VISIT_ID']
-        image_id = params['IMAGE_ID']
+        job_num = str(input_params[JOB_NUM])
+        visit_id = input_params['VISIT_ID']
+        image_id = input_params['IMAGE_ID']
         self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
 
         needed_workers = len(ccd_list) / self._policy_max_ccds_per_fwdr
@@ -305,12 +310,12 @@ class PromptProcessDevice:
         unknown_status = {"STATUS": "UNKNOWN", "STATE":"UNRESPONSIVE"}
         self.FWD_SCBD.setall_forwarder_params(unknown_status)
 
-        ack_id = self.forwarder_health_check(params)
+        ack_id = self.forwarder_health_check(input_params)
          
         self.ack_timer(2.5) 
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
 
-
+        print "Passed Health Check"
 
         num_healthy_forwarders = len(healthy_forwarders)
         # Check policy here...assign an optimal number of ccds to long haul forwarders
@@ -320,13 +325,18 @@ class PromptProcessDevice:
             result = self.insufficient_base_resources(input_params, healthy_forwarders)
             return result
         else:
-            needed_forwarders = healthy_forwarders.range(0, needed_workers - 1)
+            needed_forwarders = []
+            for i in range(0, needed_workers - 1):
+                needed_forwarders.append(healthy_forwarders[i])
             ready_status = {"STATUS": "HEALTHY", "STATE":"READY_WITHOUT_PARAMS"}
             self.FWD_SCBD.set_forwarder_params(needed_forwarders, ready_status)
 
-            extra_forwarders = healthy_forwarders.range(needed_workers, -1)
-            idle_status = {"STATUS": "HEALTHY", "STATE":"IDLE"}
-            self.FWD_SCBD.set_forwarder_params(extra_forwarders, idle_status)
+            extra_forwarders = []
+            for i in range(needed_workers, -1):
+                extra_forwarders.append(healthy_forwarders[i])
+            if len(extra_forwarders) != (0):
+                idle_status = {"STATUS": "HEALTHY", "STATE":"IDLE"}
+                self.FWD_SCBD.set_forwarder_params(extra_forwarders, idle_status)
 
             # Why not send all healthy forwarders to work? Because Long Haul Transfer 
             # wants 9 - 10 ccds/fwdr optimum
@@ -376,16 +386,19 @@ class PromptProcessDevice:
 
  
     def forwarder_health_check(self, params):
+        print "In forwarder_health_check"
         # get timed_ack_id
         timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
-        forwarders = self.FWD_SCBD.return_available_forwarders_list()
+        forwarders = self.FWD_SCBD.return_forwarders_list()
         print "Forwarders receiving health check..."
         print forwarders
+        job_num = params[JOB_NUM] 
         # send health check messages
         msg_params = {}
         msg_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
-        msg_params["ACK_ID"] = timed_ack
+        msg_params['ACK_ID'] = timed_ack
+        msg_params['REPLY_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         msg_params[JOB_NUM] = job_num
        
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "HEALTH_CHECK")
@@ -393,7 +406,7 @@ class PromptProcessDevice:
             xx = self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE")
             print "consume queue for %s is %s" % (forwarder, xx) 
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
-                                            ack_params)
+                                            msg_params)
 
         return timed_ack
 
@@ -632,6 +645,29 @@ class PromptProcessDevice:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
+
+    def set_pending_nonblock_acks(self, acks, wait_time):
+        start_time = datetime.datetime.now().time()
+        expiry_time = self.add_seconds(start_time, wait_time)
+        ack_msg = {}
+        ack_msg[MSG_TYPE] = 'PENDING_ACK'
+        ack_msg['EXPIRY_TIME'] = expiry_time
+        for ack in acks:
+            ack_msg[ACK_ID] = ack
+            self._base_publisher.publish_message(self.PP_FOREMAN_ACK_PUBLISH, ack_msg)
+
+
+    def process_pending_ack(self, params):
+        self.ACK_SCBD.add_pending_nonblock_ack(params)
+
+
+    def add_seconds(self, intime, secs):
+        basetime = datetime.datetime(100, 1, 1, intime.hour, intime.minute, intime.second)
+        newtime = basetime + datetime.timedelta(seconds=secs)
+        return newtime.time()
+
+
 
     def extract_config_values(self, cdm):
         try:
