@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en-US">
+{% load static %}
+<head>
+    <title >Forwarder {{forwarder_id}} details :)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body style="background-color:powderblue;">
+
+<script>
+function status_pic(state_val){
+    var pic_of_status = [
+        "{% static "images/rvn.jpg" %}",
+        "{% static "images/glazed.jpg" %}",
+        "{% static "images/felix.jpg" %}"
+     ];
+    document.getElementById('Image_shown').src = pic_of_status[state_val];
+    //if (state_val==0){
+    //    pic_of_status = {{rvn}};
+    //}
+    //else if (state_val==1){
+    //   pic_of_status = {{glazed}};
+    //}
+    //else{
+    //    pic_of_status = {{felix}};
+    //}
+    //document.getElementById('Image_shown').src = pic_of_status;
+}
+</script>
+
+<header>
+    <h1 title="HAHAHAHA" style="text-align:center;">Forwarder {{forwarder_id}} Status History</h1>
+</header>
+
+
+    <a href="http://www.ncsa.illinois.edu/" style="font-family:gabriola">
+    More Info
+    </a>
+
+    <br>
+{% for m in machine_chosen %}
+    <ul style="font-family:gabriola;font-size:35px;">{{m.time}}
+
+            <li style="font-family:gabriola;font-size:25px;">Status: {{m.status}}
+                {% if m.status == 'IDLE' %}
+                    <img src="{% static "images/rvn.jpg" %}" alt="Status" style="width:20px;height:20px" title="IDLE">
+
+                {% elif m.status == 'WORKING' %}
+                    <img src="{% static "images/glazed.jpg" %}" alt="Status" style="width:20px;height:20px" title="WORKING">
+
+                {% elif m.status == 'BAD' %}
+                    <img src="{% static "images/felix.jpg" %}" alt="Status" style="width:20px;height:20px" title="BAD">
+
+                {% else %}
+                    <img src="{% static "images/Love_story.jpg" %}" alt="Status" style="width:20px;height:20px" title="UNKNOWN">
+
+                {% endif %}
+            </li>
+
+            <li style="font-family:gabriola;font-size:25px;">
+                Session: {{m.session}}
+            </li>
+
+            <li style="font-family:gabriola;font-size:25px;">
+                Image ID: {{m.image_id}}
+            </li>
+
+            <li style="font-family:gabriola;font-size:25px;">
+                Visit: {{m.visit}}
+            </li>
+
+    </ul>
+{% endfor %}
+<!--
+    <p>
+    <button type="button" onclick="status_pic(0)">Ready</button>
+    <button type="button" onclick="status_pic(1)">Set</button>
+    <button type="button" onclick="status_pic(2)">Go!</button>
+    </p>
+
+
+    <pre style="font-family:gabriola;font-size:25px;">{{query}}
+    </pre>
+-->
+</body>
+</html>

@@ -1,0 +1,204 @@
+{% extends 'base.html'%}
+{% block title %}Query by Time{% endblock %}
+{% block main_content %}
+	<aside class="sidebar-left-collapse">
+        {% load static %}
+		<a href="https://www.lsst.org/">
+        <img border="0" alt="LSST" src="{% static "images/lsst_trans.png" %}" width="85" height="40">
+        </a>
+		<div class="sidebar-links">
+
+			<div class="link selected">
+
+				<a href="/display">
+					<i class="fa fa-table"></i>Tables
+                </a>
+                <ul class="sub-links">
+                    <form action="/display/time_query/" method="post">
+                         {% csrf_token %}
+                         Scoreboard(s):
+                         {{form.choose_scoreboard}}
+                         (YYYY,MM,DD,HH,MM,SS)
+                        <br>
+                         Start time:
+                         {{form.start_time}}
+                         <br>
+                         End time:
+                         {{form.end_time}}
+                        <input type="submit" style="display: none" />
+                    </form>
+				</ul>
+
+
+			</div>
+
+            <div class="link">
+
+				<a href="#">
+					<i class="fa fa-keyboard-o"></i>Commendable Devices
+				</a>
+
+				<ul class="sub-links">
+					<li><a href="#">AR Foreman</a></li>
+					<li><a href="#">PP Foreman</a></li>
+					<li><a href="#">All</a></li>
+				</ul>
+
+			</div>
+
+			<div class="link">
+
+				<a href="#">
+					<i class="fa fa-forward"></i>Forwarders
+				</a>
+
+				<ul class="sub-links">
+                    <li><a href="#">Archive Forwarders</a></li>
+                    <li><a href="#">PP Forwarders</a></li>
+					<li><a href="/display/forwarder2">Forwarder 2</a></li>
+					<li><a href="/display/forwarder6">Forwarder 6</a></li>
+					<li><a href="/display/forwarder12">Forwarder 12</a></li>
+				</ul>
+
+			</div>
+
+			<div class="link">
+
+				<a href="#">
+					<i class="fa fa-arrows-alt"></i>Distributors
+				</a>
+
+				<ul class="sub-links">
+					<li><a href="#">Link 1</a></li>
+					<li><a href="#">Link 2</a></li>
+					<li><a href="#">Link 3</a></li>
+					<li><a href="#">Link 4</a></li>
+				</ul>
+
+			</div>
+
+			<div class="link">
+
+				<a href="#">
+					<i class="fa fa-briefcase"></i>Jobs
+				</a>
+
+				<ul class="sub-links">
+					<li><a href="#">Job State</a></li>
+					<li><a href="#">Job Status</a></li>
+					<li><a href="#">Visit</a></li>
+					<li><a href="#">Session</a></li>
+				</ul>
+
+			</div>
+
+            <div class="link">
+
+				<a href="#">
+					<i class="fa fa-picture-o"></i>Image IDs
+				</a>
+
+                <ul class="sub-links">
+					<li>
+                        <form action="/display/img_query/" method="post">
+                             {% csrf_token %}
+                             Scoreboard(s):
+                            {{form.choose_scoreboard}}
+                            <i class="fa fa-search" style="font-size: 18px;"></i>
+                            <br>
+                             {{form.img_chosen}}
+                            <input type="submit" style="display: none" />
+                        </form>
+                    </li>
+				</ul>
+
+			</div>
+
+		</div>
+
+	</aside>
+
+	<div class="main-content">
+
+     {% if dict_ack %}
+        <h2>
+            Ack Scoreboard
+        </h2>
+
+        <table>
+          <tr>
+              <th>Time</th>
+              {% for c in column_name_ack %}
+                <th>{{c}}</th>
+              {% endfor %}
+          </tr>
+          {% for first_dict in dict_ack %}
+          <tr>
+            <td>{{first_dict.time}}</td>
+            <td>{{first_dict.ack_id}}</td>
+            <td>{{first_dict.ack_result}}</td>
+            <td>{{first_dict.ack_type}}</td>
+            <td>{{first_dict.component}}</td>
+            <td>{{first_dict.image_id}}</td>
+            <td>{{first_dict.job}}</td>
+
+          </tr>
+          {% endfor %}
+        </table>
+        <br>
+        <br>
+
+    {% elif choose_ack %}
+        <h2> NO CONTENT in Ack Scoreboard for the chosen time interval </h2>
+    {% endif %}
+
+    {% if dict_job_state %}
+        <h2>
+            JOB_STATE Scoreboard
+        </h2>
+
+        <table>
+          <tr>
+              <th>Time</th>
+              {% for c in column_name_job_state %}
+                <th>{{c}}</th>
+              {% endfor %}
+          </tr>
+          {% for first_dict in dict_job_state %}
+          <tr>
+
+            <td>{{first_dict.time}}</td>
+            <td>{{first_dict.image_id}}</td>
+            <td>{{first_dict.job}}</td>
+            <td>{{first_dict.session}}</td>
+            {% if first_dict.state == "NEW" %}
+            <td class="state_new">{{first_dict.state}}</td>
+            {% endif %}
+            {% if first_dict.state == "BROKEN" %}
+            <td class="state_broken">{{first_dict.state}}</td>
+            {% endif %}
+            <td>{{first_dict.visit}}</td>
+
+          </tr>
+          {% endfor %}
+        </table>
+        <br>
+        <br>
+
+    {% elif choose_job_state %}
+        <h2> NO CONTENT in Job State Scoreboard for the chosen time interval</h2>
+    {% endif %}
+
+    {% if no_pick %}
+        <h2> Please choose a Scoreboard to proceed </h2>
+    {% endif %}
+        <h2>The interval chosen is {{interval}}</h2>
+
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+
+
+    </div>
+
+	{% endblock %}
+</body>
+</html>

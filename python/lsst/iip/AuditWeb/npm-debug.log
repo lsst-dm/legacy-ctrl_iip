@@ -1,0 +1,2863 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/bin/nodejs',
+1 verbose cli   '/usr/bin/npm',
+1 verbose cli   'install',
+1 verbose cli   '-g',
+1 verbose cli   'polymer-cli' ]
+2 info using npm@1.3.10
+3 info using node@v0.10.25
+4 verbose cache add [ 'polymer-cli', null ]
+5 verbose cache add name=undefined spec="polymer-cli" args=["polymer-cli",null]
+6 verbose parsed url { protocol: null,
+6 verbose parsed url   slashes: null,
+6 verbose parsed url   auth: null,
+6 verbose parsed url   host: null,
+6 verbose parsed url   port: null,
+6 verbose parsed url   hostname: null,
+6 verbose parsed url   hash: null,
+6 verbose parsed url   search: null,
+6 verbose parsed url   query: null,
+6 verbose parsed url   pathname: 'polymer-cli',
+6 verbose parsed url   path: 'polymer-cli',
+6 verbose parsed url   href: 'polymer-cli' }
+7 silly lockFile 72666810-polymer-cli polymer-cli
+8 verbose lock polymer-cli /home/Esther/.npm/72666810-polymer-cli.lock
+9 silly lockFile 72666810-polymer-cli polymer-cli
+10 silly lockFile 72666810-polymer-cli polymer-cli
+11 verbose addNamed [ 'polymer-cli', '' ]
+12 verbose addNamed [ null, '*' ]
+13 silly lockFile 42edbd54-polymer-cli polymer-cli@
+14 verbose lock polymer-cli@ /home/Esther/.npm/42edbd54-polymer-cli.lock
+15 silly addNameRange { name: 'polymer-cli', range: '*', hasData: false }
+16 verbose url raw polymer-cli
+17 verbose url resolving [ 'https://registry.npmjs.org/', './polymer-cli' ]
+18 verbose url resolved https://registry.npmjs.org/polymer-cli
+19 info trying registry request attempt 1 at 15:19:00
+20 verbose etag "5956aa2a-224c8"
+21 http GET https://registry.npmjs.org/polymer-cli
+22 http 304 https://registry.npmjs.org/polymer-cli
+23 silly registry.get cb [ 304,
+23 silly registry.get   { date: 'Fri, 30 Jun 2017 20:18:59 GMT',
+23 silly registry.get     via: '1.1 varnish',
+23 silly registry.get     'cache-control': 'max-age=300',
+23 silly registry.get     etag: '"5956aa2a-224c8"',
+23 silly registry.get     age: '32',
+23 silly registry.get     connection: 'keep-alive',
+23 silly registry.get     'x-served-by': 'cache-ord1726-ORD',
+23 silly registry.get     'x-cache': 'HIT',
+23 silly registry.get     'x-cache-hits': '1',
+23 silly registry.get     'x-timer': 'S1498853939.486651,VS0,VE1',
+23 silly registry.get     vary: 'Accept-Encoding' } ]
+24 verbose etag polymer-cli from cache
+25 silly addNameRange number 2 { name: 'polymer-cli', range: '*', hasData: true }
+26 silly addNameRange versions [ 'polymer-cli',
+26 silly addNameRange   [ '0.1.0',
+26 silly addNameRange     '0.2.0',
+26 silly addNameRange     '0.3.0',
+26 silly addNameRange     '0.4.0',
+26 silly addNameRange     '0.5.0',
+26 silly addNameRange     '0.5.0-apache',
+26 silly addNameRange     '0.5.1-apache',
+26 silly addNameRange     '0.6.0',
+26 silly addNameRange     '0.7.0',
+26 silly addNameRange     '0.7.0-apache',
+26 silly addNameRange     '0.7.1-apache',
+26 silly addNameRange     '0.8.0',
+26 silly addNameRange     '0.9.0',
+26 silly addNameRange     '0.10.0',
+26 silly addNameRange     '0.11.0',
+26 silly addNameRange     '0.11.1',
+26 silly addNameRange     '0.12.0',
+26 silly addNameRange     '0.13.0',
+26 silly addNameRange     '0.14.0',
+26 silly addNameRange     '0.15.0',
+26 silly addNameRange     '0.16.0',
+26 silly addNameRange     '0.17.0',
+26 silly addNameRange     '0.18.0-alpha.1',
+26 silly addNameRange     '0.18.0-alpha.2',
+26 silly addNameRange     '0.18.0-alpha.4',
+26 silly addNameRange     '0.18.0-alpha.5',
+26 silly addNameRange     '0.18.0-alpha.6',
+26 silly addNameRange     '0.18.0-alpha.7',
+26 silly addNameRange     '0.18.0-alpha.8',
+26 silly addNameRange     '0.18.0-alpha.9',
+26 silly addNameRange     '0.18.0-pre.10',
+26 silly addNameRange     '0.18.0-pre.12',
+26 silly addNameRange     '0.18.0-pre.13',
+26 silly addNameRange     '0.18.0-pre.14',
+26 silly addNameRange     '0.18.0-pre.15',
+26 silly addNameRange     '0.18.0',
+26 silly addNameRange     '0.18.1',
+26 silly addNameRange     '0.18.2',
+26 silly addNameRange     '0.18.3',
+26 silly addNameRange     '0.18.4',
+26 silly addNameRange     '1.0.0',
+26 silly addNameRange     '1.0.1',
+26 silly addNameRange     '1.0.2',
+26 silly addNameRange     '1.1.0',
+26 silly addNameRange     '1.2.0',
+26 silly addNameRange     '1.3.0' ] ]
+27 verbose addNamed [ 'polymer-cli', '1.3.0' ]
+28 verbose addNamed [ '1.3.0', '1.3.0' ]
+29 silly lockFile 76d8b335-polymer-cli-1-3-0 polymer-cli@1.3.0
+30 verbose lock polymer-cli@1.3.0 /home/Esther/.npm/76d8b335-polymer-cli-1-3-0.lock
+31 silly lockFile 76d8b335-polymer-cli-1-3-0 polymer-cli@1.3.0
+32 silly lockFile 76d8b335-polymer-cli-1-3-0 polymer-cli@1.3.0
+33 silly lockFile 42edbd54-polymer-cli polymer-cli@
+34 silly lockFile 42edbd54-polymer-cli polymer-cli@
+35 silly resolved [ { name: 'polymer-cli',
+35 silly resolved     version: '1.3.0',
+35 silly resolved     description: 'A commandline tool for Polymer projects',
+35 silly resolved     main: 'lib/polymer-cli.js',
+35 silly resolved     engines: { node: '>=6.0' },
+35 silly resolved     bin: { polymer: 'bin/polymer.js' },
+35 silly resolved     scripts:
+35 silly resolved      { lint: 'gulp lint',
+35 silly resolved        build: 'gulp build',
+35 silly resolved        test: 'gulp lint test',
+35 silly resolved        'test:smoke': 'gulp test',
+35 silly resolved        'test:integration': 'gulp test:integration',
+35 silly resolved        format: 'find src test gulpfile.js \\( -iname \'*.ts\' -o -iname \'*.js\' \\) -not -path \'*fixtures*\' | xargs clang-format --style=file -i' },
+35 silly resolved     repository:
+35 silly resolved      { type: 'git',
+35 silly resolved        url: 'git+https://github.com/Polymer/polymer-cli.git' },
+35 silly resolved     author: { name: 'The Polymer Project Authors' },
+35 silly resolved     license: 'BSD-3-Clause',
+35 silly resolved     dependencies:
+35 silly resolved      { '@types/babel-core': '^6.7.14',
+35 silly resolved        '@types/chalk': '^0.4.31',
+35 silly resolved        '@types/del': '^2.2.31',
+35 silly resolved        '@types/findup-sync': '^0.3.29',
+35 silly resolved        '@types/gulp-if': '0.0.30',
+35 silly resolved        '@types/html-minifier': '^1.1.30',
+35 silly resolved        '@types/inquirer': '0.0.32',
+35 silly resolved        '@types/merge-stream': '^1.0.28',
+35 silly resolved        '@types/mz': '^0.0.31',
+35 silly resolved        '@types/request': '0.0.39',
+35 silly resolved        '@types/resolve': '0.0.4',
+35 silly resolved        '@types/rimraf': '^0.0.28',
+35 silly resolved        '@types/semver': '^5.3.30',
+35 silly resolved        '@types/temp': '^0.8.28',
+35 silly resolved        '@types/update-notifier': '^1.0.0',
+35 silly resolved        '@types/vinyl': '^2.0.0',
+35 silly resolved        '@types/vinyl-fs': '0.0.28',
+35 silly resolved        '@types/yeoman-generator': '^1.0.0',
+35 silly resolved        'babel-core': '^6.24.1',
+35 silly resolved        'babel-plugin-external-helpers': '^6.22.0',
+35 silly resolved        'babel-preset-babili': '0.0.10',
+35 silly resolved        'babel-preset-es2015': '^6.18.0',
+35 silly resolved        bower: '1.8.0',
+35 silly resolved        'bower-json': '^0.8.1',
+35 silly resolved        'bower-logger': '^0.2.2',
+35 silly resolved        chalk: '^1.1.3',
+35 silly resolved        'command-line-args': '^3.0.0',
+35 silly resolved        'command-line-commands': '^1.0.3',
+35 silly resolved        'command-line-usage': '^3.0.1',
+35 silly resolved        'css-slam': '^1.1.0',
+35 silly resolved        del: '^2.2.2',
+35 silly resolved        'findup-sync': '^0.4.2',
+35 silly resolved        github: '^7.2.1',
+35 silly resolved        'gulp-if': '^2.0.0',
+35 silly resolved        'gunzip-maybe': '^1.3.1',
+35 silly resolved        'html-minifier': '^3.0.1',
+35 silly resolved        inquirer: '^1.0.2',
+35 silly resolved        'merge-stream': '^1.0.1',
+35 silly resolved        mz: '^2.6.0',
+35 silly resolved        plylog: '^0.4.0',
+35 silly resolved        'polymer-analyzer': '^2.0.0',
+35 silly resolved        'polymer-build': '^1.6.0',
+35 silly resolved        'polymer-linter': '^2.0.2',
+35 silly resolved        'polymer-project-config': '^3.4.0',
+35 silly resolved        polyserve: '^0.19.0',
+35 silly resolved        request: '^2.72.0',
+35 silly resolved        rimraf: '^2.6.1',
+35 silly resolved        semver: '^5.3.0',
+35 silly resolved        'tar-fs': '^1.12.0',
+35 silly resolved        temp: '^0.8.3',
+35 silly resolved        'update-notifier': '^1.0.0',
+35 silly resolved        vinyl: '^1.1.1',
+35 silly resolved        'vinyl-fs': '^2.4.3',
+35 silly resolved        'web-component-tester': '^6.0.0',
+35 silly resolved        'yeoman-environment': '^1.5.2',
+35 silly resolved        'yeoman-generator': '^1.0.1' },
+35 silly resolved     devDependencies:
+35 silly resolved      { '@polymer/tools-common': '^1.0.1',
+35 silly resolved        '@types/fs-extra': '0.0.37',
+35 silly resolved        '@types/node': '=6.0.65',
+35 silly resolved        babili: '^0.0.12',
+35 silly resolved        chai: '^3.5.0',
+35 silly resolved        'clang-format': '=1.0.50',
+35 silly resolved        depcheck: '^0.6.3',
+35 silly resolved        'fs-extra': '^2.0.0',
+35 silly resolved        gulp: '^3.9.1',
+35 silly resolved        'gulp-eslint': '^3.0.1',
+35 silly resolved        'gulp-spawn-mocha': '^3.1.0',
+35 silly resolved        'gulp-tslint': '^7.0.1',
+35 silly resolved        'gulp-typescript': '^3.0.0',
+35 silly resolved        istanbul: '^0.4',
+35 silly resolved        'memory-streams': '^0.1.0',
+35 silly resolved        mocha: '^3.0',
+35 silly resolved        'run-sequence': '^1.2.0',
+35 silly resolved        sinon: '^1.17.4',
+35 silly resolved        tmp: '0.0.31',
+35 silly resolved        tslint: '^4.0.2',
+35 silly resolved        typescript: '^2.2.0',
+35 silly resolved        'vinyl-fs-fake': '^1.1.0',
+35 silly resolved        'yeoman-assert': '^2.2.1',
+35 silly resolved        'yeoman-test': '^1.1.0' },
+35 silly resolved     readme: '[![Build Status](https://travis-ci.org/Polymer/polymer-cli.svg?branch=master)](https://travis-ci.org/Polymer/polymer-cli)\n[![Build status](https://ci.appveyor.com/api/projects/status/3xc7rkapu39rw9fs/branch/master?svg=true)](https://ci.appveyor.com/project/justinfagnani/polymer-cli/branch/master)\n[![NPM version](http://img.shields.io/npm/v/polymer-cli.svg)](https://www.npmjs.com/package/polymer-cli)\n\n# Polymer CLI\n\nThe command-line tool for Polymer projects and Web Components.\n\n## Features\n\n  - **init** - Create a new Polymer project from pre-configured starter templates\n  - **install** - Install dependencies and [dependency variants](https://www.polymer-project.org/2.0/docs/glossary#dependency-variants) via Bower\n  - **serve**\t- Serve elements and applications during development\n  - **lint** - Lint a project to find and diagnose errors quickly\n  - **test** - Test your project with [`web-component-tester`](https://github.com/Polymer/web-component-tester/)\n  - **build**\t- Build an application optimized for production\n  - **analyze** - Generate an analyzed JSON representation of your element or application\n\n> **For a detailed overview of the CLI, how it works and when to use it, check out the official\n[Polymer CLI guide](https://www.polymer-project.org/2.0/docs/tools/polymer-cli).**\n> This README will focus on the individual CLI commands and how to run them.\n\n\n## Installation\n\n```bash\n$ yarn global add polymer-cli\n# or...\n$ npm install -g polymer-cli\n```\n\nFor best results and a faster installation, we recommend installing with [yarn](https://yarnpkg.com/en/).\n\n## Configuration\n\nNo configuration is required to use the Polymer CLI to develop a standalone element.\n\nWhen developing a web application, defining some configuration is recommended. Simple applications may work with the CLI\'s default settings, but following the [Application Shell Architecture](https://developers.google.com/web/updates/2015/11/app-shell) for your app and manually defining an application shell and fragments will give you the best performance in production.\n\nHere\'s a brief summary of the configuration options you can use to describe your web application structure:\n\n  - [`entrypoint`](https://www.polymer-project.org/2.0/docs/tools/polymer-json#entrypoint) (Defaults to `index.html`): The main entrypoint to your app.\n  - [`shell`](https://www.polymer-project.org/2.0/docs/tools/polymer-json#shell) (Optional): The app shell.\n  - [`fragments`](https://www.polymer-project.org/2.0/docs/tools/polymer-json#fragments) (Optional): A list of other entrypoints into your application.\n  - `root` (Defaults to current working directory): The web root of your application, can be a subfolder of your project directory.\n  - `sources` (Defaults to `src/**/*`): The source files in your application.\n\nConfiguration can be passed to all commands via global CLI flags: `--entrypoint`, `--shell`, etc. However we recommend saving your configuration to a `polymer.json` configuration file in your project. This guarantees a single shared configuration that will be read automatically for every command. Other project settings, like build and lint rules, can also be defined here.\n\nRead the [polymer.json spec](https://www.polymer-project.org/2.0/docs/tools/polymer-json) for a full list of all supported fields with examples.\n\n\n## Command Overview\n\n### `polymer help [COMMAND]`\n\nRun `polymer help` to get a helpful list of supported commands. Pass it a command name (ex: `polymer help serve`) to get detailed information about that command and the options it supports.\n\n\n### `polymer init [TEMPLATE]`\n\nInitializes a Polymer project from one of several templates. Pre-bundled templates range from just bare-bones to fully featured applications like the [Polymer Starter Kit](https://github.com/PolymerElements/polymer-starter-kit).\n\nYou can download and run templates built by our community as well. [Search npm](https://www.npmjs.com/search?q=generator-polymer-init) for a template you\'d like to use. Then install it and the CLI will pick it up automatically.\n\nRun `polymer init` to choose a template from a list of all installed templates. Or, if you know the template name before hand, you can provide it as a command argument to select it automatically.\n\n\n### `polymer install [--variants]`\n\nInstall your dependencies, similar to running `bower install`.\n\nIf the `--variants` option is provided, the command will also search your project\'s `bower.json` for a `"variants"` property and install any dependency variants listed there. [Dependency variants](https://www.polymer-project.org/2.0/docs/glossary#dependency-variants) describe alternative sets of dependencies to install alongside your normal `bower_components/` folder. Other CLI commands like `polymer test` and `polymer serve` are able to read these alternative dependency sets and test/serve them in parallel. This is especially useful if you need to test your elements against multiple versions of Polymer and/or other dependencies.\n\n\n### `polymer serve [options...]`\n\nStart a development server designed for serving Polymer & Web Component projects. Applications are served as-is, while elements are served from a special route where it can properly reference its dependencies.\n\nBy default, the server will automatically use [Babel](https://babeljs.io) to transpile any ES6 code down to ES5 for browsers that don\'t have native support for important ES6 features like classes. This behavior can be explicitly turned on/off for all browsers via the `--compile` option.\n\nRun `polymer help serve` for the full list of available options.\n\n\n### `polymer lint [--rules RULE_SET] [options...]`\n\nLint your project for common errors. Specify a set of linting rules via the `--rules` command option or your `polymer.json` configuration. To make sure you always use the correct rule set, we recommend adding a "lint" section to your polymer.json like so:\n\n```json\n"lint": {\n  "rules": [\n    "polymer-2-hybrid"\n  ]\n},\n```\n\nRun `polymer help lint` for the full list of available options and rule sets.\n\n\n### `polymer test [options...]`\n\nRun your element or application tests with [`web-component-tester`](https://github.com/Polymer/web-component-tester/).\n\nRun `polymer help test` for the full list of available options.\n\n\n### `polymer build [options...]`\n\nBuild a Polymer application for production. This includes support for optimizations like code bundling, minification, and ES6 compilation to run on older browsers.\n\nMost optimizations are disabled by default. To make sure the correct build enhancements are always used, you can provide a set of build configurations via the ["builds"](https://www.polymer-project.org/2.0/docs/tools/polymer-json#builds) field of your `polymer.json` file:\n\n```json\n"builds": [{\n  "bundle": true,\n  "js": {"minify": true},\n  "css": {"minify": true},\n  "html": {"minify": true}\n}],\n```\n\nRun `polymer help build` for the full list of available options & optimizations.\n\nIf you need support for something that is missing from the CLI, check out the [polymer-build](https://github.com/Polymer/polymer-build) library. Is the JS library that powers the CLI, and calling it directly gives you much greater control than the CLI can provide. Visit the repo for usage information and examples.\n\n\n### `polymer analyze [files...]`\n\nGenerates an analyzed JSON representation of your element or project. This can be useful if you are working with other tooling that requires a cached analysis of your project.\n\nRun `polymer help analyze` for the full list of available options.\n\n\n## Supported Node.js Versions\n\nPolymer CLI supports the [current & active LTS versions](https://github.com/nodejs/LTS) of Node.js and later. See the [Polymer Tools Node.js Support Policy](https://www.polymer-project.org/2.0/docs/tools/node-support) for more information.\n\n## Compiling from Source\n\nYou can compile and run the CLI from source by cloning the repo from Github and then running `npm run build`. But make sure you have already run `npm install` before building.\n\n```bash\n# clone the repo from github\nyarn install\nyarn run build\nyarn link # link your local copy of the CLI to your terminal path\n```\n\n\n',
+35 silly resolved     readmeFilename: 'README.md',
+35 silly resolved     _id: 'polymer-cli@1.3.0',
+35 silly resolved     _from: 'polymer-cli@' } ]
+36 info install polymer-cli@1.3.0 into /usr/local/lib
+37 info installOne polymer-cli@1.3.0
+38 warn engine polymer-cli@1.3.0: wanted: {"node":">=6.0"} (current: {"node":"v0.10.25","npm":"1.3.10"})
+39 info /usr/local/lib/node_modules/polymer-cli unbuild
+40 verbose tar unpack /home/Esther/.npm/polymer-cli/1.3.0/package.tgz
+41 silly lockFile ac6d8d93-cal-lib-node-modules-polymer-cli tar:///usr/local/lib/node_modules/polymer-cli
+42 verbose lock tar:///usr/local/lib/node_modules/polymer-cli /home/Esther/.npm/ac6d8d93-cal-lib-node-modules-polymer-cli.lock
+43 silly lockFile 305d1826-pm-polymer-cli-1-3-0-package-tgz tar:///home/Esther/.npm/polymer-cli/1.3.0/package.tgz
+44 verbose lock tar:///home/Esther/.npm/polymer-cli/1.3.0/package.tgz /home/Esther/.npm/305d1826-pm-polymer-cli-1-3-0-package-tgz.lock
+45 silly gunzTarPerm modes [ '755', '644' ]
+46 silly gunzTarPerm extractEntry package.json
+47 silly gunzTarPerm extractEntry .npmignore
+48 silly gunzTarPerm extractEntry README.md
+49 silly gunzTarPerm extractEntry LICENSE
+50 silly gunzTarPerm extractEntry gulpfile.js
+51 silly gunzTarPerm extractEntry bin/polymer.js
+52 silly gunzTarPerm extractEntry .github/ISSUE_TEMPLATE.md
+53 silly gunzTarPerm extractEntry .github/PULL_REQUEST_TEMPLATE
+54 silly gunzTarPerm extractEntry .clang-format
+55 silly gunzTarPerm extractEntry appveyor.yml
+56 silly gunzTarPerm extractEntry .eslintignore
+57 silly gunzTarPerm extractEntry custom_typings/github.d.ts
+58 silly gunzTarPerm extractEntry custom_typings/bower-json.d.ts
+59 silly gunzTarPerm extractEntry custom_typings/bower.d.ts
+60 silly gunzTarPerm extractEntry custom_typings/command-line-commands.d.ts
+61 silly gunzTarPerm extractEntry custom_typings/command-line-usage.d.ts
+62 silly gunzTarPerm extractEntry custom_typings/css-slam.d.ts
+63 silly gunzTarPerm extractEntry custom_typings/bower-logger.d.ts
+64 silly gunzTarPerm extractEntry custom_typings/plylog.d.ts
+65 silly gunzTarPerm extractEntry custom_typings/rx-lite.d.ts
+66 silly gunzTarPerm extractEntry custom_typings/slash.d.ts
+67 silly gunzTarPerm extractEntry custom_typings/web-component-tester.d.ts
+68 silly gunzTarPerm extractEntry custom_typings/yeoman-environment.d.ts
+69 silly gunzTarPerm extractEntry custom_typings/yeoman-generator.d.ts
+70 silly gunzTarPerm extractEntry .travis.yml
+71 silly gunzTarPerm extractEntry lib/run.js
+72 silly gunzTarPerm extractEntry lib/args.js
+73 silly gunzTarPerm extractEntry lib/polymer-cli.js
+74 silly gunzTarPerm extractEntry lib/commands/analyze.js
+75 silly gunzTarPerm extractEntry lib/commands/build.js
+76 silly gunzTarPerm extractEntry lib/commands/command.js
+77 silly gunzTarPerm extractEntry lib/commands/help.js
+78 silly gunzTarPerm extractEntry lib/commands/init.js
+79 silly gunzTarPerm extractEntry lib/commands/install.js
+80 silly gunzTarPerm extractEntry lib/commands/lint.js
+81 silly gunzTarPerm extractEntry lib/commands/serve.js
+82 silly gunzTarPerm extractEntry lib/commands/test.js
+83 silly gunzTarPerm extractEntry lib/environment/environment.js
+84 silly gunzTarPerm extractEntry lib/environments/environments.js
+85 silly gunzTarPerm extractEntry lib/analyze/analyze.js
+86 silly gunzTarPerm extractEntry lib/init/github.js
+87 silly gunzTarPerm extractEntry lib/init/init.js
+88 silly gunzTarPerm extractEntry lib/init/application/application.js
+89 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-1.x/README.md
+90 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-1.x/bower.json
+91 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-1.x/index.html
+92 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-1.x/manifest.json
+93 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-1.x/polymer.json
+94 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-1.x/src/_element/_element.html
+95 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-1.x/test/_element/_element_test.html
+96 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-2.x/README.md
+97 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-2.x/bower.json
+98 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-2.x/index.html
+99 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-2.x/manifest.json
+100 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-2.x/polymer.json
+101 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-2.x/src/_element/_element.html
+102 silly gunzTarPerm extractEntry lib/init/application/templates/polymer-2.x/test/_element/_element_test.html
+103 silly gunzTarPerm extractEntry lib/init/element/element.js
+104 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-1.x/README.md
+105 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-1.x/_element.html
+106 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-1.x/bower.json
+107 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-1.x/demo/index.html
+108 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-1.x/index.html
+109 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-1.x/polymer.json
+110 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-1.x/test/_element_test.html
+111 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-2.x/README.md
+112 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-2.x/_element.html
+113 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-2.x/bower.json
+114 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-2.x/demo/index.html
+115 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-2.x/index.html
+116 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-2.x/polymer.json
+117 silly gunzTarPerm extractEntry lib/init/element/templates/polymer-2.x/test/_element_test.html
+118 silly gunzTarPerm extractEntry lib/install/install.js
+119 silly gunzTarPerm extractEntry lib/lint/lint.js
+120 silly gunzTarPerm extractEntry lib/build/build.js
+121 silly gunzTarPerm extractEntry lib/build/load-config.js
+122 silly gunzTarPerm extractEntry lib/build/optimize-streams.js
+123 silly gunzTarPerm extractEntry lib/build/streams.js
+124 silly gunzTarPerm extractEntry lib/github/github.js
+125 silly gunzTarPerm extractEntry CHANGELOG.md
+126 silly gunzTarPerm extractEntry src/github/github.ts
+127 silly gunzTarPerm extractEntry src/analyze/analyze.ts
+128 silly gunzTarPerm extractEntry src/build/build.ts
+129 silly gunzTarPerm extractEntry src/build/load-config.ts
+130 silly gunzTarPerm extractEntry src/build/optimize-streams.ts
+131 silly gunzTarPerm extractEntry src/build/streams.ts
+132 silly gunzTarPerm extractEntry src/commands/analyze.ts
+133 silly gunzTarPerm extractEntry src/commands/build.ts
+134 silly gunzTarPerm extractEntry src/commands/command.ts
+135 silly gunzTarPerm extractEntry src/commands/help.ts
+136 silly gunzTarPerm extractEntry src/commands/init.ts
+137 silly gunzTarPerm extractEntry src/commands/install.ts
+138 silly gunzTarPerm extractEntry src/commands/lint.ts
+139 silly gunzTarPerm extractEntry src/commands/serve.ts
+140 silly gunzTarPerm extractEntry src/commands/test.ts
+141 silly gunzTarPerm extractEntry src/environment/environment.ts
+142 silly gunzTarPerm extractEntry src/environments/environments.ts
+143 silly gunzTarPerm extractEntry src/args.ts
+144 silly gunzTarPerm extractEntry src/init/application/application.ts
+145 silly gunzTarPerm extractEntry src/init/application/templates/polymer-1.x/.npmignore
+146 silly gunzTarPerm extractEntry src/init/application/templates/polymer-1.x/README.md
+147 silly gunzTarPerm extractEntry src/init/application/templates/polymer-1.x/bower.json
+148 silly gunzTarPerm extractEntry src/init/application/templates/polymer-1.x/index.html
+149 silly gunzTarPerm extractEntry src/init/application/templates/polymer-1.x/manifest.json
+150 silly gunzTarPerm extractEntry src/init/application/templates/polymer-1.x/polymer.json
+151 silly gunzTarPerm extractEntry src/init/application/templates/polymer-1.x/src/_element/_element.html
+152 silly gunzTarPerm extractEntry src/init/application/templates/polymer-1.x/test/_element/_element_test.html
+153 silly gunzTarPerm extractEntry src/init/application/templates/polymer-2.x/.npmignore
+154 silly gunzTarPerm extractEntry src/init/application/templates/polymer-2.x/README.md
+155 silly gunzTarPerm extractEntry src/init/application/templates/polymer-2.x/bower.json
+156 silly gunzTarPerm extractEntry src/init/application/templates/polymer-2.x/index.html
+157 silly gunzTarPerm extractEntry src/init/application/templates/polymer-2.x/manifest.json
+158 silly gunzTarPerm extractEntry src/init/application/templates/polymer-2.x/polymer.json
+159 silly gunzTarPerm extractEntry src/init/application/templates/polymer-2.x/src/_element/_element.html
+160 silly gunzTarPerm extractEntry src/init/application/templates/polymer-2.x/test/_element/_element_test.html
+161 silly gunzTarPerm extractEntry src/init/element/element.ts
+162 silly gunzTarPerm extractEntry src/init/element/templates/polymer-1.x/.npmignore
+163 silly gunzTarPerm extractEntry src/init/element/templates/polymer-1.x/README.md
+164 silly gunzTarPerm extractEntry src/init/element/templates/polymer-1.x/_element.html
+165 silly gunzTarPerm extractEntry src/init/element/templates/polymer-1.x/bower.json
+166 silly gunzTarPerm extractEntry src/init/element/templates/polymer-1.x/demo/index.html
+167 silly gunzTarPerm extractEntry src/init/element/templates/polymer-1.x/index.html
+168 silly gunzTarPerm extractEntry src/init/element/templates/polymer-1.x/polymer.json
+169 silly gunzTarPerm extractEntry src/init/element/templates/polymer-1.x/test/_element_test.html
+170 silly gunzTarPerm extractEntry src/init/element/templates/polymer-2.x/.npmignore
+171 silly gunzTarPerm extractEntry src/init/element/templates/polymer-2.x/README.md
+172 silly gunzTarPerm extractEntry src/init/element/templates/polymer-2.x/_element.html
+173 silly gunzTarPerm extractEntry src/init/element/templates/polymer-2.x/bower.json
+174 silly gunzTarPerm extractEntry src/init/element/templates/polymer-2.x/demo/index.html
+175 silly gunzTarPerm extractEntry src/init/element/templates/polymer-2.x/index.html
+176 silly gunzTarPerm extractEntry src/init/element/templates/polymer-2.x/polymer.json
+177 silly gunzTarPerm extractEntry src/init/element/templates/polymer-2.x/test/_element_test.html
+178 silly gunzTarPerm extractEntry src/init/github.ts
+179 silly gunzTarPerm extractEntry src/init/init.ts
+180 silly gunzTarPerm extractEntry src/install/install.ts
+181 silly gunzTarPerm extractEntry src/lint/lint.ts
+182 silly gunzTarPerm extractEntry src/polymer-cli.ts
+183 silly gunzTarPerm extractEntry src/run.ts
+184 silly gunzTarPerm extractEntry test/.eslintrc.json
+185 silly gunzTarPerm extractEntry test/integration/build_test.js
+186 silly gunzTarPerm extractEntry test/integration/install-variants_test.js
+187 silly gunzTarPerm extractEntry test/integration/integration_test.js
+188 silly gunzTarPerm extractEntry test/integration/lint_test.js
+189 silly gunzTarPerm extractEntry test/integration/run-command.js
+190 silly gunzTarPerm extractEntry test/integration/fixtures/build-simple/expected/bundled-compiled/index.html
+191 silly gunzTarPerm extractEntry test/integration/fixtures/build-simple/expected/polymer.json
+192 silly gunzTarPerm extractEntry test/integration/fixtures/build-simple/expected/unbundled-uncompiled/foo.html
+193 silly gunzTarPerm extractEntry test/integration/fixtures/build-simple/expected/unbundled-uncompiled/index.html
+194 silly gunzTarPerm extractEntry test/integration/fixtures/build-simple/source/foo.html
+195 silly gunzTarPerm extractEntry test/integration/fixtures/build-simple/source/index.html
+196 silly gunzTarPerm extractEntry test/integration/fixtures/build-simple/source/polymer.json
+197 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/expected/es5-bundled/service-worker.js
+198 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/expected/es5-bundled/bar.html
+199 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/expected/es5-bundled/index.html
+200 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/expected/es5-bundled/push-manifest.json
+201 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/expected/es5-bundled/shared_bundle_1.html
+202 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/source/bar.html
+203 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/source/baz.html
+204 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/source/foo.html
+205 silly gunzTarPerm extractEntry test/integration/fixtures/build-with-preset/source/index.html
+206 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/README.md
+207 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/.bowerrc
+208 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower-registry/bower.herokuapp.com/lookup/webcomponentsjs_7bba9
+209 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower.json
+210 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/package.json
+211 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/README.md
+212 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/HTMLImports.min.js
+213 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/MutationObserver.js
+214 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/MutationObserver.min.js
+215 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/HTMLImports.js
+216 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/CustomElements.js
+217 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/ShadowDOM.min.js
+218 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/webcomponents.js
+219 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/webcomponents-lite.min.js
+220 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/CustomElements.min.js
+221 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/webcomponents.min.js
+222 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/webcomponents-lite.js
+223 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/ShadowDOM.js
+224 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/build.log
+225 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/bower.json
+226 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.23/.bower.json
+227 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/package.json
+228 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/README.md
+229 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/HTMLImports.min.js
+230 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/MutationObserver.js
+231 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/MutationObserver.min.js
+232 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/HTMLImports.js
+233 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/CustomElements.js
+234 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/ShadowDOM.min.js
+235 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/webcomponents.js
+236 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/webcomponents-lite.min.js
+237 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/CustomElements.min.js
+238 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/webcomponents.min.js
+239 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/webcomponents-lite.js
+240 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/ShadowDOM.js
+241 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/build.log
+242 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/bower.json
+243 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/17800d6873478332c188fccd82ad4bdd/0.7.24/.bower.json
+244 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.6.0/.bower.json
+245 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.6.0/LICENSE.txt
+246 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.6.0/bower.json
+247 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.6.0/build.log
+248 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.6.0/polymer-micro.html
+249 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.6.0/polymer-mini.html
+250 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.6.0/polymer.html
+251 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.7.0/.bower.json
+252 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.7.0/LICENSE.txt
+253 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.7.0/bower.json
+254 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.7.0/build.log
+255 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.7.0/polymer-micro.html
+256 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.7.0/polymer-mini.html
+257 silly gunzTarPerm extractEntry test/integration/fixtures/install-variants/bower_cache/f7f075fb0e2eb0ce17a7ed61f88773a8/1.7.0/polymer.html
+258 silly gunzTarPerm extractEntry test/integration/fixtures/lint-no-polymer-json/my-elem.html
+259 silly gunzTarPerm extractEntry test/integration/fixtures/lint-simple/my-elem.html
+260 silly gunzTarPerm extractEntry test/integration/fixtures/lint-simple/polymer.json
+261 silly gunzTarPerm extractEntry test/integration/fixtures/lint-with-error/my-elem.html
+262 silly gunzTarPerm extractEntry test/integration/fixtures/lint-with-error/polymer.json
+263 silly gunzTarPerm extractEntry test/unit/args_test.js
+264 silly gunzTarPerm extractEntry test/unit/build/load-config_test.js
+265 silly gunzTarPerm extractEntry test/unit/build/optimize_test.js
+266 silly gunzTarPerm extractEntry test/unit/commands/cli_test.js
+267 silly gunzTarPerm extractEntry test/unit/commands/help_test.js
+268 silly gunzTarPerm extractEntry test/unit/commands/init_test.js
+269 silly gunzTarPerm extractEntry test/unit/fixtures/service-worker-config.js
+270 silly gunzTarPerm extractEntry test/unit/github/github_test.js
+271 silly gunzTarPerm extractEntry test/unit/github/github-test-data/test_tarball.tgz
+272 silly gunzTarPerm extractEntry test/unit/init/application_test.js
+273 silly gunzTarPerm extractEntry test/unit/init/element_test.js
+274 silly gunzTarPerm extractEntry test/unit/init/github_test.js
+275 silly gunzTarPerm extractEntry test/unit/init/init_test.js
+276 silly gunzTarPerm extractEntry test/unit/install/install_test.js
+277 silly gunzTarPerm extractEntry tsconfig.json
+278 silly gunzTarPerm extractEntry tslint.json
+279 silly gunzTarPerm extractEntry yarn.lock
+280 silly lockFile ac6d8d93-cal-lib-node-modules-polymer-cli tar:///usr/local/lib/node_modules/polymer-cli
+281 silly lockFile ac6d8d93-cal-lib-node-modules-polymer-cli tar:///usr/local/lib/node_modules/polymer-cli
+282 silly lockFile 305d1826-pm-polymer-cli-1-3-0-package-tgz tar:///home/Esther/.npm/polymer-cli/1.3.0/package.tgz
+283 silly lockFile 305d1826-pm-polymer-cli-1-3-0-package-tgz tar:///home/Esther/.npm/polymer-cli/1.3.0/package.tgz
+284 info preinstall polymer-cli@1.3.0
+285 verbose readDependencies using package.json deps
+286 verbose readDependencies using package.json deps
+287 verbose cache add [ '@types/del@^2.2.31', null ]
+288 verbose cache add name=undefined spec="@types/del@^2.2.31" args=["@types/del@^2.2.31",null]
+289 verbose parsed url { protocol: null,
+289 verbose parsed url   slashes: null,
+289 verbose parsed url   auth: null,
+289 verbose parsed url   host: null,
+289 verbose parsed url   port: null,
+289 verbose parsed url   hostname: null,
+289 verbose parsed url   hash: null,
+289 verbose parsed url   search: null,
+289 verbose parsed url   query: null,
+289 verbose parsed url   pathname: '@types/del@^2.2.31',
+289 verbose parsed url   path: '@types/del@^2.2.31',
+289 verbose parsed url   href: '@types/del@^2.2.31' }
+290 verbose cache add name="" spec="types/del@^2.2.31" args=["","types/del@^2.2.31"]
+291 verbose parsed url { protocol: null,
+291 verbose parsed url   slashes: null,
+291 verbose parsed url   auth: null,
+291 verbose parsed url   host: null,
+291 verbose parsed url   port: null,
+291 verbose parsed url   hostname: null,
+291 verbose parsed url   hash: null,
+291 verbose parsed url   search: null,
+291 verbose parsed url   query: null,
+291 verbose parsed url   pathname: 'types/del@^2.2.31',
+291 verbose parsed url   path: 'types/del@^2.2.31',
+291 verbose parsed url   href: 'types/del@^2.2.31' }
+292 verbose cache add name="types/del" spec="^2.2.31" args=["types/del","^2.2.31"]
+293 verbose parsed url { protocol: null,
+293 verbose parsed url   slashes: null,
+293 verbose parsed url   auth: null,
+293 verbose parsed url   host: null,
+293 verbose parsed url   port: null,
+293 verbose parsed url   hostname: null,
+293 verbose parsed url   hash: null,
+293 verbose parsed url   search: null,
+293 verbose parsed url   query: null,
+293 verbose parsed url   pathname: '^2.2.31',
+293 verbose parsed url   path: '^2.2.31',
+293 verbose parsed url   href: '^2.2.31' }
+294 verbose addNamed [ 'types/del', '^2.2.31' ]
+295 verbose addNamed [ null, '>=2.2.31-0 <3.0.0-0' ]
+296 silly lockFile 72ba1aa5-types-del-2-2-31 types/del@^2.2.31
+297 verbose lock types/del@^2.2.31 /home/Esther/.npm/72ba1aa5-types-del-2-2-31.lock
+298 verbose cache add [ '@types/findup-sync@^0.3.29', null ]
+299 verbose cache add name=undefined spec="@types/findup-sync@^0.3.29" args=["@types/findup-sync@^0.3.29",null]
+300 verbose parsed url { protocol: null,
+300 verbose parsed url   slashes: null,
+300 verbose parsed url   auth: null,
+300 verbose parsed url   host: null,
+300 verbose parsed url   port: null,
+300 verbose parsed url   hostname: null,
+300 verbose parsed url   hash: null,
+300 verbose parsed url   search: null,
+300 verbose parsed url   query: null,
+300 verbose parsed url   pathname: '@types/findup-sync@^0.3.29',
+300 verbose parsed url   path: '@types/findup-sync@^0.3.29',
+300 verbose parsed url   href: '@types/findup-sync@^0.3.29' }
+301 verbose cache add name="" spec="types/findup-sync@^0.3.29" args=["","types/findup-sync@^0.3.29"]
+302 verbose parsed url { protocol: null,
+302 verbose parsed url   slashes: null,
+302 verbose parsed url   auth: null,
+302 verbose parsed url   host: null,
+302 verbose parsed url   port: null,
+302 verbose parsed url   hostname: null,
+302 verbose parsed url   hash: null,
+302 verbose parsed url   search: null,
+302 verbose parsed url   query: null,
+302 verbose parsed url   pathname: 'types/findup-sync@^0.3.29',
+302 verbose parsed url   path: 'types/findup-sync@^0.3.29',
+302 verbose parsed url   href: 'types/findup-sync@^0.3.29' }
+303 verbose cache add name="types/findup-sync" spec="^0.3.29" args=["types/findup-sync","^0.3.29"]
+304 verbose parsed url { protocol: null,
+304 verbose parsed url   slashes: null,
+304 verbose parsed url   auth: null,
+304 verbose parsed url   host: null,
+304 verbose parsed url   port: null,
+304 verbose parsed url   hostname: null,
+304 verbose parsed url   hash: null,
+304 verbose parsed url   search: null,
+304 verbose parsed url   query: null,
+304 verbose parsed url   pathname: '^0.3.29',
+304 verbose parsed url   path: '^0.3.29',
+304 verbose parsed url   href: '^0.3.29' }
+305 verbose addNamed [ 'types/findup-sync', '^0.3.29' ]
+306 verbose addNamed [ null, '>=0.3.29-0 <0.4.0-0' ]
+307 silly lockFile f053533b-types-findup-sync-0-3-29 types/findup-sync@^0.3.29
+308 verbose lock types/findup-sync@^0.3.29 /home/Esther/.npm/f053533b-types-findup-sync-0-3-29.lock
+309 verbose cache add [ '@types/gulp-if@0.0.30', null ]
+310 verbose cache add name=undefined spec="@types/gulp-if@0.0.30" args=["@types/gulp-if@0.0.30",null]
+311 verbose parsed url { protocol: null,
+311 verbose parsed url   slashes: null,
+311 verbose parsed url   auth: null,
+311 verbose parsed url   host: null,
+311 verbose parsed url   port: null,
+311 verbose parsed url   hostname: null,
+311 verbose parsed url   hash: null,
+311 verbose parsed url   search: null,
+311 verbose parsed url   query: null,
+311 verbose parsed url   pathname: '@types/gulp-if@0.0.30',
+311 verbose parsed url   path: '@types/gulp-if@0.0.30',
+311 verbose parsed url   href: '@types/gulp-if@0.0.30' }
+312 verbose cache add name="" spec="types/gulp-if@0.0.30" args=["","types/gulp-if@0.0.30"]
+313 verbose parsed url { protocol: null,
+313 verbose parsed url   slashes: null,
+313 verbose parsed url   auth: null,
+313 verbose parsed url   host: null,
+313 verbose parsed url   port: null,
+313 verbose parsed url   hostname: null,
+313 verbose parsed url   hash: null,
+313 verbose parsed url   search: null,
+313 verbose parsed url   query: null,
+313 verbose parsed url   pathname: 'types/gulp-if@0.0.30',
+313 verbose parsed url   path: 'types/gulp-if@0.0.30',
+313 verbose parsed url   href: 'types/gulp-if@0.0.30' }
+314 verbose cache add name="types/gulp-if" spec="0.0.30" args=["types/gulp-if","0.0.30"]
+315 verbose parsed url { protocol: null,
+315 verbose parsed url   slashes: null,
+315 verbose parsed url   auth: null,
+315 verbose parsed url   host: null,
+315 verbose parsed url   port: null,
+315 verbose parsed url   hostname: null,
+315 verbose parsed url   hash: null,
+315 verbose parsed url   search: null,
+315 verbose parsed url   query: null,
+315 verbose parsed url   pathname: '0.0.30',
+315 verbose parsed url   path: '0.0.30',
+315 verbose parsed url   href: '0.0.30' }
+316 verbose addNamed [ 'types/gulp-if', '0.0.30' ]
+317 verbose addNamed [ '0.0.30', '0.0.30' ]
+318 silly lockFile a7ac12d2-types-gulp-if-0-0-30 types/gulp-if@0.0.30
+319 verbose lock types/gulp-if@0.0.30 /home/Esther/.npm/a7ac12d2-types-gulp-if-0-0-30.lock
+320 verbose cache add [ '@types/html-minifier@^1.1.30', null ]
+321 verbose cache add name=undefined spec="@types/html-minifier@^1.1.30" args=["@types/html-minifier@^1.1.30",null]
+322 verbose parsed url { protocol: null,
+322 verbose parsed url   slashes: null,
+322 verbose parsed url   auth: null,
+322 verbose parsed url   host: null,
+322 verbose parsed url   port: null,
+322 verbose parsed url   hostname: null,
+322 verbose parsed url   hash: null,
+322 verbose parsed url   search: null,
+322 verbose parsed url   query: null,
+322 verbose parsed url   pathname: '@types/html-minifier@^1.1.30',
+322 verbose parsed url   path: '@types/html-minifier@^1.1.30',
+322 verbose parsed url   href: '@types/html-minifier@^1.1.30' }
+323 verbose cache add name="" spec="types/html-minifier@^1.1.30" args=["","types/html-minifier@^1.1.30"]
+324 verbose parsed url { protocol: null,
+324 verbose parsed url   slashes: null,
+324 verbose parsed url   auth: null,
+324 verbose parsed url   host: null,
+324 verbose parsed url   port: null,
+324 verbose parsed url   hostname: null,
+324 verbose parsed url   hash: null,
+324 verbose parsed url   search: null,
+324 verbose parsed url   query: null,
+324 verbose parsed url   pathname: 'types/html-minifier@^1.1.30',
+324 verbose parsed url   path: 'types/html-minifier@^1.1.30',
+324 verbose parsed url   href: 'types/html-minifier@^1.1.30' }
+325 verbose cache add name="types/html-minifier" spec="^1.1.30" args=["types/html-minifier","^1.1.30"]
+326 verbose parsed url { protocol: null,
+326 verbose parsed url   slashes: null,
+326 verbose parsed url   auth: null,
+326 verbose parsed url   host: null,
+326 verbose parsed url   port: null,
+326 verbose parsed url   hostname: null,
+326 verbose parsed url   hash: null,
+326 verbose parsed url   search: null,
+326 verbose parsed url   query: null,
+326 verbose parsed url   pathname: '^1.1.30',
+326 verbose parsed url   path: '^1.1.30',
+326 verbose parsed url   href: '^1.1.30' }
+327 verbose addNamed [ 'types/html-minifier', '^1.1.30' ]
+328 verbose addNamed [ null, '>=1.1.30-0 <2.0.0-0' ]
+329 silly lockFile 646da2c9-types-html-minifier-1-1-30 types/html-minifier@^1.1.30
+330 verbose lock types/html-minifier@^1.1.30 /home/Esther/.npm/646da2c9-types-html-minifier-1-1-30.lock
+331 verbose cache add [ '@types/inquirer@0.0.32', null ]
+332 verbose cache add name=undefined spec="@types/inquirer@0.0.32" args=["@types/inquirer@0.0.32",null]
+333 verbose parsed url { protocol: null,
+333 verbose parsed url   slashes: null,
+333 verbose parsed url   auth: null,
+333 verbose parsed url   host: null,
+333 verbose parsed url   port: null,
+333 verbose parsed url   hostname: null,
+333 verbose parsed url   hash: null,
+333 verbose parsed url   search: null,
+333 verbose parsed url   query: null,
+333 verbose parsed url   pathname: '@types/inquirer@0.0.32',
+333 verbose parsed url   path: '@types/inquirer@0.0.32',
+333 verbose parsed url   href: '@types/inquirer@0.0.32' }
+334 verbose cache add name="" spec="types/inquirer@0.0.32" args=["","types/inquirer@0.0.32"]
+335 verbose parsed url { protocol: null,
+335 verbose parsed url   slashes: null,
+335 verbose parsed url   auth: null,
+335 verbose parsed url   host: null,
+335 verbose parsed url   port: null,
+335 verbose parsed url   hostname: null,
+335 verbose parsed url   hash: null,
+335 verbose parsed url   search: null,
+335 verbose parsed url   query: null,
+335 verbose parsed url   pathname: 'types/inquirer@0.0.32',
+335 verbose parsed url   path: 'types/inquirer@0.0.32',
+335 verbose parsed url   href: 'types/inquirer@0.0.32' }
+336 verbose cache add name="types/inquirer" spec="0.0.32" args=["types/inquirer","0.0.32"]
+337 verbose parsed url { protocol: null,
+337 verbose parsed url   slashes: null,
+337 verbose parsed url   auth: null,
+337 verbose parsed url   host: null,
+337 verbose parsed url   port: null,
+337 verbose parsed url   hostname: null,
+337 verbose parsed url   hash: null,
+337 verbose parsed url   search: null,
+337 verbose parsed url   query: null,
+337 verbose parsed url   pathname: '0.0.32',
+337 verbose parsed url   path: '0.0.32',
+337 verbose parsed url   href: '0.0.32' }
+338 verbose addNamed [ 'types/inquirer', '0.0.32' ]
+339 verbose addNamed [ '0.0.32', '0.0.32' ]
+340 silly lockFile 7b7503d9-types-inquirer-0-0-32 types/inquirer@0.0.32
+341 verbose lock types/inquirer@0.0.32 /home/Esther/.npm/7b7503d9-types-inquirer-0-0-32.lock
+342 verbose cache add [ '@types/merge-stream@^1.0.28', null ]
+343 verbose cache add name=undefined spec="@types/merge-stream@^1.0.28" args=["@types/merge-stream@^1.0.28",null]
+344 verbose parsed url { protocol: null,
+344 verbose parsed url   slashes: null,
+344 verbose parsed url   auth: null,
+344 verbose parsed url   host: null,
+344 verbose parsed url   port: null,
+344 verbose parsed url   hostname: null,
+344 verbose parsed url   hash: null,
+344 verbose parsed url   search: null,
+344 verbose parsed url   query: null,
+344 verbose parsed url   pathname: '@types/merge-stream@^1.0.28',
+344 verbose parsed url   path: '@types/merge-stream@^1.0.28',
+344 verbose parsed url   href: '@types/merge-stream@^1.0.28' }
+345 verbose cache add name="" spec="types/merge-stream@^1.0.28" args=["","types/merge-stream@^1.0.28"]
+346 verbose parsed url { protocol: null,
+346 verbose parsed url   slashes: null,
+346 verbose parsed url   auth: null,
+346 verbose parsed url   host: null,
+346 verbose parsed url   port: null,
+346 verbose parsed url   hostname: null,
+346 verbose parsed url   hash: null,
+346 verbose parsed url   search: null,
+346 verbose parsed url   query: null,
+346 verbose parsed url   pathname: 'types/merge-stream@^1.0.28',
+346 verbose parsed url   path: 'types/merge-stream@^1.0.28',
+346 verbose parsed url   href: 'types/merge-stream@^1.0.28' }
+347 verbose cache add name="types/merge-stream" spec="^1.0.28" args=["types/merge-stream","^1.0.28"]
+348 verbose parsed url { protocol: null,
+348 verbose parsed url   slashes: null,
+348 verbose parsed url   auth: null,
+348 verbose parsed url   host: null,
+348 verbose parsed url   port: null,
+348 verbose parsed url   hostname: null,
+348 verbose parsed url   hash: null,
+348 verbose parsed url   search: null,
+348 verbose parsed url   query: null,
+348 verbose parsed url   pathname: '^1.0.28',
+348 verbose parsed url   path: '^1.0.28',
+348 verbose parsed url   href: '^1.0.28' }
+349 verbose addNamed [ 'types/merge-stream', '^1.0.28' ]
+350 verbose addNamed [ null, '>=1.0.28-0 <2.0.0-0' ]
+351 silly lockFile 598a39aa-types-merge-stream-1-0-28 types/merge-stream@^1.0.28
+352 verbose lock types/merge-stream@^1.0.28 /home/Esther/.npm/598a39aa-types-merge-stream-1-0-28.lock
+353 silly addNameRange { name: 'types/del',
+353 silly addNameRange   range: '>=2.2.31-0 <3.0.0-0',
+353 silly addNameRange   hasData: false }
+354 verbose cache add [ '@types/mz@^0.0.31', null ]
+355 verbose cache add name=undefined spec="@types/mz@^0.0.31" args=["@types/mz@^0.0.31",null]
+356 verbose parsed url { protocol: null,
+356 verbose parsed url   slashes: null,
+356 verbose parsed url   auth: null,
+356 verbose parsed url   host: null,
+356 verbose parsed url   port: null,
+356 verbose parsed url   hostname: null,
+356 verbose parsed url   hash: null,
+356 verbose parsed url   search: null,
+356 verbose parsed url   query: null,
+356 verbose parsed url   pathname: '@types/mz@^0.0.31',
+356 verbose parsed url   path: '@types/mz@^0.0.31',
+356 verbose parsed url   href: '@types/mz@^0.0.31' }
+357 verbose cache add name="" spec="types/mz@^0.0.31" args=["","types/mz@^0.0.31"]
+358 verbose parsed url { protocol: null,
+358 verbose parsed url   slashes: null,
+358 verbose parsed url   auth: null,
+358 verbose parsed url   host: null,
+358 verbose parsed url   port: null,
+358 verbose parsed url   hostname: null,
+358 verbose parsed url   hash: null,
+358 verbose parsed url   search: null,
+358 verbose parsed url   query: null,
+358 verbose parsed url   pathname: 'types/mz@^0.0.31',
+358 verbose parsed url   path: 'types/mz@^0.0.31',
+358 verbose parsed url   href: 'types/mz@^0.0.31' }
+359 verbose cache add name="types/mz" spec="^0.0.31" args=["types/mz","^0.0.31"]
+360 verbose parsed url { protocol: null,
+360 verbose parsed url   slashes: null,
+360 verbose parsed url   auth: null,
+360 verbose parsed url   host: null,
+360 verbose parsed url   port: null,
+360 verbose parsed url   hostname: null,
+360 verbose parsed url   hash: null,
+360 verbose parsed url   search: null,
+360 verbose parsed url   query: null,
+360 verbose parsed url   pathname: '^0.0.31',
+360 verbose parsed url   path: '^0.0.31',
+360 verbose parsed url   href: '^0.0.31' }
+361 verbose addNamed [ 'types/mz', '^0.0.31' ]
+362 verbose addNamed [ null, '=0.0.31' ]
+363 silly lockFile fd45669a-types-mz-0-0-31 types/mz@^0.0.31
+364 verbose lock types/mz@^0.0.31 /home/Esther/.npm/fd45669a-types-mz-0-0-31.lock
+365 verbose cache add [ '@types/request@0.0.39', null ]
+366 verbose cache add name=undefined spec="@types/request@0.0.39" args=["@types/request@0.0.39",null]
+367 verbose parsed url { protocol: null,
+367 verbose parsed url   slashes: null,
+367 verbose parsed url   auth: null,
+367 verbose parsed url   host: null,
+367 verbose parsed url   port: null,
+367 verbose parsed url   hostname: null,
+367 verbose parsed url   hash: null,
+367 verbose parsed url   search: null,
+367 verbose parsed url   query: null,
+367 verbose parsed url   pathname: '@types/request@0.0.39',
+367 verbose parsed url   path: '@types/request@0.0.39',
+367 verbose parsed url   href: '@types/request@0.0.39' }
+368 verbose cache add name="" spec="types/request@0.0.39" args=["","types/request@0.0.39"]
+369 verbose parsed url { protocol: null,
+369 verbose parsed url   slashes: null,
+369 verbose parsed url   auth: null,
+369 verbose parsed url   host: null,
+369 verbose parsed url   port: null,
+369 verbose parsed url   hostname: null,
+369 verbose parsed url   hash: null,
+369 verbose parsed url   search: null,
+369 verbose parsed url   query: null,
+369 verbose parsed url   pathname: 'types/request@0.0.39',
+369 verbose parsed url   path: 'types/request@0.0.39',
+369 verbose parsed url   href: 'types/request@0.0.39' }
+370 verbose cache add name="types/request" spec="0.0.39" args=["types/request","0.0.39"]
+371 verbose parsed url { protocol: null,
+371 verbose parsed url   slashes: null,
+371 verbose parsed url   auth: null,
+371 verbose parsed url   host: null,
+371 verbose parsed url   port: null,
+371 verbose parsed url   hostname: null,
+371 verbose parsed url   hash: null,
+371 verbose parsed url   search: null,
+371 verbose parsed url   query: null,
+371 verbose parsed url   pathname: '0.0.39',
+371 verbose parsed url   path: '0.0.39',
+371 verbose parsed url   href: '0.0.39' }
+372 verbose addNamed [ 'types/request', '0.0.39' ]
+373 verbose addNamed [ '0.0.39', '0.0.39' ]
+374 silly lockFile efe3330e-types-request-0-0-39 types/request@0.0.39
+375 verbose lock types/request@0.0.39 /home/Esther/.npm/efe3330e-types-request-0-0-39.lock
+376 verbose cache add [ '@types/resolve@0.0.4', null ]
+377 verbose cache add name=undefined spec="@types/resolve@0.0.4" args=["@types/resolve@0.0.4",null]
+378 verbose parsed url { protocol: null,
+378 verbose parsed url   slashes: null,
+378 verbose parsed url   auth: null,
+378 verbose parsed url   host: null,
+378 verbose parsed url   port: null,
+378 verbose parsed url   hostname: null,
+378 verbose parsed url   hash: null,
+378 verbose parsed url   search: null,
+378 verbose parsed url   query: null,
+378 verbose parsed url   pathname: '@types/resolve@0.0.4',
+378 verbose parsed url   path: '@types/resolve@0.0.4',
+378 verbose parsed url   href: '@types/resolve@0.0.4' }
+379 verbose cache add name="" spec="types/resolve@0.0.4" args=["","types/resolve@0.0.4"]
+380 verbose parsed url { protocol: null,
+380 verbose parsed url   slashes: null,
+380 verbose parsed url   auth: null,
+380 verbose parsed url   host: null,
+380 verbose parsed url   port: null,
+380 verbose parsed url   hostname: null,
+380 verbose parsed url   hash: null,
+380 verbose parsed url   search: null,
+380 verbose parsed url   query: null,
+380 verbose parsed url   pathname: 'types/resolve@0.0.4',
+380 verbose parsed url   path: 'types/resolve@0.0.4',
+380 verbose parsed url   href: 'types/resolve@0.0.4' }
+381 verbose cache add name="types/resolve" spec="0.0.4" args=["types/resolve","0.0.4"]
+382 verbose parsed url { protocol: null,
+382 verbose parsed url   slashes: null,
+382 verbose parsed url   auth: null,
+382 verbose parsed url   host: null,
+382 verbose parsed url   port: null,
+382 verbose parsed url   hostname: null,
+382 verbose parsed url   hash: null,
+382 verbose parsed url   search: null,
+382 verbose parsed url   query: null,
+382 verbose parsed url   pathname: '0.0.4',
+382 verbose parsed url   path: '0.0.4',
+382 verbose parsed url   href: '0.0.4' }
+383 verbose addNamed [ 'types/resolve', '0.0.4' ]
+384 verbose addNamed [ '0.0.4', '0.0.4' ]
+385 silly lockFile b96cd213-types-resolve-0-0-4 types/resolve@0.0.4
+386 verbose lock types/resolve@0.0.4 /home/Esther/.npm/b96cd213-types-resolve-0-0-4.lock
+387 verbose cache add [ '@types/rimraf@^0.0.28', null ]
+388 verbose cache add name=undefined spec="@types/rimraf@^0.0.28" args=["@types/rimraf@^0.0.28",null]
+389 verbose parsed url { protocol: null,
+389 verbose parsed url   slashes: null,
+389 verbose parsed url   auth: null,
+389 verbose parsed url   host: null,
+389 verbose parsed url   port: null,
+389 verbose parsed url   hostname: null,
+389 verbose parsed url   hash: null,
+389 verbose parsed url   search: null,
+389 verbose parsed url   query: null,
+389 verbose parsed url   pathname: '@types/rimraf@^0.0.28',
+389 verbose parsed url   path: '@types/rimraf@^0.0.28',
+389 verbose parsed url   href: '@types/rimraf@^0.0.28' }
+390 verbose cache add name="" spec="types/rimraf@^0.0.28" args=["","types/rimraf@^0.0.28"]
+391 verbose parsed url { protocol: null,
+391 verbose parsed url   slashes: null,
+391 verbose parsed url   auth: null,
+391 verbose parsed url   host: null,
+391 verbose parsed url   port: null,
+391 verbose parsed url   hostname: null,
+391 verbose parsed url   hash: null,
+391 verbose parsed url   search: null,
+391 verbose parsed url   query: null,
+391 verbose parsed url   pathname: 'types/rimraf@^0.0.28',
+391 verbose parsed url   path: 'types/rimraf@^0.0.28',
+391 verbose parsed url   href: 'types/rimraf@^0.0.28' }
+392 verbose cache add name="types/rimraf" spec="^0.0.28" args=["types/rimraf","^0.0.28"]
+393 verbose parsed url { protocol: null,
+393 verbose parsed url   slashes: null,
+393 verbose parsed url   auth: null,
+393 verbose parsed url   host: null,
+393 verbose parsed url   port: null,
+393 verbose parsed url   hostname: null,
+393 verbose parsed url   hash: null,
+393 verbose parsed url   search: null,
+393 verbose parsed url   query: null,
+393 verbose parsed url   pathname: '^0.0.28',
+393 verbose parsed url   path: '^0.0.28',
+393 verbose parsed url   href: '^0.0.28' }
+394 verbose addNamed [ 'types/rimraf', '^0.0.28' ]
+395 verbose addNamed [ null, '=0.0.28' ]
+396 silly lockFile 56eb1d15-types-rimraf-0-0-28 types/rimraf@^0.0.28
+397 verbose lock types/rimraf@^0.0.28 /home/Esther/.npm/56eb1d15-types-rimraf-0-0-28.lock
+398 verbose cache add [ '@types/semver@^5.3.30', null ]
+399 verbose cache add name=undefined spec="@types/semver@^5.3.30" args=["@types/semver@^5.3.30",null]
+400 verbose parsed url { protocol: null,
+400 verbose parsed url   slashes: null,
+400 verbose parsed url   auth: null,
+400 verbose parsed url   host: null,
+400 verbose parsed url   port: null,
+400 verbose parsed url   hostname: null,
+400 verbose parsed url   hash: null,
+400 verbose parsed url   search: null,
+400 verbose parsed url   query: null,
+400 verbose parsed url   pathname: '@types/semver@^5.3.30',
+400 verbose parsed url   path: '@types/semver@^5.3.30',
+400 verbose parsed url   href: '@types/semver@^5.3.30' }
+401 verbose cache add name="" spec="types/semver@^5.3.30" args=["","types/semver@^5.3.30"]
+402 verbose parsed url { protocol: null,
+402 verbose parsed url   slashes: null,
+402 verbose parsed url   auth: null,
+402 verbose parsed url   host: null,
+402 verbose parsed url   port: null,
+402 verbose parsed url   hostname: null,
+402 verbose parsed url   hash: null,
+402 verbose parsed url   search: null,
+402 verbose parsed url   query: null,
+402 verbose parsed url   pathname: 'types/semver@^5.3.30',
+402 verbose parsed url   path: 'types/semver@^5.3.30',
+402 verbose parsed url   href: 'types/semver@^5.3.30' }
+403 verbose cache add name="types/semver" spec="^5.3.30" args=["types/semver","^5.3.30"]
+404 verbose parsed url { protocol: null,
+404 verbose parsed url   slashes: null,
+404 verbose parsed url   auth: null,
+404 verbose parsed url   host: null,
+404 verbose parsed url   port: null,
+404 verbose parsed url   hostname: null,
+404 verbose parsed url   hash: null,
+404 verbose parsed url   search: null,
+404 verbose parsed url   query: null,
+404 verbose parsed url   pathname: '^5.3.30',
+404 verbose parsed url   path: '^5.3.30',
+404 verbose parsed url   href: '^5.3.30' }
+405 verbose addNamed [ 'types/semver', '^5.3.30' ]
+406 verbose addNamed [ null, '>=5.3.30-0 <6.0.0-0' ]
+407 silly lockFile 6e9c0cd8-types-semver-5-3-30 types/semver@^5.3.30
+408 verbose lock types/semver@^5.3.30 /home/Esther/.npm/6e9c0cd8-types-semver-5-3-30.lock
+409 silly addNameRange { name: 'types/findup-sync',
+409 silly addNameRange   range: '>=0.3.29-0 <0.4.0-0',
+409 silly addNameRange   hasData: false }
+410 silly addNameRange { name: 'types/html-minifier',
+410 silly addNameRange   range: '>=1.1.30-0 <2.0.0-0',
+410 silly addNameRange   hasData: false }
+411 verbose url raw types/del
+412 verbose url resolving [ 'https://registry.npmjs.org/', './types/del' ]
+413 verbose url resolved https://registry.npmjs.org/types/del
+414 info trying registry request attempt 1 at 15:19:34
+415 http GET https://registry.npmjs.org/types/del
+416 verbose cache add [ '@types/temp@^0.8.28', null ]
+417 verbose cache add name=undefined spec="@types/temp@^0.8.28" args=["@types/temp@^0.8.28",null]
+418 verbose parsed url { protocol: null,
+418 verbose parsed url   slashes: null,
+418 verbose parsed url   auth: null,
+418 verbose parsed url   host: null,
+418 verbose parsed url   port: null,
+418 verbose parsed url   hostname: null,
+418 verbose parsed url   hash: null,
+418 verbose parsed url   search: null,
+418 verbose parsed url   query: null,
+418 verbose parsed url   pathname: '@types/temp@^0.8.28',
+418 verbose parsed url   path: '@types/temp@^0.8.28',
+418 verbose parsed url   href: '@types/temp@^0.8.28' }
+419 verbose cache add name="" spec="types/temp@^0.8.28" args=["","types/temp@^0.8.28"]
+420 verbose parsed url { protocol: null,
+420 verbose parsed url   slashes: null,
+420 verbose parsed url   auth: null,
+420 verbose parsed url   host: null,
+420 verbose parsed url   port: null,
+420 verbose parsed url   hostname: null,
+420 verbose parsed url   hash: null,
+420 verbose parsed url   search: null,
+420 verbose parsed url   query: null,
+420 verbose parsed url   pathname: 'types/temp@^0.8.28',
+420 verbose parsed url   path: 'types/temp@^0.8.28',
+420 verbose parsed url   href: 'types/temp@^0.8.28' }
+421 verbose cache add name="types/temp" spec="^0.8.28" args=["types/temp","^0.8.28"]
+422 verbose parsed url { protocol: null,
+422 verbose parsed url   slashes: null,
+422 verbose parsed url   auth: null,
+422 verbose parsed url   host: null,
+422 verbose parsed url   port: null,
+422 verbose parsed url   hostname: null,
+422 verbose parsed url   hash: null,
+422 verbose parsed url   search: null,
+422 verbose parsed url   query: null,
+422 verbose parsed url   pathname: '^0.8.28',
+422 verbose parsed url   path: '^0.8.28',
+422 verbose parsed url   href: '^0.8.28' }
+423 verbose addNamed [ 'types/temp', '^0.8.28' ]
+424 verbose addNamed [ null, '>=0.8.28-0 <0.9.0-0' ]
+425 silly lockFile c3bcc649-types-temp-0-8-28 types/temp@^0.8.28
+426 verbose lock types/temp@^0.8.28 /home/Esther/.npm/c3bcc649-types-temp-0-8-28.lock
+427 verbose cache add [ '@types/update-notifier@^1.0.0', null ]
+428 verbose cache add name=undefined spec="@types/update-notifier@^1.0.0" args=["@types/update-notifier@^1.0.0",null]
+429 verbose parsed url { protocol: null,
+429 verbose parsed url   slashes: null,
+429 verbose parsed url   auth: null,
+429 verbose parsed url   host: null,
+429 verbose parsed url   port: null,
+429 verbose parsed url   hostname: null,
+429 verbose parsed url   hash: null,
+429 verbose parsed url   search: null,
+429 verbose parsed url   query: null,
+429 verbose parsed url   pathname: '@types/update-notifier@^1.0.0',
+429 verbose parsed url   path: '@types/update-notifier@^1.0.0',
+429 verbose parsed url   href: '@types/update-notifier@^1.0.0' }
+430 verbose cache add name="" spec="types/update-notifier@^1.0.0" args=["","types/update-notifier@^1.0.0"]
+431 verbose parsed url { protocol: null,
+431 verbose parsed url   slashes: null,
+431 verbose parsed url   auth: null,
+431 verbose parsed url   host: null,
+431 verbose parsed url   port: null,
+431 verbose parsed url   hostname: null,
+431 verbose parsed url   hash: null,
+431 verbose parsed url   search: null,
+431 verbose parsed url   query: null,
+431 verbose parsed url   pathname: 'types/update-notifier@^1.0.0',
+431 verbose parsed url   path: 'types/update-notifier@^1.0.0',
+431 verbose parsed url   href: 'types/update-notifier@^1.0.0' }
+432 verbose cache add name="types/update-notifier" spec="^1.0.0" args=["types/update-notifier","^1.0.0"]
+433 verbose parsed url { protocol: null,
+433 verbose parsed url   slashes: null,
+433 verbose parsed url   auth: null,
+433 verbose parsed url   host: null,
+433 verbose parsed url   port: null,
+433 verbose parsed url   hostname: null,
+433 verbose parsed url   hash: null,
+433 verbose parsed url   search: null,
+433 verbose parsed url   query: null,
+433 verbose parsed url   pathname: '^1.0.0',
+433 verbose parsed url   path: '^1.0.0',
+433 verbose parsed url   href: '^1.0.0' }
+434 verbose addNamed [ 'types/update-notifier', '^1.0.0' ]
+435 verbose addNamed [ null, '>=1.0.0-0 <2.0.0-0' ]
+436 silly lockFile ab023771-types-update-notifier-1-0-0 types/update-notifier@^1.0.0
+437 verbose lock types/update-notifier@^1.0.0 /home/Esther/.npm/ab023771-types-update-notifier-1-0-0.lock
+438 verbose cache add [ '@types/vinyl@^2.0.0', null ]
+439 verbose cache add name=undefined spec="@types/vinyl@^2.0.0" args=["@types/vinyl@^2.0.0",null]
+440 verbose parsed url { protocol: null,
+440 verbose parsed url   slashes: null,
+440 verbose parsed url   auth: null,
+440 verbose parsed url   host: null,
+440 verbose parsed url   port: null,
+440 verbose parsed url   hostname: null,
+440 verbose parsed url   hash: null,
+440 verbose parsed url   search: null,
+440 verbose parsed url   query: null,
+440 verbose parsed url   pathname: '@types/vinyl@^2.0.0',
+440 verbose parsed url   path: '@types/vinyl@^2.0.0',
+440 verbose parsed url   href: '@types/vinyl@^2.0.0' }
+441 verbose cache add name="" spec="types/vinyl@^2.0.0" args=["","types/vinyl@^2.0.0"]
+442 verbose parsed url { protocol: null,
+442 verbose parsed url   slashes: null,
+442 verbose parsed url   auth: null,
+442 verbose parsed url   host: null,
+442 verbose parsed url   port: null,
+442 verbose parsed url   hostname: null,
+442 verbose parsed url   hash: null,
+442 verbose parsed url   search: null,
+442 verbose parsed url   query: null,
+442 verbose parsed url   pathname: 'types/vinyl@^2.0.0',
+442 verbose parsed url   path: 'types/vinyl@^2.0.0',
+442 verbose parsed url   href: 'types/vinyl@^2.0.0' }
+443 verbose cache add name="types/vinyl" spec="^2.0.0" args=["types/vinyl","^2.0.0"]
+444 verbose parsed url { protocol: null,
+444 verbose parsed url   slashes: null,
+444 verbose parsed url   auth: null,
+444 verbose parsed url   host: null,
+444 verbose parsed url   port: null,
+444 verbose parsed url   hostname: null,
+444 verbose parsed url   hash: null,
+444 verbose parsed url   search: null,
+444 verbose parsed url   query: null,
+444 verbose parsed url   pathname: '^2.0.0',
+444 verbose parsed url   path: '^2.0.0',
+444 verbose parsed url   href: '^2.0.0' }
+445 verbose addNamed [ 'types/vinyl', '^2.0.0' ]
+446 verbose addNamed [ null, '>=2.0.0-0 <3.0.0-0' ]
+447 silly lockFile 73151866-types-vinyl-2-0-0 types/vinyl@^2.0.0
+448 verbose lock types/vinyl@^2.0.0 /home/Esther/.npm/73151866-types-vinyl-2-0-0.lock
+449 verbose cache add [ '@types/vinyl-fs@0.0.28', null ]
+450 verbose cache add name=undefined spec="@types/vinyl-fs@0.0.28" args=["@types/vinyl-fs@0.0.28",null]
+451 verbose parsed url { protocol: null,
+451 verbose parsed url   slashes: null,
+451 verbose parsed url   auth: null,
+451 verbose parsed url   host: null,
+451 verbose parsed url   port: null,
+451 verbose parsed url   hostname: null,
+451 verbose parsed url   hash: null,
+451 verbose parsed url   search: null,
+451 verbose parsed url   query: null,
+451 verbose parsed url   pathname: '@types/vinyl-fs@0.0.28',
+451 verbose parsed url   path: '@types/vinyl-fs@0.0.28',
+451 verbose parsed url   href: '@types/vinyl-fs@0.0.28' }
+452 verbose cache add name="" spec="types/vinyl-fs@0.0.28" args=["","types/vinyl-fs@0.0.28"]
+453 verbose parsed url { protocol: null,
+453 verbose parsed url   slashes: null,
+453 verbose parsed url   auth: null,
+453 verbose parsed url   host: null,
+453 verbose parsed url   port: null,
+453 verbose parsed url   hostname: null,
+453 verbose parsed url   hash: null,
+453 verbose parsed url   search: null,
+453 verbose parsed url   query: null,
+453 verbose parsed url   pathname: 'types/vinyl-fs@0.0.28',
+453 verbose parsed url   path: 'types/vinyl-fs@0.0.28',
+453 verbose parsed url   href: 'types/vinyl-fs@0.0.28' }
+454 verbose cache add name="types/vinyl-fs" spec="0.0.28" args=["types/vinyl-fs","0.0.28"]
+455 verbose parsed url { protocol: null,
+455 verbose parsed url   slashes: null,
+455 verbose parsed url   auth: null,
+455 verbose parsed url   host: null,
+455 verbose parsed url   port: null,
+455 verbose parsed url   hostname: null,
+455 verbose parsed url   hash: null,
+455 verbose parsed url   search: null,
+455 verbose parsed url   query: null,
+455 verbose parsed url   pathname: '0.0.28',
+455 verbose parsed url   path: '0.0.28',
+455 verbose parsed url   href: '0.0.28' }
+456 verbose addNamed [ 'types/vinyl-fs', '0.0.28' ]
+457 verbose addNamed [ '0.0.28', '0.0.28' ]
+458 silly lockFile e9b27305-types-vinyl-fs-0-0-28 types/vinyl-fs@0.0.28
+459 verbose lock types/vinyl-fs@0.0.28 /home/Esther/.npm/e9b27305-types-vinyl-fs-0-0-28.lock
+460 verbose cache add [ '@types/yeoman-generator@^1.0.0', null ]
+461 verbose cache add name=undefined spec="@types/yeoman-generator@^1.0.0" args=["@types/yeoman-generator@^1.0.0",null]
+462 verbose parsed url { protocol: null,
+462 verbose parsed url   slashes: null,
+462 verbose parsed url   auth: null,
+462 verbose parsed url   host: null,
+462 verbose parsed url   port: null,
+462 verbose parsed url   hostname: null,
+462 verbose parsed url   hash: null,
+462 verbose parsed url   search: null,
+462 verbose parsed url   query: null,
+462 verbose parsed url   pathname: '@types/yeoman-generator@^1.0.0',
+462 verbose parsed url   path: '@types/yeoman-generator@^1.0.0',
+462 verbose parsed url   href: '@types/yeoman-generator@^1.0.0' }
+463 verbose cache add name="" spec="types/yeoman-generator@^1.0.0" args=["","types/yeoman-generator@^1.0.0"]
+464 verbose parsed url { protocol: null,
+464 verbose parsed url   slashes: null,
+464 verbose parsed url   auth: null,
+464 verbose parsed url   host: null,
+464 verbose parsed url   port: null,
+464 verbose parsed url   hostname: null,
+464 verbose parsed url   hash: null,
+464 verbose parsed url   search: null,
+464 verbose parsed url   query: null,
+464 verbose parsed url   pathname: 'types/yeoman-generator@^1.0.0',
+464 verbose parsed url   path: 'types/yeoman-generator@^1.0.0',
+464 verbose parsed url   href: 'types/yeoman-generator@^1.0.0' }
+465 verbose cache add name="types/yeoman-generator" spec="^1.0.0" args=["types/yeoman-generator","^1.0.0"]
+466 verbose parsed url { protocol: null,
+466 verbose parsed url   slashes: null,
+466 verbose parsed url   auth: null,
+466 verbose parsed url   host: null,
+466 verbose parsed url   port: null,
+466 verbose parsed url   hostname: null,
+466 verbose parsed url   hash: null,
+466 verbose parsed url   search: null,
+466 verbose parsed url   query: null,
+466 verbose parsed url   pathname: '^1.0.0',
+466 verbose parsed url   path: '^1.0.0',
+466 verbose parsed url   href: '^1.0.0' }
+467 verbose addNamed [ 'types/yeoman-generator', '^1.0.0' ]
+468 verbose addNamed [ null, '>=1.0.0-0 <2.0.0-0' ]
+469 silly lockFile 74d8bcdd-types-yeoman-generator-1-0-0 types/yeoman-generator@^1.0.0
+470 verbose lock types/yeoman-generator@^1.0.0 /home/Esther/.npm/74d8bcdd-types-yeoman-generator-1-0-0.lock
+471 verbose cache add [ 'babel-core@^6.24.1', null ]
+472 verbose cache add name=undefined spec="babel-core@^6.24.1" args=["babel-core@^6.24.1",null]
+473 verbose parsed url { protocol: null,
+473 verbose parsed url   slashes: null,
+473 verbose parsed url   auth: null,
+473 verbose parsed url   host: null,
+473 verbose parsed url   port: null,
+473 verbose parsed url   hostname: null,
+473 verbose parsed url   hash: null,
+473 verbose parsed url   search: null,
+473 verbose parsed url   query: null,
+473 verbose parsed url   pathname: 'babel-core@^6.24.1',
+473 verbose parsed url   path: 'babel-core@^6.24.1',
+473 verbose parsed url   href: 'babel-core@^6.24.1' }
+474 verbose cache add name="babel-core" spec="^6.24.1" args=["babel-core","^6.24.1"]
+475 verbose parsed url { protocol: null,
+475 verbose parsed url   slashes: null,
+475 verbose parsed url   auth: null,
+475 verbose parsed url   host: null,
+475 verbose parsed url   port: null,
+475 verbose parsed url   hostname: null,
+475 verbose parsed url   hash: null,
+475 verbose parsed url   search: null,
+475 verbose parsed url   query: null,
+475 verbose parsed url   pathname: '^6.24.1',
+475 verbose parsed url   path: '^6.24.1',
+475 verbose parsed url   href: '^6.24.1' }
+476 verbose addNamed [ 'babel-core', '^6.24.1' ]
+477 verbose addNamed [ null, '>=6.24.1-0 <7.0.0-0' ]
+478 silly lockFile 0798fb0d-babel-core-6-24-1 babel-core@^6.24.1
+479 verbose lock babel-core@^6.24.1 /home/Esther/.npm/0798fb0d-babel-core-6-24-1.lock
+480 verbose cache add [ 'babel-plugin-external-helpers@^6.22.0', null ]
+481 verbose cache add name=undefined spec="babel-plugin-external-helpers@^6.22.0" args=["babel-plugin-external-helpers@^6.22.0",null]
+482 verbose parsed url { protocol: null,
+482 verbose parsed url   slashes: null,
+482 verbose parsed url   auth: null,
+482 verbose parsed url   host: null,
+482 verbose parsed url   port: null,
+482 verbose parsed url   hostname: null,
+482 verbose parsed url   hash: null,
+482 verbose parsed url   search: null,
+482 verbose parsed url   query: null,
+482 verbose parsed url   pathname: 'babel-plugin-external-helpers@^6.22.0',
+482 verbose parsed url   path: 'babel-plugin-external-helpers@^6.22.0',
+482 verbose parsed url   href: 'babel-plugin-external-helpers@^6.22.0' }
+483 verbose cache add name="babel-plugin-external-helpers" spec="^6.22.0" args=["babel-plugin-external-helpers","^6.22.0"]
+484 verbose parsed url { protocol: null,
+484 verbose parsed url   slashes: null,
+484 verbose parsed url   auth: null,
+484 verbose parsed url   host: null,
+484 verbose parsed url   port: null,
+484 verbose parsed url   hostname: null,
+484 verbose parsed url   hash: null,
+484 verbose parsed url   search: null,
+484 verbose parsed url   query: null,
+484 verbose parsed url   pathname: '^6.22.0',
+484 verbose parsed url   path: '^6.22.0',
+484 verbose parsed url   href: '^6.22.0' }
+485 verbose addNamed [ 'babel-plugin-external-helpers', '^6.22.0' ]
+486 verbose addNamed [ null, '>=6.22.0-0 <7.0.0-0' ]
+487 silly lockFile 365d2af8-l-plugin-external-helpers-6-22-0 babel-plugin-external-helpers@^6.22.0
+488 verbose lock babel-plugin-external-helpers@^6.22.0 /home/Esther/.npm/365d2af8-l-plugin-external-helpers-6-22-0.lock
+489 verbose cache add [ 'babel-preset-babili@0.0.10', null ]
+490 verbose cache add name=undefined spec="babel-preset-babili@0.0.10" args=["babel-preset-babili@0.0.10",null]
+491 verbose parsed url { protocol: null,
+491 verbose parsed url   slashes: null,
+491 verbose parsed url   auth: null,
+491 verbose parsed url   host: null,
+491 verbose parsed url   port: null,
+491 verbose parsed url   hostname: null,
+491 verbose parsed url   hash: null,
+491 verbose parsed url   search: null,
+491 verbose parsed url   query: null,
+491 verbose parsed url   pathname: 'babel-preset-babili@0.0.10',
+491 verbose parsed url   path: 'babel-preset-babili@0.0.10',
+491 verbose parsed url   href: 'babel-preset-babili@0.0.10' }
+492 verbose cache add name="babel-preset-babili" spec="0.0.10" args=["babel-preset-babili","0.0.10"]
+493 verbose parsed url { protocol: null,
+493 verbose parsed url   slashes: null,
+493 verbose parsed url   auth: null,
+493 verbose parsed url   host: null,
+493 verbose parsed url   port: null,
+493 verbose parsed url   hostname: null,
+493 verbose parsed url   hash: null,
+493 verbose parsed url   search: null,
+493 verbose parsed url   query: null,
+493 verbose parsed url   pathname: '0.0.10',
+493 verbose parsed url   path: '0.0.10',
+493 verbose parsed url   href: '0.0.10' }
+494 verbose addNamed [ 'babel-preset-babili', '0.0.10' ]
+495 verbose addNamed [ '0.0.10', '0.0.10' ]
+496 silly lockFile 787254fc-babel-preset-babili-0-0-10 babel-preset-babili@0.0.10
+497 verbose lock babel-preset-babili@0.0.10 /home/Esther/.npm/787254fc-babel-preset-babili-0-0-10.lock
+498 verbose cache add [ 'babel-preset-es2015@^6.18.0', null ]
+499 verbose cache add name=undefined spec="babel-preset-es2015@^6.18.0" args=["babel-preset-es2015@^6.18.0",null]
+500 verbose parsed url { protocol: null,
+500 verbose parsed url   slashes: null,
+500 verbose parsed url   auth: null,
+500 verbose parsed url   host: null,
+500 verbose parsed url   port: null,
+500 verbose parsed url   hostname: null,
+500 verbose parsed url   hash: null,
+500 verbose parsed url   search: null,
+500 verbose parsed url   query: null,
+500 verbose parsed url   pathname: 'babel-preset-es2015@^6.18.0',
+500 verbose parsed url   path: 'babel-preset-es2015@^6.18.0',
+500 verbose parsed url   href: 'babel-preset-es2015@^6.18.0' }
+501 verbose cache add name="babel-preset-es2015" spec="^6.18.0" args=["babel-preset-es2015","^6.18.0"]
+502 verbose parsed url { protocol: null,
+502 verbose parsed url   slashes: null,
+502 verbose parsed url   auth: null,
+502 verbose parsed url   host: null,
+502 verbose parsed url   port: null,
+502 verbose parsed url   hostname: null,
+502 verbose parsed url   hash: null,
+502 verbose parsed url   search: null,
+502 verbose parsed url   query: null,
+502 verbose parsed url   pathname: '^6.18.0',
+502 verbose parsed url   path: '^6.18.0',
+502 verbose parsed url   href: '^6.18.0' }
+503 verbose addNamed [ 'babel-preset-es2015', '^6.18.0' ]
+504 verbose addNamed [ null, '>=6.18.0-0 <7.0.0-0' ]
+505 silly lockFile ec156dd6-babel-preset-es2015-6-18-0 babel-preset-es2015@^6.18.0
+506 verbose lock babel-preset-es2015@^6.18.0 /home/Esther/.npm/ec156dd6-babel-preset-es2015-6-18-0.lock
+507 verbose cache add [ 'bower@1.8.0', null ]
+508 verbose cache add name=undefined spec="bower@1.8.0" args=["bower@1.8.0",null]
+509 verbose parsed url { protocol: null,
+509 verbose parsed url   slashes: null,
+509 verbose parsed url   auth: null,
+509 verbose parsed url   host: null,
+509 verbose parsed url   port: null,
+509 verbose parsed url   hostname: null,
+509 verbose parsed url   hash: null,
+509 verbose parsed url   search: null,
+509 verbose parsed url   query: null,
+509 verbose parsed url   pathname: 'bower@1.8.0',
+509 verbose parsed url   path: 'bower@1.8.0',
+509 verbose parsed url   href: 'bower@1.8.0' }
+510 verbose cache add name="bower" spec="1.8.0" args=["bower","1.8.0"]
+511 verbose parsed url { protocol: null,
+511 verbose parsed url   slashes: null,
+511 verbose parsed url   auth: null,
+511 verbose parsed url   host: null,
+511 verbose parsed url   port: null,
+511 verbose parsed url   hostname: null,
+511 verbose parsed url   hash: null,
+511 verbose parsed url   search: null,
+511 verbose parsed url   query: null,
+511 verbose parsed url   pathname: '1.8.0',
+511 verbose parsed url   path: '1.8.0',
+511 verbose parsed url   href: '1.8.0' }
+512 verbose addNamed [ 'bower', '1.8.0' ]
+513 verbose addNamed [ '1.8.0', '1.8.0' ]
+514 silly lockFile 8d20daf9-bower-1-8-0 bower@1.8.0
+515 verbose lock bower@1.8.0 /home/Esther/.npm/8d20daf9-bower-1-8-0.lock
+516 verbose cache add [ 'bower-json@^0.8.1', null ]
+517 verbose cache add name=undefined spec="bower-json@^0.8.1" args=["bower-json@^0.8.1",null]
+518 verbose parsed url { protocol: null,
+518 verbose parsed url   slashes: null,
+518 verbose parsed url   auth: null,
+518 verbose parsed url   host: null,
+518 verbose parsed url   port: null,
+518 verbose parsed url   hostname: null,
+518 verbose parsed url   hash: null,
+518 verbose parsed url   search: null,
+518 verbose parsed url   query: null,
+518 verbose parsed url   pathname: 'bower-json@^0.8.1',
+518 verbose parsed url   path: 'bower-json@^0.8.1',
+518 verbose parsed url   href: 'bower-json@^0.8.1' }
+519 verbose cache add name="bower-json" spec="^0.8.1" args=["bower-json","^0.8.1"]
+520 verbose parsed url { protocol: null,
+520 verbose parsed url   slashes: null,
+520 verbose parsed url   auth: null,
+520 verbose parsed url   host: null,
+520 verbose parsed url   port: null,
+520 verbose parsed url   hostname: null,
+520 verbose parsed url   hash: null,
+520 verbose parsed url   search: null,
+520 verbose parsed url   query: null,
+520 verbose parsed url   pathname: '^0.8.1',
+520 verbose parsed url   path: '^0.8.1',
+520 verbose parsed url   href: '^0.8.1' }
+521 verbose addNamed [ 'bower-json', '^0.8.1' ]
+522 verbose addNamed [ null, '>=0.8.1-0 <0.9.0-0' ]
+523 silly lockFile 892099f4-bower-json-0-8-1 bower-json@^0.8.1
+524 verbose lock bower-json@^0.8.1 /home/Esther/.npm/892099f4-bower-json-0-8-1.lock
+525 verbose cache add [ 'bower-logger@^0.2.2', null ]
+526 verbose cache add name=undefined spec="bower-logger@^0.2.2" args=["bower-logger@^0.2.2",null]
+527 verbose parsed url { protocol: null,
+527 verbose parsed url   slashes: null,
+527 verbose parsed url   auth: null,
+527 verbose parsed url   host: null,
+527 verbose parsed url   port: null,
+527 verbose parsed url   hostname: null,
+527 verbose parsed url   hash: null,
+527 verbose parsed url   search: null,
+527 verbose parsed url   query: null,
+527 verbose parsed url   pathname: 'bower-logger@^0.2.2',
+527 verbose parsed url   path: 'bower-logger@^0.2.2',
+527 verbose parsed url   href: 'bower-logger@^0.2.2' }
+528 verbose cache add name="bower-logger" spec="^0.2.2" args=["bower-logger","^0.2.2"]
+529 verbose parsed url { protocol: null,
+529 verbose parsed url   slashes: null,
+529 verbose parsed url   auth: null,
+529 verbose parsed url   host: null,
+529 verbose parsed url   port: null,
+529 verbose parsed url   hostname: null,
+529 verbose parsed url   hash: null,
+529 verbose parsed url   search: null,
+529 verbose parsed url   query: null,
+529 verbose parsed url   pathname: '^0.2.2',
+529 verbose parsed url   path: '^0.2.2',
+529 verbose parsed url   href: '^0.2.2' }
+530 verbose addNamed [ 'bower-logger', '^0.2.2' ]
+531 verbose addNamed [ null, '>=0.2.2-0 <0.3.0-0' ]
+532 silly lockFile 1b248943-bower-logger-0-2-2 bower-logger@^0.2.2
+533 verbose lock bower-logger@^0.2.2 /home/Esther/.npm/1b248943-bower-logger-0-2-2.lock
+534 verbose cache add [ 'chalk@^1.1.3', null ]
+535 verbose cache add name=undefined spec="chalk@^1.1.3" args=["chalk@^1.1.3",null]
+536 verbose parsed url { protocol: null,
+536 verbose parsed url   slashes: null,
+536 verbose parsed url   auth: null,
+536 verbose parsed url   host: null,
+536 verbose parsed url   port: null,
+536 verbose parsed url   hostname: null,
+536 verbose parsed url   hash: null,
+536 verbose parsed url   search: null,
+536 verbose parsed url   query: null,
+536 verbose parsed url   pathname: 'chalk@^1.1.3',
+536 verbose parsed url   path: 'chalk@^1.1.3',
+536 verbose parsed url   href: 'chalk@^1.1.3' }
+537 verbose cache add name="chalk" spec="^1.1.3" args=["chalk","^1.1.3"]
+538 verbose parsed url { protocol: null,
+538 verbose parsed url   slashes: null,
+538 verbose parsed url   auth: null,
+538 verbose parsed url   host: null,
+538 verbose parsed url   port: null,
+538 verbose parsed url   hostname: null,
+538 verbose parsed url   hash: null,
+538 verbose parsed url   search: null,
+538 verbose parsed url   query: null,
+538 verbose parsed url   pathname: '^1.1.3',
+538 verbose parsed url   path: '^1.1.3',
+538 verbose parsed url   href: '^1.1.3' }
+539 verbose addNamed [ 'chalk', '^1.1.3' ]
+540 verbose addNamed [ null, '>=1.1.3-0 <2.0.0-0' ]
+541 silly lockFile d6387928-chalk-1-1-3 chalk@^1.1.3
+542 verbose lock chalk@^1.1.3 /home/Esther/.npm/d6387928-chalk-1-1-3.lock
+543 verbose url raw types/html-minifier
+544 verbose url resolving [ 'https://registry.npmjs.org/', './types/html-minifier' ]
+545 verbose url resolved https://registry.npmjs.org/types/html-minifier
+546 info trying registry request attempt 1 at 15:19:34
+547 http GET https://registry.npmjs.org/types/html-minifier
+548 verbose url raw types/findup-sync
+549 verbose url resolving [ 'https://registry.npmjs.org/', './types/findup-sync' ]
+550 verbose url resolved https://registry.npmjs.org/types/findup-sync
+551 info trying registry request attempt 1 at 15:19:34
+552 http GET https://registry.npmjs.org/types/findup-sync
+553 verbose url raw types/gulp-if/0.0.30
+554 verbose url resolving [ 'https://registry.npmjs.org/', './types/gulp-if/0.0.30' ]
+555 verbose url resolved https://registry.npmjs.org/types/gulp-if/0.0.30
+556 info trying registry request attempt 1 at 15:19:35
+557 http GET https://registry.npmjs.org/types/gulp-if/0.0.30
+558 silly addNameRange { name: 'types/merge-stream',
+558 silly addNameRange   range: '>=1.0.28-0 <2.0.0-0',
+558 silly addNameRange   hasData: false }
+559 silly addNameRange { name: 'types/mz', range: '=0.0.31', hasData: false }
+560 verbose cache add [ 'command-line-args@^3.0.0', null ]
+561 verbose cache add name=undefined spec="command-line-args@^3.0.0" args=["command-line-args@^3.0.0",null]
+562 verbose parsed url { protocol: null,
+562 verbose parsed url   slashes: null,
+562 verbose parsed url   auth: null,
+562 verbose parsed url   host: null,
+562 verbose parsed url   port: null,
+562 verbose parsed url   hostname: null,
+562 verbose parsed url   hash: null,
+562 verbose parsed url   search: null,
+562 verbose parsed url   query: null,
+562 verbose parsed url   pathname: 'command-line-args@^3.0.0',
+562 verbose parsed url   path: 'command-line-args@^3.0.0',
+562 verbose parsed url   href: 'command-line-args@^3.0.0' }
+563 verbose cache add name="command-line-args" spec="^3.0.0" args=["command-line-args","^3.0.0"]
+564 verbose parsed url { protocol: null,
+564 verbose parsed url   slashes: null,
+564 verbose parsed url   auth: null,
+564 verbose parsed url   host: null,
+564 verbose parsed url   port: null,
+564 verbose parsed url   hostname: null,
+564 verbose parsed url   hash: null,
+564 verbose parsed url   search: null,
+564 verbose parsed url   query: null,
+564 verbose parsed url   pathname: '^3.0.0',
+564 verbose parsed url   path: '^3.0.0',
+564 verbose parsed url   href: '^3.0.0' }
+565 verbose addNamed [ 'command-line-args', '^3.0.0' ]
+566 verbose addNamed [ null, '>=3.0.0-0 <4.0.0-0' ]
+567 silly lockFile 6a2cbfef-command-line-args-3-0-0 command-line-args@^3.0.0
+568 verbose lock command-line-args@^3.0.0 /home/Esther/.npm/6a2cbfef-command-line-args-3-0-0.lock
+569 verbose cache add [ 'command-line-commands@^1.0.3', null ]
+570 verbose cache add name=undefined spec="command-line-commands@^1.0.3" args=["command-line-commands@^1.0.3",null]
+571 verbose parsed url { protocol: null,
+571 verbose parsed url   slashes: null,
+571 verbose parsed url   auth: null,
+571 verbose parsed url   host: null,
+571 verbose parsed url   port: null,
+571 verbose parsed url   hostname: null,
+571 verbose parsed url   hash: null,
+571 verbose parsed url   search: null,
+571 verbose parsed url   query: null,
+571 verbose parsed url   pathname: 'command-line-commands@^1.0.3',
+571 verbose parsed url   path: 'command-line-commands@^1.0.3',
+571 verbose parsed url   href: 'command-line-commands@^1.0.3' }
+572 verbose cache add name="command-line-commands" spec="^1.0.3" args=["command-line-commands","^1.0.3"]
+573 verbose parsed url { protocol: null,
+573 verbose parsed url   slashes: null,
+573 verbose parsed url   auth: null,
+573 verbose parsed url   host: null,
+573 verbose parsed url   port: null,
+573 verbose parsed url   hostname: null,
+573 verbose parsed url   hash: null,
+573 verbose parsed url   search: null,
+573 verbose parsed url   query: null,
+573 verbose parsed url   pathname: '^1.0.3',
+573 verbose parsed url   path: '^1.0.3',
+573 verbose parsed url   href: '^1.0.3' }
+574 verbose addNamed [ 'command-line-commands', '^1.0.3' ]
+575 verbose addNamed [ null, '>=1.0.3-0 <2.0.0-0' ]
+576 silly lockFile ff1ebc83-command-line-commands-1-0-3 command-line-commands@^1.0.3
+577 verbose lock command-line-commands@^1.0.3 /home/Esther/.npm/ff1ebc83-command-line-commands-1-0-3.lock
+578 verbose cache add [ 'command-line-usage@^3.0.1', null ]
+579 verbose cache add name=undefined spec="command-line-usage@^3.0.1" args=["command-line-usage@^3.0.1",null]
+580 verbose parsed url { protocol: null,
+580 verbose parsed url   slashes: null,
+580 verbose parsed url   auth: null,
+580 verbose parsed url   host: null,
+580 verbose parsed url   port: null,
+580 verbose parsed url   hostname: null,
+580 verbose parsed url   hash: null,
+580 verbose parsed url   search: null,
+580 verbose parsed url   query: null,
+580 verbose parsed url   pathname: 'command-line-usage@^3.0.1',
+580 verbose parsed url   path: 'command-line-usage@^3.0.1',
+580 verbose parsed url   href: 'command-line-usage@^3.0.1' }
+581 verbose cache add name="command-line-usage" spec="^3.0.1" args=["command-line-usage","^3.0.1"]
+582 verbose parsed url { protocol: null,
+582 verbose parsed url   slashes: null,
+582 verbose parsed url   auth: null,
+582 verbose parsed url   host: null,
+582 verbose parsed url   port: null,
+582 verbose parsed url   hostname: null,
+582 verbose parsed url   hash: null,
+582 verbose parsed url   search: null,
+582 verbose parsed url   query: null,
+582 verbose parsed url   pathname: '^3.0.1',
+582 verbose parsed url   path: '^3.0.1',
+582 verbose parsed url   href: '^3.0.1' }
+583 verbose addNamed [ 'command-line-usage', '^3.0.1' ]
+584 verbose addNamed [ null, '>=3.0.1-0 <4.0.0-0' ]
+585 silly lockFile 46d4a28b-command-line-usage-3-0-1 command-line-usage@^3.0.1
+586 verbose lock command-line-usage@^3.0.1 /home/Esther/.npm/46d4a28b-command-line-usage-3-0-1.lock
+587 verbose cache add [ 'css-slam@^1.1.0', null ]
+588 verbose cache add name=undefined spec="css-slam@^1.1.0" args=["css-slam@^1.1.0",null]
+589 verbose parsed url { protocol: null,
+589 verbose parsed url   slashes: null,
+589 verbose parsed url   auth: null,
+589 verbose parsed url   host: null,
+589 verbose parsed url   port: null,
+589 verbose parsed url   hostname: null,
+589 verbose parsed url   hash: null,
+589 verbose parsed url   search: null,
+589 verbose parsed url   query: null,
+589 verbose parsed url   pathname: 'css-slam@^1.1.0',
+589 verbose parsed url   path: 'css-slam@^1.1.0',
+589 verbose parsed url   href: 'css-slam@^1.1.0' }
+590 verbose cache add name="css-slam" spec="^1.1.0" args=["css-slam","^1.1.0"]
+591 verbose parsed url { protocol: null,
+591 verbose parsed url   slashes: null,
+591 verbose parsed url   auth: null,
+591 verbose parsed url   host: null,
+591 verbose parsed url   port: null,
+591 verbose parsed url   hostname: null,
+591 verbose parsed url   hash: null,
+591 verbose parsed url   search: null,
+591 verbose parsed url   query: null,
+591 verbose parsed url   pathname: '^1.1.0',
+591 verbose parsed url   path: '^1.1.0',
+591 verbose parsed url   href: '^1.1.0' }
+592 verbose addNamed [ 'css-slam', '^1.1.0' ]
+593 verbose addNamed [ null, '>=1.1.0-0 <2.0.0-0' ]
+594 silly lockFile 36fda148-css-slam-1-1-0 css-slam@^1.1.0
+595 verbose lock css-slam@^1.1.0 /home/Esther/.npm/36fda148-css-slam-1-1-0.lock
+596 verbose cache add [ 'del@^2.2.2', null ]
+597 verbose cache add name=undefined spec="del@^2.2.2" args=["del@^2.2.2",null]
+598 verbose parsed url { protocol: null,
+598 verbose parsed url   slashes: null,
+598 verbose parsed url   auth: null,
+598 verbose parsed url   host: null,
+598 verbose parsed url   port: null,
+598 verbose parsed url   hostname: null,
+598 verbose parsed url   hash: null,
+598 verbose parsed url   search: null,
+598 verbose parsed url   query: null,
+598 verbose parsed url   pathname: 'del@^2.2.2',
+598 verbose parsed url   path: 'del@^2.2.2',
+598 verbose parsed url   href: 'del@^2.2.2' }
+599 verbose cache add name="del" spec="^2.2.2" args=["del","^2.2.2"]
+600 verbose parsed url { protocol: null,
+600 verbose parsed url   slashes: null,
+600 verbose parsed url   auth: null,
+600 verbose parsed url   host: null,
+600 verbose parsed url   port: null,
+600 verbose parsed url   hostname: null,
+600 verbose parsed url   hash: null,
+600 verbose parsed url   search: null,
+600 verbose parsed url   query: null,
+600 verbose parsed url   pathname: '^2.2.2',
+600 verbose parsed url   path: '^2.2.2',
+600 verbose parsed url   href: '^2.2.2' }
+601 verbose addNamed [ 'del', '^2.2.2' ]
+602 verbose addNamed [ null, '>=2.2.2-0 <3.0.0-0' ]
+603 silly lockFile de3ed860-del-2-2-2 del@^2.2.2
+604 verbose lock del@^2.2.2 /home/Esther/.npm/de3ed860-del-2-2-2.lock
+605 verbose cache add [ 'findup-sync@^0.4.2', null ]
+606 verbose cache add name=undefined spec="findup-sync@^0.4.2" args=["findup-sync@^0.4.2",null]
+607 verbose parsed url { protocol: null,
+607 verbose parsed url   slashes: null,
+607 verbose parsed url   auth: null,
+607 verbose parsed url   host: null,
+607 verbose parsed url   port: null,
+607 verbose parsed url   hostname: null,
+607 verbose parsed url   hash: null,
+607 verbose parsed url   search: null,
+607 verbose parsed url   query: null,
+607 verbose parsed url   pathname: 'findup-sync@^0.4.2',
+607 verbose parsed url   path: 'findup-sync@^0.4.2',
+607 verbose parsed url   href: 'findup-sync@^0.4.2' }
+608 verbose cache add name="findup-sync" spec="^0.4.2" args=["findup-sync","^0.4.2"]
+609 verbose parsed url { protocol: null,
+609 verbose parsed url   slashes: null,
+609 verbose parsed url   auth: null,
+609 verbose parsed url   host: null,
+609 verbose parsed url   port: null,
+609 verbose parsed url   hostname: null,
+609 verbose parsed url   hash: null,
+609 verbose parsed url   search: null,
+609 verbose parsed url   query: null,
+609 verbose parsed url   pathname: '^0.4.2',
+609 verbose parsed url   path: '^0.4.2',
+609 verbose parsed url   href: '^0.4.2' }
+610 verbose addNamed [ 'findup-sync', '^0.4.2' ]
+611 verbose addNamed [ null, '>=0.4.2-0 <0.5.0-0' ]
+612 silly lockFile 61a523f9-findup-sync-0-4-2 findup-sync@^0.4.2
+613 verbose lock findup-sync@^0.4.2 /home/Esther/.npm/61a523f9-findup-sync-0-4-2.lock
+614 verbose cache add [ 'github@^7.2.1', null ]
+615 verbose cache add name=undefined spec="github@^7.2.1" args=["github@^7.2.1",null]
+616 verbose parsed url { protocol: null,
+616 verbose parsed url   slashes: null,
+616 verbose parsed url   auth: null,
+616 verbose parsed url   host: null,
+616 verbose parsed url   port: null,
+616 verbose parsed url   hostname: null,
+616 verbose parsed url   hash: null,
+616 verbose parsed url   search: null,
+616 verbose parsed url   query: null,
+616 verbose parsed url   pathname: 'github@^7.2.1',
+616 verbose parsed url   path: 'github@^7.2.1',
+616 verbose parsed url   href: 'github@^7.2.1' }
+617 verbose cache add name="github" spec="^7.2.1" args=["github","^7.2.1"]
+618 verbose parsed url { protocol: null,
+618 verbose parsed url   slashes: null,
+618 verbose parsed url   auth: null,
+618 verbose parsed url   host: null,
+618 verbose parsed url   port: null,
+618 verbose parsed url   hostname: null,
+618 verbose parsed url   hash: null,
+618 verbose parsed url   search: null,
+618 verbose parsed url   query: null,
+618 verbose parsed url   pathname: '^7.2.1',
+618 verbose parsed url   path: '^7.2.1',
+618 verbose parsed url   href: '^7.2.1' }
+619 verbose addNamed [ 'github', '^7.2.1' ]
+620 verbose addNamed [ null, '>=7.2.1-0 <8.0.0-0' ]
+621 silly lockFile 3e6dd644-github-7-2-1 github@^7.2.1
+622 verbose lock github@^7.2.1 /home/Esther/.npm/3e6dd644-github-7-2-1.lock
+623 verbose cache add [ 'gulp-if@^2.0.0', null ]
+624 verbose cache add name=undefined spec="gulp-if@^2.0.0" args=["gulp-if@^2.0.0",null]
+625 verbose parsed url { protocol: null,
+625 verbose parsed url   slashes: null,
+625 verbose parsed url   auth: null,
+625 verbose parsed url   host: null,
+625 verbose parsed url   port: null,
+625 verbose parsed url   hostname: null,
+625 verbose parsed url   hash: null,
+625 verbose parsed url   search: null,
+625 verbose parsed url   query: null,
+625 verbose parsed url   pathname: 'gulp-if@^2.0.0',
+625 verbose parsed url   path: 'gulp-if@^2.0.0',
+625 verbose parsed url   href: 'gulp-if@^2.0.0' }
+626 verbose cache add name="gulp-if" spec="^2.0.0" args=["gulp-if","^2.0.0"]
+627 verbose parsed url { protocol: null,
+627 verbose parsed url   slashes: null,
+627 verbose parsed url   auth: null,
+627 verbose parsed url   host: null,
+627 verbose parsed url   port: null,
+627 verbose parsed url   hostname: null,
+627 verbose parsed url   hash: null,
+627 verbose parsed url   search: null,
+627 verbose parsed url   query: null,
+627 verbose parsed url   pathname: '^2.0.0',
+627 verbose parsed url   path: '^2.0.0',
+627 verbose parsed url   href: '^2.0.0' }
+628 verbose addNamed [ 'gulp-if', '^2.0.0' ]
+629 verbose addNamed [ null, '>=2.0.0-0 <3.0.0-0' ]
+630 silly lockFile c571e3df-gulp-if-2-0-0 gulp-if@^2.0.0
+631 verbose lock gulp-if@^2.0.0 /home/Esther/.npm/c571e3df-gulp-if-2-0-0.lock
+632 verbose cache add [ 'gunzip-maybe@^1.3.1', null ]
+633 verbose cache add name=undefined spec="gunzip-maybe@^1.3.1" args=["gunzip-maybe@^1.3.1",null]
+634 verbose parsed url { protocol: null,
+634 verbose parsed url   slashes: null,
+634 verbose parsed url   auth: null,
+634 verbose parsed url   host: null,
+634 verbose parsed url   port: null,
+634 verbose parsed url   hostname: null,
+634 verbose parsed url   hash: null,
+634 verbose parsed url   search: null,
+634 verbose parsed url   query: null,
+634 verbose parsed url   pathname: 'gunzip-maybe@^1.3.1',
+634 verbose parsed url   path: 'gunzip-maybe@^1.3.1',
+634 verbose parsed url   href: 'gunzip-maybe@^1.3.1' }
+635 verbose cache add name="gunzip-maybe" spec="^1.3.1" args=["gunzip-maybe","^1.3.1"]
+636 verbose parsed url { protocol: null,
+636 verbose parsed url   slashes: null,
+636 verbose parsed url   auth: null,
+636 verbose parsed url   host: null,
+636 verbose parsed url   port: null,
+636 verbose parsed url   hostname: null,
+636 verbose parsed url   hash: null,
+636 verbose parsed url   search: null,
+636 verbose parsed url   query: null,
+636 verbose parsed url   pathname: '^1.3.1',
+636 verbose parsed url   path: '^1.3.1',
+636 verbose parsed url   href: '^1.3.1' }
+637 verbose addNamed [ 'gunzip-maybe', '^1.3.1' ]
+638 verbose addNamed [ null, '>=1.3.1-0 <2.0.0-0' ]
+639 silly lockFile f4ae2a73-gunzip-maybe-1-3-1 gunzip-maybe@^1.3.1
+640 verbose lock gunzip-maybe@^1.3.1 /home/Esther/.npm/f4ae2a73-gunzip-maybe-1-3-1.lock
+641 verbose cache add [ 'html-minifier@^3.0.1', null ]
+642 verbose cache add name=undefined spec="html-minifier@^3.0.1" args=["html-minifier@^3.0.1",null]
+643 verbose parsed url { protocol: null,
+643 verbose parsed url   slashes: null,
+643 verbose parsed url   auth: null,
+643 verbose parsed url   host: null,
+643 verbose parsed url   port: null,
+643 verbose parsed url   hostname: null,
+643 verbose parsed url   hash: null,
+643 verbose parsed url   search: null,
+643 verbose parsed url   query: null,
+643 verbose parsed url   pathname: 'html-minifier@^3.0.1',
+643 verbose parsed url   path: 'html-minifier@^3.0.1',
+643 verbose parsed url   href: 'html-minifier@^3.0.1' }
+644 verbose cache add name="html-minifier" spec="^3.0.1" args=["html-minifier","^3.0.1"]
+645 verbose parsed url { protocol: null,
+645 verbose parsed url   slashes: null,
+645 verbose parsed url   auth: null,
+645 verbose parsed url   host: null,
+645 verbose parsed url   port: null,
+645 verbose parsed url   hostname: null,
+645 verbose parsed url   hash: null,
+645 verbose parsed url   search: null,
+645 verbose parsed url   query: null,
+645 verbose parsed url   pathname: '^3.0.1',
+645 verbose parsed url   path: '^3.0.1',
+645 verbose parsed url   href: '^3.0.1' }
+646 verbose addNamed [ 'html-minifier', '^3.0.1' ]
+647 verbose addNamed [ null, '>=3.0.1-0 <4.0.0-0' ]
+648 silly lockFile c0ffda81-html-minifier-3-0-1 html-minifier@^3.0.1
+649 verbose lock html-minifier@^3.0.1 /home/Esther/.npm/c0ffda81-html-minifier-3-0-1.lock
+650 verbose cache add [ 'inquirer@^1.0.2', null ]
+651 verbose cache add name=undefined spec="inquirer@^1.0.2" args=["inquirer@^1.0.2",null]
+652 verbose parsed url { protocol: null,
+652 verbose parsed url   slashes: null,
+652 verbose parsed url   auth: null,
+652 verbose parsed url   host: null,
+652 verbose parsed url   port: null,
+652 verbose parsed url   hostname: null,
+652 verbose parsed url   hash: null,
+652 verbose parsed url   search: null,
+652 verbose parsed url   query: null,
+652 verbose parsed url   pathname: 'inquirer@^1.0.2',
+652 verbose parsed url   path: 'inquirer@^1.0.2',
+652 verbose parsed url   href: 'inquirer@^1.0.2' }
+653 verbose cache add name="inquirer" spec="^1.0.2" args=["inquirer","^1.0.2"]
+654 verbose parsed url { protocol: null,
+654 verbose parsed url   slashes: null,
+654 verbose parsed url   auth: null,
+654 verbose parsed url   host: null,
+654 verbose parsed url   port: null,
+654 verbose parsed url   hostname: null,
+654 verbose parsed url   hash: null,
+654 verbose parsed url   search: null,
+654 verbose parsed url   query: null,
+654 verbose parsed url   pathname: '^1.0.2',
+654 verbose parsed url   path: '^1.0.2',
+654 verbose parsed url   href: '^1.0.2' }
+655 verbose addNamed [ 'inquirer', '^1.0.2' ]
+656 verbose addNamed [ null, '>=1.0.2-0 <2.0.0-0' ]
+657 silly lockFile eae82eaa-inquirer-1-0-2 inquirer@^1.0.2
+658 verbose lock inquirer@^1.0.2 /home/Esther/.npm/eae82eaa-inquirer-1-0-2.lock
+659 verbose cache add [ 'merge-stream@^1.0.1', null ]
+660 verbose cache add name=undefined spec="merge-stream@^1.0.1" args=["merge-stream@^1.0.1",null]
+661 verbose parsed url { protocol: null,
+661 verbose parsed url   slashes: null,
+661 verbose parsed url   auth: null,
+661 verbose parsed url   host: null,
+661 verbose parsed url   port: null,
+661 verbose parsed url   hostname: null,
+661 verbose parsed url   hash: null,
+661 verbose parsed url   search: null,
+661 verbose parsed url   query: null,
+661 verbose parsed url   pathname: 'merge-stream@^1.0.1',
+661 verbose parsed url   path: 'merge-stream@^1.0.1',
+661 verbose parsed url   href: 'merge-stream@^1.0.1' }
+662 verbose cache add name="merge-stream" spec="^1.0.1" args=["merge-stream","^1.0.1"]
+663 verbose parsed url { protocol: null,
+663 verbose parsed url   slashes: null,
+663 verbose parsed url   auth: null,
+663 verbose parsed url   host: null,
+663 verbose parsed url   port: null,
+663 verbose parsed url   hostname: null,
+663 verbose parsed url   hash: null,
+663 verbose parsed url   search: null,
+663 verbose parsed url   query: null,
+663 verbose parsed url   pathname: '^1.0.1',
+663 verbose parsed url   path: '^1.0.1',
+663 verbose parsed url   href: '^1.0.1' }
+664 verbose addNamed [ 'merge-stream', '^1.0.1' ]
+665 verbose addNamed [ null, '>=1.0.1-0 <2.0.0-0' ]
+666 silly lockFile eaa97eb3-merge-stream-1-0-1 merge-stream@^1.0.1
+667 verbose lock merge-stream@^1.0.1 /home/Esther/.npm/eaa97eb3-merge-stream-1-0-1.lock
+668 verbose cache add [ 'mz@^2.6.0', null ]
+669 verbose cache add name=undefined spec="mz@^2.6.0" args=["mz@^2.6.0",null]
+670 verbose parsed url { protocol: null,
+670 verbose parsed url   slashes: null,
+670 verbose parsed url   auth: null,
+670 verbose parsed url   host: null,
+670 verbose parsed url   port: null,
+670 verbose parsed url   hostname: null,
+670 verbose parsed url   hash: null,
+670 verbose parsed url   search: null,
+670 verbose parsed url   query: null,
+670 verbose parsed url   pathname: 'mz@^2.6.0',
+670 verbose parsed url   path: 'mz@^2.6.0',
+670 verbose parsed url   href: 'mz@^2.6.0' }
+671 verbose cache add name="mz" spec="^2.6.0" args=["mz","^2.6.0"]
+672 verbose parsed url { protocol: null,
+672 verbose parsed url   slashes: null,
+672 verbose parsed url   auth: null,
+672 verbose parsed url   host: null,
+672 verbose parsed url   port: null,
+672 verbose parsed url   hostname: null,
+672 verbose parsed url   hash: null,
+672 verbose parsed url   search: null,
+672 verbose parsed url   query: null,
+672 verbose parsed url   pathname: '^2.6.0',
+672 verbose parsed url   path: '^2.6.0',
+672 verbose parsed url   href: '^2.6.0' }
+673 verbose addNamed [ 'mz', '^2.6.0' ]
+674 verbose addNamed [ null, '>=2.6.0-0 <3.0.0-0' ]
+675 silly lockFile 5ec4c34c-mz-2-6-0 mz@^2.6.0
+676 verbose lock mz@^2.6.0 /home/Esther/.npm/5ec4c34c-mz-2-6-0.lock
+677 verbose cache add [ 'plylog@^0.4.0', null ]
+678 verbose cache add name=undefined spec="plylog@^0.4.0" args=["plylog@^0.4.0",null]
+679 verbose parsed url { protocol: null,
+679 verbose parsed url   slashes: null,
+679 verbose parsed url   auth: null,
+679 verbose parsed url   host: null,
+679 verbose parsed url   port: null,
+679 verbose parsed url   hostname: null,
+679 verbose parsed url   hash: null,
+679 verbose parsed url   search: null,
+679 verbose parsed url   query: null,
+679 verbose parsed url   pathname: 'plylog@^0.4.0',
+679 verbose parsed url   path: 'plylog@^0.4.0',
+679 verbose parsed url   href: 'plylog@^0.4.0' }
+680 verbose cache add name="plylog" spec="^0.4.0" args=["plylog","^0.4.0"]
+681 verbose parsed url { protocol: null,
+681 verbose parsed url   slashes: null,
+681 verbose parsed url   auth: null,
+681 verbose parsed url   host: null,
+681 verbose parsed url   port: null,
+681 verbose parsed url   hostname: null,
+681 verbose parsed url   hash: null,
+681 verbose parsed url   search: null,
+681 verbose parsed url   query: null,
+681 verbose parsed url   pathname: '^0.4.0',
+681 verbose parsed url   path: '^0.4.0',
+681 verbose parsed url   href: '^0.4.0' }
+682 verbose addNamed [ 'plylog', '^0.4.0' ]
+683 verbose addNamed [ null, '>=0.4.0-0 <0.5.0-0' ]
+684 silly lockFile 526437e8-plylog-0-4-0 plylog@^0.4.0
+685 verbose lock plylog@^0.4.0 /home/Esther/.npm/526437e8-plylog-0-4-0.lock
+686 verbose cache add [ 'polymer-analyzer@^2.0.0', null ]
+687 verbose cache add name=undefined spec="polymer-analyzer@^2.0.0" args=["polymer-analyzer@^2.0.0",null]
+688 verbose parsed url { protocol: null,
+688 verbose parsed url   slashes: null,
+688 verbose parsed url   auth: null,
+688 verbose parsed url   host: null,
+688 verbose parsed url   port: null,
+688 verbose parsed url   hostname: null,
+688 verbose parsed url   hash: null,
+688 verbose parsed url   search: null,
+688 verbose parsed url   query: null,
+688 verbose parsed url   pathname: 'polymer-analyzer@^2.0.0',
+688 verbose parsed url   path: 'polymer-analyzer@^2.0.0',
+688 verbose parsed url   href: 'polymer-analyzer@^2.0.0' }
+689 verbose cache add name="polymer-analyzer" spec="^2.0.0" args=["polymer-analyzer","^2.0.0"]
+690 verbose parsed url { protocol: null,
+690 verbose parsed url   slashes: null,
+690 verbose parsed url   auth: null,
+690 verbose parsed url   host: null,
+690 verbose parsed url   port: null,
+690 verbose parsed url   hostname: null,
+690 verbose parsed url   hash: null,
+690 verbose parsed url   search: null,
+690 verbose parsed url   query: null,
+690 verbose parsed url   pathname: '^2.0.0',
+690 verbose parsed url   path: '^2.0.0',
+690 verbose parsed url   href: '^2.0.0' }
+691 verbose addNamed [ 'polymer-analyzer', '^2.0.0' ]
+692 verbose addNamed [ null, '>=2.0.0-0 <3.0.0-0' ]
+693 silly lockFile f653b3af-polymer-analyzer-2-0-0 polymer-analyzer@^2.0.0
+694 verbose lock polymer-analyzer@^2.0.0 /home/Esther/.npm/f653b3af-polymer-analyzer-2-0-0.lock
+695 verbose cache add [ 'polymer-build@^1.6.0', null ]
+696 verbose cache add name=undefined spec="polymer-build@^1.6.0" args=["polymer-build@^1.6.0",null]
+697 verbose parsed url { protocol: null,
+697 verbose parsed url   slashes: null,
+697 verbose parsed url   auth: null,
+697 verbose parsed url   host: null,
+697 verbose parsed url   port: null,
+697 verbose parsed url   hostname: null,
+697 verbose parsed url   hash: null,
+697 verbose parsed url   search: null,
+697 verbose parsed url   query: null,
+697 verbose parsed url   pathname: 'polymer-build@^1.6.0',
+697 verbose parsed url   path: 'polymer-build@^1.6.0',
+697 verbose parsed url   href: 'polymer-build@^1.6.0' }
+698 verbose cache add name="polymer-build" spec="^1.6.0" args=["polymer-build","^1.6.0"]
+699 verbose parsed url { protocol: null,
+699 verbose parsed url   slashes: null,
+699 verbose parsed url   auth: null,
+699 verbose parsed url   host: null,
+699 verbose parsed url   port: null,
+699 verbose parsed url   hostname: null,
+699 verbose parsed url   hash: null,
+699 verbose parsed url   search: null,
+699 verbose parsed url   query: null,
+699 verbose parsed url   pathname: '^1.6.0',
+699 verbose parsed url   path: '^1.6.0',
+699 verbose parsed url   href: '^1.6.0' }
+700 verbose addNamed [ 'polymer-build', '^1.6.0' ]
+701 verbose addNamed [ null, '>=1.6.0-0 <2.0.0-0' ]
+702 silly lockFile 1e618192-polymer-build-1-6-0 polymer-build@^1.6.0
+703 verbose lock polymer-build@^1.6.0 /home/Esther/.npm/1e618192-polymer-build-1-6-0.lock
+704 verbose cache add [ 'polymer-linter@^2.0.2', null ]
+705 verbose cache add name=undefined spec="polymer-linter@^2.0.2" args=["polymer-linter@^2.0.2",null]
+706 verbose parsed url { protocol: null,
+706 verbose parsed url   slashes: null,
+706 verbose parsed url   auth: null,
+706 verbose parsed url   host: null,
+706 verbose parsed url   port: null,
+706 verbose parsed url   hostname: null,
+706 verbose parsed url   hash: null,
+706 verbose parsed url   search: null,
+706 verbose parsed url   query: null,
+706 verbose parsed url   pathname: 'polymer-linter@^2.0.2',
+706 verbose parsed url   path: 'polymer-linter@^2.0.2',
+706 verbose parsed url   href: 'polymer-linter@^2.0.2' }
+707 verbose cache add name="polymer-linter" spec="^2.0.2" args=["polymer-linter","^2.0.2"]
+708 verbose parsed url { protocol: null,
+708 verbose parsed url   slashes: null,
+708 verbose parsed url   auth: null,
+708 verbose parsed url   host: null,
+708 verbose parsed url   port: null,
+708 verbose parsed url   hostname: null,
+708 verbose parsed url   hash: null,
+708 verbose parsed url   search: null,
+708 verbose parsed url   query: null,
+708 verbose parsed url   pathname: '^2.0.2',
+708 verbose parsed url   path: '^2.0.2',
+708 verbose parsed url   href: '^2.0.2' }
+709 verbose addNamed [ 'polymer-linter', '^2.0.2' ]
+710 verbose addNamed [ null, '>=2.0.2-0 <3.0.0-0' ]
+711 silly lockFile f6cf9403-polymer-linter-2-0-2 polymer-linter@^2.0.2
+712 verbose lock polymer-linter@^2.0.2 /home/Esther/.npm/f6cf9403-polymer-linter-2-0-2.lock
+713 verbose cache add [ 'polymer-project-config@^3.4.0', null ]
+714 verbose cache add name=undefined spec="polymer-project-config@^3.4.0" args=["polymer-project-config@^3.4.0",null]
+715 verbose parsed url { protocol: null,
+715 verbose parsed url   slashes: null,
+715 verbose parsed url   auth: null,
+715 verbose parsed url   host: null,
+715 verbose parsed url   port: null,
+715 verbose parsed url   hostname: null,
+715 verbose parsed url   hash: null,
+715 verbose parsed url   search: null,
+715 verbose parsed url   query: null,
+715 verbose parsed url   pathname: 'polymer-project-config@^3.4.0',
+715 verbose parsed url   path: 'polymer-project-config@^3.4.0',
+715 verbose parsed url   href: 'polymer-project-config@^3.4.0' }
+716 verbose cache add name="polymer-project-config" spec="^3.4.0" args=["polymer-project-config","^3.4.0"]
+717 verbose parsed url { protocol: null,
+717 verbose parsed url   slashes: null,
+717 verbose parsed url   auth: null,
+717 verbose parsed url   host: null,
+717 verbose parsed url   port: null,
+717 verbose parsed url   hostname: null,
+717 verbose parsed url   hash: null,
+717 verbose parsed url   search: null,
+717 verbose parsed url   query: null,
+717 verbose parsed url   pathname: '^3.4.0',
+717 verbose parsed url   path: '^3.4.0',
+717 verbose parsed url   href: '^3.4.0' }
+718 verbose addNamed [ 'polymer-project-config', '^3.4.0' ]
+719 verbose addNamed [ null, '>=3.4.0-0 <4.0.0-0' ]
+720 silly lockFile 08445411-polymer-project-config-3-4-0 polymer-project-config@^3.4.0
+721 verbose lock polymer-project-config@^3.4.0 /home/Esther/.npm/08445411-polymer-project-config-3-4-0.lock
+722 verbose cache add [ 'polyserve@^0.19.0', null ]
+723 verbose cache add name=undefined spec="polyserve@^0.19.0" args=["polyserve@^0.19.0",null]
+724 verbose parsed url { protocol: null,
+724 verbose parsed url   slashes: null,
+724 verbose parsed url   auth: null,
+724 verbose parsed url   host: null,
+724 verbose parsed url   port: null,
+724 verbose parsed url   hostname: null,
+724 verbose parsed url   hash: null,
+724 verbose parsed url   search: null,
+724 verbose parsed url   query: null,
+724 verbose parsed url   pathname: 'polyserve@^0.19.0',
+724 verbose parsed url   path: 'polyserve@^0.19.0',
+724 verbose parsed url   href: 'polyserve@^0.19.0' }
+725 verbose cache add name="polyserve" spec="^0.19.0" args=["polyserve","^0.19.0"]
+726 verbose parsed url { protocol: null,
+726 verbose parsed url   slashes: null,
+726 verbose parsed url   auth: null,
+726 verbose parsed url   host: null,
+726 verbose parsed url   port: null,
+726 verbose parsed url   hostname: null,
+726 verbose parsed url   hash: null,
+726 verbose parsed url   search: null,
+726 verbose parsed url   query: null,
+726 verbose parsed url   pathname: '^0.19.0',
+726 verbose parsed url   path: '^0.19.0',
+726 verbose parsed url   href: '^0.19.0' }
+727 verbose addNamed [ 'polyserve', '^0.19.0' ]
+728 verbose addNamed [ null, '>=0.19.0-0 <0.20.0-0' ]
+729 silly lockFile f2e01976-polyserve-0-19-0 polyserve@^0.19.0
+730 verbose lock polyserve@^0.19.0 /home/Esther/.npm/f2e01976-polyserve-0-19-0.lock
+731 verbose cache add [ 'request@^2.72.0', null ]
+732 verbose cache add name=undefined spec="request@^2.72.0" args=["request@^2.72.0",null]
+733 verbose parsed url { protocol: null,
+733 verbose parsed url   slashes: null,
+733 verbose parsed url   auth: null,
+733 verbose parsed url   host: null,
+733 verbose parsed url   port: null,
+733 verbose parsed url   hostname: null,
+733 verbose parsed url   hash: null,
+733 verbose parsed url   search: null,
+733 verbose parsed url   query: null,
+733 verbose parsed url   pathname: 'request@^2.72.0',
+733 verbose parsed url   path: 'request@^2.72.0',
+733 verbose parsed url   href: 'request@^2.72.0' }
+734 verbose cache add name="request" spec="^2.72.0" args=["request","^2.72.0"]
+735 verbose parsed url { protocol: null,
+735 verbose parsed url   slashes: null,
+735 verbose parsed url   auth: null,
+735 verbose parsed url   host: null,
+735 verbose parsed url   port: null,
+735 verbose parsed url   hostname: null,
+735 verbose parsed url   hash: null,
+735 verbose parsed url   search: null,
+735 verbose parsed url   query: null,
+735 verbose parsed url   pathname: '^2.72.0',
+735 verbose parsed url   path: '^2.72.0',
+735 verbose parsed url   href: '^2.72.0' }
+736 verbose addNamed [ 'request', '^2.72.0' ]
+737 verbose addNamed [ null, '>=2.72.0-0 <3.0.0-0' ]
+738 silly lockFile b8c2c467-request-2-72-0 request@^2.72.0
+739 verbose lock request@^2.72.0 /home/Esther/.npm/b8c2c467-request-2-72-0.lock
+740 verbose cache add [ 'rimraf@^2.6.1', null ]
+741 verbose cache add name=undefined spec="rimraf@^2.6.1" args=["rimraf@^2.6.1",null]
+742 verbose parsed url { protocol: null,
+742 verbose parsed url   slashes: null,
+742 verbose parsed url   auth: null,
+742 verbose parsed url   host: null,
+742 verbose parsed url   port: null,
+742 verbose parsed url   hostname: null,
+742 verbose parsed url   hash: null,
+742 verbose parsed url   search: null,
+742 verbose parsed url   query: null,
+742 verbose parsed url   pathname: 'rimraf@^2.6.1',
+742 verbose parsed url   path: 'rimraf@^2.6.1',
+742 verbose parsed url   href: 'rimraf@^2.6.1' }
+743 verbose cache add name="rimraf" spec="^2.6.1" args=["rimraf","^2.6.1"]
+744 verbose parsed url { protocol: null,
+744 verbose parsed url   slashes: null,
+744 verbose parsed url   auth: null,
+744 verbose parsed url   host: null,
+744 verbose parsed url   port: null,
+744 verbose parsed url   hostname: null,
+744 verbose parsed url   hash: null,
+744 verbose parsed url   search: null,
+744 verbose parsed url   query: null,
+744 verbose parsed url   pathname: '^2.6.1',
+744 verbose parsed url   path: '^2.6.1',
+744 verbose parsed url   href: '^2.6.1' }
+745 verbose addNamed [ 'rimraf', '^2.6.1' ]
+746 verbose addNamed [ null, '>=2.6.1-0 <3.0.0-0' ]
+747 silly lockFile 406ec26d-rimraf-2-6-1 rimraf@^2.6.1
+748 verbose lock rimraf@^2.6.1 /home/Esther/.npm/406ec26d-rimraf-2-6-1.lock
+749 verbose cache add [ 'semver@^5.3.0', null ]
+750 verbose cache add name=undefined spec="semver@^5.3.0" args=["semver@^5.3.0",null]
+751 verbose parsed url { protocol: null,
+751 verbose parsed url   slashes: null,
+751 verbose parsed url   auth: null,
+751 verbose parsed url   host: null,
+751 verbose parsed url   port: null,
+751 verbose parsed url   hostname: null,
+751 verbose parsed url   hash: null,
+751 verbose parsed url   search: null,
+751 verbose parsed url   query: null,
+751 verbose parsed url   pathname: 'semver@^5.3.0',
+751 verbose parsed url   path: 'semver@^5.3.0',
+751 verbose parsed url   href: 'semver@^5.3.0' }
+752 verbose cache add name="semver" spec="^5.3.0" args=["semver","^5.3.0"]
+753 verbose parsed url { protocol: null,
+753 verbose parsed url   slashes: null,
+753 verbose parsed url   auth: null,
+753 verbose parsed url   host: null,
+753 verbose parsed url   port: null,
+753 verbose parsed url   hostname: null,
+753 verbose parsed url   hash: null,
+753 verbose parsed url   search: null,
+753 verbose parsed url   query: null,
+753 verbose parsed url   pathname: '^5.3.0',
+753 verbose parsed url   path: '^5.3.0',
+753 verbose parsed url   href: '^5.3.0' }
+754 verbose addNamed [ 'semver', '^5.3.0' ]
+755 verbose addNamed [ null, '>=5.3.0-0 <6.0.0-0' ]
+756 silly lockFile bebcb816-semver-5-3-0 semver@^5.3.0
+757 verbose lock semver@^5.3.0 /home/Esther/.npm/bebcb816-semver-5-3-0.lock
+758 verbose cache add [ 'tar-fs@^1.12.0', null ]
+759 verbose cache add name=undefined spec="tar-fs@^1.12.0" args=["tar-fs@^1.12.0",null]
+760 verbose parsed url { protocol: null,
+760 verbose parsed url   slashes: null,
+760 verbose parsed url   auth: null,
+760 verbose parsed url   host: null,
+760 verbose parsed url   port: null,
+760 verbose parsed url   hostname: null,
+760 verbose parsed url   hash: null,
+760 verbose parsed url   search: null,
+760 verbose parsed url   query: null,
+760 verbose parsed url   pathname: 'tar-fs@^1.12.0',
+760 verbose parsed url   path: 'tar-fs@^1.12.0',
+760 verbose parsed url   href: 'tar-fs@^1.12.0' }
+761 verbose cache add name="tar-fs" spec="^1.12.0" args=["tar-fs","^1.12.0"]
+762 verbose parsed url { protocol: null,
+762 verbose parsed url   slashes: null,
+762 verbose parsed url   auth: null,
+762 verbose parsed url   host: null,
+762 verbose parsed url   port: null,
+762 verbose parsed url   hostname: null,
+762 verbose parsed url   hash: null,
+762 verbose parsed url   search: null,
+762 verbose parsed url   query: null,
+762 verbose parsed url   pathname: '^1.12.0',
+762 verbose parsed url   path: '^1.12.0',
+762 verbose parsed url   href: '^1.12.0' }
+763 verbose addNamed [ 'tar-fs', '^1.12.0' ]
+764 verbose addNamed [ null, '>=1.12.0-0 <2.0.0-0' ]
+765 silly lockFile 5e9fbe93-tar-fs-1-12-0 tar-fs@^1.12.0
+766 verbose lock tar-fs@^1.12.0 /home/Esther/.npm/5e9fbe93-tar-fs-1-12-0.lock
+767 verbose cache add [ 'temp@^0.8.3', null ]
+768 verbose cache add name=undefined spec="temp@^0.8.3" args=["temp@^0.8.3",null]
+769 verbose parsed url { protocol: null,
+769 verbose parsed url   slashes: null,
+769 verbose parsed url   auth: null,
+769 verbose parsed url   host: null,
+769 verbose parsed url   port: null,
+769 verbose parsed url   hostname: null,
+769 verbose parsed url   hash: null,
+769 verbose parsed url   search: null,
+769 verbose parsed url   query: null,
+769 verbose parsed url   pathname: 'temp@^0.8.3',
+769 verbose parsed url   path: 'temp@^0.8.3',
+769 verbose parsed url   href: 'temp@^0.8.3' }
+770 verbose cache add name="temp" spec="^0.8.3" args=["temp","^0.8.3"]
+771 verbose parsed url { protocol: null,
+771 verbose parsed url   slashes: null,
+771 verbose parsed url   auth: null,
+771 verbose parsed url   host: null,
+771 verbose parsed url   port: null,
+771 verbose parsed url   hostname: null,
+771 verbose parsed url   hash: null,
+771 verbose parsed url   search: null,
+771 verbose parsed url   query: null,
+771 verbose parsed url   pathname: '^0.8.3',
+771 verbose parsed url   path: '^0.8.3',
+771 verbose parsed url   href: '^0.8.3' }
+772 verbose addNamed [ 'temp', '^0.8.3' ]
+773 verbose addNamed [ null, '>=0.8.3-0 <0.9.0-0' ]
+774 silly lockFile 0ec83af7-temp-0-8-3 temp@^0.8.3
+775 verbose lock temp@^0.8.3 /home/Esther/.npm/0ec83af7-temp-0-8-3.lock
+776 verbose cache add [ 'update-notifier@^1.0.0', null ]
+777 verbose cache add name=undefined spec="update-notifier@^1.0.0" args=["update-notifier@^1.0.0",null]
+778 verbose parsed url { protocol: null,
+778 verbose parsed url   slashes: null,
+778 verbose parsed url   auth: null,
+778 verbose parsed url   host: null,
+778 verbose parsed url   port: null,
+778 verbose parsed url   hostname: null,
+778 verbose parsed url   hash: null,
+778 verbose parsed url   search: null,
+778 verbose parsed url   query: null,
+778 verbose parsed url   pathname: 'update-notifier@^1.0.0',
+778 verbose parsed url   path: 'update-notifier@^1.0.0',
+778 verbose parsed url   href: 'update-notifier@^1.0.0' }
+779 verbose cache add name="update-notifier" spec="^1.0.0" args=["update-notifier","^1.0.0"]
+780 verbose parsed url { protocol: null,
+780 verbose parsed url   slashes: null,
+780 verbose parsed url   auth: null,
+780 verbose parsed url   host: null,
+780 verbose parsed url   port: null,
+780 verbose parsed url   hostname: null,
+780 verbose parsed url   hash: null,
+780 verbose parsed url   search: null,
+780 verbose parsed url   query: null,
+780 verbose parsed url   pathname: '^1.0.0',
+780 verbose parsed url   path: '^1.0.0',
+780 verbose parsed url   href: '^1.0.0' }
+781 verbose addNamed [ 'update-notifier', '^1.0.0' ]
+782 verbose addNamed [ null, '>=1.0.0-0 <2.0.0-0' ]
+783 silly lockFile edf775ec-update-notifier-1-0-0 update-notifier@^1.0.0
+784 verbose lock update-notifier@^1.0.0 /home/Esther/.npm/edf775ec-update-notifier-1-0-0.lock
+785 verbose cache add [ 'vinyl@^1.1.1', null ]
+786 verbose cache add name=undefined spec="vinyl@^1.1.1" args=["vinyl@^1.1.1",null]
+787 verbose parsed url { protocol: null,
+787 verbose parsed url   slashes: null,
+787 verbose parsed url   auth: null,
+787 verbose parsed url   host: null,
+787 verbose parsed url   port: null,
+787 verbose parsed url   hostname: null,
+787 verbose parsed url   hash: null,
+787 verbose parsed url   search: null,
+787 verbose parsed url   query: null,
+787 verbose parsed url   pathname: 'vinyl@^1.1.1',
+787 verbose parsed url   path: 'vinyl@^1.1.1',
+787 verbose parsed url   href: 'vinyl@^1.1.1' }
+788 verbose cache add name="vinyl" spec="^1.1.1" args=["vinyl","^1.1.1"]
+789 verbose parsed url { protocol: null,
+789 verbose parsed url   slashes: null,
+789 verbose parsed url   auth: null,
+789 verbose parsed url   host: null,
+789 verbose parsed url   port: null,
+789 verbose parsed url   hostname: null,
+789 verbose parsed url   hash: null,
+789 verbose parsed url   search: null,
+789 verbose parsed url   query: null,
+789 verbose parsed url   pathname: '^1.1.1',
+789 verbose parsed url   path: '^1.1.1',
+789 verbose parsed url   href: '^1.1.1' }
+790 verbose addNamed [ 'vinyl', '^1.1.1' ]
+791 verbose addNamed [ null, '>=1.1.1-0 <2.0.0-0' ]
+792 silly lockFile 370e604e-vinyl-1-1-1 vinyl@^1.1.1
+793 verbose lock vinyl@^1.1.1 /home/Esther/.npm/370e604e-vinyl-1-1-1.lock
+794 verbose cache add [ 'vinyl-fs@^2.4.3', null ]
+795 verbose cache add name=undefined spec="vinyl-fs@^2.4.3" args=["vinyl-fs@^2.4.3",null]
+796 verbose parsed url { protocol: null,
+796 verbose parsed url   slashes: null,
+796 verbose parsed url   auth: null,
+796 verbose parsed url   host: null,
+796 verbose parsed url   port: null,
+796 verbose parsed url   hostname: null,
+796 verbose parsed url   hash: null,
+796 verbose parsed url   search: null,
+796 verbose parsed url   query: null,
+796 verbose parsed url   pathname: 'vinyl-fs@^2.4.3',
+796 verbose parsed url   path: 'vinyl-fs@^2.4.3',
+796 verbose parsed url   href: 'vinyl-fs@^2.4.3' }
+797 verbose cache add name="vinyl-fs" spec="^2.4.3" args=["vinyl-fs","^2.4.3"]
+798 verbose parsed url { protocol: null,
+798 verbose parsed url   slashes: null,
+798 verbose parsed url   auth: null,
+798 verbose parsed url   host: null,
+798 verbose parsed url   port: null,
+798 verbose parsed url   hostname: null,
+798 verbose parsed url   hash: null,
+798 verbose parsed url   search: null,
+798 verbose parsed url   query: null,
+798 verbose parsed url   pathname: '^2.4.3',
+798 verbose parsed url   path: '^2.4.3',
+798 verbose parsed url   href: '^2.4.3' }
+799 verbose addNamed [ 'vinyl-fs', '^2.4.3' ]
+800 verbose addNamed [ null, '>=2.4.3-0 <3.0.0-0' ]
+801 silly lockFile 9b30e4bb-vinyl-fs-2-4-3 vinyl-fs@^2.4.3
+802 verbose lock vinyl-fs@^2.4.3 /home/Esther/.npm/9b30e4bb-vinyl-fs-2-4-3.lock
+803 verbose cache add [ 'web-component-tester@^6.0.0', null ]
+804 verbose cache add name=undefined spec="web-component-tester@^6.0.0" args=["web-component-tester@^6.0.0",null]
+805 verbose parsed url { protocol: null,
+805 verbose parsed url   slashes: null,
+805 verbose parsed url   auth: null,
+805 verbose parsed url   host: null,
+805 verbose parsed url   port: null,
+805 verbose parsed url   hostname: null,
+805 verbose parsed url   hash: null,
+805 verbose parsed url   search: null,
+805 verbose parsed url   query: null,
+805 verbose parsed url   pathname: 'web-component-tester@^6.0.0',
+805 verbose parsed url   path: 'web-component-tester@^6.0.0',
+805 verbose parsed url   href: 'web-component-tester@^6.0.0' }
+806 verbose cache add name="web-component-tester" spec="^6.0.0" args=["web-component-tester","^6.0.0"]
+807 verbose parsed url { protocol: null,
+807 verbose parsed url   slashes: null,
+807 verbose parsed url   auth: null,
+807 verbose parsed url   host: null,
+807 verbose parsed url   port: null,
+807 verbose parsed url   hostname: null,
+807 verbose parsed url   hash: null,
+807 verbose parsed url   search: null,
+807 verbose parsed url   query: null,
+807 verbose parsed url   pathname: '^6.0.0',
+807 verbose parsed url   path: '^6.0.0',
+807 verbose parsed url   href: '^6.0.0' }
+808 verbose addNamed [ 'web-component-tester', '^6.0.0' ]
+809 verbose addNamed [ null, '>=6.0.0-0 <7.0.0-0' ]
+810 silly lockFile ff31b715-web-component-tester-6-0-0 web-component-tester@^6.0.0
+811 verbose lock web-component-tester@^6.0.0 /home/Esther/.npm/ff31b715-web-component-tester-6-0-0.lock
+812 verbose cache add [ 'yeoman-environment@^1.5.2', null ]
+813 verbose cache add name=undefined spec="yeoman-environment@^1.5.2" args=["yeoman-environment@^1.5.2",null]
+814 verbose parsed url { protocol: null,
+814 verbose parsed url   slashes: null,
+814 verbose parsed url   auth: null,
+814 verbose parsed url   host: null,
+814 verbose parsed url   port: null,
+814 verbose parsed url   hostname: null,
+814 verbose parsed url   hash: null,
+814 verbose parsed url   search: null,
+814 verbose parsed url   query: null,
+814 verbose parsed url   pathname: 'yeoman-environment@^1.5.2',
+814 verbose parsed url   path: 'yeoman-environment@^1.5.2',
+814 verbose parsed url   href: 'yeoman-environment@^1.5.2' }
+815 verbose cache add name="yeoman-environment" spec="^1.5.2" args=["yeoman-environment","^1.5.2"]
+816 verbose parsed url { protocol: null,
+816 verbose parsed url   slashes: null,
+816 verbose parsed url   auth: null,
+816 verbose parsed url   host: null,
+816 verbose parsed url   port: null,
+816 verbose parsed url   hostname: null,
+816 verbose parsed url   hash: null,
+816 verbose parsed url   search: null,
+816 verbose parsed url   query: null,
+816 verbose parsed url   pathname: '^1.5.2',
+816 verbose parsed url   path: '^1.5.2',
+816 verbose parsed url   href: '^1.5.2' }
+817 verbose addNamed [ 'yeoman-environment', '^1.5.2' ]
+818 verbose addNamed [ null, '>=1.5.2-0 <2.0.0-0' ]
+819 silly lockFile ebd01d03-yeoman-environment-1-5-2 yeoman-environment@^1.5.2
+820 verbose lock yeoman-environment@^1.5.2 /home/Esther/.npm/ebd01d03-yeoman-environment-1-5-2.lock
+821 verbose cache add [ 'yeoman-generator@^1.0.1', null ]
+822 verbose cache add name=undefined spec="yeoman-generator@^1.0.1" args=["yeoman-generator@^1.0.1",null]
+823 verbose parsed url { protocol: null,
+823 verbose parsed url   slashes: null,
+823 verbose parsed url   auth: null,
+823 verbose parsed url   host: null,
+823 verbose parsed url   port: null,
+823 verbose parsed url   hostname: null,
+823 verbose parsed url   hash: null,
+823 verbose parsed url   search: null,
+823 verbose parsed url   query: null,
+823 verbose parsed url   pathname: 'yeoman-generator@^1.0.1',
+823 verbose parsed url   path: 'yeoman-generator@^1.0.1',
+823 verbose parsed url   href: 'yeoman-generator@^1.0.1' }
+824 verbose cache add name="yeoman-generator" spec="^1.0.1" args=["yeoman-generator","^1.0.1"]
+825 verbose parsed url { protocol: null,
+825 verbose parsed url   slashes: null,
+825 verbose parsed url   auth: null,
+825 verbose parsed url   host: null,
+825 verbose parsed url   port: null,
+825 verbose parsed url   hostname: null,
+825 verbose parsed url   hash: null,
+825 verbose parsed url   search: null,
+825 verbose parsed url   query: null,
+825 verbose parsed url   pathname: '^1.0.1',
+825 verbose parsed url   path: '^1.0.1',
+825 verbose parsed url   href: '^1.0.1' }
+826 verbose addNamed [ 'yeoman-generator', '^1.0.1' ]
+827 verbose addNamed [ null, '>=1.0.1-0 <2.0.0-0' ]
+828 silly lockFile d9a90604-yeoman-generator-1-0-1 yeoman-generator@^1.0.1
+829 verbose lock yeoman-generator@^1.0.1 /home/Esther/.npm/d9a90604-yeoman-generator-1-0-1.lock
+830 verbose cache add [ '@types/babel-core@^6.7.14', null ]
+831 verbose cache add name=undefined spec="@types/babel-core@^6.7.14" args=["@types/babel-core@^6.7.14",null]
+832 verbose parsed url { protocol: null,
+832 verbose parsed url   slashes: null,
+832 verbose parsed url   auth: null,
+832 verbose parsed url   host: null,
+832 verbose parsed url   port: null,
+832 verbose parsed url   hostname: null,
+832 verbose parsed url   hash: null,
+832 verbose parsed url   search: null,
+832 verbose parsed url   query: null,
+832 verbose parsed url   pathname: '@types/babel-core@^6.7.14',
+832 verbose parsed url   path: '@types/babel-core@^6.7.14',
+832 verbose parsed url   href: '@types/babel-core@^6.7.14' }
+833 verbose cache add name="" spec="types/babel-core@^6.7.14" args=["","types/babel-core@^6.7.14"]
+834 verbose parsed url { protocol: null,
+834 verbose parsed url   slashes: null,
+834 verbose parsed url   auth: null,
+834 verbose parsed url   host: null,
+834 verbose parsed url   port: null,
+834 verbose parsed url   hostname: null,
+834 verbose parsed url   hash: null,
+834 verbose parsed url   search: null,
+834 verbose parsed url   query: null,
+834 verbose parsed url   pathname: 'types/babel-core@^6.7.14',
+834 verbose parsed url   path: 'types/babel-core@^6.7.14',
+834 verbose parsed url   href: 'types/babel-core@^6.7.14' }
+835 verbose cache add name="types/babel-core" spec="^6.7.14" args=["types/babel-core","^6.7.14"]
+836 verbose parsed url { protocol: null,
+836 verbose parsed url   slashes: null,
+836 verbose parsed url   auth: null,
+836 verbose parsed url   host: null,
+836 verbose parsed url   port: null,
+836 verbose parsed url   hostname: null,
+836 verbose parsed url   hash: null,
+836 verbose parsed url   search: null,
+836 verbose parsed url   query: null,
+836 verbose parsed url   pathname: '^6.7.14',
+836 verbose parsed url   path: '^6.7.14',
+836 verbose parsed url   href: '^6.7.14' }
+837 verbose addNamed [ 'types/babel-core', '^6.7.14' ]
+838 verbose addNamed [ null, '>=6.7.14-0 <7.0.0-0' ]
+839 silly lockFile b8f87be3-types-babel-core-6-7-14 types/babel-core@^6.7.14
+840 verbose lock types/babel-core@^6.7.14 /home/Esther/.npm/b8f87be3-types-babel-core-6-7-14.lock
+841 verbose cache add [ '@types/chalk@^0.4.31', null ]
+842 verbose cache add name=undefined spec="@types/chalk@^0.4.31" args=["@types/chalk@^0.4.31",null]
+843 verbose parsed url { protocol: null,
+843 verbose parsed url   slashes: null,
+843 verbose parsed url   auth: null,
+843 verbose parsed url   host: null,
+843 verbose parsed url   port: null,
+843 verbose parsed url   hostname: null,
+843 verbose parsed url   hash: null,
+843 verbose parsed url   search: null,
+843 verbose parsed url   query: null,
+843 verbose parsed url   pathname: '@types/chalk@^0.4.31',
+843 verbose parsed url   path: '@types/chalk@^0.4.31',
+843 verbose parsed url   href: '@types/chalk@^0.4.31' }
+844 verbose cache add name="" spec="types/chalk@^0.4.31" args=["","types/chalk@^0.4.31"]
+845 verbose parsed url { protocol: null,
+845 verbose parsed url   slashes: null,
+845 verbose parsed url   auth: null,
+845 verbose parsed url   host: null,
+845 verbose parsed url   port: null,
+845 verbose parsed url   hostname: null,
+845 verbose parsed url   hash: null,
+845 verbose parsed url   search: null,
+845 verbose parsed url   query: null,
+845 verbose parsed url   pathname: 'types/chalk@^0.4.31',
+845 verbose parsed url   path: 'types/chalk@^0.4.31',
+845 verbose parsed url   href: 'types/chalk@^0.4.31' }
+846 verbose cache add name="types/chalk" spec="^0.4.31" args=["types/chalk","^0.4.31"]
+847 verbose parsed url { protocol: null,
+847 verbose parsed url   slashes: null,
+847 verbose parsed url   auth: null,
+847 verbose parsed url   host: null,
+847 verbose parsed url   port: null,
+847 verbose parsed url   hostname: null,
+847 verbose parsed url   hash: null,
+847 verbose parsed url   search: null,
+847 verbose parsed url   query: null,
+847 verbose parsed url   pathname: '^0.4.31',
+847 verbose parsed url   path: '^0.4.31',
+847 verbose parsed url   href: '^0.4.31' }
+848 verbose addNamed [ 'types/chalk', '^0.4.31' ]
+849 verbose addNamed [ null, '>=0.4.31-0 <0.5.0-0' ]
+850 silly lockFile ddaa45f4-types-chalk-0-4-31 types/chalk@^0.4.31
+851 verbose lock types/chalk@^0.4.31 /home/Esther/.npm/ddaa45f4-types-chalk-0-4-31.lock
+852 silly addNameRange { name: 'types/rimraf', range: '=0.0.28', hasData: false }
+853 silly addNameRange { name: 'types/semver',
+853 silly addNameRange   range: '>=5.3.30-0 <6.0.0-0',
+853 silly addNameRange   hasData: false }
+854 verbose url raw types/inquirer/0.0.32
+855 verbose url resolving [ 'https://registry.npmjs.org/', './types/inquirer/0.0.32' ]
+856 verbose url resolved https://registry.npmjs.org/types/inquirer/0.0.32
+857 info trying registry request attempt 1 at 15:19:35
+858 http GET https://registry.npmjs.org/types/inquirer/0.0.32
+859 verbose url raw types/merge-stream
+860 verbose url resolving [ 'https://registry.npmjs.org/', './types/merge-stream' ]
+861 verbose url resolved https://registry.npmjs.org/types/merge-stream
+862 info trying registry request attempt 1 at 15:19:35
+863 http GET https://registry.npmjs.org/types/merge-stream
+864 verbose url raw types/mz
+865 verbose url resolving [ 'https://registry.npmjs.org/', './types/mz' ]
+866 verbose url resolved https://registry.npmjs.org/types/mz
+867 info trying registry request attempt 1 at 15:19:35
+868 http GET https://registry.npmjs.org/types/mz
+869 silly addNameRange { name: 'types/temp',
+869 silly addNameRange   range: '>=0.8.28-0 <0.9.0-0',
+869 silly addNameRange   hasData: false }
+870 silly addNameRange { name: 'types/vinyl',
+870 silly addNameRange   range: '>=2.0.0-0 <3.0.0-0',
+870 silly addNameRange   hasData: false }
+871 silly addNameRange { name: 'types/yeoman-generator',
+871 silly addNameRange   range: '>=1.0.0-0 <2.0.0-0',
+871 silly addNameRange   hasData: false }
+872 silly addNameRange { name: 'types/update-notifier',
+872 silly addNameRange   range: '>=1.0.0-0 <2.0.0-0',
+872 silly addNameRange   hasData: false }
+873 silly addNameRange { name: 'babel-core',
+873 silly addNameRange   range: '>=6.24.1-0 <7.0.0-0',
+873 silly addNameRange   hasData: false }
+874 silly addNameRange { name: 'babel-plugin-external-helpers',
+874 silly addNameRange   range: '>=6.22.0-0 <7.0.0-0',
+874 silly addNameRange   hasData: false }
+875 silly addNameRange { name: 'babel-preset-es2015',
+875 silly addNameRange   range: '>=6.18.0-0 <7.0.0-0',
+875 silly addNameRange   hasData: false }
+876 verbose url raw types/request/0.0.39
+877 verbose url resolving [ 'https://registry.npmjs.org/', './types/request/0.0.39' ]
+878 verbose url resolved https://registry.npmjs.org/types/request/0.0.39
+879 info trying registry request attempt 1 at 15:19:35
+880 http GET https://registry.npmjs.org/types/request/0.0.39
+881 silly addNameRange { name: 'bower-json',
+881 silly addNameRange   range: '>=0.8.1-0 <0.9.0-0',
+881 silly addNameRange   hasData: false }
+882 silly addNameRange { name: 'bower-logger',
+882 silly addNameRange   range: '>=0.2.2-0 <0.3.0-0',
+882 silly addNameRange   hasData: false }
+883 silly addNameRange { name: 'chalk', range: '>=1.1.3-0 <2.0.0-0', hasData: false }
+884 verbose url raw types/semver
+885 verbose url resolving [ 'https://registry.npmjs.org/', './types/semver' ]
+886 verbose url resolved https://registry.npmjs.org/types/semver
+887 info trying registry request attempt 1 at 15:19:35
+888 http GET https://registry.npmjs.org/types/semver
+889 verbose url raw types/rimraf
+890 verbose url resolving [ 'https://registry.npmjs.org/', './types/rimraf' ]
+891 verbose url resolved https://registry.npmjs.org/types/rimraf
+892 info trying registry request attempt 1 at 15:19:35
+893 http GET https://registry.npmjs.org/types/rimraf
+894 verbose url raw types/resolve/0.0.4
+895 verbose url resolving [ 'https://registry.npmjs.org/', './types/resolve/0.0.4' ]
+896 verbose url resolved https://registry.npmjs.org/types/resolve/0.0.4
+897 info trying registry request attempt 1 at 15:19:35
+898 http GET https://registry.npmjs.org/types/resolve/0.0.4
+899 verbose url raw types/temp
+900 verbose url resolving [ 'https://registry.npmjs.org/', './types/temp' ]
+901 verbose url resolved https://registry.npmjs.org/types/temp
+902 info trying registry request attempt 1 at 15:19:35
+903 http GET https://registry.npmjs.org/types/temp
+904 verbose url raw types/vinyl
+905 verbose url resolving [ 'https://registry.npmjs.org/', './types/vinyl' ]
+906 verbose url resolved https://registry.npmjs.org/types/vinyl
+907 info trying registry request attempt 1 at 15:19:35
+908 http GET https://registry.npmjs.org/types/vinyl
+909 verbose url raw types/vinyl-fs/0.0.28
+910 verbose url resolving [ 'https://registry.npmjs.org/', './types/vinyl-fs/0.0.28' ]
+911 verbose url resolved https://registry.npmjs.org/types/vinyl-fs/0.0.28
+912 info trying registry request attempt 1 at 15:19:35
+913 http GET https://registry.npmjs.org/types/vinyl-fs/0.0.28
+914 verbose url raw types/yeoman-generator
+915 verbose url resolving [ 'https://registry.npmjs.org/', './types/yeoman-generator' ]
+916 verbose url resolved https://registry.npmjs.org/types/yeoman-generator
+917 info trying registry request attempt 1 at 15:19:35
+918 http GET https://registry.npmjs.org/types/yeoman-generator
+919 verbose url raw types/update-notifier
+920 verbose url resolving [ 'https://registry.npmjs.org/', './types/update-notifier' ]
+921 verbose url resolved https://registry.npmjs.org/types/update-notifier
+922 info trying registry request attempt 1 at 15:19:35
+923 http GET https://registry.npmjs.org/types/update-notifier
+924 verbose url raw babel-core
+925 verbose url resolving [ 'https://registry.npmjs.org/', './babel-core' ]
+926 verbose url resolved https://registry.npmjs.org/babel-core
+927 info trying registry request attempt 1 at 15:19:35
+928 http GET https://registry.npmjs.org/babel-core
+929 verbose url raw babel-plugin-external-helpers
+930 verbose url resolving [ 'https://registry.npmjs.org/',
+930 verbose url resolving   './babel-plugin-external-helpers' ]
+931 verbose url resolved https://registry.npmjs.org/babel-plugin-external-helpers
+932 info trying registry request attempt 1 at 15:19:35
+933 http GET https://registry.npmjs.org/babel-plugin-external-helpers
+934 silly addNameRange { name: 'command-line-args',
+934 silly addNameRange   range: '>=3.0.0-0 <4.0.0-0',
+934 silly addNameRange   hasData: false }
+935 silly addNameRange { name: 'del', range: '>=2.2.2-0 <3.0.0-0', hasData: false }
+936 silly addNameRange { name: 'github', range: '>=7.2.1-0 <8.0.0-0', hasData: false }
+937 silly addNameRange { name: 'findup-sync',
+937 silly addNameRange   range: '>=0.4.2-0 <0.5.0-0',
+937 silly addNameRange   hasData: false }
+938 silly addNameRange { name: 'gulp-if', range: '>=2.0.0-0 <3.0.0-0', hasData: false }
+939 silly addNameRange { name: 'html-minifier',
+939 silly addNameRange   range: '>=3.0.1-0 <4.0.0-0',
+939 silly addNameRange   hasData: false }
+940 silly addNameRange { name: 'gunzip-maybe',
+940 silly addNameRange   range: '>=1.3.1-0 <2.0.0-0',
+940 silly addNameRange   hasData: false }
+941 silly addNameRange { name: 'mz', range: '>=2.6.0-0 <3.0.0-0', hasData: false }
+942 silly addNameRange { name: 'merge-stream',
+942 silly addNameRange   range: '>=1.0.1-0 <2.0.0-0',
+942 silly addNameRange   hasData: false }
+943 silly addNameRange { name: 'inquirer', range: '>=1.0.2-0 <2.0.0-0', hasData: false }
+944 silly addNameRange { name: 'polymer-analyzer',
+944 silly addNameRange   range: '>=2.0.0-0 <3.0.0-0',
+944 silly addNameRange   hasData: false }
+945 silly addNameRange { name: 'plylog', range: '>=0.4.0-0 <0.5.0-0', hasData: false }
+946 silly addNameRange { name: 'polymer-project-config',
+946 silly addNameRange   range: '>=3.4.0-0 <4.0.0-0',
+946 silly addNameRange   hasData: false }
+947 silly addNameRange { name: 'polymer-build',
+947 silly addNameRange   range: '>=1.6.0-0 <2.0.0-0',
+947 silly addNameRange   hasData: false }
+948 silly addNameRange { name: 'polymer-linter',
+948 silly addNameRange   range: '>=2.0.2-0 <3.0.0-0',
+948 silly addNameRange   hasData: false }
+949 silly addNameRange { name: 'rimraf', range: '>=2.6.1-0 <3.0.0-0', hasData: false }
+950 silly addNameRange { name: 'polyserve',
+950 silly addNameRange   range: '>=0.19.0-0 <0.20.0-0',
+950 silly addNameRange   hasData: false }
+951 silly addNameRange { name: 'request', range: '>=2.72.0-0 <3.0.0-0', hasData: false }
+952 silly addNameRange { name: 'semver', range: '>=5.3.0-0 <6.0.0-0', hasData: false }
+953 silly addNameRange { name: 'temp', range: '>=0.8.3-0 <0.9.0-0', hasData: false }
+954 silly addNameRange { name: 'tar-fs', range: '>=1.12.0-0 <2.0.0-0', hasData: false }
+955 silly addNameRange { name: 'command-line-commands',
+955 silly addNameRange   range: '>=1.0.3-0 <2.0.0-0',
+955 silly addNameRange   hasData: false }
+956 silly addNameRange { name: 'command-line-usage',
+956 silly addNameRange   range: '>=3.0.1-0 <4.0.0-0',
+956 silly addNameRange   hasData: false }
+957 silly addNameRange { name: 'css-slam', range: '>=1.1.0-0 <2.0.0-0', hasData: false }
+958 silly addNameRange { name: 'update-notifier',
+958 silly addNameRange   range: '>=1.0.0-0 <2.0.0-0',
+958 silly addNameRange   hasData: false }
+959 silly addNameRange { name: 'vinyl-fs', range: '>=2.4.3-0 <3.0.0-0', hasData: false }
+960 silly addNameRange { name: 'yeoman-generator',
+960 silly addNameRange   range: '>=1.0.1-0 <2.0.0-0',
+960 silly addNameRange   hasData: false }
+961 silly addNameRange { name: 'web-component-tester',
+961 silly addNameRange   range: '>=6.0.0-0 <7.0.0-0',
+961 silly addNameRange   hasData: false }
+962 silly addNameRange { name: 'vinyl', range: '>=1.1.1-0 <2.0.0-0', hasData: false }
+963 verbose url raw babel-preset-babili/0.0.10
+964 verbose url resolving [ 'https://registry.npmjs.org/',
+964 verbose url resolving   './babel-preset-babili/0.0.10' ]
+965 verbose url resolved https://registry.npmjs.org/babel-preset-babili/0.0.10
+966 info trying registry request attempt 1 at 15:19:35
+967 http GET https://registry.npmjs.org/babel-preset-babili/0.0.10
+968 verbose url raw babel-preset-es2015
+969 verbose url resolving [ 'https://registry.npmjs.org/', './babel-preset-es2015' ]
+970 verbose url resolved https://registry.npmjs.org/babel-preset-es2015
+971 info trying registry request attempt 1 at 15:19:35
+972 http GET https://registry.npmjs.org/babel-preset-es2015
+973 verbose url raw bower/1.8.0
+974 verbose url resolving [ 'https://registry.npmjs.org/', './bower/1.8.0' ]
+975 verbose url resolved https://registry.npmjs.org/bower/1.8.0
+976 info trying registry request attempt 1 at 15:19:35
+977 http GET https://registry.npmjs.org/bower/1.8.0
+978 silly addNameRange { name: 'yeoman-environment',
+978 silly addNameRange   range: '>=1.5.2-0 <2.0.0-0',
+978 silly addNameRange   hasData: false }
+979 silly addNameRange { name: 'types/chalk',
+979 silly addNameRange   range: '>=0.4.31-0 <0.5.0-0',
+979 silly addNameRange   hasData: false }
+980 verbose url raw bower-json
+981 verbose url resolving [ 'https://registry.npmjs.org/', './bower-json' ]
+982 verbose url resolved https://registry.npmjs.org/bower-json
+983 info trying registry request attempt 1 at 15:19:35
+984 http GET https://registry.npmjs.org/bower-json
+985 verbose url raw bower-logger
+986 verbose url resolving [ 'https://registry.npmjs.org/', './bower-logger' ]
+987 verbose url resolved https://registry.npmjs.org/bower-logger
+988 info trying registry request attempt 1 at 15:19:35
+989 http GET https://registry.npmjs.org/bower-logger
+990 verbose url raw chalk
+991 verbose url resolving [ 'https://registry.npmjs.org/', './chalk' ]
+992 verbose url resolved https://registry.npmjs.org/chalk
+993 info trying registry request attempt 1 at 15:19:35
+994 http GET https://registry.npmjs.org/chalk
+995 silly addNameRange { name: 'types/babel-core',
+995 silly addNameRange   range: '>=6.7.14-0 <7.0.0-0',
+995 silly addNameRange   hasData: false }
+996 verbose url raw command-line-args
+997 verbose url resolving [ 'https://registry.npmjs.org/', './command-line-args' ]
+998 verbose url resolved https://registry.npmjs.org/command-line-args
+999 info trying registry request attempt 1 at 15:19:35
+1000 http GET https://registry.npmjs.org/command-line-args
+1001 verbose url raw del
+1002 verbose url resolving [ 'https://registry.npmjs.org/', './del' ]
+1003 verbose url resolved https://registry.npmjs.org/del
+1004 info trying registry request attempt 1 at 15:19:35
+1005 http GET https://registry.npmjs.org/del
+1006 verbose url raw github
+1007 verbose url resolving [ 'https://registry.npmjs.org/', './github' ]
+1008 verbose url resolved https://registry.npmjs.org/github
+1009 info trying registry request attempt 1 at 15:19:35
+1010 http GET https://registry.npmjs.org/github
+1011 verbose url raw findup-sync
+1012 verbose url resolving [ 'https://registry.npmjs.org/', './findup-sync' ]
+1013 verbose url resolved https://registry.npmjs.org/findup-sync
+1014 info trying registry request attempt 1 at 15:19:35
+1015 http GET https://registry.npmjs.org/findup-sync
+1016 verbose url raw gulp-if
+1017 verbose url resolving [ 'https://registry.npmjs.org/', './gulp-if' ]
+1018 verbose url resolved https://registry.npmjs.org/gulp-if
+1019 info trying registry request attempt 1 at 15:19:35
+1020 http GET https://registry.npmjs.org/gulp-if
+1021 verbose url raw html-minifier
+1022 verbose url resolving [ 'https://registry.npmjs.org/', './html-minifier' ]
+1023 verbose url resolved https://registry.npmjs.org/html-minifier
+1024 info trying registry request attempt 1 at 15:19:35
+1025 http GET https://registry.npmjs.org/html-minifier
+1026 verbose url raw gunzip-maybe
+1027 verbose url resolving [ 'https://registry.npmjs.org/', './gunzip-maybe' ]
+1028 verbose url resolved https://registry.npmjs.org/gunzip-maybe
+1029 info trying registry request attempt 1 at 15:19:35
+1030 http GET https://registry.npmjs.org/gunzip-maybe
+1031 verbose url raw mz
+1032 verbose url resolving [ 'https://registry.npmjs.org/', './mz' ]
+1033 verbose url resolved https://registry.npmjs.org/mz
+1034 info trying registry request attempt 1 at 15:19:35
+1035 http GET https://registry.npmjs.org/mz
+1036 verbose url raw merge-stream
+1037 verbose url resolving [ 'https://registry.npmjs.org/', './merge-stream' ]
+1038 verbose url resolved https://registry.npmjs.org/merge-stream
+1039 info trying registry request attempt 1 at 15:19:35
+1040 http GET https://registry.npmjs.org/merge-stream
+1041 verbose url raw inquirer
+1042 verbose url resolving [ 'https://registry.npmjs.org/', './inquirer' ]
+1043 verbose url resolved https://registry.npmjs.org/inquirer
+1044 info trying registry request attempt 1 at 15:19:35
+1045 http GET https://registry.npmjs.org/inquirer
+1046 verbose url raw polymer-analyzer
+1047 verbose url resolving [ 'https://registry.npmjs.org/', './polymer-analyzer' ]
+1048 verbose url resolved https://registry.npmjs.org/polymer-analyzer
+1049 info trying registry request attempt 1 at 15:19:35
+1050 http GET https://registry.npmjs.org/polymer-analyzer
+1051 verbose url raw plylog
+1052 verbose url resolving [ 'https://registry.npmjs.org/', './plylog' ]
+1053 verbose url resolved https://registry.npmjs.org/plylog
+1054 info trying registry request attempt 1 at 15:19:35
+1055 http GET https://registry.npmjs.org/plylog
+1056 verbose url raw polymer-project-config
+1057 verbose url resolving [ 'https://registry.npmjs.org/', './polymer-project-config' ]
+1058 verbose url resolved https://registry.npmjs.org/polymer-project-config
+1059 info trying registry request attempt 1 at 15:19:35
+1060 http GET https://registry.npmjs.org/polymer-project-config
+1061 verbose url raw polymer-build
+1062 verbose url resolving [ 'https://registry.npmjs.org/', './polymer-build' ]
+1063 verbose url resolved https://registry.npmjs.org/polymer-build
+1064 info trying registry request attempt 1 at 15:19:35
+1065 http GET https://registry.npmjs.org/polymer-build
+1066 verbose url raw polymer-linter
+1067 verbose url resolving [ 'https://registry.npmjs.org/', './polymer-linter' ]
+1068 verbose url resolved https://registry.npmjs.org/polymer-linter
+1069 info trying registry request attempt 1 at 15:19:35
+1070 http GET https://registry.npmjs.org/polymer-linter
+1071 verbose url raw rimraf
+1072 verbose url resolving [ 'https://registry.npmjs.org/', './rimraf' ]
+1073 verbose url resolved https://registry.npmjs.org/rimraf
+1074 info trying registry request attempt 1 at 15:19:35
+1075 http GET https://registry.npmjs.org/rimraf
+1076 verbose url raw polyserve
+1077 verbose url resolving [ 'https://registry.npmjs.org/', './polyserve' ]
+1078 verbose url resolved https://registry.npmjs.org/polyserve
+1079 info trying registry request attempt 1 at 15:19:35
+1080 http GET https://registry.npmjs.org/polyserve
+1081 verbose url raw request
+1082 verbose url resolving [ 'https://registry.npmjs.org/', './request' ]
+1083 verbose url resolved https://registry.npmjs.org/request
+1084 info trying registry request attempt 1 at 15:19:35
+1085 http GET https://registry.npmjs.org/request
+1086 verbose url raw semver
+1087 verbose url resolving [ 'https://registry.npmjs.org/', './semver' ]
+1088 verbose url resolved https://registry.npmjs.org/semver
+1089 info trying registry request attempt 1 at 15:19:35
+1090 http GET https://registry.npmjs.org/semver
+1091 verbose url raw temp
+1092 verbose url resolving [ 'https://registry.npmjs.org/', './temp' ]
+1093 verbose url resolved https://registry.npmjs.org/temp
+1094 info trying registry request attempt 1 at 15:19:35
+1095 http GET https://registry.npmjs.org/temp
+1096 verbose url raw tar-fs
+1097 verbose url resolving [ 'https://registry.npmjs.org/', './tar-fs' ]
+1098 verbose url resolved https://registry.npmjs.org/tar-fs
+1099 info trying registry request attempt 1 at 15:19:35
+1100 http GET https://registry.npmjs.org/tar-fs
+1101 verbose url raw command-line-commands
+1102 verbose url resolving [ 'https://registry.npmjs.org/', './command-line-commands' ]
+1103 verbose url resolved https://registry.npmjs.org/command-line-commands
+1104 info trying registry request attempt 1 at 15:19:35
+1105 http GET https://registry.npmjs.org/command-line-commands
+1106 verbose url raw command-line-usage
+1107 verbose url resolving [ 'https://registry.npmjs.org/', './command-line-usage' ]
+1108 verbose url resolved https://registry.npmjs.org/command-line-usage
+1109 info trying registry request attempt 1 at 15:19:35
+1110 http GET https://registry.npmjs.org/command-line-usage
+1111 verbose url raw css-slam
+1112 verbose url resolving [ 'https://registry.npmjs.org/', './css-slam' ]
+1113 verbose url resolved https://registry.npmjs.org/css-slam
+1114 info trying registry request attempt 1 at 15:19:35
+1115 http GET https://registry.npmjs.org/css-slam
+1116 verbose url raw update-notifier
+1117 verbose url resolving [ 'https://registry.npmjs.org/', './update-notifier' ]
+1118 verbose url resolved https://registry.npmjs.org/update-notifier
+1119 info trying registry request attempt 1 at 15:19:35
+1120 http GET https://registry.npmjs.org/update-notifier
+1121 verbose url raw vinyl-fs
+1122 verbose url resolving [ 'https://registry.npmjs.org/', './vinyl-fs' ]
+1123 verbose url resolved https://registry.npmjs.org/vinyl-fs
+1124 info trying registry request attempt 1 at 15:19:35
+1125 http GET https://registry.npmjs.org/vinyl-fs
+1126 verbose url raw yeoman-generator
+1127 verbose url resolving [ 'https://registry.npmjs.org/', './yeoman-generator' ]
+1128 verbose url resolved https://registry.npmjs.org/yeoman-generator
+1129 info trying registry request attempt 1 at 15:19:35
+1130 http GET https://registry.npmjs.org/yeoman-generator
+1131 verbose url raw web-component-tester
+1132 verbose url resolving [ 'https://registry.npmjs.org/', './web-component-tester' ]
+1133 verbose url resolved https://registry.npmjs.org/web-component-tester
+1134 info trying registry request attempt 1 at 15:19:35
+1135 http GET https://registry.npmjs.org/web-component-tester
+1136 verbose url raw vinyl
+1137 verbose url resolving [ 'https://registry.npmjs.org/', './vinyl' ]
+1138 verbose url resolved https://registry.npmjs.org/vinyl
+1139 info trying registry request attempt 1 at 15:19:35
+1140 http GET https://registry.npmjs.org/vinyl
+1141 verbose url raw yeoman-environment
+1142 verbose url resolving [ 'https://registry.npmjs.org/', './yeoman-environment' ]
+1143 verbose url resolved https://registry.npmjs.org/yeoman-environment
+1144 info trying registry request attempt 1 at 15:19:35
+1145 http GET https://registry.npmjs.org/yeoman-environment
+1146 verbose url raw types/chalk
+1147 verbose url resolving [ 'https://registry.npmjs.org/', './types/chalk' ]
+1148 verbose url resolved https://registry.npmjs.org/types/chalk
+1149 info trying registry request attempt 1 at 15:19:35
+1150 http GET https://registry.npmjs.org/types/chalk
+1151 verbose url raw types/babel-core
+1152 verbose url resolving [ 'https://registry.npmjs.org/', './types/babel-core' ]
+1153 verbose url resolved https://registry.npmjs.org/types/babel-core
+1154 info trying registry request attempt 1 at 15:19:35
+1155 http GET https://registry.npmjs.org/types/babel-core
+1156 http 404 https://registry.npmjs.org/types/del
+1157 silly registry.get cb [ 404,
+1157 silly registry.get   { 'content-type': 'application/json',
+1157 silly registry.get     'cache-control': 'max-age=0',
+1157 silly registry.get     'content-length': '2',
+1157 silly registry.get     'accept-ranges': 'bytes',
+1157 silly registry.get     date: 'Fri, 30 Jun 2017 20:19:33 GMT',
+1157 silly registry.get     via: '1.1 varnish',
+1157 silly registry.get     age: '0',
+1157 silly registry.get     connection: 'keep-alive',
+1157 silly registry.get     'x-served-by': 'cache-ord1740-ORD',
+1157 silly registry.get     'x-cache': 'MISS',
+1157 silly registry.get     'x-cache-hits': '0',
+1157 silly registry.get     'x-timer': 'S1498853974.634326,VS0,VE132',
+1157 silly registry.get     vary: 'Accept-Encoding' } ]
+1158 silly addNameRange number 2 { name: 'types/del',
+1158 silly addNameRange   range: '>=2.2.31-0 <3.0.0-0',
+1158 silly addNameRange   hasData: true }
+1159 silly addNameRange versions [ undefined, [] ]
+1160 error TypeError: Cannot read property 'latest' of undefined
+1160 error     at next (/usr/share/npm/lib/cache.js:687:35)
+1160 error     at /usr/share/npm/lib/cache.js:675:5
+1160 error     at saved (/usr/share/npm/node_modules/npm-registry-client/lib/get.js:142:7)
+1160 error     at /usr/lib/nodejs/graceful-fs/polyfills.js:133:7
+1160 error     at Object.oncomplete (fs.js:107:15)
+1161 error If you need help, you may report this log at:
+1161 error     <http://github.com/isaacs/npm/issues>
+1161 error or email it to:
+1161 error     <npm-@googlegroups.com>
+1162 error System Linux 3.4.0+
+1163 error command "/usr/bin/nodejs" "/usr/bin/npm" "install" "-g" "polymer-cli"
+1164 error cwd /mnt/d/Esther/d_project
+1165 error node -v v0.10.25
+1166 error npm -v 1.3.10
+1167 error type non_object_property_load
+1168 verbose exit [ 1, true ]

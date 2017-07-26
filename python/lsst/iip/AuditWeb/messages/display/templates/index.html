@@ -1,0 +1,314 @@
+{% extends 'base.html'%}
+{% block title %}All Messages{% endblock %}
+{% block main_content %}
+	<aside class="sidebar-left-collapse">
+        {% load static %}
+		<a href="https://www.lsst.org/">
+        <img border="0" alt="LSST" src="{% static "images/lsst_trans.png" %}" width="85" height="40">
+        </a>
+		<div class="sidebar-links">
+
+			<div class="link selected">
+
+				<a href="/display/index">
+					<i class="fa fa-globe"></i>All status
+				</a>
+
+                <ul class="sub-links">
+                    <form action="/display/index/" method="post">
+                         {% csrf_token %}
+                         Start time:
+                         {{form.start_time}}
+                        <input type="submit" style="display: none" />
+                    </form>
+                    <div class="slider-wrapper">
+                        <input type="range" min="0" max="60" list="tickmarks" value="0" step="1" onchange="showValue(this.value)" >
+                        <span id="range">0</span>
+                        <script type="text/javascript">
+                        function showValue(newValue)
+                        {
+                            document.getElementById("range").innerHTML=newValue;
+
+                            document.getElementById("demo").innerHTML = parseInt({{start_time}}) + newValue;
+                        }
+                        </script>
+
+                        <datalist id="tickmarks">
+                          <option value="0" label="0">
+                          <option value="10">
+                          <option value="20" label="20">
+                          <option value="30">
+                          <option value="40" label="40">
+                          <option value="50">
+                          <option value="60" label="60">
+                        </datalist>
+                    </div>
+				</ul>
+
+
+			</div>
+
+			<div class="link">
+
+				<a href="/display">
+					<i class="fa fa-table"></i>Tables
+                </a>
+                <ul class="sub-links">
+                    <form action="/display/time_query/" method="post">
+                         {% csrf_token %}
+                         Scoreboard(s):
+                         {{form.choose_scoreboard}}
+                         (YYYY,MM,DD,HH,MM,SS)
+                        <br>
+                         Start time:
+                         {{form.start_time}}
+                         <br>
+                         End time:
+                         {{form.end_time}}
+                        <!--
+                        <div class="slider-wrapper" list="tickmarks">
+                         {{form.interval}}
+                        </div>
+                        -->
+                        <input type="submit" style="display: none" />
+                    </form>
+				</ul>
+
+
+			</div>
+
+            <div class="link">
+
+				<a href="#">
+					<i class="fa fa-keyboard-o"></i>Commendable Devices
+				</a>
+
+				<ul class="sub-links">
+					<li><a href="#">AR Foreman</a></li>
+					<li><a href="#">PP Foreman</a></li>
+					<li><a href="#">All</a></li>
+				</ul>
+
+			</div>
+
+			<div class="link">
+
+				<a href="#">
+					<i class="fa fa-forward"></i>Forwarders
+				</a>
+
+				<ul class="sub-links">
+                    <li><a href="#">Archive Forwarders</a></li>
+                    <li><a href="#">PP Forwarders</a></li>
+					<li><a href="/display/forwarder2">Forwarder 2</a></li>
+					<li><a href="/display/forwarder6">Forwarder 6</a></li>
+					<li><a href="/display/forwarder12">Forwarder 12</a></li>
+				</ul>
+
+			</div>
+
+			<div class="link">
+
+				<a href="#">
+					<i class="fa fa-arrows-alt"></i>Distributors
+				</a>
+
+				<ul class="sub-links">
+					<li><a href="#">Link 1</a></li>
+					<li><a href="#">Link 2</a></li>
+					<li><a href="#">Link 3</a></li>
+					<li><a href="#">Link 4</a></li>
+				</ul>
+
+			</div>
+
+			<div class="link">
+
+				<a href="#">
+					<i class="fa fa-briefcase"></i>Jobs
+				</a>
+
+				<ul class="sub-links">
+					<li><a href="#">Job State</a></li>
+					<li><a href="#">Job Status</a></li>
+					<li><a href="#">Visit</a></li>
+					<li><a href="#">Session</a></li>
+				</ul>
+
+			</div>
+
+            <div class="link">
+
+				<a href="#">
+					<i class="fa fa-picture-o"></i>Image IDs
+				</a>
+
+                <ul class="sub-links">
+					<li>
+                        <form action="/display/img_query/" method="post">
+                             {% csrf_token %}
+                             Scoreboard(s):
+                            {{form.choose_scoreboard}}
+                            <i class="fa fa-search" style="font-size: 18px;"></i>
+                            <br>
+                             {{form.img_chosen}}
+                            <input type="submit" style="display: none" />
+                        </form>
+                    </li>
+				</ul>
+
+			</div>
+
+		</div>
+
+	</aside>
+
+    <div id="div1">
+		<h2 class="dmcs_dvc_state"> DMCS </h2>
+		<h4 class="dmcs_dvc_state"> DEVICE STATE</h4>
+
+		<div id="dmcs_dvc_state_content">
+            <table class="dmcs_dvc_state_table">
+              <tr>
+                <td>PP:</td>
+                <td><span class="label-offline">OFFLINE</span></td>
+              </tr>
+              <tr>
+                <td>AR:</td>
+                <td><span class="label-standby">STANDBY</span></td>
+              </tr>
+              <tr>
+                <td>CA:</td>
+                <td><span class="label-enabled">ENABLED</span></td>
+              </tr>
+              <tr>
+                <td>SP:</td>
+                <td><span class="label-enabled">ENABLED</span></td>
+              </tr>
+              <tr>
+                <td>EFD:</td>
+                <td><span class="label-disabled">DISABLED</span></td>
+              </tr>
+            </table>
+		</div>
+	</div>
+
+<div id="div2">
+    <h4 class="dmcs_currar">CURRENT AR JOB</h4>
+    <div id="dmcs_currjob_content">
+        <h4 class="dmcs_currjob_content">23333: PARAMS SENT</h4>
+    </div>
+</div>
+<div id="div3">
+    <h3 class="ar_forwarders">ARCHIVE<br>FORWARDERS</h3>
+
+	<div id="ar_forwarders_content">
+        <table class="forwarders">
+            <tr>
+                <td>F1:</td>
+                <td><span class="label-fetch_complete">FETCH COMPLETE</span></td>
+            </tr>
+            <tr>
+                <td>F2:</td>
+                <td><span class="label-fetch_complete">FETCH COMPLETE</span></td>
+            </tr>
+            <tr>
+                <td>F3:</td>
+                <td><span class="label-format_complete">FORMAT COMPLETE</span></td>
+            </tr>
+            <tr>
+                <td>F4:</td>
+                <td><span class="label-format_complete">FORMAT COMPLETE</span></td>
+            </tr>
+            <tr>
+                <td>F5:</td>
+                <td><span class="label-format_complete">FORMAT COMPLETE</span></td>
+            </tr>
+        </table>
+	</div>
+</div>
+
+<div id="div4">
+    <h2 class="dmcs_currdvc" style="margin-bottom: 6px;">DMCS</h2>
+	<h4 class="dmcs_currdvc">CURRENT DEVICE JOB STATE</h4>
+    <table class="dmcs_currdvc">
+        <tr class="general">
+            <th class="general"></th>
+            <th class="general">Job Number</th>
+            <th class="general">State</th>
+        </tr>
+            <tr class="general">
+            <td class="general">PP Job</td>
+            <td class="general">61801</td>
+            <td class="general"><span class="label-na">N/A</span></td>
+          </tr>
+        <tr class="general">
+            <td class="general">AR Job</td>
+            <td class="general">23333</td>
+            <td class="general"><span class="label-complete">COMPLETE</span></td>
+        </tr>
+        <tr class="general">
+            <td class="general">CA Job</td>
+            <td class="general">10010</td>
+            <td class="general"><span class="label-dispatched">DISPATCHED</span></td>
+        </tr>
+        <tr class="general">
+            <td class="general">SP Job</td>
+            <td class="general">10086</td>
+            <td class="general"><span class="label-ready">READY FOR READOUT</span></td>
+        </tr>
+        <tr class="general">
+            <td class="general">EFD Job</td>
+            <td class="general">17951</td>
+            <td class="general"><span class="label-processing">PROCESSING RESULTS</span></td>
+        </tr>
+        </table>
+</div>
+<div id="div5">
+    <h4 class="dmcs_curralert">CURRENT ALERT JOB</h4>
+    <div id="dmcs_currjob_content">
+        <h4 class="dmcs_currjob_content">86002: ASSIGNED</h4>
+    </div>
+</div>
+
+<div id="div6">
+    <h3 class="alert_forwarders">ALERT<br>FORWARDERS</h3>
+
+	<div id="alert_forwarders_content">
+        <table class="forwarders">
+            <tr>
+                <td>F11:</td>
+                <td><span class="label-params_sent">PARAMS SENT</span></td>
+            </tr>
+            <tr>
+                <td>F12:</td>
+                <td><span class="label-readout_starts">READOUT STARTS</span></td>
+            </tr>
+        </table>
+	</div>
+</div>
+
+<div id="div7">
+    <h4 class="dmcs_currspec">CURRENT SPEC JOB</h4>
+    <div id="dmcs_currjob_content">
+        <h4 class="dmcs_currjob_content" id="demo">NOT APPLICABLE</h4>
+    </div>
+</div>
+
+<div id="div8">
+    <h3 class="spec_forwarders">SPECTROGRAPH<br>FORWARDERS</h3>
+
+	<div id="spec_forwarders_content">
+        <table class="forwarders">
+            <tr>
+                <td></td>
+                <td><span class="label-na">NA</span></td>
+            </tr>
+        </table>
+	</div>
+</div>
+
+
+	{% endblock %}
+</body>
+</html>

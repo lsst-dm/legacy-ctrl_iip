@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Testing jquery</title>
+{% load static %}
+<script src = "{% static '/static/jquery-1.11.3.min.js' %}"
+   type = "text/javascript" charset = "utf-8"></script>
+<script src = "{% static '/static/dajax/jquery.dajax.core.js' %}"></script>    <script>
+    $(document).ready(function(){
+        $("button").click(function(){
+            $("#div1").load("demo.txt");
+        });
+    });
+    </script>
+
+</head>
+<body>
+
+    <div id="div1"><h2>Let jQuery AJAX Change This Text</h2></div>
+
+    <button>Get External Content</button>
+
+</body>
+</html>
