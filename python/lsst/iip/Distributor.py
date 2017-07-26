@@ -7,7 +7,7 @@ import time
 import logging
 import os
 import subprocess
-import thread
+import _thread
 from const import *
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
@@ -47,8 +47,8 @@ class Distributor:
             self._sentinel_file = cdm[SENTINEL_FILE]
         except KeyError as e:
             LOGGER.critical(e)
-            print "Key error reading cfg file."
-            print "Bailing out..."
+            print("Key error reading cfg file.")
+            print("Bailing out...")
             sys.exit(99)
 
 
@@ -75,7 +75,7 @@ class Distributor:
 
         self._consumer = Consumer(self._ncsa_broker_url, self._consume_queue)
         try:
-            thread.start_new_thread(self.run_consumer, (threadname, 2,) )
+            _thread.start_new_thread(self.run_consumer, (threadname, 2,) )
             LOGGER.info('Started distributor consumer thread %s', threadname)
         except:
             LOGGER.critical('Cannot start Distributor consumer thread, exiting...')
@@ -88,7 +88,7 @@ class Distributor:
     def on_message(self, ch, method, properties, body):
         msg_dict = yaml.load(body)
         LOGGER.info('In %s message callback', self._name)
-        LOGGER.debug('Thread in %s callback is %s', self._name, thread.get_ident())
+        LOGGER.debug('Thread in %s callback is %s', self._name, _thread.get_ident())
         LOGGER.debug('%s callback message body is: %s', self._name, str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -122,6 +122,7 @@ class Distributor:
         """
 ###########XXXXXXXXXXXXXXX###############
 ####  Checking for and processing image file goes here
+        """
         command = "cat " + self._target_dir + "rcv_logg.test"
         cat_result = subprocess.check_output(command, shell=True)
 
@@ -179,15 +180,15 @@ class Distributor:
 def main():
     logging.basicConfig(filename='logs/distributor.log', level=logging.INFO, format=LOG_FORMAT)
     dist = Distributor()
-    print "Starting Distributor event loop..."
+    print("Starting Distributor event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "Distributor Finished"
+    print("")
+    print("Distributor Finished")
 
 
 if __name__ == "__main__": main()
