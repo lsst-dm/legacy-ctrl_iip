@@ -3,6 +3,7 @@ from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 import sys
 import os
+import copy
 import time
 import logging
 import thread
@@ -12,6 +13,7 @@ class Premium:
     logging.basicConfig()
     #os.system('rabbitmqctl -p /tester purge_queue firehose')
     #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
+    self.sp2 = SimplePublisher('amqp://NCSA_PUB:NCSA_PUB@141.142.238.160:5672/%2Fbunny', "YAML")
     broker_url = 'amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny'
     #broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
     #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
@@ -43,6 +45,32 @@ class Premium:
     print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
     print(" f2_consume msg:")
     print body
+    if body['MSG_TYPE'] == 'NEXT_VISIT':
+      return
+    msg = {}
+    msg['ACK_ID'] = body['ACK_ID']
+    msg['MSG_TYPE'] = 'NCSA_START_INTEGRATION_ACK'
+    fwdrs = copy.deepcopy(body['FORWARDERS'])
+    fwdrs_keys = fwdrs.keys()
+    i = 1
+    for fwdr in fwdrs_keys:
+        dists = {}
+        dists[fwdr] = {}
+        dists[fwdr]['FQN'] = "Distributor_" + str(i)
+        dists[fwdr]['NAME'] = "D" + str(i)
+        dists[fwdr]['HOSTNAME'] = "D" + str(i)
+        dists[fwdr]['TARGET_DIR'] = "/dev/null"
+        dists[fwdr]['IP_ADDR'] = "141.142.237.16" + str(i)
+        fwdrs[fwdr]['DISTRIBUTOR'] = dists
+        i = i + 1
+
+    msg['PAIRS'] = fwdrs
+    msg['ACK_BOOL'] = True
+    msg['JOB_NUM'] = body['JOB_NUM']
+    msg['IMAGE_ID'] = body['IMAGE_ID']
+    msg['VISIT_ID'] = body['VISIT_ID']
+    msg['SESSION_ID'] = body['SESSION_ID']
+    self.sp2.publish_message("pp_foreman_ack_publish", msg)
 
 
   def do_it(self, threadname, delay):
@@ -117,12 +145,13 @@ def main():
   msg['JOB_NUM'] = '121163'
   msg['IMAGE_ID'] = 'IMG_444244'
   msg['VISIT_ID'] = 'VV1X004'
+  msg['SESSION_ID'] = 'session_RZ_22'
   msg['CCD_LIST'] = ccd_list
   
   msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
   time.sleep(4)
   sp1.publish_message("pp_foreman_consume", msg)
-  time.sleep(14)
+  time.sleep(7)
 
   #msg = {}
   #msg['MSG_TYPE'] = "READOUT"

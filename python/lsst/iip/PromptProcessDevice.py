@@ -451,6 +451,7 @@ class PromptProcessDevice:
     def divide_work(self, fwdrs_list, ccd_list):
         num_fwdrs = len(fwdrs_list)
         num_ccds = len(ccd_list)
+        fwdrs_keys_list = fwdrs_list.keys()
         ## XXX FIX if num_ccds == none or 1:
         ##    Throw exception
 
@@ -465,34 +466,36 @@ class PromptProcessDevice:
             for k in range (0, num_ccds):
                 schedule[fwdrs_list[k]] = ccd_list[k]
         else:
-            ccds_per_fwdr = len(ccd_list) / (num_fwdrs - 1)
+            ccds_per_fwdr = len(ccd_list) / num_fwdrs 
+            remainder_ccds = len(ccd_list) % num_fwdrs
             offset = 0
             for i in range(0, num_fwdrs):
-                schedule[fwdrs_list[i]] = []
+                tmp_list = []
                 for j in range (offset, (ccds_per_fwdr + offset)):
                     if (j) >= num_ccds:
                         break
-                    schedule[fwdrs_list[i]].append(ccd_list[j])
+                    tmp_list.append(ccd_list[j])
                 offset = offset + ccds_per_fwdr
-
+                if remainder_ccds != 0 and i == 0:
+                    for k in range(offset, offset + remainder_ccds):
+                        tmp_list.append(ccd_list[k])
+                    offset = offset + remainder_ccds
+                #CCD_LIST = tmp_list
+                schedule[fwdrs_keys_list[i]] = {} 
+                schedule[fwdrs_keys_list[i]]['CCD_LIST'] = tmp_list
+        print "Schedule is: %s" % schedule
         return schedule
 
 
     def ncsa_resources_query(self, params, work_schedule):
         job_num = str(params[JOB_NUM])
-        self._pairs_dict = {}
-        forwarder_candidate_dict = {}
-        for i in range (0, needed_workers):
-            forwarder_candidate_dict[healthy_forwarders[i]] = raft_list[i]
-            self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES_QUERY)
-            # Call this method for testing...
-            # There should be a message sent to NCSA here asking for available resources
         timed_ack_id = self.get_next_timed_ack_id("NCSA_Start_Int_Ack") 
         ncsa_params = {}
         ncsa_params[MSG_TYPE] = "NCSA_START_INTEGRATION"
         ncsa_params[JOB_NUM] = job_num
         ncsa_params['VISIT_ID'] = params['VISIT_ID']
         ncsa_params['IMAGE_ID'] = params['IMAGE_ID']
+        ncsa_params['SESSION_ID'] = params['SESSION_ID']
         ncsa_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         ncsa_params[ACK_ID] = timed_ack_id
         ncsa_params["FORWARDERS"] = work_schedule
