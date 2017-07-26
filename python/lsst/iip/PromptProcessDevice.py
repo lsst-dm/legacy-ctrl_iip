@@ -227,8 +227,8 @@ class PromptProcessDevice:
 
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
-        print "In on_ack_message - msg_dict[MSG_TYPE] value is %s" % msg_dict[MSG_TYPE]
-        print "YAAH! Msg_dict value above"
+        print("In on_ack_message - msg_dict[MSG_TYPE] value is %s" % msg_dict[MSG_TYPE]) 
+        print("YAAH! Msg_dict value above")
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
@@ -316,7 +316,7 @@ class PromptProcessDevice:
         self.ack_timer(2.5) 
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
 
-        print "Passed Health Check"
+        print("Passed Health Check")
 
         num_healthy_forwarders = len(healthy_forwarders)
         # Check policy here...assign an optimal number of ccds to long haul forwarders
@@ -387,7 +387,7 @@ class PromptProcessDevice:
 
  
     def forwarder_health_check(self, params):
-        print "In forwarder_health_check"
+        print("In forwarder_health_check")
         # get timed_ack_id
         timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
