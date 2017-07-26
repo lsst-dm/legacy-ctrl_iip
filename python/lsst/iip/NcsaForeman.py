@@ -7,7 +7,7 @@ import yaml
 import sys
 import os
 import time
-import thread
+import _thread
 from const import *
 from Scoreboard import Scoreboard
 from DistributorScoreboard import DistributorScoreboard
@@ -49,8 +49,8 @@ class NcsaForeman:
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
         except KeyError as e:
-            print "Dictionary error"
-            print "Bailing out..."
+            print("Dictionary error")
+            print("Bailing out...")
             sys.exit(99)
 
         # Create Redis Distributor table with Distributor info
@@ -92,21 +92,21 @@ class NcsaForeman:
 
         self._ncsa_consumer = Consumer(self._ncsa_broker_url, self.NCSA_CONSUME)
         try:
-            thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
+            _thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
             sys.exit(99)
 
         self._distributor_consumer = Consumer(self._ncsa_broker_url, self.DISTRIBUTOR_PUBLISH)
         try:
-            thread.start_new_thread( self.run_distributor_consumer, ("thread-distributor-consumer", 2,) )
+            _thread.start_new_thread( self.run_distributor_consumer, ("thread-distributor-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start DISTRBUTORS consumer thread, exiting...')
             sys.exit(100)
 
         self._ack_consumer = Consumer(self._ncsa_broker_url, self.ACK_PUBLISH)
         try:
-            thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
+            _thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start ACK consumer thread, exiting...')
             sys.exit(102)
@@ -144,7 +144,7 @@ class NcsaForeman:
     def on_distributor_message(self, ch, method, properties, body):
         msg_dict = yaml.load(body) 
         LOGGER.info('In Distributor message callback')
-        LOGGER.debug('Thread in Distributor callback is %s', thread.get_ident())
+        LOGGER.debug('Thread in Distributor callback is %s', _thread.get_ident())
         LOGGER.info('Message from Distributor callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -152,7 +152,7 @@ class NcsaForeman:
     
 
     def on_base_message(self,ch, method, properties, body):
-        LOGGER.info('In base message callback, thread is %s', thread.get_ident())
+        LOGGER.info('In base message callback, thread is %s', _thread.get_ident())
         msg_dict = yaml.load(body)
         LOGGER.info('base msg callback body is: %s', str(msg_dict))
 
@@ -162,7 +162,7 @@ class NcsaForeman:
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = yaml.load(body) 
         LOGGER.info('In ACK message callback')
-        LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
+        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -175,7 +175,7 @@ class NcsaForeman:
        
         response_timed_ack_id = params["ACK_ID"] 
         forwarders_dict = params[FORWARDERS]
-        needed_workers = len(forwarders_dict.keys())
+        needed_workers = len(list(forwarders_dict.keys()))
         self.JOB_SCBD.add_job(job_num, needed_workers)
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, str(needed_workers))
 
@@ -229,7 +229,7 @@ class NcsaForeman:
 
             # send pair info to each distributor
             job_params_ack = self.get_next_timed_ack_id(DISTRIBUTOR_JOB_PARAMS_ACK)
-            keez = pairs_dict.keys()
+            keez = list(pairs_dict.keys())
             for fwdr in keez:
               tmp_msg = {}
               tmp_msg[MSG_TYPE] = DISTRIBUTOR_JOB_PARAMS
@@ -265,7 +265,7 @@ class NcsaForeman:
 
 
     def assemble_pairs_dict(forwarders_dict, healthy_distributors):
-        keez = forwarders_dict.keys()
+        keez = list(forwarders_dict.keys())
 
         #build dict...
         pairs_dict = {}
@@ -295,7 +295,7 @@ class NcsaForeman:
         self.JOB_SCBD.set_value_for_job(job_number, START_READOUT, date) 
         # The following line extracts the distributor FQNs from pairs dict using
         # list comprehension values; faster than for loops
-        distributors = [v['FQN'] for v in pairs.values()]
+        distributors = [v['FQN'] for v in list(pairs.values())]
         for distributor in distributors:
             msg_params = {}
             msg_params[MSG_TYPE] = DISTRIBUTOR_READOUT
@@ -326,7 +326,7 @@ class NcsaForeman:
             ncsa_params[EXPECTED_DISTRIBUTOR_ACKS] = len(distributors)
             ncsa_params[RECIEVED_DISTRIBUTOR_ACKS] = len(distributor_responses)
             missing_distributors = {}
-            forwarders = pairs.keys()
+            forwarders = list(pairs.keys())
             for forwarder in forwarders:
                 if forwarder['MATE'] in distributor_responses:
                     continue
@@ -360,8 +360,8 @@ class NcsaForeman:
         try:
             f = open('ForemanCfg.yaml')
         except IOError:
-            print "Cant open ForemanCfg.yaml"
-            print "Bailing out..."
+            print("Cant open ForemanCfg.yaml")
+            print("Bailing out...")
             sys.exit(99)
 
         #cfg data map...
@@ -394,15 +394,15 @@ class NcsaForeman:
 def main():
     logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=LOG_FORMAT)
     n_fm = NcsaForeman()
-    print "Beginning BaseForeman event loop..."
+    print("Beginning BaseForeman event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "Ncsa Foreman Done."
+    print("")
+    print("Ncsa Foreman Done.")
 
 
 if __name__ == "__main__": main()

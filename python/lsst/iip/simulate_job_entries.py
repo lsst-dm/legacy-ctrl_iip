@@ -139,14 +139,14 @@ class SimJobs:
         self.jscbd.set_job_params("PP_14009", {'STATE':'_COMPLETE'})
 
         self.jscbd.set_job_status("PP_14009", 'COMPLETE')
-        print "Job SCBD Load done"
+        print("Job SCBD Load done")
 
 
 
 def main():
-    print "Starting SimJobs..."
+    print("Starting SimJobs...")
     sj = SimJobs()
-    print "SimJobs done loading job scoreboard"
+    print("SimJobs done loading job scoreboard")
 
 if __name__ == "__main__": main()
 

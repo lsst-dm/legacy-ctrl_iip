@@ -22,7 +22,7 @@ class DistributorScoreboard(Scoreboard):
         self.connect()
         self._redis.flushdb()
 
-        distributors = ddict.keys()
+        distributors = list(ddict.keys())
         for distributor in distributors:
             fields = ddict[distributor]
             name = fields['NAME']
@@ -53,9 +53,9 @@ class DistributorScoreboard(Scoreboard):
     def print_all(self):
         all_distributors = self.return_distributors_list()
         for distributor in all_distributors:
-            print distributor
-            print self._redis.hgetall(distributor)
-        print "--------Finished In get_all--------"
+            print(distributor)
+            print(self._redis.hgetall(distributor))
+        print("--------Finished In get_all--------")
         #return self._redis.hgetall(all_distributors)
 
 
@@ -68,9 +68,9 @@ class DistributorScoreboard(Scoreboard):
         healthy_distributors = []
         distributors = self._redis.lrange(self.DISTRIBUTOR_ROWS, 0, -1)
         for distributor in distributors:
-            print "Checking health"
+            print("Checking health")
             if self._redis.hget(distributor, 'STATUS') == 'HEALTHY':
-                print "Found a healthy distributor"
+                print("Found a healthy distributor")
                 healthy_distributors.append(distributor)
 
         return healthy_distributors
@@ -81,7 +81,7 @@ class DistributorScoreboard(Scoreboard):
            qualified name, such as DISTRIBUTOR_2
 
         """
-        for kee in params.keys():
+        for kee in list(params.keys()):
             self._redis.hset(distributor, kee, params[kee])
         #self.persist_snapshot(self._redis, "distributorscoreboard") 
 
@@ -94,7 +94,7 @@ class DistributorScoreboard(Scoreboard):
 
     def set_params_for_multiple_distributors(self, distributors, params):
         for distributor in distributors:
-            kees = params.keys()
+            kees = list(params.keys())
             for kee in kees:
                 self._redis.hset(distributor, kee, params[kee])
         #self.persist_snapshot(self._redis, "distributorscoreboard") 
@@ -140,8 +140,8 @@ def main():
         pass
     """
 
-    print ""
-    print "DistributorScoreboard Done."
+    print("")
+    print("DistributorScoreboard Done.")
 
 
 if __name__ == "__main__": main()

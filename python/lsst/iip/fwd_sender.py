@@ -6,7 +6,7 @@ import sys
 import os
 import time
 import logging
-import thread
+import _thread
 
 class Premium:
   def __init__(self):
@@ -25,20 +25,20 @@ class Premium:
     #  print e
     
   def mycallback(self, ch, methon, properties, body):
-    print "  "
-    print ">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<"
-    print(" [x] method Received %r" % methon)
-    print(" [y] properties Received %r" % properties)
-    print(" [z] body Received %r" % body)
+    print("  ")
+    print(">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<")
+    print((" [x] method Received %r" % methon))
+    print((" [y] properties Received %r" % properties))
+    print((" [z] body Received %r" % body))
 
     print("Message done")
     print("Still listening...")
 
   def do_it(self, threadname, delay):
     #example = ExampleConsumer('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
-    print "Before run call"
+    print("Before run call")
     self._cons.run(self.mycallback)
-    print "After run call - not blocking"
+    print("After run call - not blocking")
 
   
 
@@ -115,7 +115,7 @@ def main():
   sp1.publish_message("ocs_dmcs_consume", msg)
   """
 
-  print "Sender done"
+  print("Sender done")
 
 
     #sp2.publish_message("ack_publish", "No, It's COLD")

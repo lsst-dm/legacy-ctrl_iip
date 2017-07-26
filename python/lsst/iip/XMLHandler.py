@@ -9,7 +9,7 @@ class XMLHandler:
         try:
             self._schemafile = open("schema/relaxSchema.xml")
         except IOError:
-            print "Cannot open schema file"
+            print("Cannot open schema file")
             sys.exit(96)
         self._schemadoc = etree.parse(self._schemafile)
         self._schemaNG = etree.RelaxNG(self._schemadoc)
@@ -50,7 +50,7 @@ class XMLHandler:
             :type node: lxml Element
             :type msgDict: dict
         """ 
-        for kee, val in msgDict.items(): 
+        for kee, val in list(msgDict.items()): 
             if kee != "MSG_TYPE": 
                 subNode = etree.SubElement(node, kee)
                 if type(val) != dict:
@@ -82,7 +82,7 @@ class XMLHandler:
         pydict = {}
         message = rootNode.find("message")
         xmlDict = self.recursive_decodeXML(rootNode, pydict)
-        xmlDict["message"]["MSG_TYPE"] = next(val for kee, val in message.attrib.iteritems() if kee.startswith("MSG_TYPE"))
+        xmlDict["message"]["MSG_TYPE"] = next(val for kee, val in message.attrib.items() if kee.startswith("MSG_TYPE"))
         return xmlDict["message"]
 
     def recursive_decodeXML(self, rootnode, msgDict): 
@@ -99,7 +99,7 @@ class XMLHandler:
                 msgDict[node.tag] = smallDict
             else:
                 if len(node.attrib) != 0: 
-                    ack_bool = next(val for kee, val in node.attrib.iteritems() if kee.startswith("ack_bool"))
+                    ack_bool = next(val for kee, val in node.attrib.items() if kee.startswith("ack_bool"))
                     msgDict[node.tag] = True if ack_bool == "True" else False 
                 else:
                     msgDict[node.tag] = node.text
@@ -122,4 +122,4 @@ class XMLHandler:
             :param rootNode: root Node of XML tree
             :type rootNode: lxml etree root node
         """
-        print(etree.tostring(rootNode, pretty_print=True))
+        print((etree.tostring(rootNode, pretty_print=True)))

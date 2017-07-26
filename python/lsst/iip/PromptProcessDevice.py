@@ -9,7 +9,7 @@ import os
 import time
 import datetime
 from time import sleep
-import thread
+import _thread
 from const import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
@@ -49,7 +49,7 @@ class PromptProcessDevice:
 
         try:
             cdm = toolsmod.intake_yaml_file(self._config_file)
-        except IOError, e:
+        except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
             LOGGER.critical(emsg + trace)
@@ -119,7 +119,7 @@ class PromptProcessDevice:
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         self.setup_publishers()
         self.setup_consumers()
-        print "Done with init"
+        print("Done with init")
 
 
     def setup_consumers(self):
@@ -146,28 +146,28 @@ class PromptProcessDevice:
 
         self._dmcs_consumer = Consumer(self._base_broker_url, self.PP_FOREMAN_CONSUME, self._base_msg_format)
         try:
-            thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
+            _thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
             sys.exit(99)
 
         self._forwarder_consumer = Consumer(self._base_broker_url, self.FORWARDER_PUBLISH, self._base_msg_format)
         try:
-            thread.start_new_thread( self.run_forwarder_consumer, ("thread-forwarder-consumer", 2,) )
+            _thread.start_new_thread( self.run_forwarder_consumer, ("thread-forwarder-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start FORWARDERS consumer thread, exiting...')
             sys.exit(100)
 
         self._ncsa_consumer = Consumer(self._ncsa_broker_url, self.NCSA_PUBLISH, self._base_msg_format)
         try:
-            thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
+            _thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
             sys.exit(101)
 
         self._ack_consumer = Consumer(self._base_broker_url, self.PP_FOREMAN_ACK_PUBLISH, self._base_msg_format)
         try:
-            thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
+            _thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
         except:
             LOGGER.critical('Cannot start ACK consumer thread, exiting...')
             sys.exit(102)
@@ -202,9 +202,9 @@ class PromptProcessDevice:
     def on_dmcs_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
         msg_dict = body 
-        print body
+        print(body)
         LOGGER.info('In DMCS message callback')
-        LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
+        LOGGER.debug('Thread in DMCS callback is %s', _thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -212,12 +212,13 @@ class PromptProcessDevice:
     
 
     def on_forwarder_message(self, ch, method, properties, body):
-        LOGGER.info('In Forwarder message callback, thread is %s', thread.get_ident())
+        LOGGER.info('In Forwarder message callback, thread is %s', _thread.get_ident())
         LOGGER.info('forwarder callback msg body is: %s', str(body))
         pass
 
     def on_ncsa_message(self,ch, method, properties, body):
-        LOGGER.info('In ncsa message callback, thread is %s', thread.get_ident())
+        LOGGER.info('In ncsa message callback, thread is %s', _thread.get_ident())
+        #msg_dict = yaml.load(body)
         msg_dict = body
         LOGGER.info('ncsa msg callback body is: %s', str(msg_dict))
 
@@ -229,7 +230,7 @@ class PromptProcessDevice:
         print "In on_ack_message - msg_dict[MSG_TYPE] value is %s" % msg_dict[MSG_TYPE]
         print "YAAH! Msg_dict value above"
         LOGGER.info('In ACK message callback')
-        LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
+        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -296,7 +297,7 @@ class PromptProcessDevice:
         Send confirm to DMCS
         """
 
-        print "Entering SI"
+        print("Entering SI")
         ccd_list = input_params['CCD_LIST']
         job_num = str(input_params[JOB_NUM])
         visit_id = input_params['VISIT_ID']
@@ -355,7 +356,7 @@ class PromptProcessDevice:
                     ack_bool = ncsa_response[ACK_BOOL]
                     if ack_bool == True:
                         pairs = ncsa_response[PAIRS] 
-                except KeyError, e:
+                except KeyError as e:
                     pass 
 
                 # Distribute job params and tell DMCS we are ready.
@@ -364,7 +365,7 @@ class PromptProcessDevice:
                     self.ack_timer(3)
 
                     fwdr_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
-                    if fwdr_params_response and (len(fwdr_params_response) == len(pairs.keys())):
+                    if fwdr_params_response and (len(fwdr_params_response) == len(list(pairs.keys()))):
                         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "FWDR_PARAMS_RECEIVED")
                         in_ready_state = {'STATE':'READY_WITH_PARAMS'}
                         self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
@@ -380,7 +381,7 @@ class PromptProcessDevice:
             else:
                 result = self.ncsa_no_response(input_params)
                 idle_param = {'STATE': 'IDLE'}
-                self.FWD_SCBD.set_forwarder_params(forwarder_candidate_dict.keys(), idle_params)
+                self.FWD_SCBD.set_forwarder_params(list(forwarder_candidate_dict.keys()), idle_params)
                 return result
                     
 
@@ -391,8 +392,8 @@ class PromptProcessDevice:
         timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
         forwarders = self.FWD_SCBD.return_forwarders_list()
-        print "Forwarders receiving health check..."
-        print forwarders
+        print("Forwarders receiving health check...")
+        print(forwarders)
         job_num = params[JOB_NUM] 
         # send health check messages
         msg_params = {}
@@ -404,7 +405,7 @@ class PromptProcessDevice:
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "HEALTH_CHECK")
         for forwarder in forwarders:
             xx = self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE")
-            print "consume queue for %s is %s" % (forwarder, xx) 
+            print("consume queue for %s is %s" % (forwarder, xx)) 
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             msg_params)
 
@@ -454,7 +455,7 @@ class PromptProcessDevice:
         ## XXX FIX if num_ccds == none or 1:
         ##    Throw exception
 
-        print "Num ccds: %d" % len(ccd_list)
+        print("Num ccds: %d" % len(ccd_list))
 
         schedule = {}
         if num_fwdrs == 1:
@@ -510,7 +511,7 @@ class PromptProcessDevice:
         LOGGER.info('The following pairs will be used for Job #%s: %s',
                      job_num, pairs)
         fwd_ack_id = self.get_next_timed_ack_id("FWD_PARAMS_ACK")
-        fwders = pairs.keys()
+        fwders = list(pairs.keys())
         fwd_params = {}
         fwd_params[MSG_TYPE] = "FORWARDER_JOB_PARAMS"
         fwd_params[JOB_NUM] = job_num
@@ -576,8 +577,8 @@ class PromptProcessDevice:
         self.JOB_SCBD.set_value_for_job(job_number, TIME_START_READOUT, date) 
         # The following line extracts the distributor FQNs from pairs dict using 
         # list comprehension values; faster than for loops
-        distributors = [v['FQN'] for v in pairs.values()]
-        forwarders = pairs.keys()
+        distributors = [v['FQN'] for v in list(pairs.values())]
+        forwarders = list(pairs.keys())
 
         ack_id = self.get_next_timed_ack_id('NCSA_READOUT')
 ### Send READOUT to NCSA with ACK_ID
@@ -685,8 +686,8 @@ class PromptProcessDevice:
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
             self._policy_max_ccds_per_fwdr = int(cdm[ROOT]['POLICY']['MAX_CCDS_PER_FWDR'])
         except KeyError as e:
-            print "Dictionary error"
-            print "Bailing out..."
+            print("Dictionary error")
+            print("Bailing out...")
             sys.exit(99)
 
 
@@ -700,15 +701,15 @@ class PromptProcessDevice:
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     b_fm = PromptProcessDevice()
-    print "Beginning BaseForeman event loop..."
+    print("Beginning BaseForeman event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "Base Foreman Done."
+    print("")
+    print("Base Foreman Done.")
 
 
 

@@ -8,7 +8,7 @@ import sys
 import os
 import time
 from time import sleep
-import thread
+import _thread
 from const import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
@@ -60,8 +60,8 @@ class BaseForeman:
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             forwarder_dict = cdm[ROOT][XFER_COMPONENTS][FORWARDERS]
         except KeyError as e:
-            print "Dictionary error"
-            print "Bailing out..."
+            print("Dictionary error")
+            print("Bailing out...")
             sys.exit(99)
 
         #if 'QUEUE_PURGES' in cdm[ROOT]:
@@ -121,7 +121,7 @@ class BaseForeman:
         #msg_dict = yaml.load(body) 
         msg_dict = body 
         LOGGER.info('In DMCS message callback')
-        LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
+        LOGGER.debug('Thread in DMCS callback is %s', _thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -129,12 +129,12 @@ class BaseForeman:
     
 
     def on_forwarder_message(self, ch, method, properties, body):
-        LOGGER.info('In Forwarder message callback, thread is %s', thread.get_ident())
+        LOGGER.info('In Forwarder message callback, thread is %s', _thread.get_ident())
         LOGGER.info('forwarder callback msg body is: %s', str(body))
         pass
 
     def on_ncsa_message(self,ch, method, properties, body):
-        LOGGER.info('In ncsa message callback, thread is %s', thread.get_ident())
+        LOGGER.info('In ncsa message callback, thread is %s', _thread.get_ident())
         #msg_dict = yaml.load(body)
         msg_dict = body
         LOGGER.info('ncsa msg callback body is: %s', str(msg_dict))
@@ -145,7 +145,7 @@ class BaseForeman:
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
         LOGGER.info('In ACK message callback')
-        LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
+        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -183,15 +183,15 @@ class BaseForeman:
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     b_fm = BaseForeman()
-    print "Beginning BaseForeman event loop..."
+    print("Beginning BaseForeman event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
         pass
 
-    print ""
-    print "Base Foreman Done."
+    print("")
+    print("Base Foreman Done.")
 
 
 
