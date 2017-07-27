@@ -1,6 +1,7 @@
 import toolsmod
 from toolsmod import get_timestamp
 import logging
+import pprint
 import pika
 import redis
 import yaml
@@ -43,6 +44,7 @@ class PromptProcessDevice:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
+        self.pp = pprint.PrettyPrinter(indent=4)
         self._config_file = CFG_FILE
         if filename != None:
             self._config_file = filename
@@ -348,18 +350,21 @@ class PromptProcessDevice:
 
             #Check ACK scoreboard for response from NCSA
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            print "################## Dumping ncsa_response ##################"
+            self.pp.pprint(ncsa_response)
+            print "###########################################################"
             if ncsa_response:
                 pairs = {}
-                ack_bool = None
+                ack_bool = ncsa_response['NCSA_FOREMAN']['ACK_BOOL']
                 try:
-                    ack_bool = ncsa_response[ACK_BOOL]
                     if ack_bool == True:
-                        pairs = ncsa_response[PAIRS] 
+                        pairs = ncsa_response['NCSA_FOREMAN']['PAIRS'] 
                 except KeyError, e:
+                    print "PAIRS key not found in NCSA Ack msg"
                     pass 
 
                 # Distribute job params and tell DMCS we are ready.
-                if ack_bool == TRUE:
+                if ack_bool == True:
                     fwd_ack_id = self.distribute_job_params(input_params, pairs)
                     self.ack_timer(3)
 
@@ -373,7 +378,7 @@ class PromptProcessDevice:
                 else:
                     #not enough ncsa resources to do job - Notify DMCS
                     idle_param = {'STATE': 'IDLE'}
-                    self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_params)
+                    self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_param)
                     result = self.insufficient_ncsa_resources(ncsa_response)
                     return result
 
@@ -523,6 +528,8 @@ class PromptProcessDevice:
         for fwder in fwders:
             fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
+            print "THE ROUTE KEY FOR %s IS %s" % (fwder, route_key)
+            print "************DONE PRINTING ROUTE KEY*******************"
             self._base_publisher.publish_message(route_key, fwd_params)
 
         return fwd_ack_id
@@ -531,7 +538,7 @@ class PromptProcessDevice:
     def accept_job(self, job_num):
         dmcs_message = {}
         dmcs_message[JOB_NUM] = job_num
-        dmcs_message[MSG_TYPE] = NEW_JOB_ACK
+        dmcs_message[MSG_TYPE] = PP_START_INTEGRATION_ACK
         dmcs_message[ACK_BOOL] = True
         self.JOB_SCBD.set_value_for_job(job_num, STATE, "JOB_ACCEPTED")
         self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ACCEPTED", get_timestamp())
@@ -541,7 +548,7 @@ class PromptProcessDevice:
 
     def insufficient_ncsa_resources(self, ncsa_response):
         dmcs_params = {}
-        dmcs_params[MSG_TYPE] = "NEW_JOB_ACK"
+        dmcs_params[MSG_TYPE] = PP_START_INTEGRATION_ACK
         dmcs_params[JOB_NUM] = job_num 
         dmcs_params[ACK_BOOL] = False
         dmcs_params[BASE_RESOURCES] = '1'
@@ -560,10 +567,10 @@ class PromptProcessDevice:
     def ncsa_no_response(self,params):
         #No answer from NCSA...
         job_num = str(params[JOB_NUM])
-        raft_list = params[RAFTS]
-        needed_workers = len(raft_list)
+        ccd_list = params['CCD_LIST']
+        needed_workers = len(ccd_list)
         dmcs_params = {}
-        dmcs_params[MSG_TYPE] = "NEW_JOB_ACK"
+        dmcs_params[MSG_TYPE] = PP_START_INTEGRATION_ACK
         dmcs_params[JOB_NUM] = job_num 
         dmcs_params[ACK_BOOL] = False
         dmcs_params[BASE_RESOURCES] = '1'

@@ -13,7 +13,8 @@ class Premium:
     logging.basicConfig()
     #os.system('rabbitmqctl -p /tester purge_queue firehose')
     #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
-    self.sp2 = SimplePublisher('amqp://NCSA_PUB:NCSA_PUB@141.142.238.160:5672/%2Fbunny', "YAML")
+    self.sp2 = SimplePublisher('amqp://TEST1:TEST1@141.142.238.160:5672/%2Fbunny', "YAML")
+    time.sleep(3)
     broker_url = 'amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny'
     #broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
     #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
@@ -50,19 +51,31 @@ class Premium:
     msg = {}
     msg['ACK_ID'] = body['ACK_ID']
     msg['MSG_TYPE'] = 'NCSA_START_INTEGRATION_ACK'
+    msg['COMPONENT_NAME'] = 'NCSA_FOREMAN'
     fwdrs = copy.deepcopy(body['FORWARDERS'])
     fwdrs_keys = fwdrs.keys()
     i = 1
     for fwdr in fwdrs_keys:
         dists = {}
-        dists[fwdr] = {}
-        dists[fwdr]['FQN'] = "Distributor_" + str(i)
-        dists[fwdr]['NAME'] = "D" + str(i)
-        dists[fwdr]['HOSTNAME'] = "D" + str(i)
-        dists[fwdr]['TARGET_DIR'] = "/dev/null"
-        dists[fwdr]['IP_ADDR'] = "141.142.237.16" + str(i)
+        dists = {}
+        dists['FQN'] = "Distributor_" + str(i)
+        dists['NAME'] = "D" + str(i)
+        dists['HOSTNAME'] = "D" + str(i)
+        dists['TARGET_DIR'] = "/dev/null"
+        dists['IP_ADDR'] = "141.142.237.16" + str(i)
         fwdrs[fwdr]['DISTRIBUTOR'] = dists
         i = i + 1
+
+    #for fwdr in fwdrs_keys:
+    #    dists = {}
+    #    dists[fwdr] = {}
+    #    dists[fwdr]['FQN'] = "Distributor_" + str(i)
+    #    dists[fwdr]['NAME'] = "D" + str(i)
+    #    dists[fwdr]['HOSTNAME'] = "D" + str(i)
+    #    dists[fwdr]['TARGET_DIR'] = "/dev/null"
+    #    dists[fwdr]['IP_ADDR'] = "141.142.237.16" + str(i)
+    #    fwdrs[fwdr]['DISTRIBUTOR'] = dists
+    #    i = i + 1
 
     msg['PAIRS'] = fwdrs
     msg['ACK_BOOL'] = True

@@ -102,7 +102,7 @@ class Forwarder:
                ACK_ID: x1
                REPLY_QUEUE: .....
                FITS: FITS metadata someday?
-               XFER_PARAMS:
+               TRANSFER_PARAMS:
                     FQN: Name of entity receivine file
                     NAME: login name for receiving entity
                     HOSTNAME: Full host name for receiving entity
@@ -119,7 +119,7 @@ class Forwarder:
                     
         """
         job_params = copy.deepcopy(params)
-        xfer_params = job_params['XFER_PARAMS']
+        xfer_params = job_params['TRANSFER_PARAMS']
 
         # Also RM fits files in xfer_dir
         cmd = "rm " + self._DAQ_PATH + "*.fits"
