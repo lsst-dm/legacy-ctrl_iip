@@ -74,12 +74,12 @@ class TestCases:
         params = {}
         minidict = {}
         minidict['NAME'] = "archive"
-        minidict['IP_ADDR'] = "141.142.230.190"
-        minidict['FQN'] = "archive"
+        minidict['IP_ADDR'] = "141.142.211.137"
+        minidict['FQN'] = ""
         minidict['CCD_LIST'] = ["1","12","43","22"]
         params[MSG_TYPE] = 'AR_FWDR_XFER_PARAMS'
         params['XFER_PARAMS'] = minidict
-        params['TARGET_DIR'] = "/invisible/virtual/path"
+        params['TARGET_DIR'] = "/dev/null/"
         params[ACK_ID] = "11_CC"
         params['REPLY_QUEUE'] = "ack_publish"
         params[JOB_NUM] = '563'
@@ -91,17 +91,18 @@ class TestCases:
         ack_responses = fwd.process_job_params(params)
         sleep(1)
 
-        assert ack_responses['LOGIN_STR'] == "archive@141.142.230.190:"
-        assert ack_responses['TARGET_DIR'] == "/invisible/virtual/path"
-        assert ack_responses['FILENAME_STUB'] == "563_visit_1_image_1_"
-        assert ack_responses['CCD_LIST'] == ["1","12","43","22"]
+	assert ack_responses['LOGIN_STR'] == "archive@141.142.211.137:"
+	assert ack_responses['TARGET_DIR'] == "/dev/null/"
+	assert ack_responses['FILENAME_STUB'] == "563_visit_1_image_1_"
+	assert ack_responses['CCD_LIST'] == ["1","12","43","22"]
 
-        print "Done checking job params"
+	print "Done checking job params"
 
 
     def test_fetch(self, fwd):
-        job_num = "563"
-        raw_files_dict = fwd.fetch(job_num).copy()
+	job_num = "563"
+	raw_files_dict = fwd.fetch(job_num).copy()
+
 
         sleep(1)
 
@@ -154,9 +155,8 @@ class TestCases:
         sleep(1)
 
         assert ack_responses['MSG_TYPE'] == 'AR_ITEMS_XFERD_ACK'
-        assert ack_responses['JOB_NUM'] == job_num
+        assert ack_responses['JOB_NUM'] == "563"
         assert ack_responses['IMAGE_ID'] == "image_1"
         assert ack_responses['COMPONENT_NAME'] == "FORWARDER_F1"
         assert ack_responses['ACK_ID'] == "11_DD"
         assert ack_responses['ACK_BOOL'] == True
-        assert ack_responses['RESULTS'] == result
