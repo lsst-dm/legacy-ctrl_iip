@@ -33,8 +33,8 @@ ROOT:
   NCSA_BROKER_PASSWD: NCSA
   #BASE_BROKER_ADDR: 141.142.208.191:5672/%2ftester
   #BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
-  BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny?heartbeat=30
-  NCSA_BROKER_ADDR: 141.142.238.160:5672/%2fbunny?heartbeat=30
+  BASE_BROKER_ADDR: 141.142.208.209:5672/%2fbunny?heartbeat=30
+  NCSA_BROKER_ADDR: 141.142.208.209:5672/%2fbunny?heartbeat=30
   INFLUX_DB: L1_Test
   SESSION_ID_FILE: "/var/session_id"
   DMCS_ACK_ID_FILE: "/var/dmcs_ack_id"
@@ -90,26 +90,26 @@ ROOT:
       FORWARDER_1:
         NAME: F1
         HOSTNAME: lsst-wf-base01.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.161
+        IP_ADDR: 141.142.208.209
         STATE: IDLE
         CONSUME_QUEUE: f1_consume
         PUBLISH_QUEUE: pp_foreman_ack_publish
 
-      FORWARDER_2:
-        NAME: F2
-        HOSTNAME: lsst-wf-base02.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.162
-        STATE: IDLE
-        CONSUME_QUEUE: f2_consume
-        PUBLISH_QUEUE: pp_foreman_ack_publish
+  #     FORWARDER_2:
+  #     NAME: F2
+  #     HOSTNAME: lsst-wf-base02.ncsa.illinois.edu  
+  #     IP_ADDR: 141.142.238.162
+  #     STATE: IDLE
+  #     CONSUME_QUEUE: f2_consume
+  #     PUBLISH_QUEUE: pp_foreman_ack_publish
 
-      FORWARDER_3:
-        NAME: F3
-        HOSTNAME: lsst-wf-base03.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.163
-        STATE: IDLE
-        CONSUME_QUEUE: f3_consume
-        PUBLISH_QUEUE: pp_foreman_ack_publish
+#     FORWARDER_3:
+#       NAME: F3
+#       HOSTNAME: lsst-wf-base03.ncsa.illinois.edu  
+#       IP_ADDR: 141.142.238.163
+#       STATE: IDLE
+#       CONSUME_QUEUE: f3_consume
+#       PUBLISH_QUEUE: pp_foreman_ack_publish
 
 #      FORWARDER_4:
 #        NAME: F4

@@ -1,34 +1,23 @@
-rabbitmqctl -p /bunny purge_queue F1_consume
-rabbitmqctl -p /bunny purge_queue F2_consume
-rabbitmqctl -p /bunny purge_queue F3_consume
-rabbitmqctl -p /bunny purge_queue F4_consume
-rabbitmqctl -p /bunny purge_queue F5_consume
-rabbitmqctl -p /bunny purge_queue F6_consume
-rabbitmqctl -p /bunny purge_queue F7_consume
-rabbitmqctl -p /bunny purge_queue F8_consume
-rabbitmqctl -p /bunny purge_queue F9_consume
-rabbitmqctl -p /bunny purge_queue F10_consume
-rabbitmqctl -p /bunny purge_queue F11_consume
-
-rabbitmqctl -p /bunny purge_queue D1_consume
-rabbitmqctl -p /bunny purge_queue D2_consume
-rabbitmqctl -p /bunny purge_queue D3_consume
-rabbitmqctl -p /bunny purge_queue D4_consume
-rabbitmqctl -p /bunny purge_queue D5_consume
-rabbitmqctl -p /bunny purge_queue D6_consume
-rabbitmqctl -p /bunny purge_queue D7_consume
-rabbitmqctl -p /bunny purge_queue D8_consume
-rabbitmqctl -p /bunny purge_queue D9_consume
-rabbitmqctl -p /bunny purge_queue D10_consume
-rabbitmqctl -p /bunny purge_queue D11_consume
-
-
-rabbitmqctl -p /bunny purge_queue distributor_publish
-rabbitmqctl -p /bunny purge_queue forwarder_publish
+rabbitmqctl -p /bunny purge_queue ar_foreman_consume
+rabbitmqctl -p /bunny purge_queue pp_foreman_consume
+rabbitmqctl -p /bunny purge_queue cu_foreman_consume
 rabbitmqctl -p /bunny purge_queue dmcs_consume
-rabbitmqctl -p /bunny purge_queue dmcs_publish
+rabbitmqctl -p /bunny purge_queue dmcs_ack_consume
+rabbitmqctl -p /bunny purge_queue ocs_dmcs_consume
+rabbitmqctl -p /bunny purge_queue event_dmcs_consume
+rabbitmqctl -p /bunny purge_queue dmcs_ocs_publish
+rabbitmqctl -p /bunny purge_queue ar_forwarder_publish
+rabbitmqctl -p /bunny purge_queue pp_forwarder_publish
+rabbitmqctl -p /bunny purge_queue cu_forwarder_publish
+rabbitmqctl -p /bunny purge_queue f1_consume
+rabbitmqctl -p /bunny purge_queue d1_consume
+rabbitmqctl -p /bunny purge_queue ar_foreman_ack_publish
+rabbitmqctl -p /bunny purge_queue pp_foreman_ack_publish
+rabbitmqctl -p /bunny purge_queue cu_foreman_ack_publish
+rabbitmqctl -p /bunny purge_queue audit_consume
+rabbitmqctl -p /bunny purge_queue archive_ctrl_consume
+rabbitmqctl -p /bunny purge_queue archive_ctrl_publish
+rabbitmqctl -p /bunny purge_queue ncsa_consume
 rabbitmqctl -p /bunny purge_queue ncsa_publish
-
-#rabbitmqctl -p /bunny purge_queue reports
-rabbitmqctl -p /bunny purge_queue fm_consume
+rabbitmqctl -p /bunny purge_queue ncsa_foreman_ack_publish
 
