@@ -41,8 +41,6 @@ class NcsaForeman:
         if filename != None:
             self._config_fie = filename
 
-        self._name = 'NCSA_FM'      # Message broker user & passwd
-        self._passwd = 'NCSA_FM'   
         self._base_broker_url = 'amqp_url'
         self._ncsa_broker_url = 'amqp_url'
         self._pairing_dict = {}
@@ -53,6 +51,16 @@ class NcsaForeman:
         try:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            self._name = [ROOT]['NCSA']      # Message broker user & passwd
+            self._passwd = [ROOT]['NCSA']   
+            self._pub_name = [ROOT]['NCSA_PUB']  
+            self._pub_passwd = [ROOT]['NCSA_PUB']   
+            self._clstr_name = [ROOT]['NCSA_CLSTR']
+            self._clstr_passwd = [ROOT]['NCSA_CLSTR']   
+            self._clstr_pub_name = [ROOT]['NCSA_CLSTR_PUB']
+            self._clstr_pub_passwd = [ROOT]['NCSA_CLSTR_PUB']   
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS'] 
             distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
         except KeyError as e:
@@ -68,6 +76,7 @@ class NcsaForeman:
                                                distributor_dict)
         self.JOB_SCBD = JobScoreboard('NCSA_JOB_SCBD', self._scbd_dict['NCSA_JOB_SCBD'])
         self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
+
         self._msg_actions = { 'NEXT_VISIT': self.process_next_visit,
                               'NEW_SESSION': self.process_new_session,
                               'NCSA_START_INTEGRATION': self.process_start_integration,
@@ -78,6 +87,9 @@ class NcsaForeman:
 
 
         self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
+        self._ncsa_broker_pub_url = "amqp://" + self._pub_name + ":" + self._pub_passwd + "@" + str(self._ncsa_broker_addr)
+        self._ncsa_broker_clstr_url = "amqp://" + self._clster_name + ":" + self._clstr_passwd + "@" + str(self._ncsa_broker_addr)
+        self._ncsa_broker_clstr_pub_url = "amqp://" + self._clstr_pub_name + ":" + self._clstr_pub_passwd + "@" + str(self._ncsa_broker_addr)
         LOGGER.info('Building _broker_url. Result is %s', self._ncsa_broker_url)
 
         self.setup_publishers()
@@ -139,11 +151,11 @@ class NcsaForeman:
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up Base publisher on %s', self._base_broker_url)
+        LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_pub_broker_url)
         LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_broker_url)
 
-        self._base_publisher = SimplePublisher(self._base_broker_url)
-        self._publisher = SimplePublisher(self._ncsa_broker_url)
+        self._publisher = SimplePublisher(self._ncsa_broker_pub_url)
+        self._clstr_publisher = SimplePublisher(self._ncsa_broker_clstr_pub_url)
 
 
     def setup_federated_exchange(self):
