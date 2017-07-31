@@ -91,7 +91,7 @@ class Forwarder:
 
     def process_health_check(self, params):
         print "Incoming fwd_health_chk params:\n %s" % params
-        self.send_ack_response("FORWARDER_HEALTH_ACK", params)
+        self.send_ack_response("FORWARDER_HEALTH_CHECK_ACK", params)
 
 
     def process_job_params(self, params):
@@ -273,7 +273,7 @@ class Forwarder:
     def send_ack_response(self, type, params):
         timed_ack = params.get("ACK_ID")
         job_num = params.get(JOB_NUM)
-        reply_queue = params['REPLY_QUEUE']
+        response_queue = params['RESPONSE_QUEUE']
         msg_params = {}
         msg_params[MSG_TYPE] = type
         msg_params[JOB_NUM] = job_num
@@ -281,7 +281,7 @@ class Forwarder:
         msg_params[ACK_BOOL] = "TRUE"
         msg_params[ACK_ID] = timed_ack
         print "Outgoing fwd_health_chk ack: \n%s" % msg_params
-        self._publisher.publish_message(reply_queue, msg_params)
+        self._publisher.publish_message(response_queue, msg_params)
 
 
     def register(self):

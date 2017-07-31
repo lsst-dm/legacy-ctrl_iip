@@ -92,7 +92,7 @@ class PromptProcessDevice:
                               'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
                               'NCSA_START_INTEGRATION_ACK': self.process_ack,
                               'NCSA_READOUT_ACK': self.process_ack,
-                              'FORWARDER_HEALTH_ACK': self.process_ack,
+                              'FORWARDER_HEALTH_CHECK_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack,
                               'PENDING_ACK': self.process_pending_ack,
@@ -403,7 +403,7 @@ class PromptProcessDevice:
         msg_params = {}
         msg_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
         msg_params['ACK_ID'] = timed_ack
-        msg_params['REPLY_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
+        msg_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         msg_params[JOB_NUM] = job_num
        
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "HEALTH_CHECK")
@@ -693,10 +693,12 @@ class PromptProcessDevice:
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             self.forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
+            x = cdm['BLARG']
             self._policy_max_ccds_per_fwdr = int(cdm[ROOT]['POLICY']['MAX_CCDS_PER_FWDR'])
         except KeyError as e:
-            print "Dictionary error"
-            print "Bailing out..."
+            LOGGER.critical("CDM Dictionary Key error")
+            LOGGER.critical("Offending Key is %s", str(e)) 
+            LOGGER.critical("Bailing out...")
             sys.exit(99)
 
 
@@ -708,7 +710,7 @@ class PromptProcessDevice:
 
 
 def main():
-    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/PromptProcess.log', level=logging.INFO, format=LOG_FORMAT)
     b_fm = PromptProcessDevice()
     print "Beginning BaseForeman event loop..."
     try:
