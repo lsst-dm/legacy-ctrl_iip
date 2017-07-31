@@ -122,7 +122,6 @@ class StateScoreboard(Scoreboard):
 
 
     def set_prompt_process_state(self, state):
-        print "Setting PP state - value is %s" % state
         if self.check_connection():
             self._redis.hset(self.PP, STATE, state)
 
@@ -238,12 +237,9 @@ class StateScoreboard(Scoreboard):
 	list_keys = self._redis.lrange(listname, 0, -1)
         #for item in range(0,list_len):
 	for item in list_keys:
-	    print "CFG_KEY COMPARI: ", (cfg_key, item)
             if cfg_key == item:
-                print "FOUND CFG KEY"
                 return True
 
-        print "Couldnt find cfg_key %s" % cfg_key
         return False
 
 
