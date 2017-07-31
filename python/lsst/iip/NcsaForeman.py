@@ -33,8 +33,13 @@ class NcsaForeman:
     EXCHANGE_TYPE = 'direct'
 
 
-    def __init__(self):
+    def __init__(self, filename=None):
         toolsmod.singleton(self)
+
+        self.pp = pprint.PrettyPrinter(indent=4)
+        self._config_file = CFG_FILE
+        if filename != None:
+            self._config_fie = filename
 
         self._name = 'NCSA_FM'      # Message broker user & passwd
         self._passwd = 'NCSA_FM'   
@@ -42,25 +47,31 @@ class NcsaForeman:
         self._ncsa_broker_url = 'amqp_url'
         self._pairing_dict = {}
         self._next_timed_ack_id = 10000
+
  
-        cdm = self.intake_yaml_file()
+        cdm = toolsmod.intake_yaml_file(self._config_file)
         try:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            self._scbd_dict = cdm[ROOT]['SCOREBOARDS'] 
             distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
         except KeyError as e:
-            print "Dictionary error"
-            print "Bailing out..."
+            LOGGER.critical("CDM Dictionary error - missing Key")
+            LOGGER.critical("Offending Key is %s", str(e))
+            LOGGER.critical("Bailing Out...")
             sys.exit(99)
 
         # Create Redis Distributor table with Distributor info
 
-        self.DIST_SCBD = DistributorScoreboard(distributor_dict)
-        self.JOB_SCBD = JobScoreboard()
-        self.ACK_SCBD = AckScoreboard()
+        self.DIST_SCBD = DistributorScoreboard('NCSA_DIST_SCBD', \
+                                               self._scbd_dict['NCSA_DIST_SCBD'], \
+                                               distributor_dict)
+        self.JOB_SCBD = JobScoreboard('NCSA_JOB_SCBD', self._scbd_dict['NCSA_JOB_SCBD'])
+        self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
         self._msg_actions = { 'NEXT_VISIT': self.process_next_visit,
+                              'NEW_SESSION': self.process_new_session,
                               'NCSA_START_INTEGRATION': self.process_start_integration,
-                              'NCSA_READOUT': self.process_base_readout,
+                              'NCSA_READOUT': self.process_readout,
                               'DISTRIBUTOR_HEALTH_ACK': self.process_distributor_health_ack,
                               'DISTRIBUTOR_JOB_PARAMS_ACK': self.process_distributor_job_params_ack,
                               'DISTRIBUTOR_READOUT_ACK': self.process_readout_ack }
@@ -120,6 +131,7 @@ class NcsaForeman:
 
     def run_ncsa_consumer(self, threadname, delay):
         self._ncsa_consumer.run(self.on_base_message)
+
 
     def run_ack_consumer(self, threadname, delay):
         self._ack_consumer.run(self.on_ack_message)

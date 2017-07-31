@@ -121,7 +121,6 @@ class PromptProcessDevice:
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         self.setup_publishers()
         self.setup_consumers()
-        print "Done with init"
 
 
     def setup_consumers(self):
@@ -204,7 +203,6 @@ class PromptProcessDevice:
     def on_dmcs_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
         msg_dict = body 
-        print body
         LOGGER.info('In DMCS message callback')
         LOGGER.debug('Thread in DMCS callback is %s', thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
@@ -228,8 +226,6 @@ class PromptProcessDevice:
 
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
-        print "In on_ack_message - msg_dict[MSG_TYPE] value is %s" % msg_dict[MSG_TYPE]
-        print "YAAH! Msg_dict value above"
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
@@ -298,7 +294,6 @@ class PromptProcessDevice:
         Send confirm to DMCS
         """
 
-        print "Entering SI"
         ccd_list = input_params['CCD_LIST']
         job_num = str(input_params[JOB_NUM])
         visit_id = input_params['VISIT_ID']
@@ -317,7 +312,6 @@ class PromptProcessDevice:
         self.ack_timer(2.5) 
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
 
-        print "Passed Health Check"
 
         num_healthy_forwarders = len(healthy_forwarders)
         # Check policy here...assign an optimal number of ccds to long haul forwarders
@@ -350,9 +344,6 @@ class PromptProcessDevice:
 
             #Check ACK scoreboard for response from NCSA
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-            print "################## Dumping ncsa_response ##################"
-            self.pp.pprint(ncsa_response)
-            print "###########################################################"
             if ncsa_response:
                 pairs = {}
                 ack_bool = ncsa_response['NCSA_FOREMAN']['ACK_BOOL']
@@ -360,8 +351,8 @@ class PromptProcessDevice:
                     if ack_bool == True:
                         pairs = ncsa_response['NCSA_FOREMAN']['PAIRS'] 
                 except KeyError, e:
-                    print "PAIRS key not found in NCSA Ack msg"
-                    pass 
+                    LOGGER.critical('PAIRS key not found in NCSA Ack msg')
+                    sys.exit 200 
 
                 # Distribute job params and tell DMCS we are ready.
                 if ack_bool == True:
@@ -391,13 +382,10 @@ class PromptProcessDevice:
 
  
     def forwarder_health_check(self, params):
-        print "In forwarder_health_check"
         # get timed_ack_id
         timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
         forwarders = self.FWD_SCBD.return_forwarders_list()
-        print "Forwarders receiving health check..."
-        print forwarders
         job_num = params[JOB_NUM] 
         # send health check messages
         msg_params = {}
@@ -408,8 +396,6 @@ class PromptProcessDevice:
        
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "HEALTH_CHECK")
         for forwarder in forwarders:
-            xx = self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE")
-            print "consume queue for %s is %s" % (forwarder, xx) 
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             msg_params)
 
@@ -460,8 +446,6 @@ class PromptProcessDevice:
         ## XXX FIX if num_ccds == none or 1:
         ##    Throw exception
 
-        print "Num ccds: %d" % len(ccd_list)
-
         schedule = {}
         if num_fwdrs == 1:
             schedule[fwdrs_list[0]] = ccd_list
@@ -488,7 +472,6 @@ class PromptProcessDevice:
                 #CCD_LIST = tmp_list
                 schedule[fwdrs_keys_list[i]] = {} 
                 schedule[fwdrs_keys_list[i]]['CCD_LIST'] = tmp_list
-        print "Schedule is: %s" % schedule
         return schedule
 
 
@@ -528,8 +511,6 @@ class PromptProcessDevice:
         for fwder in fwders:
             fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
-            print "THE ROUTE KEY FOR %s IS %s" % (fwder, route_key)
-            print "************DONE PRINTING ROUTE KEY*******************"
             self._base_publisher.publish_message(route_key, fwd_params)
 
         return fwd_ack_id

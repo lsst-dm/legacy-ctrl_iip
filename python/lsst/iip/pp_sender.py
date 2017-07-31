@@ -162,6 +162,7 @@ def main():
   msg['CCD_LIST'] = ccd_list
   
   msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
+  msg['ACK_ID'] = 'S_I_ACK_16'
   time.sleep(4)
   sp1.publish_message("pp_foreman_consume", msg)
   time.sleep(7)

@@ -22,9 +22,7 @@ class ForwarderScoreboard(Scoreboard):
         self._redis = self.connect()
         self._redis.flushdb()
 
-        print "In forwarder scoreboard, inserting fdict"
         forwarders = fdict.keys()
-        print "fdict keys are > %s <" % forwarders
         for forwarder in forwarders:
             fields = fdict[forwarder]
             name = fields['NAME']
