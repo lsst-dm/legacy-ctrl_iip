@@ -36,7 +36,7 @@ class Forwarder:
             self._fqn = cdm[FQN]
             self._base_broker_addr = cdm[BASE_BROKER_ADDR]
             self._consume_queue = cdm[CONSUME_QUEUE]
-            self._publish_queue = cdm[PUBLISH_QUEUE]
+            #self._publish_queue = cdm[PUBLISH_QUEUE]
             self._hostname = cdm[HOSTNAME]
             self._ip_addr = cdm[IP_ADDR]
             self._DAQ_PATH = cdm['DAQ_PATH']
