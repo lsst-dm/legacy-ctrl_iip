@@ -353,7 +353,7 @@ class PromptProcessDevice:
                         pairs = ncsa_response['NCSA_FOREMAN']['PAIRS'] 
                 except KeyError, e:
                     LOGGER.critical('PAIRS key not found in NCSA Ack msg')
-                    sys.exit 200 
+                    sys.exit(200) 
 
                 # Distribute job params and tell DMCS we are ready.
                 if ack_bool == True:
