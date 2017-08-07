@@ -54,32 +54,6 @@ def main():
   #  print "Cannot start thread"
 
 
-  #  while 1:
-  msg = {}
-  msg['MSG_TYPE'] = 'NEW_ARCHIVE_ITEM'
-  msg['SESSION_ID'] = "Tues_xx417"
-  msg['VISIT_ID'] = "V_5512"
-  msg['IMAGE_TYPE'] = 'AR'
-  msg['IMAGE_ID'] = "IMG_442"
-  msg['ACK_ID'] = "NEW_ITEM_ACK_14"
-  time.sleep(3)
-  sp1.publish_message("archive_ctrl_consume", msg)
-
-  #msg = {}
-  #msg['MSG_TYPE'] = "DISABLE"
-  #msg['DEVICE'] = 'AR'
-  #time.sleep(5)
-  #sp1.publish_message("ocs_dmcs_consume", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = 'AR_ITEMS_XFERD'
-  msg['IMAGE_ID'] = "IMG_442"
-  msg['CCD_LIST'] = {'4':{ 'FILENAME':'/mnt/xfer_dir/101_100_4.fits','CHECKSUM':'348e1dbe4956e9d8d2dfa97535744561'}}
-  msg['ACK_ID'] = 'AR_ITEMS_ACK_2241'
-  time.sleep(5)
-  sp1.publish_message("archive_ctrl_consume", msg)
-
-  """
   msg = {}
   msg['MSG_TYPE'] = "NEXT_VISIT"
   msg['VISIT_ID'] = 'XX_28272'
@@ -100,7 +74,25 @@ def main():
   msg['DEVICE'] = 'AR'
   time.sleep(4)
   sp1.publish_message("ocs_dmcs_consume", msg)
-  """
+
+  #  while 1:
+  msg = {}
+  msg['MSG_TYPE'] = 'NEW_ARCHIVE_ITEM'
+  msg['SESSION_ID'] = "Tues_xx417"
+  msg['VISIT_ID'] = "V_5512"
+  msg['IMAGE_TYPE'] = 'AR'
+  msg['IMAGE_ID'] = "IMG_442"
+  msg['ACK_ID'] = "NEW_ITEM_ACK_14"
+  time.sleep(3)
+  sp1.publish_message("archive_ctrl_consume", msg)
+
+  msg = {}
+  msg['MSG_TYPE'] = 'AR_ITEMS_XFERD'
+  msg['IMAGE_ID'] = "IMG_442"
+  msg['CCD_LIST'] = {'4':{ 'FILENAME':'/mnt/xfer_dir/101_100_4.fits','CHECKSUM':'348e1dbe4956e9d8d2dfa97535744561'}}
+  msg['ACK_ID'] = 'AR_ITEMS_ACK_2241'
+  time.sleep(5)
+  sp1.publish_message("archive_ctrl_consume", msg)
 
   print("Sender done")
 

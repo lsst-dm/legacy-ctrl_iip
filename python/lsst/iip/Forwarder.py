@@ -36,7 +36,7 @@ class Forwarder:
             self._fqn = cdm[FQN]
             self._base_broker_addr = cdm[BASE_BROKER_ADDR]
             self._consume_queue = cdm[CONSUME_QUEUE]
-            self._publish_queue = cdm[PUBLISH_QUEUE]
+            #self._publish_queue = cdm[PUBLISH_QUEUE]
             self._hostname = cdm[HOSTNAME]
             self._ip_addr = cdm[IP_ADDR]
             self._DAQ_PATH = cdm['DAQ_PATH']
@@ -90,8 +90,7 @@ class Forwarder:
 
 
     def process_health_check(self, params):
-        print("Incoming fwd_health_chk params:\n %s" % params)
-        self.send_ack_response("FORWARDER_HEALTH_ACK", params)
+        self.send_ack_response("FORWARDER_HEALTH_CHECK_ACK", params)
 
 
     def process_job_params(self, params):
@@ -102,7 +101,7 @@ class Forwarder:
                ACK_ID: x1
                REPLY_QUEUE: .....
                FITS: FITS metadata someday?
-               XFER_PARAMS:
+               TRANSFER_PARAMS:
                     FQN: Name of entity receivine file
                     NAME: login name for receiving entity
                     HOSTNAME: Full host name for receiving entity
@@ -119,7 +118,7 @@ class Forwarder:
                     
         """
         job_params = copy.deepcopy(params)
-        xfer_params = job_params['XFER_PARAMS']
+        xfer_params = job_params['TRANSFER_PARAMS']
 
         # Also RM fits files in xfer_dir
         cmd = "rm " + self._DAQ_PATH + "*.fits"
@@ -273,15 +272,14 @@ class Forwarder:
     def send_ack_response(self, type, params):
         timed_ack = params.get("ACK_ID")
         job_num = params.get(JOB_NUM)
-        reply_queue = params['REPLY_QUEUE']
+        response_queue = params['RESPONSE_QUEUE']
         msg_params = {}
         msg_params[MSG_TYPE] = type
         msg_params[JOB_NUM] = job_num
         msg_params['COMPONENT_NAME'] = self._fqn
         msg_params[ACK_BOOL] = "TRUE"
         msg_params[ACK_ID] = timed_ack
-        print("Outgoing fwd_health_chk ack: \n%s" % msg_params)
-        self._publisher.publish_message(reply_queue, msg_params)
+        self._publisher.publish_message(response_queue, msg_params)
 
 
     def register(self):

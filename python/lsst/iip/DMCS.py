@@ -98,7 +98,9 @@ class DMCS:
                               'NEW_SESSION_ACK': self.process_ack,
                               'AR_NEXT_VISIT_ACK': self.process_ack,
                               'AR_START_INTEGRATION_ACK': self.process_ack,
+                              'PP_START_INTEGRATION_ACK': self.process_ack,
                               'AR_READOUT_ACK': self.process_readout_results_ack,
+                              'PP_READOUT_ACK': self.process_readout_results_ack,
                               'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
 

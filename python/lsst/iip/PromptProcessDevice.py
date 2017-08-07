@@ -1,6 +1,7 @@
 import toolsmod
 from toolsmod import get_timestamp
 import logging
+import pprint
 import pika
 import redis
 import yaml
@@ -43,6 +44,7 @@ class PromptProcessDevice:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
+        self.pp = pprint.PrettyPrinter(indent=4)
         self._config_file = CFG_FILE
         if filename != None:
             self._config_file = filename
@@ -90,7 +92,7 @@ class PromptProcessDevice:
                               'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
                               'NCSA_START_INTEGRATION_ACK': self.process_ack,
                               'NCSA_READOUT_ACK': self.process_ack,
-                              'FORWARDER_HEALTH_ACK': self.process_ack,
+                              'FORWARDER_HEALTH_CHECK_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack,
                               'PENDING_ACK': self.process_pending_ack,
@@ -119,7 +121,6 @@ class PromptProcessDevice:
         LOGGER.info('Setting up consumers on %s', self._base_broker_url)
         self.setup_publishers()
         self.setup_consumers()
-        print("Done with init")
 
 
     def setup_consumers(self):
@@ -202,7 +203,6 @@ class PromptProcessDevice:
     def on_dmcs_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
         msg_dict = body 
-        print(body)
         LOGGER.info('In DMCS message callback')
         LOGGER.debug('Thread in DMCS callback is %s', _thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
@@ -227,8 +227,6 @@ class PromptProcessDevice:
 
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
-        print("In on_ack_message - msg_dict[MSG_TYPE] value is %s" % msg_dict[MSG_TYPE]) 
-        print("YAAH! Msg_dict value above")
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
@@ -297,7 +295,6 @@ class PromptProcessDevice:
         Send confirm to DMCS
         """
 
-        print("Entering SI")
         ccd_list = input_params['CCD_LIST']
         job_num = str(input_params[JOB_NUM])
         visit_id = input_params['VISIT_ID']
@@ -316,7 +313,6 @@ class PromptProcessDevice:
         self.ack_timer(2.5) 
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
 
-        print("Passed Health Check")
 
         num_healthy_forwarders = len(healthy_forwarders)
         # Check policy here...assign an optimal number of ccds to long haul forwarders
@@ -351,16 +347,16 @@ class PromptProcessDevice:
             ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
             if ncsa_response:
                 pairs = {}
-                ack_bool = None
+                ack_bool = ncsa_response['NCSA_FOREMAN']['ACK_BOOL']
                 try:
-                    ack_bool = ncsa_response[ACK_BOOL]
                     if ack_bool == True:
-                        pairs = ncsa_response[PAIRS] 
-                except KeyError as e:
-                    pass 
+                        pairs = ncsa_response['NCSA_FOREMAN']['PAIRS'] 
+                except KeyError, e:
+                    LOGGER.critical('PAIRS key not found in NCSA Ack msg')
+                    sys.exit 200 
 
                 # Distribute job params and tell DMCS we are ready.
-                if ack_bool == TRUE:
+                if ack_bool == True:
                     fwd_ack_id = self.distribute_job_params(input_params, pairs)
                     self.ack_timer(3)
 
@@ -374,7 +370,7 @@ class PromptProcessDevice:
                 else:
                     #not enough ncsa resources to do job - Notify DMCS
                     idle_param = {'STATE': 'IDLE'}
-                    self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_params)
+                    self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_param)
                     result = self.insufficient_ncsa_resources(ncsa_response)
                     return result
 
@@ -387,25 +383,20 @@ class PromptProcessDevice:
 
  
     def forwarder_health_check(self, params):
-        print("In forwarder_health_check")
         # get timed_ack_id
         timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
 
         forwarders = self.FWD_SCBD.return_forwarders_list()
-        print("Forwarders receiving health check...")
-        print(forwarders)
         job_num = params[JOB_NUM] 
         # send health check messages
         msg_params = {}
         msg_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
         msg_params['ACK_ID'] = timed_ack
-        msg_params['REPLY_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
+        msg_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         msg_params[JOB_NUM] = job_num
        
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "HEALTH_CHECK")
         for forwarder in forwarders:
-            xx = self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE")
-            print("consume queue for %s is %s" % (forwarder, xx)) 
             self._base_publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"),
                                             msg_params)
 
@@ -452,10 +443,9 @@ class PromptProcessDevice:
     def divide_work(self, fwdrs_list, ccd_list):
         num_fwdrs = len(fwdrs_list)
         num_ccds = len(ccd_list)
+        fwdrs_keys_list = fwdrs_list.keys()
         ## XXX FIX if num_ccds == none or 1:
         ##    Throw exception
-
-        print("Num ccds: %d" % len(ccd_list))
 
         schedule = {}
         if num_fwdrs == 1:
@@ -466,34 +456,35 @@ class PromptProcessDevice:
             for k in range (0, num_ccds):
                 schedule[fwdrs_list[k]] = ccd_list[k]
         else:
-            ccds_per_fwdr = len(ccd_list) / (num_fwdrs - 1)
+            ccds_per_fwdr = len(ccd_list) / num_fwdrs 
+            remainder_ccds = len(ccd_list) % num_fwdrs
             offset = 0
             for i in range(0, num_fwdrs):
-                schedule[fwdrs_list[i]] = []
+                tmp_list = []
                 for j in range (offset, (ccds_per_fwdr + offset)):
                     if (j) >= num_ccds:
                         break
-                    schedule[fwdrs_list[i]].append(ccd_list[j])
+                    tmp_list.append(ccd_list[j])
                 offset = offset + ccds_per_fwdr
-
+                if remainder_ccds != 0 and i == 0:
+                    for k in range(offset, offset + remainder_ccds):
+                        tmp_list.append(ccd_list[k])
+                    offset = offset + remainder_ccds
+                #CCD_LIST = tmp_list
+                schedule[fwdrs_keys_list[i]] = {} 
+                schedule[fwdrs_keys_list[i]]['CCD_LIST'] = tmp_list
         return schedule
 
 
     def ncsa_resources_query(self, params, work_schedule):
         job_num = str(params[JOB_NUM])
-        self._pairs_dict = {}
-        forwarder_candidate_dict = {}
-        for i in range (0, needed_workers):
-            forwarder_candidate_dict[healthy_forwarders[i]] = raft_list[i]
-            self.FWD_SCBD.set_forwarder_status(healthy_forwarders[i], NCSA_RESOURCES_QUERY)
-            # Call this method for testing...
-            # There should be a message sent to NCSA here asking for available resources
         timed_ack_id = self.get_next_timed_ack_id("NCSA_Start_Int_Ack") 
         ncsa_params = {}
         ncsa_params[MSG_TYPE] = "NCSA_START_INTEGRATION"
         ncsa_params[JOB_NUM] = job_num
         ncsa_params['VISIT_ID'] = params['VISIT_ID']
         ncsa_params['IMAGE_ID'] = params['IMAGE_ID']
+        ncsa_params['SESSION_ID'] = params['SESSION_ID']
         ncsa_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         ncsa_params[ACK_ID] = timed_ack_id
         ncsa_params["FORWARDERS"] = work_schedule
@@ -529,7 +520,7 @@ class PromptProcessDevice:
     def accept_job(self, job_num):
         dmcs_message = {}
         dmcs_message[JOB_NUM] = job_num
-        dmcs_message[MSG_TYPE] = NEW_JOB_ACK
+        dmcs_message[MSG_TYPE] = PP_START_INTEGRATION_ACK
         dmcs_message[ACK_BOOL] = True
         self.JOB_SCBD.set_value_for_job(job_num, STATE, "JOB_ACCEPTED")
         self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ACCEPTED", get_timestamp())
@@ -539,7 +530,7 @@ class PromptProcessDevice:
 
     def insufficient_ncsa_resources(self, ncsa_response):
         dmcs_params = {}
-        dmcs_params[MSG_TYPE] = "NEW_JOB_ACK"
+        dmcs_params[MSG_TYPE] = PP_START_INTEGRATION_ACK
         dmcs_params[JOB_NUM] = job_num 
         dmcs_params[ACK_BOOL] = False
         dmcs_params[BASE_RESOURCES] = '1'
@@ -558,10 +549,10 @@ class PromptProcessDevice:
     def ncsa_no_response(self,params):
         #No answer from NCSA...
         job_num = str(params[JOB_NUM])
-        raft_list = params[RAFTS]
-        needed_workers = len(raft_list)
+        ccd_list = params['CCD_LIST']
+        needed_workers = len(ccd_list)
         dmcs_params = {}
-        dmcs_params[MSG_TYPE] = "NEW_JOB_ACK"
+        dmcs_params[MSG_TYPE] = PP_START_INTEGRATION_ACK
         dmcs_params[JOB_NUM] = job_num 
         dmcs_params[ACK_BOOL] = False
         dmcs_params[BASE_RESOURCES] = '1'
@@ -684,10 +675,12 @@ class PromptProcessDevice:
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             self.forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
+            x = cdm['BLARG']
             self._policy_max_ccds_per_fwdr = int(cdm[ROOT]['POLICY']['MAX_CCDS_PER_FWDR'])
         except KeyError as e:
-            print("Dictionary error")
-            print("Bailing out...")
+            LOGGER.critical("CDM Dictionary Key error")
+            LOGGER.critical("Offending Key is %s", str(e)) 
+            LOGGER.critical("Bailing out...")
             sys.exit(99)
 
 
@@ -699,7 +692,7 @@ class PromptProcessDevice:
 
 
 def main():
-    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/PromptProcess.log', level=logging.INFO, format=LOG_FORMAT)
     b_fm = PromptProcessDevice()
     print("Beginning BaseForeman event loop...")
     try:
