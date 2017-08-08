@@ -435,7 +435,7 @@ class StateScoreboard(Scoreboard):
 
 def main():
   jbs = StateScoreboard()
-  print("Job Scoreboard seems to be running OK")
+  print("State Scoreboard seems to be running OK")
   time.sleep(2)
   print("Done.")
   #jbs.charge_database()

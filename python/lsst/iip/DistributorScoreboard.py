@@ -46,8 +46,19 @@ class DistributorScoreboard(Scoreboard):
 
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=DIST_SCOREBOARD_DB)
-        self._redis = redis.Redis(connection_pool=pool)
+        #pool = redis.ConnectionPool(host='localhost', port=6379, db=DIST_SCOREBOARD_DB)
+        #self._redis = redis.Redis(connection_pool=pool)
+        try:
+            sconn = redis.StrictRedis(host='localhost',port='6379', \
+                                      charset='utf-8', db=self.DB_INSTANCE, \
+                                      decode_responses=True)
+            sconn.ping()
+            LOGGER.info("Redis connected. Connection details are: %s", sconn)
+            return sconn
+        except Exception as e:
+            LOGGER.critical("Redis connection error: %s", e)
+            LOGGER.critical("Exiting due to Redis connection failure.")
+            sys.exit(100)
 
     
     def print_all(self):

@@ -351,7 +351,7 @@ class PromptProcessDevice:
                 try:
                     if ack_bool == True:
                         pairs = ncsa_response['NCSA_FOREMAN']['PAIRS'] 
-                except KeyError, e:
+                except KeyError as e:
                     LOGGER.critical('PAIRS key not found in NCSA Ack msg')
                     sys.exit(200) 
 
@@ -675,12 +675,12 @@ class PromptProcessDevice:
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             self.forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
-            x = cdm['BLARG']
             self._policy_max_ccds_per_fwdr = int(cdm[ROOT]['POLICY']['MAX_CCDS_PER_FWDR'])
         except KeyError as e:
             LOGGER.critical("CDM Dictionary Key error")
             LOGGER.critical("Offending Key is %s", str(e)) 
             LOGGER.critical("Bailing out...")
+            print("KeyError when reading CFG file. Check logs...exiting...")
             sys.exit(99)
 
 
@@ -694,7 +694,7 @@ class PromptProcessDevice:
 def main():
     logging.basicConfig(filename='logs/PromptProcess.log', level=logging.INFO, format=LOG_FORMAT)
     b_fm = PromptProcessDevice()
-    print("Beginning BaseForeman event loop...")
+    print("Beginning PromptProcessDevice event loop...")
     try:
         while 1:
             pass

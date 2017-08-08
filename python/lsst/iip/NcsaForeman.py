@@ -166,7 +166,7 @@ class NcsaForeman:
 
 
     def on_distributor_message(self, ch, method, properties, body):
-        msg_dict = yaml.load(body) 
+        msg_dict = body 
         LOGGER.info('In Distributor message callback')
         LOGGER.debug('Thread in Distributor callback is %s', _thread.get_ident())
         LOGGER.info('Message from Distributor callback message body is: %s', str(msg_dict))
@@ -219,7 +219,7 @@ class NcsaForeman:
         ack_params[JOB_NUM] = job_num
         for distributor in distributors:
             self._publisher.publish_message(self.DIST_SCBD.get_value_for_distributor
-                                              (distributor,"CONSUME_QUEUE"), yaml.dump(ack_params))
+                                              (distributor,"CONSUME_QUEUE"), ack_params)
         
         # start timers
         self.ack_timer(3) 

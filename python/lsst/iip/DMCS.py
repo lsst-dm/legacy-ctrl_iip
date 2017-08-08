@@ -679,7 +679,7 @@ class DMCS:
 
 
 def main():
-    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
     dmsc = DMCS()
     print("Beginning DMCS event loop...")
     try:
