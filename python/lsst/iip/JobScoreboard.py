@@ -100,15 +100,27 @@ class JobScoreboard(Scoreboard):
     
 
     def connect(self):
-        pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
-        return redis.Redis(connection_pool=pool) 
+        #pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
+        #return redis.Redis(connection_pool=pool)
+        try:
+            sconn = redis.StrictRedis(host='localhost',port='6379', \
+                                      charset='utf-8', db=self.DB_INSTANCE, \
+                                      decode_responses=True)
+            sconn.ping()
+            LOGGER.info("Redis connected. Connection details are: %s", sconn)
+            return sconn
+        except Exception as e:
+            LOGGER.critical("Redis connection error: %s", e)
+            LOGGER.critical("Exiting due to Redis connection failure.")
+            sys.exit(100)
 
 
     def check_connection(self):
         ok_flag = False
         for i in range (1,4):
             try:
-                response = self._redis.client_list()
+                #response = self._redis.client_list()
+                response = self._redis.ping()
                 ok_flag = True
                 break
             except redis.ConnectionError:
