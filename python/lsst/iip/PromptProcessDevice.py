@@ -301,7 +301,7 @@ class PromptProcessDevice:
         image_id = input_params['IMAGE_ID']
         self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
 
-        needed_workers = len(ccd_list) / self._policy_max_ccds_per_fwdr
+        needed_workers = len(ccd_list) // self._policy_max_ccds_per_fwdr
         if (len(ccd_list) % self._policy_max_ccds_per_fwdr) != 0:
             needed_workers = needed_workers + 1
 
@@ -315,6 +315,8 @@ class PromptProcessDevice:
 
 
         num_healthy_forwarders = len(healthy_forwarders)
+        print("Needed workers is: %s" % needed_workers) 
+        print("Num_healthy_forwarders is: %s" % num_healthy_forwarders) 
         # Check policy here...assign an optimal number of ccds to long haul forwarders
         if needed_workers > num_healthy_forwarders:
             idle_status = {"STATUS": "HEALTHY", "STATE":"IDLE"}
@@ -443,7 +445,7 @@ class PromptProcessDevice:
     def divide_work(self, fwdrs_list, ccd_list):
         num_fwdrs = len(fwdrs_list)
         num_ccds = len(ccd_list)
-        fwdrs_keys_list = fwdrs_list.keys()
+        fwdrs_keys_list = list(fwdrs_list.keys())
         ## XXX FIX if num_ccds == none or 1:
         ##    Throw exception
 
@@ -456,7 +458,7 @@ class PromptProcessDevice:
             for k in range (0, num_ccds):
                 schedule[fwdrs_list[k]] = ccd_list[k]
         else:
-            ccds_per_fwdr = len(ccd_list) / num_fwdrs 
+            ccds_per_fwdr = len(ccd_list) // num_fwdrs 
             remainder_ccds = len(ccd_list) % num_fwdrs
             offset = 0
             for i in range(0, num_fwdrs):
