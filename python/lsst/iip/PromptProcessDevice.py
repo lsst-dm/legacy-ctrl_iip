@@ -513,6 +513,9 @@ class PromptProcessDevice:
         fwd_params[ACK_ID] = fwd_ack_id
         for fwder in fwders:
             fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
+            if LOGGER.isEnabledFor(logging.DEBUG):
+                LOGGER.debug(print("Fwdr_params are:")) 
+                LOGGER.debug(self.pp.pprint(fwd_params) )
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
             self._base_publisher.publish_message(route_key, fwd_params)
 

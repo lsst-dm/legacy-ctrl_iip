@@ -102,11 +102,12 @@ class Forwarder:
                REPLY_QUEUE: .....
                FITS: FITS metadata someday?
                TRANSFER_PARAMS:
-                    FQN: Name of entity receivine file
-                    NAME: login name for receiving entity
-                    HOSTNAME: Full host name for receiving entity
-                    IP_ADDR: ip addr of archive
-                    TARGET_DIR: Where to put file
+                   DISTRIBUTOR:
+                       FQN: Name of entity receivine file
+                       NAME: login name for receiving entity
+                       HOSTNAME: Full host name for receiving entity
+                       IP_ADDR: ip addr of archive
+                       TARGET_DIR: Where to put file
                     ##  Below might be better as 'xfer_unit_list' for ccds or rafts, or other
                     CCD_LIST: for example...[1,2,3,7,10,14]
                     XFER_UNIT: CCD
@@ -127,9 +128,9 @@ class Forwarder:
 
         filename_stub = str(job_params['JOB_NUM']) + "_" + str(job_params['VISIT_ID']) + "_" + str(job_params['IMAGE_ID']) + "_"
 
-        login_str = str(xfer_params['NAME']) + "@" + str(xfer_params['IP_ADDR']) + ":"
+        login_str = str(xfer_params['DISTRIBUTOR']['NAME']) + "@" + str(xfer_params['DISTRIBUTOR']['IP_ADDR']) + ":"
 
-        target_dir = str(job_params['TARGET_DIR'])
+        target_dir = str(job_params['DISTRIBUTOR']['TARGET_DIR'])
 
         #xfer_params = transfer_params['XFER_PARAMS']
         s_params = {}
