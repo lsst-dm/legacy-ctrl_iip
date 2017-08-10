@@ -130,7 +130,7 @@ class Forwarder:
 
         login_str = str(xfer_params['DISTRIBUTOR']['NAME']) + "@" + str(xfer_params['DISTRIBUTOR']['IP_ADDR']) + ":"
 
-        target_dir = str(job_params['DISTRIBUTOR']['TARGET_DIR'])
+        target_dir = str(xfer_params['DISTRIBUTOR']['TARGET_DIR'])
 
         #xfer_params = transfer_params['XFER_PARAMS']
         s_params = {}

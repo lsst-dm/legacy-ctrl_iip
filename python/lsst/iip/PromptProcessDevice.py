@@ -697,7 +697,7 @@ class PromptProcessDevice:
 
 
 def main():
-    logging.basicConfig(filename='logs/PromptProcess.log', level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/PromptProcess.log', level=logging.DEBUG, format=LOG_FORMAT)
     b_fm = PromptProcessDevice()
     print("Beginning PromptProcessDevice event loop...")
     try:
