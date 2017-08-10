@@ -510,6 +510,7 @@ class PromptProcessDevice:
         fwd_params[JOB_NUM] = job_num
         fwd_params['IMAGE_ID'] = params['IMAGE_ID']
         fwd_params['VISIT_ID'] = params['VISIT_ID']
+        fwd_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         fwd_params[ACK_ID] = fwd_ack_id
         for fwder in fwders:
             fwd_params["TRANSFER_PARAMS"] = pairs[fwder]

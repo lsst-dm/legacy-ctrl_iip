@@ -145,7 +145,7 @@ class Forwarder:
         self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], s_params)
         self._job_scratchpad.set_job_state(params['JOB_NUM'], "READY_WITH_PARAMS")
 
-        self.send_ack_response('AR_XFER_PARAMS_ACK', params)
+        self.send_ack_response('FORWARDER_JOB_PARAMS_ACK', params)
 
 
     def process_foreman_readout(self, params):
