@@ -22,6 +22,7 @@ from SimplePublisher import SimplePublisher
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
+logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FORMAT)
 
 
 class DMCS:
@@ -313,6 +314,8 @@ class DMCS:
         visit_id = params['VISIT_ID']
         self.STATE_SCBD.set_visit_id(visit_id)
         enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
+        LOGGER.debug("Enabled device list is:")
+        LOGGER.debug(enabled_devices)
 
         acks = []
         for k in list(enabled_devices.keys()):
@@ -327,6 +330,7 @@ class DMCS:
             msg[VISIT_ID] = params[VISIT_ID]
             msg[BORE_SIGHT] = params['BORE_SIGHT']
             msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+            LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
             self._publisher.publish_message(consume_queue, msg)
 
         self.ack_timer(2)
@@ -541,7 +545,6 @@ class DMCS:
         message['MSG_TYPE'] = msg_in['MSG_TYPE'] + "_ACK"
         message['DEVICE'] = msg_in['DEVICE']
         message['ACK_ID'] = msg_in['ACK_ID']
-        message['CMD_ID'] = msg_in['CMD_ID']
         message['ACK_BOOL'] = transition_check
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 

@@ -10,6 +10,7 @@ import random
 import logging
 sys.path.insert(1, '../iip')
 sys.path.insert(1, '../')
+import DMCS
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from const import *
@@ -35,24 +36,28 @@ information for access to the message broker, and also gives explicit info
 about the Forwarders that this file will use as well.
 
 """
-logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
+logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
-@pytest.fixture(scope='session')
-def dmcs(request):
-    return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+#@pytest.fixture(scope='session')
+#def dmcs(request):
+#    return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
 class TestDMCS:
+    dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
     ocs_pub_broker_url = None
     ocs_publisher = None
     ocs_consumer = None
+    ocs_consumer_msg_list = []
 
     ar_pub_broker_url = None
     ar_publisher = None
     ar_consumer = None
+    ar_consumer_msg_list = []
 
     pp_pub_broker_url = None
     pp_publisher = None
     pp_consumer = None
+    pp_consumer_msg_list = []
 
     ccd_list = [14,17,21.86]
 
@@ -268,8 +273,16 @@ class TestDMCS:
         print("READOUT Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
-        time.sleep(15)
+        msg = {}
+        msg['MSG_TYPE'] = 'RESET_TEST'
+        time.sleep(5)
+        print("RESET_TEST Message")
+        self.ocs_publisher.publish_message("ar_foreman_consume", msg)
+        self.ocs_publisher.publish_message("pp_foreman_consume", msg)
+        self.ocs_publisher.publish_message("dmcs_ocs_publish", msg)
       
+        time.sleep(8)
+
         print("Message Sender done")
 
 
@@ -280,50 +293,15 @@ class TestDMCS:
         print("Got an OCS Message")
     
     def on_ar_message(self, ch, method, properties, body):
-        print("Got an AR Message")
+        if body['MSG_TYPE'] == "RESET_TEST":
+            ### Resolve messages for accuracy
+            #del self.ar_consumer_msg_list
+            self.ar_consumer_msg_list = []
+        else:
+            self.ar_consumer_msg_list.append(body)
+        #print("Got an AR Message: %s" % body)
+        print("Current AR msg list is: %s" % self.ar_consumer_msg_list)
     
     def on_pp_message(self, ch, method, properties, body):
         print("Got an PP Message")
 
-"""
-def test_forwarder_check_health(fman):
-    os.system('rabbitmqctl -p /tester purge_queue f_consume')
-    os.system('rabbitmqctl -p /tester purge_queue forwarder_publish')
-    os.system('rabbitmqctl -p /tester purge_queue ack_publish')
-    try:
-        f = open('ForemanCfgTest.yaml')
-    except IOError:
-        print "Can't open ForemanCfgTest.yaml"
-        print "Bailing out on test_forwarder_check_health..."
-        sys.exit(99)
-
-    cdm = yaml.safe_load(f)
-    number_of_pairs = cdm['ROOT']['NUMBER_OF_PAIRS']
-    base_broker_address = cdm['ROOT']['BASE_BROKER_ADDR']
-    name = cdm['ROOT']['BROKER_NAME']
-    passwd = cdm['ROOT']['BROKER_PASSWD']
-    base_broker_url = "amqp://" + name + ":" + passwd + "@" + str(base_broker_address)
-    setup_publisher(base_broker_url)
-    setup_consumer(base_broker_url, 'f_consume', 'XML')
-    forwarders = cdm['ROOT']['XFER_COMPONENTS']['FORWARDERS']
-
-
-    #The test cfg file includes a list of all 21 rafts in non-consecutive order
-    #The NUMBER_OF_PAIRS param is used to generate a sublist of above
-    L = []
-    for i in range (0, number_of_pairs):
-        L.append(cdm['ROOT']['RAFT_LIST'][i]) 
-
-    params = {}
-    params['MSG_TYPE'] = 'NEW_JOB'
-    params['JOB_NUM'] = str(7)
-    params['RAFTS'] = L
-
-    ack_id = fman.forwarder_health_check(params)
-    sleep(6)
-    ack_responses = fman.ACK_SCBD.get_components_for_timed_ack(ack_id)
-    assert ack_responses != None
-    assert len(ack_responses) == int(number_of_pairs)
-    print "Done with forwarder_health_check test"
-
-"""
