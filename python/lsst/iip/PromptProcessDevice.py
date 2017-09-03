@@ -31,6 +31,7 @@ class PromptProcessDevice:
     COMPONENT_NAME = 'PROMPT_PROCESS_FOREMAN'
     PP_FOREMAN_CONSUME = "pp_foreman_consume"
     PP_FOREMAN_ACK_PUBLISH = "pp_foreman_ack_publish"
+    PP_START_INTEGRATION_ACK = "PP_START_INTEGRATION_ACK"
     NCSA_PUBLISH = "ncsa_publish"
     NCSA_CONSUME = "ncsa_consume"
     FORWARDER_PUBLISH = "forwarder_publish"
@@ -302,7 +303,8 @@ class PromptProcessDevice:
         self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
 
         needed_workers = len(ccd_list) // self._policy_max_ccds_per_fwdr
-        if (len(ccd_list) % self._policy_max_ccds_per_fwdr) != 0:
+        print("First off, needed_workers is %s" % needed_workers)
+        if ((len(ccd_list) % self._policy_max_ccds_per_fwdr) != 0) or (needed_workers == 0):
             needed_workers = needed_workers + 1
 
         unknown_status = {"STATUS": "UNKNOWN", "STATE":"UNRESPONSIVE"}
@@ -312,34 +314,41 @@ class PromptProcessDevice:
          
         self.ack_timer(2.5) 
         healthy_forwarders = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+        healthy_forwarders_list = list(healthy_forwarders.keys())
 
 
-        num_healthy_forwarders = len(healthy_forwarders)
+        num_healthy_forwarders = len(healthy_forwarders_list)
         print("Needed workers is: %s" % needed_workers) 
         print("Num_healthy_forwarders is: %s" % num_healthy_forwarders) 
         # Check policy here...assign an optimal number of ccds to long haul forwarders
         if needed_workers > num_healthy_forwarders:
             idle_status = {"STATUS": "HEALTHY", "STATE":"IDLE"}
-            self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_status)
-            result = self.insufficient_base_resources(input_params, healthy_forwarders)
+            self.FWD_SCBD.set_forwarder_params(healthy_forwarders_list, idle_status)
+            result = self.insufficient_base_resources(input_params, healthy_forwarders_list)
             return result
         else:
             needed_forwarders = []
-            for i in range(0, needed_workers - 1):
-                needed_forwarders.append(healthy_forwarders[i])
+            #for i in range(0, needed_workers - 1):
+            # FIX Added 8/10...
+            for i in range(0, needed_workers):
+                needed_forwarders.append(healthy_forwarders_list[i])
+                print("Looping through healthy_forwarders, i is %s and forwarder is %s" % (i,healthy_forwarders_list[i]))
             ready_status = {"STATUS": "HEALTHY", "STATE":"READY_WITHOUT_PARAMS"}
             self.FWD_SCBD.set_forwarder_params(needed_forwarders, ready_status)
 
             extra_forwarders = []
             for i in range(needed_workers, -1):
-                extra_forwarders.append(healthy_forwarders[i])
+                extra_forwarders.append(healthy_forwarders_list[i])
             if len(extra_forwarders) != (0):
                 idle_status = {"STATUS": "HEALTHY", "STATE":"IDLE"}
                 self.FWD_SCBD.set_forwarder_params(extra_forwarders, idle_status)
 
             # Why not send all healthy forwarders to work? Because Long Haul Transfer 
             # wants 9 - 10 ccds/fwdr optimum
-            work_schedule = self.divide_work(healthy_forwarders, ccd_list) 
+            #work_schedule = self.divide_work(healthy_forwarders, ccd_list) 
+            #FIX Added 8/10...divide work should not use extra fwdrs in calculation
+            #Keeping orig until tested
+            work_schedule = self.divide_work(needed_forwarders, ccd_list) 
 
             ack_id = self.ncsa_resources_query(input_params, work_schedule)
 
@@ -366,11 +375,11 @@ class PromptProcessDevice:
                     if fwdr_params_response and (len(fwdr_params_response) == len(list(pairs.keys()))):
                         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "FWDR_PARAMS_RECEIVED")
                         in_ready_state = {'STATE':'READY_WITH_PARAMS'}
-                        self.FWD_SCBD.set_forwarder_params(fwders, in_ready_state) 
+                        self.FWD_SCBD.set_forwarder_params(needed_forwarders, in_ready_state) 
                         # Tell DMCS we are ready
                         result = self.accept_job(job_num)
                 else:
-                    #not enough ncsa resources to do job - Notify DMCS
+                    #suddenly a forwarder(s) not responding to job_params msg - Notify DMCS
                     idle_param = {'STATE': 'IDLE'}
                     self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_param)
                     result = self.insufficient_ncsa_resources(ncsa_response)
@@ -378,8 +387,8 @@ class PromptProcessDevice:
 
             else:
                 result = self.ncsa_no_response(input_params)
-                idle_param = {'STATE': 'IDLE'}
-                self.FWD_SCBD.set_forwarder_params(list(forwarder_candidate_dict.keys()), idle_params)
+                idle_params = {'STATE': 'IDLE'}
+                self.FWD_SCBD.set_forwarder_params(needed_forwarders, idle_params)
                 return result
                     
 
@@ -444,14 +453,17 @@ class PromptProcessDevice:
 
     def divide_work(self, fwdrs_list, ccd_list):
         num_fwdrs = len(fwdrs_list)
+        print("num_fwdrs, that is, length of fwdrs is %s" % num_fwdrs)
         num_ccds = len(ccd_list)
-        fwdrs_keys_list = list(fwdrs_list.keys())
+        #fwdrs_keys_list = list(fwdrs_list.keys())
         ## XXX FIX if num_ccds == none or 1:
         ##    Throw exception
 
         schedule = {}
         if num_fwdrs == 1:
-            schedule[fwdrs_list[0]] = ccd_list
+            schedule[fwdrs_list[0]] = {}
+            schedule[fwdrs_list[0]]['CCD_LIST'] = ccd_list
+            self.pp.pprint(schedule)
             return schedule
 
         if num_ccds <= num_fwdrs:
@@ -473,8 +485,9 @@ class PromptProcessDevice:
                         tmp_list.append(ccd_list[k])
                     offset = offset + remainder_ccds
                 #CCD_LIST = tmp_list
-                schedule[fwdrs_keys_list[i]] = {} 
-                schedule[fwdrs_keys_list[i]]['CCD_LIST'] = tmp_list
+                schedule[fwdrs_list[i]] = {} 
+                schedule[fwdrs_list[i]]['CCD_LIST'] = tmp_list
+                self.pp.pprint(schedule)
         return schedule
 
 
@@ -526,7 +539,7 @@ class PromptProcessDevice:
     def accept_job(self, job_num):
         dmcs_message = {}
         dmcs_message[JOB_NUM] = job_num
-        dmcs_message[MSG_TYPE] = PP_START_INTEGRATION_ACK
+        dmcs_message[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
         dmcs_message[ACK_BOOL] = True
         self.JOB_SCBD.set_value_for_job(job_num, STATE, "JOB_ACCEPTED")
         self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ACCEPTED", get_timestamp())
@@ -536,7 +549,7 @@ class PromptProcessDevice:
 
     def insufficient_ncsa_resources(self, ncsa_response):
         dmcs_params = {}
-        dmcs_params[MSG_TYPE] = PP_START_INTEGRATION_ACK
+        dmcs_params[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
         dmcs_params[JOB_NUM] = job_num 
         dmcs_params[ACK_BOOL] = False
         dmcs_params[BASE_RESOURCES] = '1'
@@ -558,7 +571,7 @@ class PromptProcessDevice:
         ccd_list = params['CCD_LIST']
         needed_workers = len(ccd_list)
         dmcs_params = {}
-        dmcs_params[MSG_TYPE] = PP_START_INTEGRATION_ACK
+        dmcs_params[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
         dmcs_params[JOB_NUM] = job_num 
         dmcs_params[ACK_BOOL] = False
         dmcs_params[BASE_RESOURCES] = '1'
