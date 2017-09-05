@@ -3,6 +3,7 @@ from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 import sys
 import os
+import pprint
 import copy
 import time
 import logging
@@ -53,10 +54,12 @@ class Premium:
     msg['MSG_TYPE'] = 'NCSA_START_INTEGRATION_ACK'
     msg['COMPONENT_NAME'] = 'NCSA_FOREMAN'
     fwdrs = copy.deepcopy(body['FORWARDERS'])
-    fwdrs_keys = fwdrs.keys()
+    pp = pprint.PrettyPrinter(indent=2)
+    print("In callback2, fwdrs dict is:")
+    pp.pprint(fwdrs)
+    fwdrs_keys = list(fwdrs.keys())
     i = 1
     for fwdr in fwdrs_keys:
-        dists = {}
         dists = {}
         dists['FQN'] = "Distributor_" + str(i)
         dists['NAME'] = "D" + str(i)

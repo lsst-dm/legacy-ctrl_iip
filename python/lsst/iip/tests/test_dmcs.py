@@ -13,10 +13,10 @@ sys.path.insert(1, '../')
 import DMCS
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
+from MessageAuthority import MessageAuthority
 from const import *
 import toolsmod
 
-#from BaseForeman import *
 from DMCS import *
 
 """
@@ -93,6 +93,14 @@ class TestDMCS:
     pp_consumer = None
     pp_consumer_msg_list = []
 
+    EXPECTED_AR_MESSAGES = 6
+    EXPECTED_PP_MESSAGES = 6
+    EXPECTED_OCS_MESSAGES = 6
+
+    ar_check_messages = True
+    pp_check_messages = True
+    ocs_check_messages = True
+
     ccd_list = [14,17,21.86]
 
 
@@ -125,7 +133,9 @@ class TestDMCS:
         except:
             print("Bad trouble creating consumer thread for testing...exiting...")
             sys.exit(101)
-    
+   
+
+ 
     def test_dmcs(self):
         try:
             cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
@@ -176,16 +186,33 @@ class TestDMCS:
         self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'YAML')
         self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'YAML')
         self.pp_consumer = Consumer(pp_broker_url,'pp_foreman_consume', 'YAML')
-    
+
+        # Must be done before consumer threads are started
+        # This is used for verifying message structure
+        self._msg_auth = MessageAuthority()
+
         self.setup_consumers()
         ### call message sender and pass in ocs_publisher
         sleep(3)
         print("Test Setup Complete. Commencing Messages...")
-        self.send_messages(1)
-        assert 1
+        self.send_messages1()
 
-    def send_messages(self, test_num):
+        #self.send_messages2()
+        #assert 1
+        print("Done with test")
+        assert 0
+
+    def send_messages1(self):
+
+        # Tests both AR and PP devices
         
+        self.EXPECTED_OCS_MESSAGES = 15
+        self.EXPECTED_AR_MESSAGES = 7
+        self.EXPECTED_PP_MESSAGES = 7
+
+        self.ocs_check_messages = True
+        self.ar_check_messages = True
+        self.pp_check_messages = True
 
         msg = {}
         msg['MSG_TYPE'] = "STANDBY"
@@ -193,7 +220,7 @@ class TestDMCS:
         msg['CFG_KEY'] = "2C16"
         msg['ACK_ID'] = 'AR_4'
         msg['ACK_DELAY'] = 2
-        time.sleep(3)
+        time.sleep(1)
         print("AR STANDBY")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
@@ -203,8 +230,146 @@ class TestDMCS:
         msg['CFG_KEY'] = "2C16"
         msg['ACK_ID'] = 'PP_7'
         msg['ACK_DELAY'] = 2
-        time.sleep(3)
+        time.sleep(1)
         print("PP STANDBY")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        #msg = {}
+        #msg['MSG_TYPE'] = "NEW_SESSION"
+        #msg['SESSION_ID'] = 'SI_469976'
+        #msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
+        #msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        ##time.sleep(1)
+        ##self.ocs_publisher.publish_message("ar_foreman_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "DISABLE"
+        msg['DEVICE'] = 'AR'
+        msg['ACK_ID'] = 'AR_6'
+        msg['ACK_DELAY'] = 2
+        time.sleep(1)
+        print("AR DISABLE")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "DISABLE"
+        msg['DEVICE'] = 'PP'
+        msg['ACK_ID'] = 'PP_8'
+        msg['ACK_DELAY'] = 2
+        time.sleep(1)
+        print("PP DISABLE")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "ENABLE"
+        msg['DEVICE'] = 'AR'
+        msg['ACK_ID'] = 'AR_11'
+        msg['ACK_DELAY'] = 2
+        time.sleep(1)
+        print("AR ENABLE")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "ENABLE"
+        msg['DEVICE'] = 'PP'
+        msg['ACK_ID'] = 'PP_12'
+        msg['ACK_DELAY'] = 2
+        time.sleep(1)
+        print("PP ENABLE")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "NEXT_VISIT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
+        msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
+        time.sleep(2)
+        print("Next Visit Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "START_INTEGRATION"
+        msg['IMAGE_ID'] = 'IMG_4276'
+        msg['VISIT_ID'] = 'V_1443'
+        msg['ACK_ID'] = 'START_INT_ACK_76'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['CCD_LIST'] = self.ccd_list
+        time.sleep(2)
+        print("Start Integration Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "READOUT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['IMAGE_ID'] = 'IMG_4276'
+        msg['IMAGE_SRC'] = 'MAIN'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'READOUT_ACK_77'
+        time.sleep(2)
+        print("READOUT Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "START_INTEGRATION"
+        msg['IMAGE_ID'] = 'IMG_4277'
+        msg['IMAGE_SRC'] = 'MAIN'
+        msg['VISIT_ID'] = 'V_1443'
+        msg['ACK_ID'] = 'START_INT_ACK_78'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['CCD_LIST'] = self.ccd_list
+        time.sleep(2)
+        print("Start Integration Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "READOUT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['IMAGE_ID'] = 'IMG_4277'
+        msg['IMAGE_SRC'] = 'MAIN'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'READOUT_ACK_79'
+        time.sleep(2)
+        print("READOUT Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = 'RESET_TEST'
+        time.sleep(5)
+        print("RESET_TEST Message")
+        self.ocs_publisher.publish_message("ar_foreman_consume", msg)
+        time.sleep(2)
+        self.ocs_publisher.publish_message("pp_foreman_consume", msg)
+        time.sleep(2)
+        self.ocs_publisher.publish_message("dmcs_ocs_publish", msg)
+        time.sleep(2)
+      
+        time.sleep(6)
+
+        print("Message Sender #1 done")
+
+
+
+    def send_messages2(self):
+
+        # Tests only AR device
+        
+        self.EXPECTED_OCS_MESSAGES = 8
+        self.EXPECTED_AR_MESSAGES = 6
+        self.EXPECTED_PP_MESSAGES = 0
+
+        self.ocs_check_messages = True
+        self.ar_check_messages = True
+        self.pp_check_messages = False 
+
+        msg = {}
+        msg['MSG_TYPE'] = "STANDBY"
+        msg['DEVICE'] = 'AR'
+        msg['CFG_KEY'] = "2C16"
+        msg['ACK_ID'] = 'AR_4'
+        msg['ACK_DELAY'] = 2
+        time.sleep(3)
+        print("AR STANDBY")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         #msg = {}
@@ -224,14 +389,6 @@ class TestDMCS:
         print("AR DISABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
-        msg = {}
-        msg['MSG_TYPE'] = "DISABLE"
-        msg['DEVICE'] = 'PP'
-        msg['ACK_ID'] = 'PP_8'
-        msg['ACK_DELAY'] = 2
-        time.sleep(3)
-        print("PP DISABLE")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         msg = {}
         msg['MSG_TYPE'] = "ENABLE"
@@ -240,15 +397,6 @@ class TestDMCS:
         msg['ACK_DELAY'] = 2
         time.sleep(3)
         print("AR ENABLE")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "ENABLE"
-        msg['DEVICE'] = 'PP'
-        msg['ACK_ID'] = 'PP_12'
-        msg['ACK_DELAY'] = 2
-        time.sleep(3)
-        print("PP ENABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         msg = {}
@@ -312,40 +460,71 @@ class TestDMCS:
         time.sleep(5)
         print("RESET_TEST Message")
         self.ocs_publisher.publish_message("ar_foreman_consume", msg)
+        time.sleep(2)
         self.ocs_publisher.publish_message("pp_foreman_consume", msg)
+        time.sleep(2)
         self.ocs_publisher.publish_message("dmcs_ocs_publish", msg)
+        time.sleep(2)
       
-        time.sleep(8)
+        time.sleep(6)
 
-        print("Message Sender done")
-
-
-
+        print("Message Sender #2 done")
 
     
     def on_ocs_message(self, ch, method, properties, body):
-        print("Got an OCS Message")
-    
-    def on_ar_message(self, ch, method, properties, body):
-        if body['MSG_TYPE'] == "RESET_TEST":
+        if body['MSG_TYPE'] == "RESET_TEST" and self.ocs_check_messages == True:
             ### Resolve messages for accuracy
-            #del self.ar_consumer_msg_list
-            len_list = len(self.ar_consumer_msg_list)
-            if len_list != self.EXPECTED_AR_MESSAGES:
-                raise Exception('AR simulator received incorrect number of messages.\nExpected %s but received %s' % (self.EXPECTED_AR_MESSAGES, len_list))
+            len_list = len(self.ocs_consumer_msg_list)
+            if len_list != self.EXPECTED_OCS_MESSAGES:
+                print('OCS simulator received incorrect number of messages.\nExpected %s but received %s' % (self.EXPECTED_OCS_MESSAGES, len_list))
+                assert 0
 
             # Now check num keys in each message first, then check for key errors
             for i in range(0, len_list):
-                j = self.ar_consumer_msg_list[i]
-                keez = list(self.ar_consumer_msg_list.keys())
+                msg = self.ocs_consumer_msg_list[i]
+                assert self._msg_auth.check_message_shape(msg)
+            self.ocs_consumer_msg_list = []
+        else: 
+            self.ocs_consumer_msg_list.append(body)
 
+        #print("Current OCS msg list is: %s" % self.ocs_consumer_msg_list)
+        #print("Got an OCS Message")
+   
+ 
+    def on_ar_message(self, ch, method, properties, body):
+        if body['MSG_TYPE'] == "RESET_TEST" and self.ar_check_messages == True:
+            ### Resolve messages for accuracy
+            len_list = len(self.ar_consumer_msg_list)
+            if len_list != self.EXPECTED_AR_MESSAGES:
+                print('AR simulator received incorrect number of messages.\nExpected %s but received %s' % (self.EXPECTED_AR_MESSAGES, len_list))
+                assert 0
 
+            # Now check num keys in each message first, then check for key errors
+            for i in range(0, len_list):
+                msg = self.ar_consumer_msg_list[i]
+                assert self._msg_auth.check_message_shape(msg)
             self.ar_consumer_msg_list = []
-        else:
+        else: 
             self.ar_consumer_msg_list.append(body)
-        #print("Got an AR Message: %s" % body)
-        print("Current AR msg list is: %s" % self.ar_consumer_msg_list)
+
+        #print("Current AR msg list is: %s" % self.ar_consumer_msg_list)
+
     
     def on_pp_message(self, ch, method, properties, body):
-        print("Got an PP Message")
+        if body['MSG_TYPE'] == "RESET_TEST" and self.pp_check_messages == True:
+            ### Resolve messages for accuracy
+            len_list = len(self.pp_consumer_msg_list)
+            if len_list != self.EXPECTED_PP_MESSAGES:
+                print('PP simulator received incorrect number of messages.\nExpected %s but received %s' % (self.EXPECTED_PP_MESSAGES, len_list))
+                assert 0
+
+            # Now check num keys in each message first, then check for key errors
+            for i in range(0, len_list):
+                msg = self.pp_consumer_msg_list[i]
+                assert self._msg_auth.check_message_shape(msg)
+            self.pp_consumer_msg_list = []
+        else: 
+            self.pp_consumer_msg_list.append(body)
+
+        #print("Current PP msg list is: %s" % self.pp_consumer_msg_list)
 

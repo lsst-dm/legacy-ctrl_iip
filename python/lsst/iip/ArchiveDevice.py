@@ -73,10 +73,10 @@ class ArchiveDevice:
         self.JOB_SCBD = JobScoreboard('AR_JOB_SCBD', self._scbd_dict['AR_JOB_SCBD'])
         self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
-        self._msg_actions = { 'START_INTEGRATION': self.process_start_integration,
-                              'NEW_SESSION': self.set_session,
-                              'NEXT_VISIT': self.set_visit,
-                              'READOUT': self.process_dmcs_readout,
+        self._msg_actions = { 'AR_START_INTEGRATION': self.process_start_integration,
+                              'AR_NEW_SESSION': self.set_session,
+                              'AR_NEXT_VISIT': self.set_visit,
+                              'AR_READOUT': self.process_dmcs_readout,
                               'FORWARDER_HEALTH_ACK': self.process_ack,
                               'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
                               'FORWARDER_READOUT_ACK': self.process_ack,

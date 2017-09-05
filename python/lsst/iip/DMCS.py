@@ -96,8 +96,12 @@ class DMCS:
                               'TELEMETRY': self.process_telemetry }
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
-                              'NEW_SESSION_ACK': self.process_ack,
+                              'PP_NEW_SESSION_ACK': self.process_ack,
+                              'AR_NEW_SESSION_ACK': self.process_ack,
+                              'CU_NEW_SESSION_ACK': self.process_ack,
+                              'SP_NEW_SESSION_ACK': self.process_ack,
                               'AR_NEXT_VISIT_ACK': self.process_ack,
+                              'PP_NEXT_VISIT_ACK': self.process_ack,
                               'AR_START_INTEGRATION_ACK': self.process_ack,
                               'PP_START_INTEGRATION_ACK': self.process_ack,
                               'AR_READOUT_ACK': self.process_readout_results_ack,
@@ -316,17 +320,19 @@ class DMCS:
         enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
         LOGGER.debug("Enabled device list is:")
         LOGGER.debug(enabled_devices)
+        session_id = self.STATE_SCBD.get_current_session()
 
         acks = []
         for k in list(enabled_devices.keys()):
             consume_queue = enabled_devices[k]
             ## FIXME - Must each enabled device use its own ack_id? Or
             ## can we use the same method for broadcasting Forwarder messages?  
-            ack = self.get_next_timed_ack_id("NEXT_VISIT_ACK")
+            ack = self.get_next_timed_ack_id(k + "_NEXT_VISIT_ACK")
             acks.append(ack)
             msg = {}
-            msg[MSG_TYPE] = NEXT_VISIT
+            msg[MSG_TYPE] = k + '_NEXT_VISIT'
             msg[ACK_ID] = ack
+            msg['SESSION_ID'] = session_id
             msg[VISIT_ID] = params[VISIT_ID]
             msg[BORE_SIGHT] = params['BORE_SIGHT']
             msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
@@ -361,7 +367,6 @@ class DMCS:
         ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         ccd_list = self.CCD_LIST
         msg_params = {}
-        msg_params[MSG_TYPE] = 'START_INTEGRATION'
         # visit_id and image_id msg_params *could* be set in one line, BUT: the values are needed again below...
         visit_id = self.STATE_SCBD.get_current_visit()
         msg_params[VISIT_ID] = visit_id
@@ -384,9 +389,9 @@ class DMCS:
             self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
             self.STATE_SCBD.set_current_device_job(job_num, str(k))
             self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+            msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
-            msg_params['DEVICE'] = str(k)
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
 
@@ -400,11 +405,9 @@ class DMCS:
         ccd_list = self.CCD_LIST
 
         msg_params = {}
-        msg_params[MSG_TYPE] = 'READOUT'
         msg_params[VISIT_ID] = self.STATE_SCBD.get_current_visit()
         msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
         msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
-        msg_params['CCD_LIST'] = ccd_list
         session_id = self.STATE_SCBD.get_current_session()
         msg_params['SESSION_ID'] = session_id
 
@@ -414,9 +417,9 @@ class DMCS:
             ack_id = self.get_next_timed_ack_id( str(k) + "_READOUT_ACK")
             acks.append(ack_id)
             job_num = self.STATE_SCBD.get_current_device_job(str(k))
+            msg_params[MSG_TYPE] = k + '_READOUT'
             msg_params[ACK_ID] = ack_id
             msg_params[JOB_NUM] = job_num
-            msg_params['DEVICE'] = str(k)
             self.STATE_SCBD.set_job_state(job_num, "READOUT")
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
@@ -478,14 +481,15 @@ class DMCS:
 
         ack_ids = [] 
         msg = {}
-        msg['MSG_TYPE'] = 'NEW_SESSION'
+        #msg['MSG_TYPE'] = 'NEW_SESSION'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['SESSION_ID'] = session_id
 
         ddict = self.STATE_SCBD.get_devices()
         for k in list(ddict.keys()):
+            msg['MSG_TYPE'] = k + '_NEW_SESSION'
             consume_queue = ddict[k]
-            ack_id = self.get_next_timed_ack_id("NEW_SESSION_ACK")
+            ack_id = self.get_next_timed_ack_id(k + "_NEW_SESSION_ACK")
             msg['ACK_ID'] = ack_id
             ack_ids.append(ack_id)
             self._publisher.publish_message(consume_queue, msg)

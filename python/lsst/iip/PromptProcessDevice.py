@@ -45,7 +45,7 @@ class PromptProcessDevice:
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self.pp = pprint.PrettyPrinter(indent=4)
+        self.prp = pprint.PrettyPrinter(indent=4)
         self._config_file = CFG_FILE
         if filename != None:
             self._config_file = filename
@@ -86,10 +86,10 @@ class PromptProcessDevice:
         self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
         self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
 
-        self._msg_actions = { 'NEW_SESSION': self.set_session,
-                              'NEXT_VISIT': self.set_visit, 
-                              'START_INTEGRATION': self.process_start_integration,
-                              'READOUT': self.process_dmcs_readout,
+        self._msg_actions = { 'PP_NEW_SESSION': self.set_session,
+                              'PP_NEXT_VISIT': self.set_visit, 
+                              'PP_START_INTEGRATION': self.process_start_integration,
+                              'PP_READOUT': self.process_dmcs_readout,
                               'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
                               'NCSA_START_INTEGRATION_ACK': self.process_ack,
                               'NCSA_READOUT_ACK': self.process_ack,
@@ -463,7 +463,7 @@ class PromptProcessDevice:
         if num_fwdrs == 1:
             schedule[fwdrs_list[0]] = {}
             schedule[fwdrs_list[0]]['CCD_LIST'] = ccd_list
-            self.pp.pprint(schedule)
+            self.prp.pprint(schedule)
             return schedule
 
         if num_ccds <= num_fwdrs:
@@ -487,7 +487,7 @@ class PromptProcessDevice:
                 #CCD_LIST = tmp_list
                 schedule[fwdrs_list[i]] = {} 
                 schedule[fwdrs_list[i]]['CCD_LIST'] = tmp_list
-                self.pp.pprint(schedule)
+                self.prp.pprint(schedule)
         return schedule
 
 
@@ -529,7 +529,7 @@ class PromptProcessDevice:
             fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
             if LOGGER.isEnabledFor(logging.DEBUG):
                 LOGGER.debug(print("Fwdr_params are:")) 
-                LOGGER.debug(self.pp.pprint(fwd_params) )
+                LOGGER.debug(self.prp.pprint(fwd_params) )
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
             self._base_publisher.publish_message(route_key, fwd_params)
 

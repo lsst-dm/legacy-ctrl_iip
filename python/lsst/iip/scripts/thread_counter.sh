@@ -1,5 +1,9 @@
 #!/bin/bash
-# USAGE: ./thread_gah.sh ./sacpp_archiver_enable_commander X
+# This script launches a SAL DDS publisher and counts 
+# the threads used in the short time it runs.
+# USAGE: ./thread_counter.sh ./sacpp_archiver_enable_commander X
+# where X is something to send...any type of data...'1', 'A', etc.
+#
 echo "Checking thread count for $1 command"
 $1 $2 &
 PD=$!
