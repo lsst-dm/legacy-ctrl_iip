@@ -20,20 +20,50 @@ import toolsmod
 from DMCS import *
 
 """
- Creates DMCS object used to test the methods below
- Can either last for the entire testing session or per test one can be created
+0) This test file works be sending the component to be tested, all of the messages
+   it will receive, temporarily stores these messages for verification later,
+   and sends the necessary responses to emulate other components that the 
+   component being tested will communicate with. It also makes some database
+   checks to insure the component being tested is doing proper
+   bookkeeping.
 
-This test file requires the use of two external fixtures:
+This test file requires the use of two external servers:
 1) An AMQP message broker
-2) The Redis in-memory database
+    a. There is a scripy in this directory called TestSetupRabbit.py that sets up
+       the needed virtual hosts and the users, user permissions, and queues.
+    b. The L1SysCfg_Test.yaml file should be edited to set the Rabbit address
+       value in the BASE_BROKER_ADDR key
 
-The BaseForeman class s built to receive parameters froma configuration file.
-If an init arg is not given when creating a BaseForeman, the default
-ForemanCFG.yaml is used...but it is also possible to create a BaseForeman
-instance with a specific config file given as the arg - in this case, we will
-use a file called ForemanCFGTest.yaml. This file contains the user/passwd
-information for access to the message broker, and also gives explicit info
-about the Forwarders that this file will use as well.
+2) The Redis in-memory database. The database instances that are used for 
+   each component are also found in L1SysCfg_Test.yaml
+
+3) This test files tests the DMCS component. It is possible to include a specific
+   Config file as the only argument when creating a DMCS object - for that matter,
+   when creating ANY component object. Here we create the DMCS with the above
+   mentioned L1SysCfg_Test.yaml file. When no argument is supplied at creation,
+   the components use the default L1SysCfg.yaml file found in the iip/ dir.
+
+4) This test can be used as template for any component tests. Right now,
+   it checks component health by verifying the messages and acks the test 
+   component sends. To use this file as a template for testing another component,
+   simply create the Consumer objects using the appropriate queues, and then
+   each Consumer plays the role of a component that the component being
+   tested communicates with. Finally, the principal test method in this
+   component test file sends messages to the component being tested.
+
+   The messages sent exercise all messages received by the test component, and responses
+   from the Consumers use the system glossary messages when responding.
+
+5) Every time a consumer receives a message, it stores the message in a class
+   List structure and then responds with the appropriate message.
+
+   When this test file finishes sending messages, a RESET_TEST message type is sent
+   to each consumer; then each consumer checks each message received and raises
+   an exception if an error occurs.   
+
+6) This test allows the DMCS component to behave EXACTLY as it will at run time - it
+   is not aware that it is being tested. No special test artifacts exist within 
+   component code.
 
 """
 logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
@@ -43,7 +73,11 @@ logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LO
 #    return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
 class TestDMCS:
+#    @pytest.fixture(scope='session')
+#    def dmcs(request):
+#        return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
     dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+
     ocs_pub_broker_url = None
     ocs_publisher = None
     ocs_consumer = None
@@ -296,6 +330,16 @@ class TestDMCS:
         if body['MSG_TYPE'] == "RESET_TEST":
             ### Resolve messages for accuracy
             #del self.ar_consumer_msg_list
+            len_list = len(self.ar_consumer_msg_list)
+            if len_list != self.EXPECTED_AR_MESSAGES:
+                raise Exception('AR simulator received incorrect number of messages.\nExpected %s but received %s' % (self.EXPECTED_AR_MESSAGES, len_list))
+
+            # Now check num keys in each message first, then check for key errors
+            for i in range(0, len_list):
+                j = self.ar_consumer_msg_list[i]
+                keez = list(self.ar_consumer_msg_list.keys())
+
+
             self.ar_consumer_msg_list = []
         else:
             self.ar_consumer_msg_list.append(body)
