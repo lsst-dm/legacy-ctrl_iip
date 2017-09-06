@@ -3,6 +3,7 @@ import redis
 import yaml
 import sys
 import os
+import pprint
 from time import sleep
 import _thread
 import pytest
@@ -20,48 +21,43 @@ import toolsmod
 from DMCS import *
 
 """
-0) This test file works be sending the component to be tested, all of the messages
-   it will receive, temporarily stores these messages for verification later,
-   and sends the necessary responses to emulate other components that the 
-   component being tested will communicate with. It also makes some database
-   checks to insure the component being tested is doing proper
-   bookkeeping.
+0) This test file works be sending the component to be tested all of the messages
+   it will receive. These messages are stored for verification later.
+   Necessary responses are sent to emulate other components. 
+   Some Redis database checks are made as well.
 
-This test file requires the use of two external servers:
-1) An AMQP message broker
-    a. There is a scripy in this directory called TestSetupRabbit.py that sets up
-       the needed virtual hosts and the users, user permissions, and queues.
-    b. The L1SysCfg_Test.yaml file should be edited to set the Rabbit address
-       value in the BASE_BROKER_ADDR key
+1) The test requires two external servers:
+  A. An AMQP message broker
+      a. There is a script in this directory called TestSetupRabbit.py that sets up
+        the needed virtual hosts and the users, user permissions, and queues.
+      b. The L1SysCfg_Test.yaml file should be edited to set the Rabbit address
+        value and vhost to be used in the BASE_BROKER_ADDR key.
 
-2) The Redis in-memory database. The database instances that are used for 
-   each component are also found in L1SysCfg_Test.yaml
+   B. The Redis in-memory database. The database instances that are used for 
+      each component are also found in L1SysCfg_Test.yaml
 
-3) This test files tests the DMCS component. It is possible to include a specific
+2) This file tests the DMCS component. It is possible to include a specific
    Config file as the only argument when creating a DMCS object - for that matter,
    when creating ANY component object. Here we create the DMCS with the above
    mentioned L1SysCfg_Test.yaml file. When no argument is supplied at creation,
    the components use the default L1SysCfg.yaml file found in the iip/ dir.
 
-4) This test can be used as template for any component tests. Right now,
+3) This test file can be used as template for any component tests. Right now,
    it checks component health by verifying the messages and acks the test 
    component sends. To use this file as a template for testing another component,
    simply create the Consumer objects using the appropriate queues, and then
    each Consumer plays the role of a component that the component being
-   tested communicates with. Finally, the principal test method in this
-   component test file sends messages to the component being tested.
+   tested communicates with. 
 
-   The messages sent exercise all messages received by the test component, and responses
-   from the Consumers use the system glossary messages when responding.
-
-5) Every time a consumer receives a message, it stores the message in a class
+4) Every time a consumer receives a message, it stores the message in a class
    List structure and then responds with the appropriate message.
 
-   When this test file finishes sending messages, a RESET_TEST message type is sent
-   to each consumer; then each consumer checks each message received and raises
-   an exception if an error occurs.   
+   When this test file finishes sending messages, each consumers messages are 
+   are checked for the correct number received, and the messages are verified 
+   with the MessageAuthority obj to confirm proper message contents. An exception 
+   is thrown if an error occurs.
 
-6) This test allows the DMCS component to behave EXACTLY as it will at run time - it
+5) This test allows the DMCS component to behave EXACTLY as it will at run time - it
    is not aware that it is being tested. No special test artifacts exist within 
    component code.
 
@@ -72,7 +68,7 @@ logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LO
 #def dmcs(request):
 #    return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
-class TestDMCS:
+class TestDMCS_AR_PP:
 #    @pytest.fixture(scope='session')
 #    def dmcs(request):
 #        return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
@@ -93,15 +89,12 @@ class TestDMCS:
     pp_consumer = None
     pp_consumer_msg_list = []
 
-    EXPECTED_AR_MESSAGES = 6
-    EXPECTED_PP_MESSAGES = 6
-    EXPECTED_OCS_MESSAGES = 6
-
-    ar_check_messages = True
-    pp_check_messages = True
-    ocs_check_messages = True
+    EXPECTED_AR_MESSAGES = 1
+    EXPECTED_PP_MESSAGES = 1
+    EXPECTED_OCS_MESSAGES = 1
 
     ccd_list = [14,17,21.86]
+    prp = pprint.PrettyPrinter(indent=4)
 
 
     def run_ocs_consumer(self, threadname, delay):
@@ -195,24 +188,25 @@ class TestDMCS:
         ### call message sender and pass in ocs_publisher
         sleep(3)
         print("Test Setup Complete. Commencing Messages...")
-        self.send_messages1()
 
-        #self.send_messages2()
-        #assert 1
-        print("Done with test")
-        assert 0
+        self.send_messages()
+        self.verify_ocs_messages()
+        self.verify_ar_messages()
+        self.verify_pp_messages()
 
-    def send_messages1(self):
+        print("Finished with DMCS tests.")
 
+
+    def send_messages(self):
+
+        print("Starting send_messages")
         # Tests both AR and PP devices
         
-        self.EXPECTED_OCS_MESSAGES = 15
+        self.EXPECTED_OCS_MESSAGES = 12
         self.EXPECTED_AR_MESSAGES = 7
         self.EXPECTED_PP_MESSAGES = 7
 
-        self.ocs_check_messages = True
-        self.ar_check_messages = True
-        self.pp_check_messages = True
+        self.clear_message_lists()
 
         msg = {}
         msg['MSG_TYPE'] = "STANDBY"
@@ -333,198 +327,76 @@ class TestDMCS:
         print("READOUT Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
-        msg = {}
-        msg['MSG_TYPE'] = 'RESET_TEST'
-        time.sleep(5)
-        print("RESET_TEST Message")
-        self.ocs_publisher.publish_message("ar_foreman_consume", msg)
         time.sleep(2)
-        self.ocs_publisher.publish_message("pp_foreman_consume", msg)
-        time.sleep(2)
-        self.ocs_publisher.publish_message("dmcs_ocs_publish", msg)
-        time.sleep(2)
-      
-        time.sleep(6)
 
-        print("Message Sender #1 done")
+        print("Message Sender done")
 
 
+    def clear_message_lists(self):
+        self.ocs_consumer_msg_list = []
+        self.ar_consumer_msg_list = []
+        self.pp_consumer_msg_list = []
 
-    def send_messages2(self):
+    def verify_ocs_messages(self):
+        len_list = len(self.ocs_consumer_msg_list)
+        if len_list != self.EXPECTED_OCS_MESSAGES:
+            print("Messages received by verify_ocs_messages:")
+            self.prp.pprint(self.ocs_consumer_list)
+            pytest.fail('OCS simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_OCS_MESSAGES, len_list))
 
-        # Tests only AR device
-        
-        self.EXPECTED_OCS_MESSAGES = 8
-        self.EXPECTED_AR_MESSAGES = 6
-        self.EXPECTED_PP_MESSAGES = 0
+        # Now check num keys in each message first, then check for key errors
+        for i in range(0, len_list):
+            msg = self.ocs_consumer_msg_list[i]
+            result = self._msg_auth.check_message_shape(msg)
+            if result == False:
+                pytest.fail("The following OCS Bridge response message failed when compared with the sovereign example: %s" % msg)
+        print("Responses to OCS Bridge pass verification.")
+   
 
-        self.ocs_check_messages = True
-        self.ar_check_messages = True
-        self.pp_check_messages = False 
+    def verify_ar_messages(self):
+        len_list = len(self.ar_consumer_msg_list)
+        if len_list != self.EXPECTED_AR_MESSAGES:
+            print("Messages received by verify_ar_messages:")
+            self.prp.pprint(self.ar_consumer_list)
+            pytest.fail('AR simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_AR_MESSAGES, len_list))
 
-        msg = {}
-        msg['MSG_TYPE'] = "STANDBY"
-        msg['DEVICE'] = 'AR'
-        msg['CFG_KEY'] = "2C16"
-        msg['ACK_ID'] = 'AR_4'
-        msg['ACK_DELAY'] = 2
-        time.sleep(3)
-        print("AR STANDBY")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        #msg = {}
-        #msg['MSG_TYPE'] = "NEW_SESSION"
-        #msg['SESSION_ID'] = 'SI_469976'
-        #msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
-        #msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        ##time.sleep(3)
-        ##self.ocs_publisher.publish_message("ar_foreman_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "DISABLE"
-        msg['DEVICE'] = 'AR'
-        msg['ACK_ID'] = 'AR_6'
-        msg['ACK_DELAY'] = 2
-        time.sleep(3)
-        print("AR DISABLE")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-      
-        msg = {}
-        msg['MSG_TYPE'] = "ENABLE"
-        msg['DEVICE'] = 'AR'
-        msg['ACK_ID'] = 'AR_11'
-        msg['ACK_DELAY'] = 2
-        time.sleep(3)
-        print("AR ENABLE")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "NEXT_VISIT"
-        msg['VISIT_ID'] = 'V_1443'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
-        msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
-        time.sleep(5)
-        print("Next Visit Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "START_INTEGRATION"
-        msg['IMAGE_ID'] = 'IMG_4276'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['VISIT_ID'] = 'V_1443'
-        msg['ACK_ID'] = 'START_INT_ACK_76'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['CCD_LIST'] = self.ccd_list
-        time.sleep(5)
-        print("Start Integration Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "READOUT"
-        msg['VISIT_ID'] = 'V_1443'
-        msg['IMAGE_ID'] = 'IMG_4276'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['ACK_ID'] = 'READOUT_ACK_77'
-        time.sleep(5)
-        print("READOUT Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "START_INTEGRATION"
-        msg['IMAGE_ID'] = 'IMG_4277'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['VISIT_ID'] = 'V_1443'
-        msg['ACK_ID'] = 'START_INT_ACK_78'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['CCD_LIST'] = self.ccd_list
-        time.sleep(5)
-        print("Start Integration Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "READOUT"
-        msg['VISIT_ID'] = 'V_1443'
-        msg['IMAGE_ID'] = 'IMG_4277'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['ACK_ID'] = 'READOUT_ACK_79'
-        time.sleep(5)
-        print("READOUT Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = 'RESET_TEST'
-        time.sleep(5)
-        print("RESET_TEST Message")
-        self.ocs_publisher.publish_message("ar_foreman_consume", msg)
-        time.sleep(2)
-        self.ocs_publisher.publish_message("pp_foreman_consume", msg)
-        time.sleep(2)
-        self.ocs_publisher.publish_message("dmcs_ocs_publish", msg)
-        time.sleep(2)
-      
-        time.sleep(6)
+        # Now check num keys in each message first, then check for key errors
+        for i in range(0, len_list):
+            msg = self.ar_consumer_msg_list[i]
+            result = self._msg_auth.check_message_shape(msg)
+            if result == False:
+                pytest.fail("The following message to the AR failed when compared with the sovereign example: %s" % msg)
+        print("Messages to the AR pass verification.")
+   
 
-        print("Message Sender #2 done")
+    def verify_pp_messages(self):
+        len_list = len(self.pp_consumer_msg_list)
+        if len_list != self.EXPECTED_PP_MESSAGES:
+            print("Messages received by verify_pp_messages:")
+            self.prp.pprint(self.pp_consumer_list)
+            pytest.fail('PP simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_PP_MESSAGES, len_list))
+
+        # Now check num keys in each message first, then check for key errors
+        for i in range(0, len_list):
+            msg = self.pp_consumer_msg_list[i]
+            result = self._msg_auth.check_message_shape(msg)
+            if result == False:
+                pytest.fail("The following message to the PP device failed when compared with the sovereign example: %s" % msg)
+        print("Messages to the PP device pass verification.")
+   
 
     
     def on_ocs_message(self, ch, method, properties, body):
-        if body['MSG_TYPE'] == "RESET_TEST" and self.ocs_check_messages == True:
-            ### Resolve messages for accuracy
-            len_list = len(self.ocs_consumer_msg_list)
-            if len_list != self.EXPECTED_OCS_MESSAGES:
-                print('OCS simulator received incorrect number of messages.\nExpected %s but received %s' % (self.EXPECTED_OCS_MESSAGES, len_list))
-                assert 0
+        self.ocs_consumer_msg_list.append(body)
 
-            # Now check num keys in each message first, then check for key errors
-            for i in range(0, len_list):
-                msg = self.ocs_consumer_msg_list[i]
-                assert self._msg_auth.check_message_shape(msg)
-            self.ocs_consumer_msg_list = []
-        else: 
-            self.ocs_consumer_msg_list.append(body)
-
-        #print("Current OCS msg list is: %s" % self.ocs_consumer_msg_list)
-        #print("Got an OCS Message")
-   
  
     def on_ar_message(self, ch, method, properties, body):
-        if body['MSG_TYPE'] == "RESET_TEST" and self.ar_check_messages == True:
-            ### Resolve messages for accuracy
-            len_list = len(self.ar_consumer_msg_list)
-            if len_list != self.EXPECTED_AR_MESSAGES:
-                print('AR simulator received incorrect number of messages.\nExpected %s but received %s' % (self.EXPECTED_AR_MESSAGES, len_list))
-                assert 0
-
-            # Now check num keys in each message first, then check for key errors
-            for i in range(0, len_list):
-                msg = self.ar_consumer_msg_list[i]
-                assert self._msg_auth.check_message_shape(msg)
-            self.ar_consumer_msg_list = []
-        else: 
-            self.ar_consumer_msg_list.append(body)
-
-        #print("Current AR msg list is: %s" % self.ar_consumer_msg_list)
+        self.ar_consumer_msg_list.append(body)
 
     
     def on_pp_message(self, ch, method, properties, body):
-        if body['MSG_TYPE'] == "RESET_TEST" and self.pp_check_messages == True:
-            ### Resolve messages for accuracy
-            len_list = len(self.pp_consumer_msg_list)
-            if len_list != self.EXPECTED_PP_MESSAGES:
-                print('PP simulator received incorrect number of messages.\nExpected %s but received %s' % (self.EXPECTED_PP_MESSAGES, len_list))
-                assert 0
-
-            # Now check num keys in each message first, then check for key errors
-            for i in range(0, len_list):
-                msg = self.pp_consumer_msg_list[i]
-                assert self._msg_auth.check_message_shape(msg)
-            self.pp_consumer_msg_list = []
-        else: 
-            self.pp_consumer_msg_list.append(body)
-
-        #print("Current PP msg list is: %s" % self.pp_consumer_msg_list)
+        self.pp_consumer_msg_list.append(body)
 

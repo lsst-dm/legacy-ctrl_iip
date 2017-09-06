@@ -1,0 +1,273 @@
+import pika
+import redis
+import yaml
+import sys
+import os
+import pprint
+from time import sleep
+import _thread
+import pytest
+import random
+import logging
+sys.path.insert(1, '../iip')
+sys.path.insert(1, '../')
+import DMCS
+from Consumer import Consumer
+from SimplePublisher import SimplePublisher
+from MessageAuthority import MessageAuthority
+from const import *
+import toolsmod
+
+from DMCS import *
+
+logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
+
+class TestDMCS_AR:
+    dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+
+    ocs_pub_broker_url = None
+    ocs_publisher = None
+    ocs_consumer = None
+    ocs_consumer_msg_list = []
+
+    ar_pub_broker_url = None
+    ar_publisher = None
+    ar_consumer = None
+    ar_consumer_msg_list = []
+
+    EXPECTED_AR_MESSAGES = 1
+    EXPECTED_OCS_MESSAGES = 1
+
+    ccd_list = [14,17,21.86]
+    prp = pprint.PrettyPrinter(indent=4)
+
+
+    def run_ocs_consumer(self, threadname, delay):
+        self.ocs_consumer.run(self.on_ocs_message)
+    
+    def run_ar_consumer(self, threadname, delay):
+        self.ar_consumer.run(self.on_ar_message)
+    
+    
+    def setup_consumers(self):
+    
+        try:
+            _thread.start_new_thread( self.run_ocs_consumer, ("thread-test-ocs_consume", 2,) )
+        except:
+            print("Bad trouble creating ocs_consumer thread for testing...exiting...")
+            sys.exit(101)
+    
+        try:
+            _thread.start_new_thread( self.run_ar_consumer, ("thread-test-ar_consume", 2,) )
+        except:
+            print("Bad trouble creating ar_consumer thread for testing...exiting...")
+            sys.exit(101)
+    
+ 
+    def test_dmcs(self):
+        try:
+            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+        except IOError as e:
+            trace = traceback.print_exc()
+            emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
+            print(emsg + trace)
+            sys.exit(101)
+    
+        broker_addr = cdm[ROOT]['BASE_BROKER_ADDR']
+    
+        ocs_name = cdm[ROOT]['BASE_BROKER_NAME']
+        ocs_passwd = cdm[ROOT]['BASE_BROKER_PASSWD']
+        ocs_pub_name = cdm[ROOT]['BASE_BROKER_PUB_NAME']
+        ocs_pub_passwd = cdm[ROOT]['BASE_BROKER_PUB_PASSWD']
+        ocs_broker_url = "amqp://" + ocs_name + ":" + \
+                                 ocs_passwd + "@" + \
+                                 broker_addr
+        self. ocs_pub_broker_url = "amqp://" + ocs_pub_name + ":" + \
+                                 ocs_pub_passwd + "@" + \
+                                 broker_addr
+        self.ocs_publisher = SimplePublisher(self.ocs_pub_broker_url, "YAML")
+    
+        ar_name = cdm[ROOT]['AFM_BROKER_NAME']
+        ar_passwd = cdm[ROOT]['AFM_BROKER_PASSWD']
+        ar_pub_name = cdm[ROOT]['AFM_BROKER_PUB_NAME']
+        ar_pub_passwd = cdm[ROOT]['AFM_BROKER_PUB_PASSWD']
+        ar_broker_url = "amqp://" + ar_name + ":" + \
+                                ar_passwd + "@" + \
+                                broker_addr
+        self.ar_pub_broker_url = "amqp://" + ar_pub_name + ":" + \
+                                    ar_pub_passwd + "@" + \
+                                    broker_addr
+        self.ar_publisher = SimplePublisher(self.ar_pub_broker_url, "YAML")
+    
+        self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'YAML')
+        self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'YAML')
+
+        # Must be done before consumer threads are started
+        # This is used for verifying message structure
+        self._msg_auth = MessageAuthority()
+
+        self.setup_consumers()
+        sleep(3)
+        print("Test Setup Complete. Commencing Messages...")
+
+        self.send_messages()
+        self.verify_ocs_messages()
+        self.verify_ar_messages()
+
+        print("Finished with DMCS tests.")
+
+
+    def send_messages(self):
+
+        print("Starting send_messages")
+        # Tests only an AR device
+        
+        self.clear_message_lists()
+
+        self.EXPECTED_OCS_MESSAGES = 6
+        self.EXPECTED_AR_MESSAGES = 6
+
+        msg = {}
+        msg['MSG_TYPE'] = "STANDBY"
+        msg['DEVICE'] = 'AR'
+        msg['CFG_KEY'] = "2C16"
+        msg['ACK_ID'] = 'AR_4'
+        msg['ACK_DELAY'] = 2
+        time.sleep(2)
+        print("AR STANDBY")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        #msg = {}
+        #msg['MSG_TYPE'] = "NEW_SESSION"
+        #msg['SESSION_ID'] = 'SI_469976'
+        #msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
+        #msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        ##time.sleep(3)
+        ##self.ocs_publisher.publish_message("ar_foreman_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "DISABLE"
+        msg['DEVICE'] = 'AR'
+        msg['ACK_ID'] = 'AR_6'
+        msg['ACK_DELAY'] = 2
+        time.sleep(2)
+        print("AR DISABLE")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+      
+        msg = {}
+        msg['MSG_TYPE'] = "ENABLE"
+        msg['DEVICE'] = 'AR'
+        msg['ACK_ID'] = 'AR_11'
+        msg['ACK_DELAY'] = 2
+        time.sleep(2)
+        print("AR ENABLE")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "NEXT_VISIT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
+        msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
+        time.sleep(2)
+        print("Next Visit Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "START_INTEGRATION"
+        msg['IMAGE_ID'] = 'IMG_4276'
+        msg['IMAGE_SRC'] = 'MAIN'
+        msg['VISIT_ID'] = 'V_1443'
+        msg['ACK_ID'] = 'START_INT_ACK_76'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['CCD_LIST'] = self.ccd_list
+        time.sleep(2)
+        print("Start Integration Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "READOUT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['IMAGE_ID'] = 'IMG_4276'
+        msg['IMAGE_SRC'] = 'MAIN'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'READOUT_ACK_77'
+        time.sleep(2)
+        print("READOUT Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "START_INTEGRATION"
+        msg['IMAGE_ID'] = 'IMG_4277'
+        msg['IMAGE_SRC'] = 'MAIN'
+        msg['VISIT_ID'] = 'V_1443'
+        msg['ACK_ID'] = 'START_INT_ACK_78'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['CCD_LIST'] = self.ccd_list
+        time.sleep(2)
+        print("Start Integration Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "READOUT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['IMAGE_ID'] = 'IMG_4277'
+        msg['IMAGE_SRC'] = 'MAIN'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'READOUT_ACK_79'
+        time.sleep(2)
+        print("READOUT Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
+        time.sleep(2)
+
+        print("Message Sender done")
+
+    def clear_message_lists(self):
+        self.ocs_consumer_msg_list = []
+        self.ar_consumer_msg_list = []
+
+    def verify_ocs_messages(self):
+        print("Messages received by verify_ocs_messages:")
+        self.prp.pprint(self.ocs_consumer_msg_list)
+        len_list = len(self.ocs_consumer_msg_list)
+        if len_list != self.EXPECTED_OCS_MESSAGES:
+            print("Messages received by verify_ocs_messages:")
+            self.prp.pprint(self.ocs_consumer_msg_list)
+            pytest.fail('OCS simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_OCS_MESSAGES, len_list))
+
+        # Now check num keys in each message first, then check for key errors
+        for i in range(0, len_list):
+            msg = self.ocs_consumer_msg_list[i]
+            result = self._msg_auth.check_message_shape(msg)
+            if result == False:
+                pytest.fail("The following OCS Bridge response message failed when compared with the sovereign example: %s" % msg)
+        print("Responses to OCS Bridge pass verification.")
+   
+
+    def verify_ar_messages(self):
+        len_list = len(self.ar_consumer_msg_list)
+        if len_list != self.EXPECTED_AR_MESSAGES:
+            print("Messages received by verify_ar_messages:")
+            self.prp.pprint(self.ar_consumer_list)
+            pytest.fail('AR simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_AR_MESSAGES, len_list))
+
+        # Now check num keys in each message first, then check for key errors
+        for i in range(0, len_list):
+            msg = self.ar_consumer_msg_list[i]
+            result = self._msg_auth.check_message_shape(msg)
+            if result == False:
+                pytest.fail("The following message to the AR failed when compared with the sovereign example: %s" % msg)
+        print("Messages to the AR pass verification.")
+   
+
+    def on_ocs_message(self, ch, method, properties, body):
+        self.ocs_consumer_msg_list.append(body)
+
+ 
+    def on_ar_message(self, ch, method, properties, body):
+        self.ar_consumer_msg_list.append(body)
+

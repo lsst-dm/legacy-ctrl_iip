@@ -38,7 +38,7 @@ class MessageAuthority:
             sovereign_msg = self.MSG_DICT['ROOT'][msg_type]
         except KeyError as e:
             emsg = "MSG_TYPE %s is not found in the Message Authority. Msg body is %s\n" % (msg_type, msg)
-            raise Exception(e + "\n" + emsg)
+            raise Exception(str(e) + "\n" + emsg)
 
         return self.dicts_shape_is_equal(msg, sovereign_msg)
 
@@ -51,13 +51,6 @@ class MessageAuthority:
 
 
     def dicts_shape_is_equal(self, d1, d2):
-        print("============================")
-        print("In MessageAuthority...printing d1 and d2")
-        print("Here is d1...")
-        self.prp.pprint(d1)
-        print("Now here is d2...")
-        self.prp.pprint(d2)
-        print("============================")
         return self.get_dict_shape(d1) == self.get_dict_shape(d2)
 
 

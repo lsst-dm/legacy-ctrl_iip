@@ -216,7 +216,6 @@ class DMCS:
 
 
     def on_ocs_message(self, ch, method, properties, msg_dict):
-        print("DUMPING msg_dict: %s" % msg_dict)
         LOGGER.info('Processing message in OCS message callback')
         LOGGER.debug('Thread in OCS message callback of DMCS is %s', _thread.get_ident())
         LOGGER.debug('Message and properties from DMCS callback message body is: %s', (str(msg_dict),properties))
@@ -344,11 +343,7 @@ class DMCS:
             ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
 
             if ack_responses != None:
-                print("Printing ack responses...")
-                print(ack_responses)
                 responses = list(ack_responses.keys())
-                print("Printing ack responses...")
-                print(responses)
                 for response in responses:
                     if ack_responses[response]['ACK_BOOL'] == False:
                         # Mark this device as messed up...maybe enter fault.
@@ -384,7 +379,6 @@ class DMCS:
             ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
             acks.append(ack_id)
             job_num = self.STATE_SCBD.get_next_job_num( session_id)
-            print("--- JOB NUM is %s ---" % job_num)
             self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
             self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
             self.STATE_SCBD.set_current_device_job(job_num, str(k))
@@ -593,8 +587,6 @@ class DMCS:
         message[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
         message['DEVICE'] = device
         message['CFG_KEY'] = self.STATE_SCBD.get_device_cfg_key(device)
-        print(" REAL_CFG_KEY is %s" % self.STATE_SCBD.get_device_cfg_key(device))
-        print("Now CFG_KEY being sent is : %s" % message['CFG_KEY'])
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
 
 
