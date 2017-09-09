@@ -13,6 +13,9 @@ class CommandListener : public OCS_Bridge {
 	    SimplePublisher* publisher; 
 	    string publish_queue;
 	    string consume_queue;  
+            SAL_archiver ar; 
+            SAL_catchuparchiver cu; 
+            SAL_processingcluster pp; 
 	}; 
 
 	ocs_thread_args *command_args;
