@@ -13,9 +13,8 @@ logging.basicConfig(filename='logs/ThreadManager.log', level=logging.DEBUG, form
 
 
 class ThreadManager(threading.Thread):
-    def __init__(self,  context, name, kwargs):
+    def __init__(self, name, kwargs):
         threading.Thread.__init__(self, group=None, target=None, name=name) 
-        self.context = context
         self.running_threads = []
 
         #self.consumer_kwargs = deepcopy(kwargs)
@@ -23,13 +22,13 @@ class ThreadManager(threading.Thread):
 
         consumers = list(self.consumer_kwargs.keys())
         for consumer in consumers:
-            x = self.setup_consumer_thread(context, self.consumer_kwargs[consumer])
+            x = self.setup_consumer_thread(self.consumer_kwargs[consumer])
             self.running_threads.append(x)
 
     def run(self):
         self.start_background_loop()
 
-    def setup_consumer_thread(self, context, consumer_params):
+    def setup_consumer_thread(self, consumer_params):
         url = consumer_params['amqp_url']
         q = consumer_params['queue']
         threadname = consumer_params['name']
@@ -37,7 +36,7 @@ class ThreadManager(threading.Thread):
         format = consumer_params['format']
         test_val = consumer_params['test_val']
 
-        new_thread = Consumer(context, url, q, threadname, callback, format, test_val)
+        new_thread = Consumer(url, q, threadname, callback, format, test_val)
         new_thread.start()
         sleep(1)
         return new_thread
@@ -62,10 +61,10 @@ class ThreadManager(threading.Thread):
             else:
                 LOGGER.critical("Thread with name %s has died. Attempting to restart..." 
                                  % self.running_threads[i].name)
-             
+                dead_thread_name = self.running_threads[i]  
                 del self.running_threads[i]
                 ### Restart thread...
-                new_consumer = self.setup_consumer_thread(self.context, self.consumer_kwargs[dead_thread_name])
+                new_consumer = self.setup_consumer_thread(self.consumer_kwargs[dead_thread_name])
 
                 self.running_threads.append(new_consumer)
 

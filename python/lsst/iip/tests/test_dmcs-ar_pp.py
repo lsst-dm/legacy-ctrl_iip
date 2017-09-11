@@ -145,16 +145,18 @@ class TestDMCS_AR_PP:
         # This is used for verifying message structure
         self._msg_auth = MessageAuthority()
 
-        self.ocs_consumer = Consumer(self.dmcs, ocs_broker_url,'dmcs_ocs_publish', 'thread-ocs',
+
+        self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'thread-ocs',
                                      self.on_ocs_message,'YAML', None)
         self.ocs_consumer.start()
 
 
-        self.ar_consumer = Consumer(self.dmcs, ar_broker_url,'ar_foreman_consume', 'thread-ar',
+        self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'thread-ar',
                                     self.on_ar_message,'YAML', None)
         self.ar_consumer.start()
 
-        self.pp_consumer = Consumer(self.dmcs, ar_broker_url,'pp_foreman_consume', 'thread-pp',
+
+        self.pp_consumer = Consumer(pp_broker_url,'pp_foreman_consume', 'thread-pp',
                                     self.on_pp_message,'YAML', None)
         self.pp_consumer.start()
 
@@ -332,7 +334,7 @@ class TestDMCS_AR_PP:
         len_list = len(self.ocs_consumer_msg_list)
         if len_list != self.EXPECTED_OCS_MESSAGES:
             print("Messages received by verify_ocs_messages:")
-            self.prp.pprint(self.ocs_consumer_list)
+            self.prp.pprint(self.ocs_consumer_msg_list)
             pytest.fail('OCS simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_OCS_MESSAGES, len_list))
 

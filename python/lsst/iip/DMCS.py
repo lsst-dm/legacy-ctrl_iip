@@ -67,26 +67,11 @@ class DMCS:
         if filename != None:
             self._config_file = filename
 
-
-        LOGGER.info('Reading YAML Config file %s' % self._config_file)
-
-        try:
-            cdm = toolsmod.intake_yaml_file(self._config_file)
-        except IOError as e:
-            trace = traceback.print_exc()
-            emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
-            LOGGER.critical(emsg + trace)
-            sys.exit(101) 
-
         LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values(cdm)
+        self.extract_config_values()
 
         # Run queue purges in rabbitmqctl
         #self.purge_broker(broker_vhost, queue_purges)
-
-        self._next_timed_ack_id = self.init_ack_id()
-
-
 
         # Messages from OCS Bridge
         self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
@@ -118,22 +103,9 @@ class DMCS:
                               'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
 
-        """
-        self._base_broker_url = "amqp://" + self._msg_name + ":" + \
-                                            self._msg_passwd + "@" + \
-                                            str(self._base_broker_addr)
-        LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
-
-
-        self.pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
-                                            self._pub_passwd + "@" + \
-                                            str(self._base_broker_addr)
-        LOGGER.info('Building publishing _base_broker_url. Result is %s', self.pub_base_broker_url)
-        """
 
         LOGGER.info('DMCS publisher setup')
         self.setup_publishers()
-
 
         self.setup_scoreboards()
         LOGGER.info('DMCS Init complete')
@@ -142,7 +114,11 @@ class DMCS:
         self.thread_manager = None
         self.setup_consumer_threads()
 
+        self._next_timed_ack_id = self.init_ack_id()
+
         LOGGER.info('DMCS init complete')
+
+
 
     def init_ack_id(self):
         if os.path.isfile(self.dmcs_ack_id_file):
@@ -161,6 +137,7 @@ class DMCS:
             return current_id
 
 
+
     def setup_publishers(self):
         self.pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
                                             self._pub_passwd + "@" + \
@@ -170,6 +147,7 @@ class DMCS:
 
         LOGGER.info('Setting up Base publisher ')
         self._publisher = SimplePublisher(self.pub_base_broker_url, YAML)
+
 
 
     def on_ocs_message(self, ch, method, properties, msg_dict):
@@ -182,6 +160,7 @@ class DMCS:
         result = handler(msg_dict)
     
 
+
     def on_ack_message(self, ch, method, properties, msg_dict):
         LOGGER.info('Processing message in ACK message callback')
         #LOGGER.debug('Thread in ACK callback od DMCS is %s', _thread.get_ident())
@@ -190,6 +169,7 @@ class DMCS:
 
         handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
+
 
 
     ### Remaining methods in this class are workhorse methods for the running threads
@@ -588,7 +568,14 @@ class DMCS:
         sleep(seconds)
         return True
 
-    def extract_config_values(self, cdm):
+    def extract_config_values(self):
+        LOGGER.info('Reading YAML Config file %s' % self._config_file)
+        try:
+            cdm = toolsmod.intake_yaml_file(self._config_file)
+        except IOError as e:
+            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
+            sys.exit(101) 
+
         try:
             self._msg_name = cdm[ROOT]['DMCS_BROKER_NAME']      # Message broker user & passwd
             self._msg_passwd = cdm[ROOT]['DMCS_BROKER_PASSWD']
@@ -614,11 +601,12 @@ class DMCS:
 
         return True
 
+
+
     def setup_consumer_threads(self):
         base_broker_url = "amqp://" + self._msg_name + ":" + \
                                             self._msg_passwd + "@" + \
                                             str(self._base_broker_addr)
-
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
 
@@ -643,7 +631,7 @@ class DMCS:
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager(self, 'thread-manager', kws)
+        self.thread_manager = ThreadManager('thread-manager', kws)
         self.thread_manager.start()
          
 
