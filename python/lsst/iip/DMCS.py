@@ -9,7 +9,9 @@ import os, os.path
 import time
 import datetime
 from time import sleep
-import _thread
+#import _thread
+import threading
+from ThreadManager import ThreadManager
 from const import *
 from Scoreboard import Scoreboard
 from JobScoreboard import JobScoreboard
@@ -26,13 +28,23 @@ logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FO
 
 
 class DMCS:
-    """As this set of consumer callbacks cannot block for the lengthy time some tasks (such as readouts)
-       will take, a thread must poll for acks and handle accordingly. Tasks will be issued, and
-       then a cyclical thread will read through acks and update scoreboards accordingly.
+    """ The DMCS is the principle coordinator component for Level One System code.
 
-       Another thing that must happen here, is that state should be tracked in a hash specific to each
-       device, each 'last state' must be pushed on to the RHS of a list structure for that particular
-       commandable device. 
+        It sends and receives messages and events.
+
+        Two message consumers (Consumer.py) are started within a ThreadManager object.
+        The ThreadManager makes certain that the consumer threads are alive. If a 
+        thread has died (due to an uncaught exception) the consumer is replaced by
+        starting a new consumer in a new thread.
+
+        The DMCS also maintains the state of the commandable devices. When an image is
+        to be pulled from the DAQ and sent somewhere,, the DMCS issues a new Job 
+        number to track the work.
+
+        After init, most of this file is centered on methods that determine
+        what to do when a certain message type is received.
+
+        Finally, the DMCS keeps track of any failed jobs in a Backlog scoreboard.
     """
 
     ACK_SCBD = None
@@ -43,6 +55,8 @@ class DMCS:
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
     DEFAULT_CFG_FILE = 'L1SystemCfg.yaml'
     CCD_LIST = [] 
+    OCS_CONSUMER_THREAD = "ocs_consumer_thread"
+    ACK_CONSUMER_THREAD = "ack_consumer_thread"
 
 
     def __init__(self, filename=None):
@@ -72,11 +86,6 @@ class DMCS:
 
         self._next_timed_ack_id = self.init_ack_id()
 
-
-        LOGGER.info('Setting up DMCS Scoreboards')
-        self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', self.backlog_db_instance)
-        self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance)
-        self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict)
 
 
         # Messages from OCS Bridge
@@ -109,7 +118,7 @@ class DMCS:
                               'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
 
-
+        """
         self._base_broker_url = "amqp://" + self._msg_name + ":" + \
                                             self._msg_passwd + "@" + \
                                             str(self._base_broker_addr)
@@ -120,40 +129,20 @@ class DMCS:
                                             self._pub_passwd + "@" + \
                                             str(self._base_broker_addr)
         LOGGER.info('Building publishing _base_broker_url. Result is %s', self.pub_base_broker_url)
-
-        LOGGER.info('DMCS consumer setup')
-        self.setup_consumers()
+        """
 
         LOGGER.info('DMCS publisher setup')
         self.setup_publishers()
 
 
-        # Check health of all devices
-
-        # All devices wake up in OFFLINE state
-        self.STATE_SCBD.set_device_state("AR","OFFLINE")
-
-        self.STATE_SCBD.set_device_state("PP","OFFLINE")
-
-        self.STATE_SCBD.set_device_state("CU","OFFLINE")
-
-        self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
-        print("CFG_KEYS is %s" % self.ar_cfg_keys)
-        self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
-        #self.STATE_SCBD.set_device_cfg_key('AR','archiver-Normal')
-        print("Chosen CFG Key is: %s" % self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
-
-        self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
-        self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
-
-        self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
-        self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
-
-        self.send_appropriate_events_by_state('AR', 'OFFLINE')
-        self.send_appropriate_events_by_state('PP', 'OFFLINE')
-        self.send_appropriate_events_by_state('CU', 'OFFLINE')
+        self.setup_scoreboards()
         LOGGER.info('DMCS Init complete')
 
+        LOGGER.info('DMCS consumer setup')
+        self.thread_manager = None
+        self.setup_consumer_threads()
+
+        LOGGER.info('DMCS init complete')
 
     def init_ack_id(self):
         if os.path.isfile(self.dmcs_ack_id_file):
@@ -172,53 +161,22 @@ class DMCS:
             return current_id
 
 
-    def setup_consumers(self):
-        LOGGER.info('Setting up consumers on %s', self._base_broker_url)
-        LOGGER.info('Running start_new_thread on all DMCS consumer methods')
-
-        self._ocs_bdg_consumer = Consumer(self._base_broker_url, self.OCS_BDG_PUBLISH, "YAML")
-        try:
-            _thread.start_new_thread( self.run_ocs_bdg_consumer, ("thread-dmcs-consumer", 2,) )
-        except Exception as e: # Catching naked exception as thread exceptions can be many
-            trace = traceback.print_exc()
-            emsg = "Unable to start new thread for OCS Bridge consumer"
-            LOGGER.critical(emsg + trace)
-            LOGGER.critical('Cannot start OCS Bridge consumer thread for DMCS, exiting...')
-            sys.exit(103)
-
-
-        self._ack_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_ACK_PUBLISH, "YAML")
-        try:
-            _thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
-        except Exception as e:
-            trace = traceback.print_exc()
-            emsg = "Unable to start new thread for OCS Bridge consumer"
-            LOGGER.critical(emsg + trace)
-            LOGGER.critical('Cannot start ACK consumer thread for DMCS, exiting...')
-            print("Cannot start ACK consumer for DMCS!")
-            sys.exit(104)
-
-        LOGGER.info('Finished starting all three consumer threads')
-
-
-    def run_ocs_bdg_consumer(self, threadname, delay):
-        LOGGER.debug('Thread ID in OCS Bridge consumer callback is %s', _thread.get_ident())
-        self._ocs_bdg_consumer.run(self.on_ocs_message)
-
-    def run_ack_consumer(self, threadname, delay):
-        LOGGER.debug('Thread ID in ACK consumer callback is %s', _thread.get_ident())
-        self._ack_consumer.run(self.on_ack_message)
-
-
     def setup_publishers(self):
-        LOGGER.info('Setting up Base publisher on %s', self.pub_base_broker_url)
+        self.pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
+                                            self._pub_passwd + "@" + \
+                                            str(self._base_broker_addr)
+
+        LOGGER.info('Building publishing pub_base_broker_url. Result is %s', self.pub_base_broker_url)        
+
+        LOGGER.info('Setting up Base publisher ')
         self._publisher = SimplePublisher(self.pub_base_broker_url, YAML)
 
 
     def on_ocs_message(self, ch, method, properties, msg_dict):
         LOGGER.info('Processing message in OCS message callback')
-        LOGGER.debug('Thread in OCS message callback of DMCS is %s', _thread.get_ident())
-        LOGGER.debug('Message and properties from DMCS callback message body is: %s', (str(msg_dict),properties))
+        #LOGGER.debug('Thread in OCS message callback of DMCS is %s', _thread.get_ident())
+        LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
+                    (str(msg_dict),properties))
 
         handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -226,12 +184,15 @@ class DMCS:
 
     def on_ack_message(self, ch, method, properties, msg_dict):
         LOGGER.info('Processing message in ACK message callback')
-        LOGGER.debug('Thread in ACK callback od DMCS is %s', _thread.get_ident())
-        LOGGER.debug('Message and properties from ACK callback message body is: %s', (str(msg_dict),properties))
+        #LOGGER.debug('Thread in ACK callback od DMCS is %s', _thread.get_ident())
+        LOGGER.debug('Message and properties from ACK callback message body is: %s', 
+                     (str(msg_dict),properties))
 
         handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
+
+    ### Remaining methods in this class are workhorse methods for the running threads
 
     def process_enter_control_command(self, msg):
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
@@ -653,6 +614,66 @@ class DMCS:
 
         return True
 
+    def setup_consumer_threads(self):
+        base_broker_url = "amqp://" + self._msg_name + ":" + \
+                                            self._msg_passwd + "@" + \
+                                            str(self._base_broker_addr)
+
+        LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
+
+
+        # Set up kwargs that describe consumers to be started
+        # The DMCS needs two message consumers
+        kws = {}
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-ocs_dmcs_consume'
+        md['queue'] = 'ocs_dmcs_consume'
+        md['callback'] = self.on_ocs_message
+        md['format'] = "YAML"
+        md['test_val'] = None
+        kws[md['name']] = md
+
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-dmcs_ack_consume'
+        md['queue'] = 'dmcs_ack_consume'
+        md['callback'] = self.on_ack_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
+
+        self.thread_manager = ThreadManager(self, 'thread-manager', kws)
+        self.thread_manager.start()
+         
+
+    def setup_scoreboards(self):
+        LOGGER.info('Setting up DMCS Scoreboards')
+        self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', self.backlog_db_instance)
+        self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance)
+        self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict)
+
+        # All devices wake up in OFFLINE state
+        self.STATE_SCBD.set_device_state("AR","OFFLINE")
+
+        self.STATE_SCBD.set_device_state("PP","OFFLINE")
+
+        self.STATE_SCBD.set_device_state("CU","OFFLINE")
+
+        self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
+
+        self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
+
+        self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
+        self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
+
+        self.send_appropriate_events_by_state('AR', 'OFFLINE')
+        self.send_appropriate_events_by_state('PP', 'OFFLINE')
+        self.send_appropriate_events_by_state('CU', 'OFFLINE')
+        LOGGER.info('DMCS Scoreboard Init complete')
+
 
     def add_seconds(self, intime, secs):
         basetime = datetime.datetime(100, 1, 1, intime.hour, intime.minute, intime.second)
@@ -677,19 +698,20 @@ class DMCS:
         pass
 
 
+
 def main():
     logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
     dmsc = DMCS()
-    print("Beginning DMCS event loop...")
     try:
         while 1:
-            # dmcs.get_next_backlog_item() ???
             pass
     except KeyboardInterrupt:
         pass
 
     print("")
     print("DMCS Done.")
+
+
 
 
 if __name__ == "__main__": main()

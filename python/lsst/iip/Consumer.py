@@ -1,15 +1,17 @@
 """NOTE:
-   This file is largely the file available on the Pika 
-   usage examples pages, with a few minor changes.
+   This file is owes a small part of its existence to the 
+   excellant tutorial file available on the Pika usage examples pages, 
+   which uses the BSD license; that is, credit the file:
    http://pika.readthedocs.org/en/0.10.0/examples/asynchronous_consumer_example.html
-   It uses the BSD licencse for use, that is: credit the file.
 
-   There are NO plans to use this file outside of this prototype branch.
 """
 
 
 import logging
 import pika
+import threading
+from time import sleep
+from SimplePublisher import SimplePublisher
 from XMLHandler import *
 from YamlHandler import *
 
@@ -19,7 +21,7 @@ LOGGER = logging.getLogger(__name__)
 #logging.basicConfig(filename='lumber.log', level=logging.INFO)
 
 
-class Consumer(object):
+class Consumer(threading.Thread):
     """This is an example consumer that will handle unexpected interactions
     with RabbitMQ such as channel and connection closures.
 
@@ -37,7 +39,8 @@ class Consumer(object):
     QUEUE = 'text'
     ROUTING_KEY = 'example.text'
 
-    def __init__(self, amqp_url, queue, formatOptions=None):
+    def __init__(self, context, amqp_url, queue, name, callback, formatOptions, test_val):
+        threading.Thread.__init__(self, group=None, target=None, name=name)
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -45,17 +48,27 @@ class Consumer(object):
         :param str queue: The queue name that the consumer listens to
 
         """
+        self.ctext = context
         self._connection = None
         self._channel = None
         self._closing = False
         self._consumer_tag = None
+        self._publisher = None
         self._url = amqp_url
-        self._message_callback = None
+        self._message_callback = callback
+        #self._message_callback = None
         self.QUEUE = queue
         self.ROUTING_KEY = queue
+        self.test_val = test_val
         self._xml_handler = None 
         self._yaml_handler = None 
         self._format_options = formatOptions
+        if self._format_options == "XML":
+            self._xml_handler = XMLHandler(callback)
+            self._message_callback = self._xml_handler.xmlcallback  
+        else:
+            self._yaml_handler = YamlHandler(callback)
+            self._message_callback = self._yaml_handler.yaml_callback  
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -327,17 +340,11 @@ class Consumer(object):
         LOGGER.info('Closing the channel')
         self._channel.close()
 
-    def run(self, callback):
+    def run(self):
         """Run the example consumer by connecting to RabbitMQ and then
         starting the IOLoop to block and allow the SelectConnection to operate.
 
         """
-        if self._format_options == "XML":
-            self._xml_handler = XMLHandler(callback)
-            self._message_callback = self._xml_handler.xmlcallback  
-        else:
-            self._yaml_handler = YamlHandler(callback)
-            self._message_callback = self._yaml_handler.yaml_callback  
         self._connection = self.connect()
         self._connection.ioloop.start()
 

@@ -1,11 +1,12 @@
 import pika
 import redis
 import yaml
-import sys
 import os
+import sys
 import pprint
 from time import sleep
-import _thread
+#import _thread
+import threading
 import pytest
 import random
 import logging
@@ -64,14 +65,8 @@ from DMCS import *
 """
 logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
-#@pytest.fixture(scope='session')
-#def dmcs(request):
-#    return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
 class TestDMCS_AR_PP:
-#    @pytest.fixture(scope='session')
-#    def dmcs(request):
-#        return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
     dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
     ocs_pub_broker_url = None
@@ -94,41 +89,10 @@ class TestDMCS_AR_PP:
     EXPECTED_OCS_MESSAGES = 1
 
     ccd_list = [14,17,21.86]
-    prp = pprint.PrettyPrinter(indent=4)
+    prp = toolsmod.prp
 
 
-    def run_ocs_consumer(self, threadname, delay):
-        self.ocs_consumer.run(self.on_ocs_message)
     
-    def run_ar_consumer(self, threadname, delay):
-        self.ar_consumer.run(self.on_ar_message)
-    
-    def run_pp_consumer(self, threadname, delay):
-        self.pp_consumer.run(self.on_pp_message)
-    
-    
-    def setup_consumers(self):
-    
-        try:
-            _thread.start_new_thread( self.run_ocs_consumer, ("thread-test-ocs_consume", 2,) )
-        except:
-            print("Bad trouble creating ocs_consumer thread for testing...exiting...")
-            sys.exit(101)
-    
-        try:
-            _thread.start_new_thread( self.run_ar_consumer, ("thread-test-ar_consume", 2,) )
-        except:
-            print("Bad trouble creating ar_consumer thread for testing...exiting...")
-            sys.exit(101)
-    
-        try:
-            _thread.start_new_thread( self.run_pp_consumer, ("thread-test-pp_consume", 2,) )
-        except:
-            print("Bad trouble creating consumer thread for testing...exiting...")
-            sys.exit(101)
-   
-
- 
     def test_dmcs(self):
         try:
             cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
@@ -152,17 +116,6 @@ class TestDMCS_AR_PP:
                                  broker_addr
         self.ocs_publisher = SimplePublisher(self.ocs_pub_broker_url, "YAML")
     
-        pp_name = cdm[ROOT]['PFM_BROKER_NAME']
-        pp_passwd = cdm[ROOT]['PFM_BROKER_PASSWD']
-        pp_pub_name = cdm[ROOT]['PFM_BROKER_PUB_NAME']
-        pp_pub_passwd = cdm[ROOT]['PFM_BROKER_PUB_PASSWD']
-        pp_broker_url = "amqp://" + pp_name + ":" + \
-                                pp_passwd + "@" + \
-                                broker_addr
-        self.pp_pub_broker_url = "amqp://" + pp_pub_name + ":" + \
-                                    pp_pub_passwd + "@" + \
-                                    broker_addr
-        self.pp_publisher = SimplePublisher(self.pp_pub_broker_url, "YAML")
     
         ar_name = cdm[ROOT]['AFM_BROKER_NAME']
         ar_passwd = cdm[ROOT]['AFM_BROKER_PASSWD']
@@ -176,15 +129,37 @@ class TestDMCS_AR_PP:
                                     broker_addr
         self.ar_publisher = SimplePublisher(self.ar_pub_broker_url, "YAML")
     
-        self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'YAML')
-        self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'YAML')
-        self.pp_consumer = Consumer(pp_broker_url,'pp_foreman_consume', 'YAML')
+        pp_name = cdm[ROOT]['PFM_BROKER_NAME']
+        pp_passwd = cdm[ROOT]['PFM_BROKER_PASSWD']
+        pp_pub_name = cdm[ROOT]['PFM_BROKER_PUB_NAME']
+        pp_pub_passwd = cdm[ROOT]['PFM_BROKER_PUB_PASSWD']
+        pp_broker_url = "amqp://" + pp_name + ":" + \
+                                pp_passwd + "@" + \
+                                broker_addr
+        self.pp_pub_broker_url = "amqp://" + pp_pub_name + ":" + \
+                                    pp_pub_passwd + "@" + \
+                                    broker_addr
+        self.pp_publisher = SimplePublisher(self.pp_pub_broker_url, "YAML")
 
         # Must be done before consumer threads are started
         # This is used for verifying message structure
         self._msg_auth = MessageAuthority()
 
-        self.setup_consumers()
+        self.ocs_consumer = Consumer(self.dmcs, ocs_broker_url,'dmcs_ocs_publish', 'thread-ocs',
+                                     self.on_ocs_message,'YAML', None)
+        self.ocs_consumer.start()
+
+
+        self.ar_consumer = Consumer(self.dmcs, ar_broker_url,'ar_foreman_consume', 'thread-ar',
+                                    self.on_ar_message,'YAML', None)
+        self.ar_consumer.start()
+
+        self.pp_consumer = Consumer(self.dmcs, ar_broker_url,'pp_foreman_consume', 'thread-pp',
+                                    self.on_pp_message,'YAML', None)
+        self.pp_consumer.start()
+
+
+
         ### call message sender and pass in ocs_publisher
         sleep(3)
         print("Test Setup Complete. Commencing Messages...")
@@ -194,7 +169,9 @@ class TestDMCS_AR_PP:
         self.verify_ar_messages()
         self.verify_pp_messages()
 
-        print("Finished with DMCS tests.")
+        sleep(2)
+        print("Finished with DMCS AR and PP tests.")
+        #sys.exit
 
 
     def send_messages(self):
@@ -254,6 +231,11 @@ class TestDMCS_AR_PP:
         print("PP DISABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
+        # Make certain DMCS is doing proper bookkeeping
+        sleep(0.5)
+        assert self.dmcs.STATE_SCBD.get_archive_state() == 'DISABLE'
+        assert self.dmcs.STATE_SCBD.get_prompt_process_state() == 'DISABLE'
+      
         msg = {}
         msg['MSG_TYPE'] = "ENABLE"
         msg['DEVICE'] = 'AR'
@@ -271,6 +253,10 @@ class TestDMCS_AR_PP:
         time.sleep(1)
         print("PP ENABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+
+        sleep(0.5)
+        assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
+        assert self.dmcs.STATE_SCBD.get_prompt_process_state() == 'ENABLE'
       
         msg = {}
         msg['MSG_TYPE'] = "NEXT_VISIT"
@@ -281,6 +267,9 @@ class TestDMCS_AR_PP:
         time.sleep(2)
         print("Next Visit Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+
+        sleep(0.5)
+        assert self.dmcs.STATE_SCBD.get_current_visit() == 'V_1443'
       
         msg = {}
         msg['MSG_TYPE'] = "START_INTEGRATION"
@@ -338,6 +327,8 @@ class TestDMCS_AR_PP:
         self.pp_consumer_msg_list = []
 
     def verify_ocs_messages(self):
+        print("Messages received by verify_ocs_messages:")
+        self.prp.pprint(self.ocs_consumer_msg_list)
         len_list = len(self.ocs_consumer_msg_list)
         if len_list != self.EXPECTED_OCS_MESSAGES:
             print("Messages received by verify_ocs_messages:")
@@ -355,6 +346,8 @@ class TestDMCS_AR_PP:
    
 
     def verify_ar_messages(self):
+        print("Messages received by verify_ar_messages:")
+        self.prp.pprint(self.ar_consumer_msg_list)
         len_list = len(self.ar_consumer_msg_list)
         if len_list != self.EXPECTED_AR_MESSAGES:
             print("Messages received by verify_ar_messages:")
@@ -372,6 +365,8 @@ class TestDMCS_AR_PP:
    
 
     def verify_pp_messages(self):
+        print("Messages received by verify_pp_messages:")
+        self.prp.pprint(self.pp_consumer_msg_list)
         len_list = len(self.pp_consumer_msg_list)
         if len_list != self.EXPECTED_PP_MESSAGES:
             print("Messages received by verify_pp_messages:")

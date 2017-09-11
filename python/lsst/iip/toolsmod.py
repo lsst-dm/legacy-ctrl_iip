@@ -1,5 +1,6 @@
 import subprocess
 import yaml
+import pprint
 
 #def get_timestamp():
 #    return subprocess.check_output('date +"%Y-%m-%dT%H:%M:%S.%5N"', shell=True)
@@ -17,6 +18,8 @@ def singleton(object, instantiated=[]):
     assert object.__class__ not in instantiated, \
         "%s is a Singleton class but is already instantiated" % object.__class__
     instantiated.append(object.__class__)
+
+prp = pprint.PrettyPrinter(indent=4)
 
 # Dictionary showing the state a transition ends in
 next_state = {}

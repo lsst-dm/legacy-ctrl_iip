@@ -5,7 +5,8 @@ import sys
 import os
 import pprint
 from time import sleep
-import _thread
+#import _thread
+import threading
 import pytest
 import random
 import logging
@@ -39,31 +40,9 @@ class TestDMCS_AR:
     EXPECTED_OCS_MESSAGES = 1
 
     ccd_list = [14,17,21.86]
-    prp = pprint.PrettyPrinter(indent=4)
+    prp = toolsmod.prp
 
 
-    def run_ocs_consumer(self, threadname, delay):
-        self.ocs_consumer.run(self.on_ocs_message)
-    
-    def run_ar_consumer(self, threadname, delay):
-        self.ar_consumer.run(self.on_ar_message)
-    
-    
-    def setup_consumers(self):
-    
-        try:
-            _thread.start_new_thread( self.run_ocs_consumer, ("thread-test-ocs_consume", 2,) )
-        except:
-            print("Bad trouble creating ocs_consumer thread for testing...exiting...")
-            sys.exit(101)
-    
-        try:
-            _thread.start_new_thread( self.run_ar_consumer, ("thread-test-ar_consume", 2,) )
-        except:
-            print("Bad trouble creating ar_consumer thread for testing...exiting...")
-            sys.exit(101)
-    
- 
     def test_dmcs(self):
         try:
             cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
@@ -99,14 +78,19 @@ class TestDMCS_AR:
                                     broker_addr
         self.ar_publisher = SimplePublisher(self.ar_pub_broker_url, "YAML")
     
-        self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'YAML')
-        self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'YAML')
-
         # Must be done before consumer threads are started
         # This is used for verifying message structure
         self._msg_auth = MessageAuthority()
 
-        self.setup_consumers()
+        self.ocs_consumer = Consumer(self.dmcs, ocs_broker_url,'dmcs_ocs_publish', 'thread-ocs',
+                                     self.on_ocs_message,'YAML', None)
+        self.ocs_consumer.start()
+
+
+        self.ar_consumer = Consumer(self.dmcs, ar_broker_url,'ar_foreman_consume', 'thread-ar', 
+                                    self.on_ar_message,'YAML', None)
+        self.ar_consumer.start()
+
         sleep(3)
         print("Test Setup Complete. Commencing Messages...")
 
@@ -114,7 +98,9 @@ class TestDMCS_AR:
         self.verify_ocs_messages()
         self.verify_ar_messages()
 
-        print("Finished with DMCS tests.")
+        sleep(2)
+        print("Finished with DMCS AR tests.")
+        #sys.exit(0)
 
 
     def send_messages(self):
@@ -153,6 +139,9 @@ class TestDMCS_AR:
         time.sleep(2)
         print("AR DISABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+
+        sleep(0.5)
+        assert self.dmcs.STATE_SCBD.get_archive_state() == 'DISABLE'
       
       
         msg = {}
@@ -164,6 +153,9 @@ class TestDMCS_AR:
         print("AR ENABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
+        sleep(0.5)
+        assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
+
         msg = {}
         msg['MSG_TYPE'] = "NEXT_VISIT"
         msg['VISIT_ID'] = 'V_1443'
@@ -173,6 +165,9 @@ class TestDMCS_AR:
         time.sleep(2)
         print("Next Visit Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+
+        sleep(0.5)
+        assert self.dmcs.STATE_SCBD.get_current_visit() == 'V_1443'
       
         msg = {}
         msg['MSG_TYPE'] = "START_INTEGRATION"
@@ -248,6 +243,8 @@ class TestDMCS_AR:
    
 
     def verify_ar_messages(self):
+        print("Messages received by verify_ar_messages:")
+        self.prp.pprint(self.ar_consumer_msg_list)
         len_list = len(self.ar_consumer_msg_list)
         if len_list != self.EXPECTED_AR_MESSAGES:
             print("Messages received by verify_ar_messages:")
