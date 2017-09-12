@@ -43,11 +43,13 @@ class ThreadManager(threading.Thread):
 
 
     def start_background_loop(self):
+        # Time for threads to start and quiesce
+        sleep(2)
         try:
             while 1:
                 # self.get_next_backlog_item() ???
-                self.check_thread_health()
                 sleep(1)
+                self.check_thread_health()
                 # self.resolve_non-blocking_acks() ???
         except KeyboardInterrupt:
             pass
@@ -61,7 +63,7 @@ class ThreadManager(threading.Thread):
             else:
                 LOGGER.critical("Thread with name %s has died. Attempting to restart..." 
                                  % self.running_threads[i].name)
-                dead_thread_name = self.running_threads[i]  
+                dead_thread_name = self.running_threads[i].name
                 del self.running_threads[i]
                 ### Restart thread...
                 new_consumer = self.setup_consumer_thread(self.consumer_kwargs[dead_thread_name])

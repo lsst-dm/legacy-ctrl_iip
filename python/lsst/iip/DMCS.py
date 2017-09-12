@@ -47,13 +47,10 @@ class DMCS:
         Finally, the DMCS keeps track of any failed jobs in a Backlog scoreboard.
     """
 
-    ACK_SCBD = None
-    STATE_SCBD = None
-    BACKLOG_SCBD = None
+    DEFAULT_CFG_FILE = 'L1SystemCfg.yaml'
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
-    DEFAULT_CFG_FILE = 'L1SystemCfg.yaml'
     CCD_LIST = [] 
     OCS_CONSUMER_THREAD = "ocs_consumer_thread"
     ACK_CONSUMER_THREAD = "ack_consumer_thread"
@@ -73,7 +70,7 @@ class DMCS:
         # Run queue purges in rabbitmqctl
         #self.purge_broker(broker_vhost, queue_purges)
 
-        # Messages from OCS Bridge
+        # These two dicts call the correct handler method for the message_type of incoming messages
         self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
                               'START': self.process_start_command,
                               'STANDBY': self.process_standby_command,
@@ -114,13 +111,15 @@ class DMCS:
         self.thread_manager = None
         self.setup_consumer_threads()
 
-        self._next_timed_ack_id = self.init_ack_id()
+        self.init_ack_id()
 
         LOGGER.info('DMCS init complete')
 
 
 
     def init_ack_id(self):
+        ### FIX change to use redis db incr...
+        self._next_timed_ack_id = 0
         if os.path.isfile(self.dmcs_ack_id_file):
             val = toolsmod.intake_yaml_file(self.dmcs_ack_id_file)
             current_id = val['CURRENT_ACK_ID'] + 1
@@ -128,13 +127,13 @@ class DMCS:
                 current_id = 1
             val['CURRENT_ACK_ID'] = current_id
             toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
-            return current_id
+            self._next_timed_ack_id = current_id
         else:
             current_id = 1
             val = {}
             val['CURRENT_ACK_ID'] = current_id
             toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
-            return current_id
+            self._next_timed_ack_id =  current_id
 
 
 
