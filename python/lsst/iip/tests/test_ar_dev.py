@@ -118,9 +118,11 @@ class TestArDev:
                                     self.on_ar_ctrl_message,'YAML', None)
         self.ar_ctrl_consumer.start()
 
+
         self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
                                     self.on_f1_message,'YAML', None)
         self.F1_consumer.start()
+
 
         self.F2_consumer = Consumer(F2_broker_url,'f2_consume', 'thread-f2', 
                                     self.on_f2_message,'YAML', None)
@@ -130,10 +132,10 @@ class TestArDev:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        self.verify_dmcs_messages()
-        self.verify_ar_ctrl_messages()
-        self.verify_F1_messages()
-        self.verify_F2_messages()
+        #self.verify_dmcs_messages()
+        #self.verify_ar_ctrl_messages()
+        #self.verify_F1_messages()
+        #self.verify_F2_messages()
 
         sleep(2)
         print("Finished with AR tests.")
@@ -147,111 +149,68 @@ class TestArDev:
         
         self.clear_message_lists()
 
-        self.EXPECTED_OCS_MESSAGES = 6
-        self.EXPECTED_AR_MESSAGES = 6
+        self.EXPECTED_AR_CTRL_MESSAGES = 1
+        self.EXPECTED_DMCS_MESSAGES = 1
+        self.EXPECTED_F1_MESSAGES = 1
+        self.EXPECTED_F2_MESSAGES = 1
 
         msg = {}
-        msg['MSG_TYPE'] = "STANDBY"
-        msg['DEVICE'] = 'AR'
-        msg['CFG_KEY'] = "2C16"
-        msg['ACK_ID'] = 'AR_4'
-        msg['ACK_DELAY'] = 2
-        time.sleep(2)
-        print("AR STANDBY")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        #msg = {}
-        #msg['MSG_TYPE'] = "NEW_SESSION"
-        #msg['SESSION_ID'] = 'SI_469976'
-        #msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
-        #msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        ##time.sleep(3)
-        ##self.ocs_publisher.publish_message("ar_foreman_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "DISABLE"
-        msg['DEVICE'] = 'AR'
-        msg['ACK_ID'] = 'AR_6'
-        msg['ACK_DELAY'] = 2
-        time.sleep(2)
-        print("AR DISABLE")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-
-        sleep(0.5)
-        assert self.dmcs.STATE_SCBD.get_archive_state() == 'DISABLE'
-      
-      
-        msg = {}
-        msg['MSG_TYPE'] = "ENABLE"
-        msg['DEVICE'] = 'AR'
-        msg['ACK_ID'] = 'AR_11'
-        msg['ACK_DELAY'] = 2
-        time.sleep(2)
-        print("AR ENABLE")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        sleep(0.5)
-        assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
+        msg['MSG_TYPE'] = "AR_NEW_SESSION"
+        msg['SESSION_ID'] = 'SI_469976'
+        msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        time.sleep(3)
+        print("New Session Message")
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
 
         msg = {}
-        msg['MSG_TYPE'] = "NEXT_VISIT"
-        msg['VISIT_ID'] = 'V_1443'
+        msg['MSG_TYPE'] = "AR_NEXT_VISIT"
+        msg['VISIT_ID'] = 'XX_28272' 
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
         time.sleep(2)
         print("Next Visit Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+          
+        msg = {}
+        msg['MSG_TYPE'] = "AR_START_INTEGRATION"
+        msg['IMAGE_ID'] = 'IMG_444244'
+        msg['DEVICE'] = 'AR'
+        time.sleep(4)
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "AR_READOUT"
+        msg['IMAGE_ID'] = 'IMG_444244'
+        msg['DEVICE'] = 'AR'
+        time.sleep(4)
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
 
-        sleep(0.5)
-        assert self.dmcs.STATE_SCBD.get_current_visit() == 'V_1443'
-      
+        """
+        #  while 1:
         msg = {}
-        msg['MSG_TYPE'] = "START_INTEGRATION"
-        msg['IMAGE_ID'] = 'IMG_4276'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['VISIT_ID'] = 'V_1443'
-        msg['ACK_ID'] = 'START_INT_ACK_76'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['CCD_LIST'] = self.ccd_list
-        time.sleep(2)
-        print("Start Integration Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
+        msg['MSG_TYPE'] = 'NEW_ARCHIVE_ITEM'
+        msg['SESSION_ID'] = "Tues_xx417"
+        msg['VISIT_ID'] = "V_5512"
+        msg['IMAGE_TYPE'] = 'AR'
+        msg['IMAGE_ID'] = "IMG_442"
+        msg['ACK_ID'] = "NEW_ITEM_ACK_14"
+        time.sleep(3)
+        sp1.publish_message("archive_ctrl_consume", msg)
+        """
+
+        """
         msg = {}
-        msg['MSG_TYPE'] = "READOUT"
-        msg['VISIT_ID'] = 'V_1443'
-        msg['IMAGE_ID'] = 'IMG_4276'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['ACK_ID'] = 'READOUT_ACK_77'
-        time.sleep(2)
-        print("READOUT Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "START_INTEGRATION"
-        msg['IMAGE_ID'] = 'IMG_4277'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['VISIT_ID'] = 'V_1443'
-        msg['ACK_ID'] = 'START_INT_ACK_78'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['CCD_LIST'] = self.ccd_list
-        time.sleep(2)
-        print("Start Integration Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "READOUT"
-        msg['VISIT_ID'] = 'V_1443'
-        msg['IMAGE_ID'] = 'IMG_4277'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['ACK_ID'] = 'READOUT_ACK_79'
-        time.sleep(2)
-        print("READOUT Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
+        msg['MSG_TYPE'] = 'AR_ITEMS_XFERD'
+        msg['IMAGE_ID'] = "IMG_442"
+        msg['CCD_LIST'] = {'4':{ 'FILENAME':'/mnt/xfer_dir/101_100_4.fits','CHECKSUM':'348e1dbe4956e9d8d2dfa97535744561'}}
+        msg['ACK_ID'] = 'AR_ITEMS_ACK_2241'
+        time.sleep(5)
+        sp1.publish_message("archive_ctrl_consume", msg)
+        """
+
+ 
         time.sleep(2)
 
         print("Message Sender done")
@@ -264,7 +223,7 @@ class TestArDev:
         print("Messages received by verify_dmcs_messages:")
         self.prp.pprint(self.dmcs_consumer_msg_list)
         len_list = len(self.dmcs_consumer_msg_list)
-        if len_list != self.EXPECTED_OCS_MESSAGES:
+        if len_list != self.EXPECTED_DMCS_MESSAGES:
             print("Messages received by verify_dmcs_messages:")
             self.prp.pprint(self.dmcs_consumer_msg_list)
             pytest.fail('DMCS simulator received incorrect number of messages.\nExpected %s but received %s'\
@@ -298,6 +257,46 @@ class TestArDev:
         print("Messages to the AR CTRL pass verification.")
    
 
+    def verify_F1_messages(self):
+        print("Messages received by verify_F1_messages:")
+        self.prp.pprint(self.f1_msg_list)
+        len_list = len(self.f1_consumer_msg_list)
+        if len_list != self.EXPECTED_F1_MESSAGES:
+            print("Messages received by verify_F1_messages:")
+            self.prp.pprint(self.f1_consumer_msg_list)
+            pytest.fail('F1 simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_F1_MESSAGES, len_list))
+
+        # Now check num keys in each message first, then check for key errors
+        for i in range(0, len_list):
+            msg = self.f1_consumer_msg_list[i]
+            result = self._msg_auth.check_message_shape(msg)
+            if result == False:
+                pytest.fail("The following message to F1 failed when compared with the sovereign example: %s" % msg)
+            else:
+                print("Messages to F1 pass verification.")
+  
+   
+    def verify_F2_messages(self):
+        print("Messages received by verify_F2_messages:")
+        self.prp.pprint(self.f2_msg_list)
+        len_list = len(self.f2_consumer_msg_list)
+        if len_list != self.EXPECTED_F2_MESSAGES:
+            print("Messages received by verify_F2_messages:")
+            self.prp.pprint(self.f2_consumer_msg_list)
+            pytest.fail('F2 simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_F2_MESSAGES, len_list))
+
+        # Now check num keys in each message first, then check for key errors
+        for i in range(0, len_list):
+            msg = self.f2_consumer_msg_list[i]
+            result = self._msg_auth.check_message_shape(msg)
+            if result == False:
+                pytest.fail("The following message to F2 failed when compared with the sovereign example: %s" % msg)
+            else:
+                print("Messages to F2 pass verification.")
+  
+ 
     def on_dmcs_message(self, ch, method, properties, body):
         self.dmcs_consumer_msg_list.append(body)
 
