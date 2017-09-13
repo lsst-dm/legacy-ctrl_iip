@@ -109,7 +109,7 @@ class TestArDev:
         # This is used for verifying message structure
         self._msg_auth = MessageAuthority()
 
-        self.dmcs_consumer = Consumer(self.dmcs, dmcs_broker_url,'dmcs_ack_consume', 'thread-dmcs',
+        self.dmcs_consumer = Consumer(dmcs_broker_url,'dmcs_ack_consume', 'thread-dmcs',
                                      self.on_dmcs_message,'YAML', None)
         self.dmcs_consumer.start()
 
@@ -158,7 +158,7 @@ class TestArDev:
         msg['MSG_TYPE'] = "AR_NEW_SESSION"
         msg['SESSION_ID'] = 'SI_469976'
         msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['RESPONSE_QUEUE'] = 'ar_forwarder_publish'
         time.sleep(3)
         print("New Session Message")
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
@@ -166,7 +166,7 @@ class TestArDev:
         msg = {}
         msg['MSG_TYPE'] = "AR_NEXT_VISIT"
         msg['VISIT_ID'] = 'XX_28272' 
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['RESPONSE_QUEUE'] = 'ar_forwarder_publish'
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
         time.sleep(2)
@@ -175,15 +175,24 @@ class TestArDev:
           
         msg = {}
         msg['MSG_TYPE'] = "AR_START_INTEGRATION"
+        msg['JOB_NUM'] = '4xx72'
         msg['IMAGE_ID'] = 'IMG_444244'
-        msg['DEVICE'] = 'AR'
+        msg['VISIT_ID'] = 'V14494'
+        msg['SESSION_ID'] = '4_14_7211511'
+        msg['RESPONSE_QUEUE'] = 'ar_forwarder_publish'
+        msg['ACK_ID'] = 'AR_ACK_94671'
+        msg['CCD_LIST'] = [4,14.16,17,29,35,36]
         time.sleep(4)
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
       
         msg = {}
         msg['MSG_TYPE'] = "AR_READOUT"
+        msg['JOB_NUM'] = '4xx72'
         msg['IMAGE_ID'] = 'IMG_444244'
-        msg['DEVICE'] = 'AR'
+        msg['VISIT_ID'] = 'V14494'
+        msg['SESSION_ID'] = '4_14_7211511'
+        msg['RESPONSE_QUEUE'] = 'ar_forwarder_publish'
+        msg['ACK_ID'] = 'ACK_44221'
         time.sleep(4)
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
 
@@ -300,7 +309,12 @@ class TestArDev:
     def on_dmcs_message(self, ch, method, properties, body):
         self.dmcs_consumer_msg_list.append(body)
 
- 
     def on_ar_ctrl_message(self, ch, method, properties, body):
         self.ar_ctrl_consumer_msg_list.append(body)
+
+    def on_f1_message(self, ch, method, properties, body):
+        self.f1_consumer_msg_list.append(body)
+
+    def on_f2_message(self, ch, method, properties, body):
+        self.f2_consumer_msg_list.append(body)
 

@@ -105,7 +105,6 @@ class DMCS:
         self.setup_publishers()
 
         self.setup_scoreboards()
-        LOGGER.info('DMCS Init complete')
 
         LOGGER.info('DMCS consumer setup')
         self.thread_manager = None

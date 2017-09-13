@@ -9,13 +9,14 @@ import os
 import copy
 import time
 from time import sleep
-import _thread
+import threading
 from const import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
 from JobScoreboard import JobScoreboard
 from AckScoreboard import AckScoreboard
 from Consumer import Consumer
+from ThreadManager import ThreadManager
 from SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -24,15 +25,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ArchiveDevice:
-    AR_JOB_SCBD = None
-    AR_FWD_SCBD = None
-    AR_ACK_SCBD = None
     COMPONENT_NAME = 'ARCHIVE_FOREMAN'
     AR_FOREMAN_CONSUME = "ar_foreman_consume"
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
-    YAML = 'YAML'
     START_INTEGRATION_XFER_PARAMS = {}
 
 
@@ -43,35 +40,14 @@ class ArchiveDevice:
         if filename != None:
             self._config_file = filename
 
-        try:
-            cdm = toolsmod.intake_yaml_file(self._config_file)
-        except IOError as e:
-            trace = traceback.print_exc()
-            emsg = "Unable to find CFG Yaml file %s\n" % filename
-            LOGGER.critical(emsg + trace)
-            sys.exit(101)
-
         LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values(cdm)
+        self.extract_config_values()
 
 
         # if 'QUEUE_PURGES' in cdm[ROOT]:
         #    self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
-        self._base_msg_format = self.YAML
 
-        if 'BASE_MSG_FORMAT' in cdm[ROOT]:
-            self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
-
-
-        self._base_broker_url = 'amqp_url'
-        self._next_timed_ack_id = 0
-
-
-        # Create Redis Forwarder table with Forwarder info
-        self.FWD_SCBD = ForwarderScoreboard('AR_FWD_SCBD', self._scbd_dict['AR_FWD_SCBD'], self._forwarder_dict)
-        self.JOB_SCBD = JobScoreboard('AR_JOB_SCBD', self._scbd_dict['AR_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
         self._msg_actions = { 'AR_START_INTEGRATION': self.process_start_integration,
                               'AR_NEW_SESSION': self.set_session,
@@ -91,96 +67,45 @@ class ArchiveDevice:
         LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
 
         self.setup_publishers()
-        self.setup_consumers()
 
+        self.setup_scoreboards()
 
-    def setup_consumers(self):
-        """This method sets up a message listener from each entity
-           with which the BaseForeman has contact here. These
-           listeners are instanced in this class, but their run
-           methods are each called as a separate thread. While
-           pika does not claim to be thread safe, the manner in which 
-           the listeners are invoked below is a safe implementation
-           that provides non-blocking, fully asynchronous messaging
-           to the BaseForeman.
+        LOGGER.info('ar foreman consumer setup')
+        self.thread_manager = None
+        self.setup_consumer_threads()
 
-           The code in this file expects message bodies to arrive as
-           YAML'd python dicts, while in fact, message bodies are sent
-           on the wire as XML; this way message format can be validated,
-           versioned, and specified in just one place. To make this work,
-           there is an object that translates the params dict to XML, and
-           visa versa. The translation object is instantiated by the consumer
-           and acts as a filter before sending messages on to the registered
-           callback for processing.
+        self._next_timed_ack_id = 0
 
-        """
-        LOGGER.info('Setting up consumers on %s', self._base_broker_url)
-        LOGGER.info('Running start_new_thread on all consumer methods')
-
-        self._dmcs_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_CONSUME, self._base_msg_format)
-        try:
-            _thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
-            sys.exit(99)
-        
-        self._ar_ctrl_consumer = Consumer(self._base_broker_url, self.ARCHIVE_CTRL_PUBLISH, self._base_msg_format)
-        try:
-            _thread.start_new_thread( self.run_ar_ctrl_consumer, ("thread-forwarder-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start Archive Ctrl consumer thread, exiting...')
-            sys.exit(100)
-        
-        self._ar_ack_consumer = Consumer(self._base_broker_url, self.AR_FOREMAN_ACK_PUBLISH, self._base_msg_format)
-        try:
-            _thread.start_new_thread( self.run_ar_ack_consumer, ("thread-ncsa-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
-            sys.exit(101)
-        
-
-    def run_dmcs_consumer(self, threadname, delay):
-        self._dmcs_consumer.run(self.on_dmcs_message)
-
-
-    def run_ar_ctrl_consumer(self, threadname, delay):
-        self._ar_ctrl_consumer.run(self.on_archive_message)
-
-
-    def run_ar_ack_consumer(self, threadname, delay):
-        self._ar_ack_consumer.run(self.on_ack_message)
-
+        LOGGER.info('DMCS Init complete')
 
 
     def setup_publishers(self):
-        LOGGER.info('Setting up Base publisher on %s using %s', self._base_broker_url, self._base_msg_format)
+        self.pub_base_broker_url = "amqp://" + self._msg_pub_name + ":" + \
+                                            self._msg_pub_passwd + "@" + \
+                                            str(self._base_broker_addr)
+        LOGGER.info('Setting up Base publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
         self._publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
 
 
-    def on_dmcs_message(self, ch, method, properties, body):
+    def on_ar_foreman_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
         msg_dict = body 
-        LOGGER.info('In DMCS message callback')
-        LOGGER.debug('Thread in DMCS callback is %s', _thread.get_ident())
-        LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
+        LOGGER.info('In AR Foreman message callback')
+        LOGGER.info('Message from DMCS to AR Foreman callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
 
     def on_archive_message(self, ch, method, properties, body):
-        LOGGER.info('In Forwarder message callback, thread is %s', _thread.get_ident())
-        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
-        LOGGER.info('forwarder callback msg body is: %s', str(body))
+        LOGGER.info('AR CTRL callback msg body is: %s', str(body))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
-        print("Incoming ack message:\n%s" % body)
         LOGGER.info('In ACK message callback')
-        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -523,7 +448,8 @@ class ArchiveDevice:
 
 
     def set_visit(self, params):
-        self.JOB_SCBD.set_visit_id(params['VISIT_ID'])
+        bore_sight = params['BORE_SIGHT']
+        self.JOB_SCBD.set_visit_id(params['VISIT_ID'], bore_sight)
         ack_id = params['ACK_ID']
         msg = {}
         ## XXX FIXME Do something with the bore sight in params['BORE_SIGHT']
@@ -544,10 +470,19 @@ class ArchiveDevice:
         return True
 
 
-    def extract_config_values(self, cdm):
+    def extract_config_values(self):
+        LOGGER.info('Reading YAML Config file %s' % self._config_file)
+        try:
+            cdm = toolsmod.intake_yaml_file(self._config_file)
+        except IOError as e:
+            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
+            sys.exit(101)
+
         try:
             self._msg_name = cdm[ROOT][AFM_BROKER_NAME]      # Message broker user & passwd
             self._msg_passwd = cdm[ROOT][AFM_BROKER_PASSWD]   
+            self._msg_pub_name = cdm[ROOT]['AFM_BROKER_PUB_NAME']      # Message broker user & passwd
+            self._msg_pub_passwd = cdm[ROOT]['AFM_BROKER_PUB_PASSWD']   
             self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
@@ -563,6 +498,58 @@ class ArchiveDevice:
             print("Dictionary error")
             print("Bailing out...")
             sys.exit(99)
+
+        self._base_msg_format = 'YAML'
+
+        if 'BASE_MSG_FORMAT' in cdm[ROOT]:
+            self._base_msg_format = cdm[ROOT]['BASE_MSG_FORMAT']
+
+
+    def setup_consumer_threads(self):
+        base_broker_url = "amqp://" + self._msg_name + ":" + \
+                                            self._msg_passwd + "@" + \
+                                            str(self._base_broker_addr)
+        LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
+
+
+        # Set up kwargs that describe consumers to be started
+        # The Archive Device needs three message consumers
+        kws = {}
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-ar_foreman_consume'
+        md['queue'] = 'ar_foreman_consume'
+        md['callback'] = self.on_ar_foreman_message
+        md['format'] = "YAML"
+        md['test_val'] = None
+        kws[md['name']] = md
+
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-ar_foreman_ack_publish'
+        md['queue'] = 'ar_foreman_ack_publish'
+        md['callback'] = self.on_ack_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
+
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-archive_ctrl_publish'
+        md['queue'] = 'archive_ctrl_publish'
+        md['callback'] = self.on_archive_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
+
+        self.thread_manager = ThreadManager('thread-manager', kws)
+        self.thread_manager.start()
+
+    def setup_scoreboards(self):
+        # Create Redis Forwarder table with Forwarder info
+        self.FWD_SCBD = ForwarderScoreboard('AR_FWD_SCBD', self._scbd_dict['AR_FWD_SCBD'], self._forwarder_dict)
+        self.JOB_SCBD = JobScoreboard('AR_JOB_SCBD', self._scbd_dict['AR_JOB_SCBD'])
+        self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
 
     def purge_broker(self, queues):

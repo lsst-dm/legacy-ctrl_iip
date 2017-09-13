@@ -171,7 +171,7 @@ class JobScoreboard(Scoreboard):
             params = {}
             params[JOB_NUM] = job_number
             params['SUB_TYPE'] = self.JOB_STATE
-            params['STATE'] = in_params['STATE']
+            params['STATE'] = self.get_job_state(job_number)
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
             self.persist(self.build_monitor_data(params))
         else:
@@ -333,6 +333,7 @@ class JobScoreboard(Scoreboard):
     def set_visit_id(self, visit_id, bore_sight):
         if self.check_connection():
             self._redis.lpush(self.VISIT_ID_LIST, visit_id)
+            self._redis.hset(visit_id, 'BORE_SIGHT', bore_sight)
             params = {}
             params['SUB_TYPE'] = 'VISIT'
             params['VISIT_ID'] = visit_id
@@ -343,6 +344,11 @@ class JobScoreboard(Scoreboard):
     def get_current_visit(self):
         if self.check_connection():
             return self._redis.lindex(self.VISIT_ID_LIST, 0)
+
+
+    def get_boresight_for_visit_id(self, visit_id):
+        if self.check_connection():
+            return self._redis.hget(visit_id, 'BORE_SIGHT')
 
              
     def delete_job(self, job_number):
