@@ -19,12 +19,11 @@ template <typename T, typename U>
 using funcptr = int (T::*)(U*); 
 
 template <typename SAL_device, typename SAL_struct>
-void listenCommand(string device, string command_name, SimplePublisher* publisher, string publish_q, 
+void listenCommand(SAL_device mgr, string device, string command_name, SimplePublisher* publisher, string publish_q, 
 string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){ 
     os_time delay_10ms = { 0, 10000000 }; 
     int cmdId = -1; 
     SAL_struct SALInstance; 
-    SAL_device mgr = SAL_device(); 
 
     string processor = CommandListener::get_device(device) + "_command_" + command_name; 
     mgr.salProcessor(const_cast<char *>(processor.c_str())); 
@@ -43,6 +42,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 
 	    ostringstream book_keeping; 
 	    book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
+                         << ", SUB_TYPE: " << command_name
 			 << ", ACK_ID: " << ack_id 
 			 << ", CHECKBOX: false" 
 			 << ", TIME: " << get_current_time()
@@ -59,12 +59,11 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 }  
 
 template <typename SAL_device, typename SAL_struct>
-void listenCommand_start(string device, string command_name, SimplePublisher* publisher, string publish_q, 
+void listenCommand_start(SAL_device mgr, string device, string command_name, SimplePublisher* publisher, string publish_q, 
 string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){ 
     os_time delay_10ms = { 0, 10000000 }; 
     int cmdId = -1; 
     SAL_struct SALInstance; 
-    SAL_device mgr = SAL_device(); 
 
     string processor = CommandListener::get_device(device) + "_command_" + command_name; 
     mgr.salProcessor(const_cast<char *>(processor.c_str())); 
@@ -84,6 +83,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 
 	    ostringstream book_keeping; 
 	    book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
+                         << ", SUB_TYPE: " << command_name
 			 << ", ACK_ID: " << ack_id 
 			 << ", CHECKBOX: false" 
 			 << ", TIME: " << get_current_time()
@@ -104,6 +104,9 @@ CommandListener::CommandListener() : OCS_Bridge() {
     command_args->publisher = ocs_publisher;
     command_args->publish_queue = OCS_PUBLISH;  
     command_args->consume_queue = OCS_CONSUME; 
+    command_args->ar = SAL_archiver(); 
+    command_args->cu = SAL_catchuparchiver(); 
+    command_args->pp = SAL_processingcluster(); 
 
     setup_archiver_listeners();
     setup_catchuparchiver_listeners(); 
@@ -156,9 +159,10 @@ void *CommandListener::run_ar_start(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_startC> ar_start = &SAL_archiver::acceptCommand_start;   
-    listenCommand_start("AR", "START", rabbit_publisher, publish_q, consume_q, ar_start);  
+    listenCommand_start(ar, "AR", "START", rabbit_publisher, publish_q, consume_q, ar_start);  
     return 0; 
 } 
 
@@ -167,9 +171,10 @@ void *CommandListener::run_ar_stop(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_stopC> ar_stop = &SAL_archiver::acceptCommand_stop;   
-    listenCommand("AR", "STOP", rabbit_publisher, publish_q, consume_q, ar_stop);  
+    listenCommand(ar,"AR", "STOP", rabbit_publisher, publish_q, consume_q, ar_stop);  
     return 0; 
 } 
 
@@ -178,9 +183,10 @@ void *CommandListener::run_ar_enable(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_enableC> ar_enable = &SAL_archiver::acceptCommand_enable;   
-    listenCommand("AR", "ENABLE", rabbit_publisher, publish_q, consume_q, ar_enable);  
+    listenCommand(ar,"AR", "ENABLE", rabbit_publisher, publish_q, consume_q, ar_enable);  
     return 0; 
 } 
 
@@ -189,9 +195,10 @@ void *CommandListener::run_ar_disable(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_disableC> ar_disable = &SAL_archiver::acceptCommand_disable;   
-    listenCommand("AR", "DISABLE", rabbit_publisher, publish_q, consume_q, ar_disable);  
+    listenCommand(ar,"AR", "DISABLE", rabbit_publisher, publish_q, consume_q, ar_disable);  
     return 0; 
 } 
 
@@ -200,9 +207,10 @@ void *CommandListener::run_ar_standby(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_standbyC> ar_standby = &SAL_archiver::acceptCommand_standby;   
-    listenCommand("AR", "STANDBY", rabbit_publisher, publish_q, consume_q, ar_standby);  
+    listenCommand(ar,"AR", "STANDBY", rabbit_publisher, publish_q, consume_q, ar_standby);  
     return 0; 
 } 
 
@@ -211,9 +219,10 @@ void *CommandListener::run_ar_enterControl(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_enterControlC> ar_enterControl = &SAL_archiver::acceptCommand_enterControl;   
-    listenCommand("AR", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, ar_enterControl);  
+    listenCommand(ar,"AR", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, ar_enterControl);  
     return 0; 
 } 
 
@@ -222,9 +231,10 @@ void *CommandListener::run_ar_exitControl(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_exitControlC> ar_exitControl = &SAL_archiver::acceptCommand_exitControl;   
-    listenCommand("AR", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, ar_exitControl);  
+    listenCommand(ar,"AR", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, ar_exitControl);  
     return 0; 
 } 
 
@@ -233,9 +243,10 @@ void *CommandListener::run_ar_abort(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_abortC> ar_abort = &SAL_archiver::acceptCommand_abort;   
-    listenCommand("AR", "ABORT", rabbit_publisher, publish_q, consume_q, ar_abort);  
+    listenCommand(ar,"AR", "ABORT", rabbit_publisher, publish_q, consume_q, ar_abort);  
     return 0; 
 } 
 
@@ -244,9 +255,10 @@ void *CommandListener::run_cu_start(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_startC> cu_start = &SAL_catchuparchiver::acceptCommand_start;   
-    listenCommand_start("CU", "START", rabbit_publisher, publish_q, consume_q, cu_start);  
+    listenCommand_start(cu, "CU", "START", rabbit_publisher, publish_q, consume_q, cu_start);  
     return 0; 
 } 
 
@@ -255,9 +267,10 @@ void *CommandListener::run_cu_stop(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_stopC> cu_stop = &SAL_catchuparchiver::acceptCommand_stop;   
-    listenCommand("CU", "STOP", rabbit_publisher, publish_q, consume_q, cu_stop);  
+    listenCommand(cu, "CU", "STOP", rabbit_publisher, publish_q, consume_q, cu_stop);  
     return 0; 
 } 
 
@@ -266,9 +279,10 @@ void *CommandListener::run_cu_enable(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_enableC> cu_enable = &SAL_catchuparchiver::acceptCommand_enable;   
-    listenCommand("CU", "ENABLE", rabbit_publisher, publish_q, consume_q, cu_enable);  
+    listenCommand(cu, "CU", "ENABLE", rabbit_publisher, publish_q, consume_q, cu_enable);  
     return 0; 
 } 
 
@@ -277,9 +291,10 @@ void *CommandListener::run_cu_disable(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_disableC> cu_disable = &SAL_catchuparchiver::acceptCommand_disable;   
-    listenCommand("CU", "DISABLE", rabbit_publisher, publish_q, consume_q, cu_disable);  
+    listenCommand(cu, "CU", "DISABLE", rabbit_publisher, publish_q, consume_q, cu_disable);  
     return 0; 
 } 
 
@@ -288,9 +303,10 @@ void *CommandListener::run_cu_standby(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_standbyC> cu_standby = &SAL_catchuparchiver::acceptCommand_standby;   
-    listenCommand("CU", "STANDBY", rabbit_publisher, publish_q, consume_q, cu_standby);  
+    listenCommand(cu, "CU", "STANDBY", rabbit_publisher, publish_q, consume_q, cu_standby);  
     return 0; 
 } 
 
@@ -299,9 +315,10 @@ void *CommandListener::run_cu_enterControl(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_enterControlC> cu_enterControl = &SAL_catchuparchiver::acceptCommand_enterControl;   
-    listenCommand("CU", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, cu_enterControl);  
+    listenCommand(cu, "CU", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, cu_enterControl);  
     return 0; 
 } 
 
@@ -310,9 +327,10 @@ void *CommandListener::run_cu_exitControl(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_exitControlC> cu_exitControl = &SAL_catchuparchiver::acceptCommand_exitControl;   
-    listenCommand("CU", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, cu_exitControl);  
+    listenCommand(cu, "CU", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, cu_exitControl);  
     return 0; 
 } 
 
@@ -321,9 +339,10 @@ void *CommandListener::run_cu_abort(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_abortC> cu_abort = &SAL_catchuparchiver::acceptCommand_abort;   
-    listenCommand("CU", "ABORT", rabbit_publisher, publish_q, consume_q, cu_abort);  
+    listenCommand(cu, "CU", "ABORT", rabbit_publisher, publish_q, consume_q, cu_abort);  
     return 0; 
 } 
 
@@ -332,9 +351,10 @@ void *CommandListener::run_pp_start(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_startC> pp_start = &SAL_processingcluster::acceptCommand_start;   
-    listenCommand_start("PP", "START", rabbit_publisher, publish_q, consume_q, pp_start);  
+    listenCommand_start(pp, "PP", "START", rabbit_publisher, publish_q, consume_q, pp_start);  
     return 0; 
 } 
 
@@ -343,9 +363,10 @@ void *CommandListener::run_pp_stop(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_stopC> pp_stop = &SAL_processingcluster::acceptCommand_stop;   
-    listenCommand("PP", "STOP", rabbit_publisher, publish_q, consume_q, pp_stop);  
+    listenCommand(pp, "PP", "STOP", rabbit_publisher, publish_q, consume_q, pp_stop);  
     return 0; 
 } 
 
@@ -354,9 +375,10 @@ void *CommandListener::run_pp_enable(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_enableC> pp_enable = &SAL_processingcluster::acceptCommand_enable;   
-    listenCommand("PP", "ENABLE", rabbit_publisher, publish_q, consume_q, pp_enable);  
+    listenCommand(pp, "PP", "ENABLE", rabbit_publisher, publish_q, consume_q, pp_enable);  
     return 0; 
 } 
 
@@ -365,9 +387,10 @@ void *CommandListener::run_pp_disable(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_disableC> pp_disable = &SAL_processingcluster::acceptCommand_disable;   
-    listenCommand("PP", "DISABLE", rabbit_publisher, publish_q, consume_q, pp_disable);  
+    listenCommand(pp, "PP", "DISABLE", rabbit_publisher, publish_q, consume_q, pp_disable);  
     return 0; 
 } 
 
@@ -376,9 +399,10 @@ void *CommandListener::run_pp_standby(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_standbyC> pp_standby = &SAL_processingcluster::acceptCommand_standby;   
-    listenCommand("PP", "STANDBY", rabbit_publisher, publish_q, consume_q, pp_standby);  
+    listenCommand(pp, "PP", "STANDBY", rabbit_publisher, publish_q, consume_q, pp_standby);  
     return 0; 
 } 
 
@@ -387,9 +411,10 @@ void *CommandListener::run_pp_enterControl(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_enterControlC> pp_enterControl = &SAL_processingcluster::acceptCommand_enterControl;   
-    listenCommand("PP", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, pp_enterControl);  
+    listenCommand(pp, "PP", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, pp_enterControl);  
     return 0; 
 } 
 
@@ -398,9 +423,10 @@ void *CommandListener::run_pp_exitControl(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_exitControlC> pp_exitControl = &SAL_processingcluster::acceptCommand_exitControl;   
-    listenCommand("PP", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, pp_exitControl);  
+    listenCommand(pp, "PP", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, pp_exitControl);  
     return 0; 
 } 
 
@@ -409,9 +435,10 @@ void *CommandListener::run_pp_abort(void *pargs) {
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
+    SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_abortC> pp_abort = &SAL_processingcluster::acceptCommand_abort;   
-    listenCommand("PP", "ABORT", rabbit_publisher, publish_q, consume_q, pp_abort);  
+    listenCommand(pp, "PP", "ABORT", rabbit_publisher, publish_q, consume_q, pp_abort);  
     return 0; 
 } 
 

@@ -9,7 +9,7 @@ LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config -L/usr/local
 LDLIBS   = -lsacpp_archiver_types -lsacpp_catchuparchiver_types -lsacpp_processingcluster_types -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
 -l"ddskernel" -l"ddsserialization" -l"ddsconfparser" -l"ddsconf" -l"ddsdatabase" \
 -l"ddsutil" -l"ddsos" -ldl $(subst lib,-l,$(sort $(basename $(notdir $(wildcard /usr/lib/librt.so /lib/librt.so))))) \
--lpthread -lpython2.7 -lSimpleAmqpClient -lyaml-cpp
+-lpthread -lSimpleAmqpClient -lyaml-cpp
 ARCHIVE  = /opt/sal/ts_sal/test/archiver/cpp
 CARCHIVE = /opt/sal/ts_sal/test/catchuparchiver/cpp
 PCLUSTER = /opt/sal/ts_sal/test/processingcluster/cpp
@@ -23,9 +23,6 @@ OCS_Bridge: OCS_Bridge.cpp SimplePublisher
 CommandListener: CommandListener.cpp OCS_Bridge Toolsmod
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o SimplePublisher.o Toolsmod.o -Wall -o CommandListener CommandListener.cpp $(LDLIBS) 
 
-EventListener: EventListener.cpp OCS_Bridge
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o SimplePublisher.o -Wall -o EventListener EventListener.cpp $(LDLIBS) 
-
 AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o OCS_Bridge.o Consumer.o SimplePublisher.o Toolsmod.o -Wall -g -o AckSubscriber AckSubscriber.cpp $(LDLIBS) 
 
@@ -33,7 +30,7 @@ SimplePublisher: SimplePublisher.cpp
 	$(CC) -L/usr/local/lib -lSimpleAmqpClient -c -o SimplePublisher.o SimplePublisher.cpp
 
 Consumer: Consumer.cpp 
-	$(CC) -L/usr/local/lib -lSimpleAmqpClient -c -o Consumer.o Consumer.cpp
+	$(CC) $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(ARCHIVE)/src/.obj/CheckStatus.o -c -o Consumer.o Consumer.cpp -lSimpleAmqpClient 
 
 Toolsmod: Toolsmod.cpp
 	$(CC) -std=c++11 -c -o Toolsmod.o Toolsmod.cpp

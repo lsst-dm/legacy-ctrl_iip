@@ -72,18 +72,18 @@ void Consumer::on_bind_declareok() {
     channel->BindQueue(QUEUE, EXCHANGE, QUEUE); 
 } 
 
-void Consumer::start_consuming(callback on_message) { 
+void Consumer::start_consuming(callback on_message, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
     cout << "##### Start consuming messages ######" << endl;
     string consume_tag = channel->BasicConsume(QUEUE); 
     while (1) {
         Envelope::ptr_t envelope = channel->BasicConsumeMessage(consume_tag); 
         BasicMessage::ptr_t messageEnv = envelope->Message(); 
         string message = messageEnv->Body();
-        on_message(message); 
+        on_message(message, ar, cu, pp); 
     }
 } 
 
-void Consumer::run(callback on_message) { 
+void Consumer::run(callback on_message, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
     connect(); 
-    start_consuming(on_message); 
+    start_consuming(on_message, ar, cu, pp); 
 } 

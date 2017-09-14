@@ -1,5 +1,3 @@
-#include <functional> 
-#include <ctime> 
 #include <string.h>
 #include <iostream> 
 #include <yaml-cpp/yaml.h>
@@ -15,99 +13,44 @@
 using namespace std; 
 using namespace YAML; 
 
-typedef void (*funcptr)(Node); 
-    
-template <typename T, typename U> 
-class eventSAL { 
-    public: 
-    typedef salReturn (T::*eventStateFunc)(U*, int); 
-    void send_eventState(Node n, eventStateFunc logEvent, U data) { 
-	string message_type, device; 
-	int priority; 
-	try { 
-	    message_type = n["MSG_TYPE"].as<string>(); 
-	    device = n["DEVICE"].as<string>(); 
-	    priority = 0;
-	    T mgr = T(); 
-	    string sal_event = AckSubscriber::get_salEvent(device, message_type); 
-	    mgr.salEvent(const_cast<char *>(sal_event.c_str())); 
-	    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
-		 << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
-	    (mgr.*logEvent)(&data, priority);  
-	    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
-		 << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
-	    mgr.salShutdown(); 
-	} 
-	catch (exception& e) { 
-	    cout << "WARNING: In AckSubscriber -- send_eventState, cannot read fields from message." << endl; 
-	}
-    } 
+typedef void (*funcptr)(Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
+
+map<string, map<string, string>> ack_book_keeper; 
+
+map<string, funcptr> action_handler = { 
+    {"START_ACK", &AckSubscriber::process_ack}, 
+    {"STOP_ACK", &AckSubscriber::process_ack}, 
+    {"ENABLE_ACK", &AckSubscriber::process_ack}, 
+    {"DISABLE_ACK", &AckSubscriber::process_ack}, 
+    {"ENTER_CONTROL_ACK", &AckSubscriber::process_ack}, 
+    {"STANDBY_ACK", &AckSubscriber::process_ack}, 
+    {"EXIT_CONTROL_ACK", &AckSubscriber::process_ack}, 
+    {"ABORT_ACK", &AckSubscriber::process_ack}, 
+    {"SUMMARY_STATE_EVENT", &AckSubscriber::process_summary_state}, 
+    {"RECOMMENDED_SETTINGS_VERSION_EVENT", &AckSubscriber::process_recommended_settings_version}, 
+    {"SETTINGS_APPLIED_EVENT", &AckSubscriber::process_settings_applied}, 
+    {"APPLIED_SETTINGS_MATCH_START_EVENT", &AckSubscriber::process_applied_settings_match_start}, 
+    {"ERROR_CODE_EVENT", &AckSubscriber::process_error_code}, 
+    {"BOOK_KEEPING", &AckSubscriber::process_book_keeping}, 
+    {"RESOLVE_ACK", &AckSubscriber::process_resolve_ack}
 }; 
 
 template<typename T> 
-class SAL { 
+class Command { 
     public: 
-    typedef salReturn (T::*funcptr)(int, salLONG, salLONG, char *); 
+        typedef salReturn (T::*funcptr)(int, salLONG, salLONG, char *); 
 
-    map<string, funcptr> action_handler = { 
-	{"START_ACK", &T::ackCommand_start}, 
-	{"STOP_ACK", &T::ackCommand_stop}, 
-	{"ENABLE_ACK", &T::ackCommand_enable}, 
-	{"DISABLE_ACK", &T::ackCommand_disable}, 
-	{"ENTER_CONTROL_ACK", &T::ackCommand_enterControl}, 
-	{"STANDBY_ACK", &T::ackCommand_standby}, 
-	{"EXIT_CONTROL_ACK", &T::ackCommand_exitControl}, 
-	{"ABORT_ACK", &T::ackCommand_abort}
-    }; 
+        map<string, funcptr> action_handler = { 
+            {"START_ACK", &T::ackCommand_start}, 
+            {"STOP_ACK", &T::ackCommand_stop}, 
+            {"ENABLE_ACK", &T::ackCommand_enable}, 
+            {"DISABLE_ACK", &T::ackCommand_disable}, 
+            {"ENTER_CONTROL_ACK", &T::ackCommand_enterControl}, 
+            {"STANDBY_ACK", &T::ackCommand_standby}, 
+            {"EXIT_CONTROL_ACK", &T::ackCommand_exitControl}, 
+            {"ABORT_ACK", &T::ackCommand_abort}
+        }; 
 };  
-
-struct visitor : public boost::static_visitor<> { 
-    template <typename T> 
-	void operator() (T &op) const { 
-	    SAL<T> t; 
-	    typename SAL<T>::funcptr action = t.action_handler[dict_key]; 
-	    op.salProcessor(const_cast<char *>(cmd.c_str())); 
-
-	    string result = ack_statement; // 32 char 
-	    (op.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(result.c_str()));
-	    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
-		 << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
-	}
-	
-	string dict_key; 
-	string cmd; 
-	int cmdId; 
-	salLONG error_code; 
-	string ack_statement;  
-}; 
-
-map<string, funcptr> action_handler = { 
-    {"START_ACK", &AckSubscriber::process__ack}, 
-    {"STOP_ACK", &AckSubscriber::process__ack}, 
-    {"ENABLE_ACK", &AckSubscriber::process__ack}, 
-    {"DISABLE_ACK", &AckSubscriber::process__ack}, 
-    {"ENTER_CONTROL_ACK", &AckSubscriber::process__ack}, 
-    {"STANDBY_ACK", &AckSubscriber::process__ack}, 
-    {"EXIT_CONTROL_ACK", &AckSubscriber::process__ack}, 
-    {"ABORT_ACK", &AckSubscriber::process__ack}, 
-    {"SUMMARY_STATE_EVENT", &AckSubscriber::process_event__SummaryState}, 
-    {"RECOMMENDED_SETTINGS_VERSION_EVENT", &AckSubscriber::process_event__RecommendedSettings}, 
-    {"SETTINGS_APPLIED_EVENT", &AckSubscriber::process_event__AppliedSettings}, 
-    {"APPLIED_SETTINGS_MATCH_START_EVENT", &AckSubscriber::process_event__AppliedSettingsMatchStart}, 
-    {"ERROR_CODE_EVENT", &AckSubscriber::process_event__ErrorCode}, 
-    {"BOOK_KEEPING", &AckSubscriber::process__book_keeping}, 
-    {"RESOLVE_ACK", &AckSubscriber::process__resolve_ack}
-}; 
-
-map<string, string> eventDict = { 
-    {"ERROR_CODE_EVENT", "ErrorCode"}, 
-    {"APPLIED_SETTINGS_MATCH_START_EVENT", "AppliedSettingsMatchStart"}, 
-    {"SUMMARY_STATE_EVENT", "SummaryState"}, 
-    {"RECOMMENDED_SETTINGS_VERSION_EVENT", "SettingVersions"}, 
-    {"SETTINGS_APPLIED_EVENT", "AppliedSettingsMatchStart"} 
-}; 
-
-map<string, map<string, string>> ack_book_keeper; 
 
 AckSubscriber::AckSubscriber() : OCS_Bridge() { 
     setup_consumer(); 
@@ -121,11 +64,58 @@ void AckSubscriber::setup_consumer() {
 }
 
 void AckSubscriber::run() { 
+
+    SAL_archiver ar = SAL_archiver(); 
+    ar.salProcessor(const_cast<char *>("archiver_command_enable")); 
+    ar.salProcessor(const_cast<char *>("archiver_command_disable")); 
+    ar.salProcessor(const_cast<char *>("archiver_command_standby")); 
+    ar.salProcessor(const_cast<char *>("archiver_command_enterControl")); 
+    ar.salProcessor(const_cast<char *>("archiver_command_exitControl")); 
+    ar.salProcessor(const_cast<char *>("archiver_command_start")); 
+    ar.salProcessor(const_cast<char *>("archiver_command_stop")); 
+    ar.salProcessor(const_cast<char *>("archiver_command_abort"));
+
+    ar.salEvent(const_cast<char *>("archiver_logevent_SummaryState")); 
+    ar.salEvent(const_cast<char *>("archiver_logevent_AppliedSettingsMatchStart")); 
+    ar.salEvent(const_cast<char *>("archiver_logevent_SettingVersions")); 
+    ar.salEvent(const_cast<char *>("archiver_logevent_ErrorCode")); 
+    // Settings applied topic actually doesn't exist. 
+
+    SAL_catchuparchiver cu = SAL_catchuparchiver(); 
+    cu.salProcessor(const_cast<char *>("catchuparchiver_command_enable")); 
+    cu.salProcessor(const_cast<char *>("catchuparchiver_command_disable")); 
+    cu.salProcessor(const_cast<char *>("catchuparchiver_command_standby")); 
+    cu.salProcessor(const_cast<char *>("catchuparchiver_command_enterControl")); 
+    cu.salProcessor(const_cast<char *>("catchuparchiver_command_exitControl")); 
+    cu.salProcessor(const_cast<char *>("catchuparchiver_command_start")); 
+    cu.salProcessor(const_cast<char *>("catchuparchiver_command_stop")); 
+    cu.salProcessor(const_cast<char *>("catchuparchiver_command_abort"));
+    
+    cu.salEvent(const_cast<char *>("catchuparchiver_logevent_SummaryState")); 
+    cu.salEvent(const_cast<char *>("catchuparchiver_logevent_AppliedSettingsMatchStart")); 
+    cu.salEvent(const_cast<char *>("catchuparchiver_logevent_SettingVersions")); 
+    cu.salEvent(const_cast<char *>("catchuparchiver_logevent_ErrorCode")); 
+    
+    SAL_processingcluster pp = SAL_processingcluster(); 
+    pp.salProcessor(const_cast<char *>("processingcluster_command_enable")); 
+    pp.salProcessor(const_cast<char *>("processingcluster_command_disable")); 
+    pp.salProcessor(const_cast<char *>("processingcluster_command_standby")); 
+    pp.salProcessor(const_cast<char *>("processingcluster_command_enterControl")); 
+    pp.salProcessor(const_cast<char *>("processingcluster_command_exitControl")); 
+    pp.salProcessor(const_cast<char *>("processingcluster_command_start")); 
+    pp.salProcessor(const_cast<char *>("processingcluster_command_stop")); 
+    pp.salProcessor(const_cast<char *>("processingcluster_command_abort"));
+
+    pp.salEvent(const_cast<char *>("processingcluster_logevent_SummaryState")); 
+    pp.salEvent(const_cast<char *>("processingcluster_logevent_AppliedSettingsMatchStart")); 
+    pp.salEvent(const_cast<char *>("processingcluster_logevent_SettingVersions")); 
+    pp.salEvent(const_cast<char *>("processingcluster_logevent_ErrorCode")); 
+
     cout << "============> running CONSUMER <=============" << endl; 
-    ack_consumer->run(on_message); 
+    ack_consumer->run(on_message, ar, cu, pp); 
 } 
 
-void AckSubscriber::on_message(string message) { 
+void AckSubscriber::on_message(string message, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
     Node node = Load(message); 
     string message_value; 
     try { 
@@ -135,254 +125,236 @@ void AckSubscriber::on_message(string message) {
 	    cout << "[" << message_value << "] ..." << endl; 
 	}   
 	funcptr action = action_handler[message_value]; 
-	(*action)(node); 
+	(*action)(node, ar, cu, pp); 
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In AckSubscriber -- on_message, cannot read fields from message." << endl; 
     } 
 } 
 
-void AckSubscriber::process__ack(Node n) {
+void AckSubscriber::process_ack(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) {
     try { 
 	string message_value = n["MSG_TYPE"].as<string>(); 
-	int cmdId = stoi(n["CMD_ID"].as<string>()); 
+	long cmdId = stol(n["CMD_ID"].as<string>()); 
 	string device = n["DEVICE"].as<string>(); 
 	string ack_id = n["ACK_ID"].as<string>(); 
 	string ack_bool = n["ACK_BOOL"].as<string>(); 
 	string ack_statement = n["ACK_STATEMENT"].as<string>();
-	string cmd = get_salProcessor(device, ack_id); 
 
-	visitor v; 
-	v.dict_key = message_value; 
-	v.cmdId = cmdId; 
-	v.cmd = cmd; 
-	v.error_code = (ack_bool == "true") ? 0: -302; 
-	v.ack_statement = ack_statement; 
-	
-	cout << "=== PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
-	sal_obj mgr = get_salObj(device); 
-	boost::apply_visitor(v, mgr); 
-	
+        salLONG error_code = (ack_bool == "true") ? 0: -302; 
+
+        if (device == "AR") { 
+            Command<SAL_archiver> sender; 
+            Command<SAL_archiver>::funcptr action = sender.action_handler[message_value]; 
+            (ar.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
+        } 
+        else if (device == "CU") { 
+            Command<SAL_catchuparchiver> sender; 
+            Command<SAL_catchuparchiver>::funcptr action = sender.action_handler[message_value]; 
+            (cu.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
+        } 
+        else if (device == "PP"){ 
+            Command<SAL_processingcluster> sender; 
+            Command<SAL_processingcluster>::funcptr action = sender.action_handler[message_value]; 
+            (pp.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
+        }
+
+	cout << "=== PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id 
+             << "::" << message_value << "::" << ack_statement << endl; 
+
 	ack_book_keeper[ack_id]["CHECKBOX"] = "true"; 
     } 
     catch (exception& e) { 
-	cout << "WARNING: " << "In AckSubscriber -- process__ack, cannot read fields from message." << endl; 
-    } 
+	cout << "WARNING: " << "In AckSubscriber -- process_ack, cannot read fields from message." << endl; 
+    }  
 }
- 
-void AckSubscriber::process_event__SummaryState(Node n) {
-    string device;
-    long summarystatevalue; 
-    long priority; 
+
+void AckSubscriber::process_summary_state(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
     try { 
-	device = n["DEVICE"].as<string>(); 
-	summarystatevalue = n["CURRENT_STATE"].as<long>(); 
-	priority = 0;   
+        string message_value = n["MSG_TYPE"].as<string>(); 
+        string device = n["DEVICE"].as<string>(); 
+        long summary_state = n["CURRENT_STATE"].as<long>(); 
+        long priority = 0; 
+
+        if (device == "AR") { 
+            archiver_logevent_SummaryStateC data; 
+            data.SummaryStateValue = summary_state; 
+            data.priority = priority; 
+
+            ar.logEvent_SummaryState(&data, priority); 
+        }
+        else if (device == "CU") {
+            catchuparchiver_logevent_SummaryStateC data; 
+            data.SummaryStateValue = summary_state; 
+            data.priority = priority; 
+            cu.logEvent_SummaryState(&data, priority); 
+        }
+        else if (device == "PP") { 
+            processingcluster_logevent_SummaryStateC data; 
+            data.SummaryStateValue = summary_state; 
+            data.priority = priority; 
+            pp.logEvent_SummaryState(&data, priority); 
+        }
     } 
     catch (exception& e) { 
-	cout << "WARNING: " << "In Acksubscriber -- process_event__SummaryState, cannot read fields from message." << endl; 
-	return; 
-    } 
-    if (device == "AR") { 
-	eventSAL<SAL_archiver, archiver_logevent_SummaryStateC> archiver_sum; 
-	eventSAL<SAL_archiver, archiver_logevent_SummaryStateC>::
-		eventStateFunc func = &SAL_archiver::logEvent_SummaryState; 
-	archiver_logevent_SummaryStateC data; 
+	cout << "WARNING: " << "In AckSubscriber -- summary_state, cannot read fields from message." << endl; 
+        cout << "The error is " << e.what() << endl; 
+    }  
+} 
 
-	data.SummaryStateValue = summarystatevalue; 
-	data.priority = priority;  
-	archiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "CU") { 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SummaryStateC> catchuparchiver_sum; 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SummaryStateC>::
-		eventStateFunc func = &SAL_catchuparchiver::logEvent_SummaryState; 
-	catchuparchiver_logevent_SummaryStateC data; 
+void AckSubscriber::process_recommended_settings_version(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
+    try { 
+        string message_value = n["MSG_TYPE"].as<string>(); 
+        string device = n["DEVICE"].as<string>(); 
+        string recommended_setting = n["CFG_KEY"].as<string>(); 
+        long priority = 0; 
 
-	data.SummaryStateValue = summarystatevalue; 
-	data.priority = priority;  
-	catchuparchiver_sum.send_eventState(n, func, data);  
+        if (device == "AR") { 
+            archiver_logevent_SettingVersionsC data; 
+            data.recommendedSettingVersion = recommended_setting; 
+            data.priority = priority; 
+            ar.logEvent_SettingVersions(&data, priority); 
+        }
+        else if (device == "CU") {
+            catchuparchiver_logevent_SettingVersionsC data; 
+            data.recommendedSettingVersion = recommended_setting; 
+            data.priority = priority; 
+            cu.logEvent_SettingVersions(&data, priority); 
+        }
+        else if (device == "PP") { 
+            processingcluster_logevent_SettingVersionsC data; 
+            data.recommendedSettingVersion = recommended_setting; 
+            data.priority = priority; 
+            pp.logEvent_SettingVersions(&data, priority); 
+        }
     } 
-    else if (device == "PP") { 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_SummaryStateC> processingcluster_sum; 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_SummaryStateC>::
-		eventStateFunc func = &SAL_processingcluster::logEvent_SummaryState; 
-	processingcluster_logevent_SummaryStateC data; 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- recommended_setting_versions, cannot read fields from message." << endl; 
+        cout << "The error is " << e.what() << endl; 
+    }  
+}
 
-	data.SummaryStateValue = summarystatevalue; 
-	data.priority = priority;  
-	processingcluster_sum.send_eventState(n, func, data);  
+void AckSubscriber::process_settings_applied(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) {
+    try { 
+        string message_value = n["MSG_TYPE"].as<string>(); 
+        string device = n["DEVICE"].as<string>(); 
+        bool settings_applied = n["APPLIED"].as<bool>(); 
+        long priority = 0; 
+
+        if (device == "AR") { 
+            archiver_logevent_AppliedSettingsMatchStartC data; 
+            data.appliedSettingsMatchStartIsTrue = settings_applied; 
+            data.priority = priority; 
+            ar.logEvent_AppliedSettingsMatchStart(&data, priority); 
+        }
+        else if (device == "CU") {
+            catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
+            data.appliedSettingsMatchStartIsTrue = settings_applied; 
+            data.priority = priority; 
+            cu.logEvent_AppliedSettingsMatchStart(&data, priority); 
+        }
+        else if (device == "PP") { 
+            processingcluster_logevent_AppliedSettingsMatchStartC data; 
+            data.appliedSettingsMatchStartIsTrue = settings_applied; 
+            data.priority = priority; 
+            pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
+        }
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- settings_applied, cannot read fields from message." << endl; 
+        cout << "The error is " << e.what() << endl; 
+    }  
+}
+
+void AckSubscriber::process_applied_settings_match_start(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) {
+    try { 
+        string message_value = n["MSG_TYPE"].as<string>(); 
+        string device = n["DEVICE"].as<string>(); 
+        bool settings_applied = n["APPLIED"].as<bool>(); 
+        long priority = 0; 
+
+        if (device == "AR") { 
+            archiver_logevent_AppliedSettingsMatchStartC data; 
+            data.appliedSettingsMatchStartIsTrue = settings_applied; 
+            data.priority = priority; 
+            ar.logEvent_AppliedSettingsMatchStart(&data, priority); 
+        }
+        else if (device == "CU") {
+            catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
+            data.appliedSettingsMatchStartIsTrue = settings_applied; 
+            data.priority = priority; 
+            cu.logEvent_AppliedSettingsMatchStart(&data, priority); 
+        }
+        else if (device == "PP") { 
+            processingcluster_logevent_AppliedSettingsMatchStartC data; 
+            data.appliedSettingsMatchStartIsTrue = settings_applied; 
+            data.priority = priority; 
+            pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
+        }
+    }
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- applied_settings_match_start, cannot read fields from message." << endl; 
+        cout << "The error is " << e.what() << endl; 
+    }  
+}
+
+void AckSubscriber::process_error_code(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) {
+    try {
+        string message_value = n["MSG_TYPE"].as<string>(); 
+        string device = n["DEVICE"].as<string>(); 
+        long error_code = n["ERROR_CODE"].as<long>(); 
+        long priority = 0; 
+
+        if (device == "AR") { 
+            archiver_logevent_ErrorCodeC data; 
+            data.errorCode = error_code; 
+            data.priority = priority; 
+            ar.logEvent_ErrorCode(&data, priority); 
+        }
+        else if (device == "CU") {
+            catchuparchiver_logevent_ErrorCodeC data; 
+            data.errorCode = error_code; 
+            data.priority = priority; 
+            cu.logEvent_ErrorCode(&data, priority); 
+        }
+        else if (device == "PP") { 
+            processingcluster_logevent_ErrorCodeC data; 
+            data.errorCode = error_code; 
+            data.priority = priority; 
+            pp.logEvent_ErrorCode(&data, priority); 
+        }
+    }
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- error_code, cannot read fields from message." << endl; 
+        cout << "The error is " << e.what() << endl; 
+    }  
+} 
+
+void AckSubscriber::process_book_keeping(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
+    cout << "=== BOOK_KEEPING received" << endl;
+    try { 
+	string ack_id = n["ACK_ID"].as<string>(); 
+	string time = n["TIME"].as<string>(); 
+	string checkbox = n["CHECKBOX"].as<string>(); 
+	string cmdId = n["CMD_ID"].as<string>(); 
+	string device = n["DEVICE"].as<string>(); 
+        string sub_type = n["SUB_TYPE"].as<string>(); 
+
+	map<string, string> innerdict; 
+	innerdict["TIME"] = time; 
+	innerdict["CHECKBOX"] = checkbox; 
+	innerdict["CMD_ID"] = cmdId; 
+	innerdict["DEVICE"] = device; 
+        innerdict["SUB_TYPE"] = sub_type; 
+
+	ack_book_keeper[ack_id] = innerdict; 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- process__book_keeping, cannot read fields from message.";  
     } 
 } 
 
-void AckSubscriber::process_event__RecommendedSettings(Node n){ 
-    string device, recommended_setting_version;
-    long priority; 
-    try { 
-	device = n["DEVICE"].as<string>();  
-	recommended_setting_version = n["CFG_KEY"].as<string>(); 
-	priority = 0; 
-    } 
-    catch (exception& e) { 
-	cout << "WARNING: " << "In Acksubscriber -- process_event__RecommendedSettings, cannot read fields from message." << endl; 
-	return; 
-    } 
-    
-    if (device == "AR") { 
-	eventSAL<SAL_archiver, archiver_logevent_SettingVersionsC> archiver_sum; 
-	eventSAL<SAL_archiver, archiver_logevent_SettingVersionsC>::
-		eventStateFunc func = &SAL_archiver::logEvent_SettingVersions; 
-	archiver_logevent_SettingVersionsC data; 
-	data.recommendedSettingVersion = recommended_setting_version;
-	data.priority = priority;  
-	archiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "CU") { 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SettingVersionsC> catchuparchiver_sum; 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_SettingVersionsC>::
-		eventStateFunc func = &SAL_catchuparchiver::logEvent_SettingVersions; 
-	catchuparchiver_logevent_SettingVersionsC data; 
-	data.recommendedSettingVersion = recommended_setting_version; 
-	data.priority = priority;  
-	catchuparchiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "PP") { 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_SettingVersionsC> processingcluster_sum; 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_SettingVersionsC>::
-		eventStateFunc func = &SAL_processingcluster::logEvent_SettingVersions; 
-	processingcluster_logevent_SettingVersionsC data; 
-	data.recommendedSettingVersion = recommended_setting_version;
-	data.priority = priority;  
-	processingcluster_sum.send_eventState(n, func, data);  
-    } 
-}
-
-void AckSubscriber::process_event__AppliedSettings(Node n){ 
-    string device;
-    bool settings_applied;
-    long priority; 
-    try {
-	device = n["DEVICE"].as<string>();
-	settings_applied = n["APPLIED"].as<bool>(); 
-	priority = 0;  
-    } 
-    catch (exception& e) { 
-	cout << "WARNING: " << "In Acksubscriber -- process_event__SettingsApplied, cannot read fields from message." << endl; 
-	return; 
-    } 
-    if (device == "AR") { 
-	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC> archiver_sum; 
-	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC>::
-		eventStateFunc func = &SAL_archiver::logEvent_AppliedSettingsMatchStart; 
-	archiver_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = settings_applied; 
-	data.priority = priority;  
-	archiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "CU") { 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_AppliedSettingsMatchStartC> catchuparchiver_sum; 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_AppliedSettingsMatchStartC>::
-		eventStateFunc func = &SAL_catchuparchiver::logEvent_AppliedSettingsMatchStart; 
-	catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = settings_applied; 
-	data.priority = priority;  
-	catchuparchiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "PP") { 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_AppliedSettingsMatchStartC> processingcluster_sum; 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_AppliedSettingsMatchStartC>::
-		eventStateFunc func = &SAL_processingcluster::logEvent_AppliedSettingsMatchStart; 
-	processingcluster_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = settings_applied; 
-	data.priority = priority;  
-	processingcluster_sum.send_eventState(n, func, data);  
-    } 
-}
-
-void AckSubscriber::process_event__AppliedSettingsMatchStart(Node n){ 
-    string device;
-    bool applied_settings_matchstart_istrue;
-    long priority; 
-    try {
-	device = n["DEVICE"].as<string>();
-	applied_settings_matchstart_istrue = n["APPLIED"].as<bool>(); 
-	priority = 0;  
-    } 
-    catch (exception& e) { 
-	cout << "WARNING: " << "In Acksubscriber -- process_event__AppliedSettingsMatchStart, cannot read fields from message." << endl; 
-	return; 
-    } 
-    if (device == "AR") { 
-	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC> archiver_sum; 
-	eventSAL<SAL_archiver, archiver_logevent_AppliedSettingsMatchStartC>::
-		eventStateFunc func = &SAL_archiver::logEvent_AppliedSettingsMatchStart; 
-	archiver_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = applied_settings_matchstart_istrue; 
-	data.priority = priority;  
-	archiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "CU") { 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_AppliedSettingsMatchStartC> catchuparchiver_sum; 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_AppliedSettingsMatchStartC>::
-		eventStateFunc func = &SAL_catchuparchiver::logEvent_AppliedSettingsMatchStart; 
-	catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = applied_settings_matchstart_istrue; 
-	data.priority = priority;  
-	catchuparchiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "PP") { 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_AppliedSettingsMatchStartC> processingcluster_sum; 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_AppliedSettingsMatchStartC>::
-		eventStateFunc func = &SAL_processingcluster::logEvent_AppliedSettingsMatchStart; 
-	processingcluster_logevent_AppliedSettingsMatchStartC data; 
-	data.appliedSettingsMatchStartIsTrue = applied_settings_matchstart_istrue; 
-	data.priority = priority;  
-	processingcluster_sum.send_eventState(n, func, data);  
-    } 
-}
-
-void AckSubscriber::process_event__ErrorCode(Node n){ 
-    string device; 
-    long error_code, priority; 
-    try { 
-	device = n["DEVICE"].as<string>();  
-	error_code = n["ERROR_CODE"].as<long>(); 
-	priority = 0; 
-    } 
-    catch (exception& e) { 
-	cout << "WARNING: " << "In Acksubscriber -- process_event__ErrorCode, cannot read fields from message." << endl; 
-	return; 
-    }
-    if (device == "AR") { 
-	eventSAL<SAL_archiver, archiver_logevent_ErrorCodeC> archiver_sum; 
-	eventSAL<SAL_archiver, archiver_logevent_ErrorCodeC>::
-		eventStateFunc func = &SAL_archiver::logEvent_ErrorCode; 
-	archiver_logevent_ErrorCodeC data; 
-	data.errorCode = error_code; 
-	data.priority = priority;  
-	archiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "CU") { 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_ErrorCodeC> catchuparchiver_sum; 
-	eventSAL<SAL_catchuparchiver, catchuparchiver_logevent_ErrorCodeC>::
-		eventStateFunc func = &SAL_catchuparchiver::logEvent_ErrorCode; 
-	catchuparchiver_logevent_ErrorCodeC data; 
-	data.errorCode = error_code; 
-	data.priority = priority;  
-	catchuparchiver_sum.send_eventState(n, func, data);  
-    } 
-    else if (device == "PP") { 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_ErrorCodeC> processingcluster_sum; 
-	eventSAL<SAL_processingcluster, processingcluster_logevent_ErrorCodeC>::
-		eventStateFunc func = &SAL_processingcluster::logEvent_ErrorCode; 
-	processingcluster_logevent_ErrorCodeC data; 
-	data.errorCode = error_code; 
-	data.priority = priority;  
-	processingcluster_sum.send_eventState(n, func, data);  
-    } 
-}
-
-void AckSubscriber::process__resolve_ack(Node n) { 
+void AckSubscriber::process_resolve_ack(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
     for (auto &ack_dict : ack_book_keeper) { 
 	string check_box = ack_dict.second.find("CHECKBOX")->second; 
 	string device = ack_dict.second.find("DEVICE")->second; 
@@ -397,98 +369,29 @@ void AckSubscriber::process__resolve_ack(Node n) {
 
 	    if (timeout_result) { 
 		string cmd_id = ack_dict.second.find("CMD_ID")->second; 
-		int command_id = stoi(cmd_id); 
+		long command_id = stol(cmd_id); 
+                string command = ack_dict.second.find("SUB_TYPE")->second + "_ACK"; 
+
 		
-		string ack_id = ack_dict.first; 
-		string holder = ack_id.substr(0, ack_id.find("_")); 
-
-		string command; 
-		if ( holder == "ENTER" ) command = "ENTER_CONTROL_ACK"; 
-		else if (holder == "EXIT") command = "EXIT_CONTROL_ACK"; 
-		else command = holder + "_ACK"; 
-		cout << "### RESOLVE_NAME: " << command << endl; 
-
-		string cmd = get_salProcessor(device, ack_id); 
-		
-		visitor v; 
-		v.dict_key = command; 
-		v.cmd = cmd; 
-		v.cmdId = command_id; 
-		v.error_code = -302; 
-		v.ack_statement = "DONE: OK"; 
-
-		cout << "=== RESOLVE_ACK: " << device << "::" << ack_id << "::" << cmd << "::" << v.ack_statement << endl; 
-		sal_obj mgr = get_salObj(device); 
-		boost::apply_visitor(v, mgr); 
-
+		cout << "### RESOLVE_NAME: " << command  << "::" << device << "::" << command_id << endl; 
+                Node new_msg; 
+                new_msg["MSG_TYPE"] = command; 
+                new_msg["CMD_ID"] = command_id; 
+                new_msg["DEVICE"] = device; 
+                new_msg["ACK_ID"] = ack_id; 
+                new_msg["ACK_BOOL"] = "false";  
+                new_msg["ACK_STATEMENT"] = "nack"; 
+                
 		ack_book_keeper[ack_id]["CHECKBOX"] = "true";
+                process_ack(new_msg, ar, cu, pp); 
+
 	    }  	
 	}  
     }
 }
-
-void AckSubscriber::process__book_keeping(Node n) { 
-    try { 
-	string ack_id = n["ACK_ID"].as<string>(); 
-	string time = n["TIME"].as<string>(); 
-	string checkbox = n["CHECKBOX"].as<string>(); 
-	string cmdId = n["CMD_ID"].as<string>(); 
-	string device = n["DEVICE"].as<string>(); 
-
-	map<string, string> innerdict; 
-	innerdict["TIME"] = time; 
-	innerdict["CHECKBOX"] = checkbox; 
-	innerdict["CMD_ID"] = cmdId; 
-	innerdict["DEVICE"] = device; 
-
-	ack_book_keeper[ack_id] = innerdict; 
-    } 
-    catch (exception& e) { 
-	cout << "WARNING: " << "In AckSubscriber -- process__book_keeping, cannot read fields from message.";  
-    } 
-} 
-
-AckSubscriber::sal_obj AckSubscriber::get_salObj(string device) { 
-    sal_obj my_device; 
-    if (device == "AR") my_device = SAL_archiver(); 
-    else if (device == "CU") my_device = SAL_catchuparchiver(); 
-    else my_device = SAL_processingcluster(); 
-    return my_device; 
-} 
-
-string AckSubscriber::get_salProcessor(string device, string ack_id) { 
-    string holder = ack_id.substr(0, ack_id.find("_")); 
-    transform(holder.begin(), holder.end(), holder.begin(), ::tolower); 
-    string command; 
-    if ( holder == "enter" ) command = "enterControl"; 
-    else if (holder == "exit") command = "exitControl"; 
-    else command = holder; 
-    string device_name; 
-	
-    if (device == "AR") { device_name = "archiver"; } 
-    else if (device == "CU") { device_name = "catchuparchiver"; } 
-    else { device_name = "processingcluster"; } 
-
-    string cmd = device_name + "_command_" + command; 
-
-    return cmd; 
-} 
-
-string AckSubscriber::get_salEvent(string device, string message_type) { 
-    string event_name, device_name, message_name; 
-    if (device == "AR") device_name = "archiver"; 
-    else if (device == "CU") device_name = "catchuparchiver"; 
-    else if (device == "PP") device_name = "processingcluster"; 
-
-    message_name = eventDict[message_type]; 
-    event_name = device_name + "_logevent_" + message_name; 
-    return event_name; 
-} 
-
 
 int main() { 
     AckSubscriber ack; 
     ack.run(); 
     return 0; 
 } 
-
