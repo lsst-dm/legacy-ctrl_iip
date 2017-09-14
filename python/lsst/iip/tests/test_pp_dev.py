@@ -19,24 +19,24 @@ from MessageAuthority import MessageAuthority
 from const import *
 import toolsmod
 
-from ArchiveDevice import *
+from PromptProcessDevice import *
 
-logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
+logging.basicConfig(filename='logs/PP_AR_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
-class TestArDev:
-    ardev = ArchiveDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+class TestPpDev:
+    ppdev = PromptProcessDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
     dmcs_pub_broker_url = None
     dmcs_publisher = None
     dmcs_consumer = None
     dmcs_consumer_msg_list = []
 
-    ar_ctrl_pub_broker_url = None
-    ar_ctrl_publisher = None
-    ar_ctrl_consumer = None
-    ar_ctrl_consumer_msg_list = []
+    ncsa_pub_broker_url = None
+    ncsa_publisher = None
+    ncsa_ctrl_consumer = None
+    ncsa_consumer_msg_list = []
 
-    EXPECTED_AR_CTRL_MESSAGES = 1
+    EXPECTED_NCSA_MESSAGES = 1
     EXPECTED_DMCS_MESSAGES = 1
     EXPECTED_F1_MESSAGES = 1
     EXPECTED_F2_MESSAGES = 1
@@ -45,7 +45,7 @@ class TestArDev:
     prp = toolsmod.prp
 
 
-    def test_ardev(self):
+    def test_ppdev(self):
         try:
             cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
         except IOError as e:
@@ -68,17 +68,17 @@ class TestArDev:
                                  broker_addr
         self.dmcs_publisher = SimplePublisher(dmcs_pub_broker_url, "YAML")
     
-        ar_ctrl_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']
-        ar_ctrl_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
-        ar_ctrl_pub_name = cdm[ROOT]['ARCHIVE_BROKER_PUB_NAME']
-        ar_ctrl_pub_passwd = cdm[ROOT]['ARCHIVE_BROKER_PUB_PASSWD']
-        ar_ctrl_broker_url = "amqp://" + ar_ctrl_name + ":" + \
-                                ar_ctrl_passwd + "@" + \
+        ncsa_name = cdm[ROOT]['NCSA_BROKER_NAME']
+        ncsa_passwd = cdm[ROOT]['NCSA_BROKER_PASSWD']
+        ncsa_pub_name = cdm[ROOT]['NCSA_BROKER_PUB_NAME']
+        ncsa_pub_passwd = cdm[ROOT]['NCSA_BROKER_PUB_PASSWD']
+        ncsa_broker_url = "amqp://" + ncsa_name + ":" + \
+                                ncsa_passwd + "@" + \
                                 broker_addr
-        ar_ctrl_pub_broker_url = "amqp://" + ar_ctrl_pub_name + ":" + \
-                                    ar_ctrl_pub_passwd + "@" + \
+        ncsa_pub_broker_url = "amqp://" + ncsa_pub_name + ":" + \
+                                    ncsa_pub_passwd + "@" + \
                                     broker_addr
-        self.ar_ctrl_publisher = SimplePublisher(ar_ctrl_pub_broker_url, "YAML")
+        self.ncsa_publisher = SimplePublisher(ncsa_pub_broker_url, "YAML")
     
         F1_name = 'F1'
         F1_passwd = 'F1'
@@ -114,9 +114,9 @@ class TestArDev:
         self.dmcs_consumer.start()
 
 
-        self.ar_ctrl_consumer = Consumer(ar_ctrl_broker_url,'ar_foreman_consume', 'thread-ar-ctrl', 
-                                    self.on_ar_ctrl_message,'YAML', None)
-        self.ar_ctrl_consumer.start()
+        self.ncsa_consumer = Consumer(ncsa_broker_url,'ncsa_consume', 'thread-ncsa', 
+                                    self.on_ncsa_message,'YAML', None)
+        self.ncsa_consumer.start()
 
 
         self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
@@ -149,32 +149,32 @@ class TestArDev:
         
         self.clear_message_lists()
 
-        self.EXPECTED_AR_CTRL_MESSAGES = 1
+        self.EXPECTED_NCSA_MESSAGES = 1
         self.EXPECTED_DMCS_MESSAGES = 1
         self.EXPECTED_F1_MESSAGES = 1
         self.EXPECTED_F2_MESSAGES = 1
 
         msg = {}
-        msg['MSG_TYPE'] = "AR_NEW_SESSION"
+        msg['MSG_TYPE'] = "PP_NEW_SESSION"
         msg['SESSION_ID'] = 'SI_469976'
         msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
         msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
         time.sleep(3)
         print("New Session Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+        self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
 
         msg = {}
-        msg['MSG_TYPE'] = "AR_NEXT_VISIT"
+        msg['MSG_TYPE'] = "PP_NEXT_VISIT"
         msg['VISIT_ID'] = 'XX_28272' 
         msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
         time.sleep(2)
         print("Next Visit Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+        self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
           
         msg = {}
-        msg['MSG_TYPE'] = "AR_START_INTEGRATION"
+        msg['MSG_TYPE'] = "PP_START_INTEGRATION"
         msg['JOB_NUM'] = '4xx72'
         msg['IMAGE_ID'] = 'IMG_444244'
         msg['VISIT_ID'] = 'V14494'
@@ -183,10 +183,10 @@ class TestArDev:
         msg['ACK_ID'] = 'AR_ACK_94671'
         msg['CCD_LIST'] = [4,14.16,17,29,35,36]
         time.sleep(4)
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+        self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
       
         msg = {}
-        msg['MSG_TYPE'] = "AR_READOUT"
+        msg['MSG_TYPE'] = "PP_READOUT"
         msg['JOB_NUM'] = '4xx72'
         msg['IMAGE_ID'] = 'IMG_444244'
         msg['VISIT_ID'] = 'V14494'
@@ -194,7 +194,7 @@ class TestArDev:
         msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'ACK_44221'
         time.sleep(4)
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+        self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
 
         """
         #  while 1:
@@ -224,9 +224,6 @@ class TestArDev:
 
         print("Message Sender done")
 
-    def clear_message_lists(self):
-        self.dmcs_consumer_msg_list = []
-        self.ar_ctrl_consumer_msg_list = []
 
     def verify_dmcs_messages(self):
         print("Messages received by verify_dmcs_messages:")
@@ -247,23 +244,23 @@ class TestArDev:
         print("Responses to DMCS Bridge pass verification.")
    
 
-    def verify_ar_ctrl_messages(self):
-        print("Messages received by verify_ar_ctrl_messages:")
-        self.prp.pprint(self.ar_ctrl_consumer_msg_list)
-        len_list = len(self.ar_ctrl_consumer_msg_list)
-        if len_list != self.EXPECTED_AR_CTRL_MESSAGES:
-            print("Messages received by verify_ar_ctrl_messages:")
-            self.prp.pprint(self.ar_ctrl_consumer_msg_list)
-            pytest.fail('AR CTRL simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_AR_CTRL_MESSAGES, len_list))
+    def verify_ncsa_messages(self):
+        print("Messages received by verify_ncsa_messages:")
+        self.prp.pprint(self.ncsa_consumer_msg_list)
+        len_list = len(self.ncsa_consumer_msg_list)
+        if len_list != self.EXPECTED_NCSA_MESSAGES:
+            print("Messages received by verify_ncsa_messages:")
+            self.prp.pprint(self.ncsa_consumer_msg_list)
+            pytest.fail('NCSA simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_NCSA_MESSAGES, len_list))
 
         # Now check num keys in each message first, then check for key errors
         for i in range(0, len_list):
-            msg = self.ar_ctrl_consumer_msg_list[i]
+            msg = self.ncsa_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
-                pytest.fail("The following message to the AR CTRL failed when compared with the sovereign example: %s" % msg)
-        print("Messages to the AR CTRL pass verification.")
+                pytest.fail("The following message to the NCSA Foreman failed when compared with the sovereign example: %s" % msg)
+        print("Messages to the NCSA Foreman pass verification.")
    
 
     def verify_F1_messages(self):
@@ -309,10 +306,69 @@ class TestArDev:
     def on_dmcs_message(self, ch, method, properties, body):
         self.dmcs_consumer_msg_list.append(body)
 
-    def on_ar_ctrl_message(self, ch, method, properties, body):
-        self.ar_ctrl_consumer_msg_list.append(body)
+    def on_ncsa_message(self, ch, method, properties, body):
+        # on_ncsa_publish
+        self.ncsa_consumer_msg_list.append(body)
+
+        if body['MSG_TYPE'] == 'NCSA_NEW_SESSION':
+            msg = {}
+            msg['MSG_TYPE'] = 'NCSA_NEW_SESSION_ACK'
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['ACK_BOOL'] = True
+            self.ncsa_publisher.publish_message(body['RESPONSE_QUEUE'], msg)
+            return
+
+        if body['MSG_TYPE'] == 'NCSA_NEXT_VISIT':
+            msg = {}
+            msg['MSG_TYPE'] = 'NCSA_NEXT_VISIT_ACK'
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['ACK_BOOL'] = True
+            self.ncsa_publisher.publish_message(body['RESPONSE_QUEUE'], msg)
+            return
+
+        if body['MSG_TYPE'] == 'NCSA_START_INTEGRATION':
+            msg = {}
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['MSG_TYPE'] = 'NCSA_START_INTEGRATION_ACK'
+            msg['COMPONENT_NAME'] = 'NCSA_FOREMAN'
+            fwdrs = copy.deepcopy(body['FORWARDERS'])
+            pp = pprint.PrettyPrinter(indent=2)
+            print("In callback2, fwdrs dict is:")
+            pp.pprint(fwdrs)
+            fwdrs_keys = list(fwdrs.keys())
+            i = 1
+            for fwdr in fwdrs_keys:
+                dists = {}
+                dists['FQN'] = "Distributor_" + str(i)
+                dists['NAME'] = "D" + str(i)
+                dists['HOSTNAME'] = "D" + str(i)
+                dists['TARGET_DIR'] = "/dev/null"
+                dists['IP_ADDR'] = "141.142.237.16" + str(i)
+                fwdrs[fwdr]['DISTRIBUTOR'] = dists
+                i = i + 1
+        
+            #for fwdr in fwdrs_keys:
+            #    dists = {}
+            #    dists[fwdr] = {}
+            #    dists[fwdr]['FQN'] = "Distributor_" + str(i)
+            #    dists[fwdr]['NAME'] = "D" + str(i)
+            #    dists[fwdr]['HOSTNAME'] = "D" + str(i)
+            #    dists[fwdr]['TARGET_DIR'] = "/dev/null"
+            #    dists[fwdr]['IP_ADDR'] = "141.142.237.16" + str(i)
+            #    fwdrs[fwdr]['DISTRIBUTOR'] = dists
+            #    i = i + 1
+        
+            msg['PAIRS'] = fwdrs
+            msg['ACK_BOOL'] = True
+            msg['JOB_NUM'] = body['JOB_NUM']
+            msg['IMAGE_ID'] = body['IMAGE_ID']
+            msg['VISIT_ID'] = body['VISIT_ID']
+            msg['SESSION_ID'] = body['SESSION_ID']
+            self.ncsa_publisher.publish_message(body['RESPONSE_QUEUE'], msg)
+            return
 
     def on_f1_message(self, ch, method, properties, body):
+        # pp_forwarder_publish
         self.f1_consumer_msg_list.append(body)
 
     def on_f2_message(self, ch, method, properties, body):
