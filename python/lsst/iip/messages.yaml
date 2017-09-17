@@ -477,73 +477,88 @@ ROOT:
 #MSG_TYPE: ARCHIVE_HEALTH_CHECK_ACK
 #ACK_BOOL: True or False
 #ACK_ID: return seq. num
-#-------------------------------------------------
-#Msg # AR3: New Archive Item from Base Archive Foreman to Archive Controller (Upon receipt of Archive Start Integration message)
-#MSG_TYPE: NEW_ARCHIVE_ITEM
-#SESSION_ID: num from OCS
-#VISIT_ID: num from OCS
-#IMAGE_ID: num from OCS
-#IMAGE_TYPE: AR or SP (Raw Image data or Spectography data)
-#ACK_ID: seq. num
-#--------------------------------------------------
-#Msg # AR4: New Archive Item Ack from Archive Controller to Base Archive Foreman
-#MSG_TYPE: NEW_ARCHIVE_ITEM_ACK
-#ACK_ID: return seq. number
-#TARGET_DIR: Path of intended location
-#------------------------------------------------
-#Msg # AR5: Archive Job Params from Base Archive Foreman to Archive Forwarder
-#MSG_TYPE: AR_XFER_PARAMS
-#JOB_NUM:
-#IMAGE_ID: num from OCS
-#TARGET_DIR: Where to put file in archive
-#ACK_ID: seq. num
-#REPLY_QUEUE:
-#FITS: Partial fits metadata someday?
-#XFER_PARAMS:
-#            CCD_LIST: List of ccds to transfer
-#            XFER_UNIT: CCD (Always CCD for archive units)
-#            FQN: ARCHIVE
-#            NAME: Login name of receiving entity
-#            HOSTNAME: Not used at present
-#            IP_ADDR:
-#            IMG_SRC: Main cam DAQ of aux cam DAQ? Not certain yet...
-#-----------------------------------------------
-#Msg # AR6: Archive Job Params ACK from Archive Forwarder to Base Archive Foreman
-#MSG_TYPE: AR_JOB_PARAMS_ACK
-#ACK_ID: seq. num returned
-#-----------------------------------------------
-#Msg # AR7: Archive Readout from Base Archive Foreman to Archive Forwarder
-#MSG_TYPE: AR_READOUT
-#IMAGE_ID: num from OCS
-#ACK_ID: seq. num
-#----------------------------------------------
-#Msg # AR8: Archive Readout Ack from Archive Forwarder to Base Archive Foreman
-#MSG_TYPE: AR_READOUT_ACK
-#JOB_NUM:
-#IMAGE_ID:
-#REPLY_QUEUE:
-#ACK_ID: return seq. num
-#RESULTS:
-#        CCD_LIST:
-#              FILENAME: Path plus filename used for the transfer
-#              CHECKSUM: File checksum value
-#----------------------------------------------
-# 
-#> FILE IS TRANSFERRED TO TARGET LOCATION <
-# 
-#Msg # AR9: Archive Item Transferred Notification from Base Archive Foreman to Archive Controller 
-#MSG_TYPE: AR_ITEMS_XFERD
-#ACK_ID: seq. num
-#IMAGE_ID:
-#CCD_LIST:
-#            FILENAME: Path plus filename used for the transfer
-#            CHECKSUM: File checksum value
-#--------------------------------------------------
-#Msg # AR10: Archive Item Receipt/Ack from Archive Controller to Base Archive Foreman
-#MSG_TYPE: AR_ITEMS_XFERD_ACK
-#IMAGE_ID: 
-#ACK_ID: return seq. number
-#RESULTS_LIST:
-#            CCD: RECEIPT_ID or 'none' for failure
-#------------------------------------------------
-#
+
+
+    NEW_ARCHIVE_ITEM:
+        MSG_TYPE: NEW_ARCHIVE_ITEM
+        JOB_NUM:
+        SESSION_ID: num from OCS
+        VISIT_ID: num from OCS
+        IMAGE_ID: num from OCS
+        REPLY_QUEUE: 'ar_foreman_ack_publish'
+        ACK_ID: seq. num
+
+
+    NEW_ARCHIVE_ITEM_ACK:
+        MSG_TYPE: NEW_ARCHIVE_ITEM_ACK
+        COMPONENT: ARCHIVE_CTRL
+        ACK_ID: return seq. number
+        TARGET_DIR: Path of intended location
+
+
+    AR_FWDR_XFER_PARAMS:
+        MSG_TYPE: AR_FWDR_XFER_PARAMS
+        JOB_NUM:
+        IMAGE_ID: num from OCS
+        TARGET_DIR: Where to put file in archive
+        SESSION_ID:
+        VISIT_ID:
+        IMAGE_ID:
+        ACK_ID: seq. num
+        REPLY_QUEUE:
+        XFER_PARAMS:
+            CCD_LIST: List of ccds to transfer
+            FQN: ARCHIVE
+            NAME: Login name of receiving entity
+            IP_ADDR:
+
+
+    AR_FWDR_XFER_PARAMS_ACK:
+        MSG_TYPE: AR_FWDR_XFER_PARAMS_ACK
+        COMPONENT:
+        ACK_ID: seq. num returned
+
+
+    AR_READOUT:
+        MSG_TYPE: AR_READOUT
+        JOB_NUM:
+        SESSION_ID:
+        VISIT_ID:
+        IMAGE_ID:
+        RESPONSE_QUEUE:
+        ACK_ID: seq. num
+
+
+    AR_READOUT_ACK:
+        MSG_TYPE: AR_READOUT_ACK
+        COMPONENT:
+        JOB_NUM:
+        IMAGE_ID:
+        REPLY_QUEUE:
+        ACK_ID: return seq. num
+        RESULTS:
+            CCD_LIST:
+                FILENAME: Path plus filename used for the transfer
+                CHECKSUM: File checksum value
+
+
+    AR_ITEMS_XFERD
+        MSG_TYPE: AR_ITEMS_XFERD
+        ACK_ID: seq. num
+        IMAGE_ID:
+        CCD_LIST:
+            FILENAME: Path plus filename used for the transfer
+            CHECKSUM: File checksum value
+
+
+    AR_ITEMS_XFERD_ACK:
+        MSG_TYPE: AR_ITEMS_XFERD_ACK
+        COMPONENT: AR_CTRL
+        IMAGE_ID: 
+        ACK_ID: return seq. number
+        RESULTS_LIST:
+            CCD: RECEIPT_ID or 'none' for failure
+
+
+
+

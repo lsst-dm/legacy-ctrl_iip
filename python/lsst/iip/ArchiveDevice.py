@@ -151,6 +151,7 @@ class ArchiveDevice:
         start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
         start_int_params['ACK_ID'] = ac_timed_ack
         start_int_params['JOB_NUM'] = job_number
+        start_int_params['SESSION_ID'] = session_id
         start_int_params['VISIT_ID'] = visit_id
         start_int_params['IMAGE_ID'] = image_id
         start_int_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
@@ -196,7 +197,6 @@ class ArchiveDevice:
 
         start_int_params = {}
         minidict = {}
-        minidict['NAME'] = self.archive_name
         minidict['IP_ADDR'] = self.archive_ip
         minidict['NAME'] = self.archive_name
         minidict['FQN'] = self.archive_fqn
@@ -406,7 +406,6 @@ class ArchiveDevice:
         ro_params['SESSION_ID'] = self.get_current_session()
         ro_params['VISIT_ID'] = self.get_current_visit()
         ro_params['IMAGE_ID'] = params['IMAGE_ID']
-        ro_params['IMAGE_SRC'] = params['IMAGE_SRC']
         ro_params['ACK_ID'] = readout_ack
         ro_params['RESPONSE_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH 
         work_schedule = self.JOB_SCBD.get_ccds_for_job(job_number)
