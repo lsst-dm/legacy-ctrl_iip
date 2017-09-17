@@ -311,10 +311,128 @@ class TestArDev:
 
     def on_ar_ctrl_message(self, ch, method, properties, body):
         self.ar_ctrl_consumer_msg_list.append(body)
+        if body['MSG_TYPE'] == 'NEW_ARCHIVE_ITEM':
+            msg = {}
+            msg['MSG_TYPE'] = 'NEW_ARCHIVE_ITEM_ACK'
+            msg['COMPONENT'] = 'ARCHIVE'
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['TARGET_DIR'] = '/dev/test/null' 
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        elif body['MSG_TYPE'] == 'AR_ITEMS_XFERD':
+            msg = {}
+            msg['MSG_TYPE'] = 'AR_ITEM_XFERD_ACK'
+            msg['COMPONENT'] = 'ARCHIVE_CTRL'
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['IMAGE_ID'] = body['IMAGE_ID']
+            msg['TARGET_DIR'] = '/dev/test/null/' 
+            results_list = {}
+            ccd_list = list(body['CCD_LIST'].keys())
+            for ccd in ccd_list:
+                results_list[ccd] = 'x14_' + ccd
+            msg['RESULTS_LIST'] = results_list
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        else:
+            pytest.fail("The following unknown message was received by the Archive CTRL: %s" % body)
 
     def on_f1_message(self, ch, method, properties, body):
         self.f1_consumer_msg_list.append(body)
+        if body['MSG_TYPE'] == 'AR_FWDR_HEALTH_CHECK':
+            msg = {}
+            msg['MSG_TYPE'] = 'AR_FWDR_HEALTH_CHECK_ACK'
+            msg['COMPONENT'] = 'F1'
+            msg['ACK_BOOL'] = True 
+            msg['ACK_ID'] = body['ACK_ID']
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        elif body['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
+            msg = {}
+            msg['MSG_TYPE'] = 'AR_FWDR_XFER_PARAMS_ACK'
+            msg['COMPONENT'] = 'F1'
+            msg['ACK_BOOL'] = True 
+            msg['ACK_ID'] = body['ACK_ID']
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        elif body['MSG_TYPE'] == 'AR_FWDR_READOUT':
+            # Find message in message list for xfer_params
+            readout_msg = None
+            for msg in self.f2_consumer_msg_list:
+                if msg['MSG_TYPE'] = 'AR_FWDR_XFER_PARAMS':
+                    readout_msg = msg
+                    break
+            if readout_msg == None:
+                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F2")
+)
+            # use message to build response
+            msg = {}
+            msg['MSG_TYPE'] = 'AR_FWDR_READOUT_ACK'
+            msg['COMPONENT'] = 'F1'
+            msg['JOB_NUM'] = readout_msg['JOB_NUM']
+            msg['IMAGE_ID'] = readout_msg['IMAGE_ID']
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['ACK_BOOL'] = True
+            msg['RESULTS'] = {}
+            target_dir = readout_msg['TARGET_DIR']
+            ccd_list = readout_msg['XFER_PARAMS']['CCD_LIST']
+            for ccd in ccd_list:
+                md = {}
+                md['FILENAME'] = target_dir + ccd
+                md['CHECKSUM'] = 'YYYYBBBB7777$$$$'
+                msg['RESULTS'][ccd] = md
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        else:
+            pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
+
 
     def on_f2_message(self, ch, method, properties, body):
         self.f2_consumer_msg_list.append(body)
+        if body['MSG_TYPE'] == 'AR_FWDR_HEALTH_CHECK':
+            msg = {}
+            msg['MSG_TYPE'] = 'AR_FWDR_HEALTH_CHECK_ACK'
+            msg['COMPONENT'] = 'F2'
+            msg['ACK_BOOL'] = True 
+            msg['ACK_ID'] = body['ACK_ID']
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        elif body['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
+            msg = {}
+            msg['MSG_TYPE'] = 'AR_FWDR_XFER_PARAMS_ACK'
+            msg['COMPONENT'] = 'F2'
+            msg['ACK_BOOL'] = True 
+            msg['ACK_ID'] = body['ACK_ID']
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        elif body['MSG_TYPE'] == 'AR_FWDR_READOUT':
+            # Find message in message list for xfer_params
+            readout_msg = None
+            for msg in self.f2_consumer_msg_list:
+                if msg['MSG_TYPE'] = 'AR_FWDR_XFER_PARAMS':
+                    readout_msg = msg
+                    break
+            if readout_msg == None:
+                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F2")
+)
+            # use message to build response
+            msg = {}
+            msg['MSG_TYPE'] = 'AR_FWDR_READOUT_ACK'
+            msg['COMPONENT'] = 'F2'
+            msg['JOB_NUM'] = readout_msg['JOB_NUM']
+            msg['IMAGE_ID'] = readout_msg['IMAGE_ID']
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['ACK_BOOL'] = True
+            msg['RESULTS'] = {}
+            target_dir = readout_msg['TARGET_DIR']
+            ccd_list = readout_msg['XFER_PARAMS']['CCD_LIST']
+            for ccd in ccd_list:
+                md = {}
+                md['FILENAME'] = target_dir + ccd
+                md['CHECKSUM'] = 'XXXXFFFF4444$$$$'
+                msg['RESULTS'][ccd] = md
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        else:
+            pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
+
 

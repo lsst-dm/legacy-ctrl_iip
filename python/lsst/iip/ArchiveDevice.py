@@ -53,10 +53,9 @@ class ArchiveDevice:
                               'AR_NEW_SESSION': self.set_session,
                               'AR_NEXT_VISIT': self.set_visit,
                               'AR_READOUT': self.process_dmcs_readout,
-                              'FORWARDER_HEALTH_ACK': self.process_ack,
-                              'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
-                              'FORWARDER_READOUT_ACK': self.process_ack,
-                              'AR_XFER_PARAMS_ACK': self.process_ack,
+                              'AR_FWDR_HEALTH_CHECK_ACK': self.process_ack,
+                              'AR_FWDR_XFER_PARAMS_ACK': self.process_ack,
+                              'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack }
 
@@ -241,7 +240,7 @@ class ArchiveDevice:
 
     def fwdr_health_check(self, ack_id):
         msg_params = {}
-        msg_params[MSG_TYPE] = 'FORWARDER_HEALTH_CHECK'
+        msg_params[MSG_TYPE] = 'AR_FWDR_HEALTH_CHECK'
         msg_params[ACK_ID] = ack_id
         msg_params[REPLY_QUEUE] = self.AR_FOREMAN_ACK_PUBLISH
 
@@ -376,6 +375,7 @@ class ArchiveDevice:
         xfer_list_msg[MSG_TYPE] = 'AR_ITEMS_XFERD'
         xfer_list_msg[ACK_ID] = confirm_ack
         xfer_list_msg['IMAGE_ID'] = image_id
+        xfer_list_msg['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
         xfer_list_msg['CCD_LIST'] = work_confirm_dict
         
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, xfer_list_msg) 
