@@ -24,7 +24,7 @@ from PromptProcessDevice import *
 logging.basicConfig(filename='logs/PP_AR_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
 class TestPpDev:
-    ppdev = PromptProcessDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+    ppdev = PromptProcessDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_pp.yaml')
 
     dmcs_pub_broker_url = None
     dmcs_publisher = None

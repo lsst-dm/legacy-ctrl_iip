@@ -111,7 +111,7 @@ class AckScoreboard(Scoreboard):
         """
 
         ack_id_string = ack_msg_body['ACK_ID']
-        ack_component_name = ack_msg_body['COMPONENT_NAME']
+        ack_component_name = ack_msg_body['COMPONENT']
         ack_sub_type = ack_msg_body['MSG_TYPE']
       
         if self.check_connection():
@@ -137,7 +137,7 @@ class AckScoreboard(Scoreboard):
                 params['JOB_NUM'] = ack_msg_body['JOB_NUM']
             if 'IMAGE_ID' in ack_msg_body:
                 params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
-            params['COMPONENT_NAME'] = ack_component_name
+            params['COMPONENT'] = ack_component_name
             params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
             self.persist(self.build_audit_data(params))
             
@@ -224,8 +224,8 @@ class AckScoreboard(Scoreboard):
 
 
 def main():
-#    dull = {'MSG_TYPE':'ZZZ','ACK_ID':'ACK_222','COMPONENT_NAME':'BIG_BOB','JOB_NUM':'J444','RESULTS': {'HAY':'Haw','HOW':'Now','PRETTY':'Weird'}}
-#    duller = {'MSG_TYPE':'ZZZ','ACK_ID':'ACK_222','COMPONENT_NAME':'BIG_BARBARA','JOB_NUM':'J444','RESULTS': {'STRAW':'Soda','Why':'High','PRETTY':'Crazy'}}
+#    dull = {'MSG_TYPE':'ZZZ','ACK_ID':'ACK_222','COMPONENT':'BIG_BOB','JOB_NUM':'J444','RESULTS': {'HAY':'Haw','HOW':'Now','PRETTY':'Weird'}}
+#    duller = {'MSG_TYPE':'ZZZ','ACK_ID':'ACK_222','COMPONENT':'BIG_BARBARA','JOB_NUM':'J444','RESULTS': {'STRAW':'Soda','Why':'High','PRETTY':'Crazy'}}
 #    print "Printing dull and duller..."
 #    print dull
 #    print "--------"

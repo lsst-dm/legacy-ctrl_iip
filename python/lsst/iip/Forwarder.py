@@ -169,7 +169,7 @@ class Forwarder:
         msg['MSG_TYPE'] = 'AR_ITEMS_XFERD_ACK'
         msg['JOB_NUM'] = job_number
         msg['IMAGE_ID'] = params['IMAGE_ID']
-        msg['COMPONENT_NAME'] = self._fqn
+        msg['COMPONENT'] = self._fqn
         msg['ACK_ID'] = params['ACK_ID']
         msg['ACK_BOOL'] = True  # See if num keys of results == len(ccd_list) from orig msg params
         msg['RESULTS'] = results
@@ -277,7 +277,7 @@ class Forwarder:
         msg_params = {}
         msg_params[MSG_TYPE] = type
         msg_params[JOB_NUM] = job_num
-        msg_params['COMPONENT_NAME'] = self._fqn
+        msg_params['COMPONENT'] = self._fqn
         msg_params[ACK_BOOL] = "TRUE"
         msg_params[ACK_ID] = timed_ack
         self._publisher.publish_message(response_queue, msg_params)

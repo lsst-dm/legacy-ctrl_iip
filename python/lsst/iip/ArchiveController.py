@@ -174,7 +174,7 @@ class ArchiveController:
 
         msg_params = {}
         msg_params[MSG_TYPE] = type
-        msg_params[COMPONENT_NAME] = self._name
+        msg_params[COMPONENT] = self._name
         msg_params[ACK_BOOL] = "TRUE"
         msg_params['ACK_ID'] = ack_id
         LOGGER.info('%s sent for ACK ID: %s', type, timed_ack)
@@ -219,7 +219,7 @@ class ArchiveController:
         ack_params['ACK_ID'] = params['ACK_ID']
         ack_params['JOB_NUM'] = params['JOB_NUM']
         ack_params['IMAGE_ID'] = params['IMAGE_ID']
-        ack_params['COMPONENT_NAME'] = self._name
+        ack_params['COMPONENT'] = self._name
         ack_params['ACK_BOOL'] = True
         print("Outgoing new archive item ack is:\n%s" % ack_params)
         self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
@@ -236,7 +236,7 @@ class ArchiveController:
 
         
         ack_params['MSG_TYPE'] = 'AR_ITEMS_XFERD_ACK'
-        ack_params['COMPONENT_NAME'] = self._name
+        ack_params['COMPONENT'] = self._name
         ack_params['ACK_ID'] = params['ACK_ID']
         ack_params['ACK_BOOL'] = True
         ack_params['RESULTS'] = transfer_results
