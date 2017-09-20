@@ -53,7 +53,7 @@ class Forwarder:
         self._msg_actions = { FORWARDER_HEALTH_CHECK: self.process_health_check,
                               FORWARDER_JOB_PARAMS: self.process_job_params,
                               'AR_FWDR_XFER_PARAMS': self.process_job_params,  # Here if AR case needs different handler
-                              'AR_READOUT': self.process_foreman_readout,
+                              'AR_FWDR_READOUT': self.process_foreman_readout,
                               FORWARDER_READOUT: self.process_foreman_readout }
 
         self.setup_publishers()
@@ -150,7 +150,7 @@ class Forwarder:
 
     def process_foreman_readout(self, params):
         # self.send_ack_response("FORWARDER_READOUT_ACK", params)
-        reply_queue = params['RESPONSE_QUEUE']
+        reply_queue = params['REPLY_QUEUE']
 
         job_number = params[JOB_NUM]
         # Check and see if scratchpad has this job_num
@@ -172,7 +172,7 @@ class Forwarder:
         msg['COMPONENT'] = self._fqn
         msg['ACK_ID'] = params['ACK_ID']
         msg['ACK_BOOL'] = True  # See if num keys of results == len(ccd_list) from orig msg params
-        msg['RESULTS'] = results
+        msg['RESULT_LIST'] = results
         self._publisher.publish_message(reply_queue, msg)
 
 
@@ -241,26 +241,30 @@ class Forwarder:
         login_str = self._job_scratchpad.get_job_value(job_num, 'LOGIN_STR')
         target_dir = self._job_scratchpad.get_job_value(job_num, 'TARGET_DIR')
         results = {}
+        CCD_LIST = []
+        FILENAME_LIST = []
+        CHECKSUM_LIST = []
         ccds = list(final_filenames.keys())
         for ccd in ccds:
             final_file = final_filenames[ccd]
             pathway = self._DAQ_PATH + final_file
             with open(pathway) as file_to_calc:
-                print("Start Time of MD5 for %s IS: %s" % (pathway, get_timestamp()))
                 if self.CHECKSUM_ENABLED:
                     data = file_to_calc.read()
                     resulting_md5 = hashlib.md5(data).hexdigest()
-                    print("Finish Time of MD5 for %s IS: %s" % (pathway, get_timestamp()))
                 else:
-                    resulting_md5 = 'none'
+                    resulting_md5 = '0'
                 minidict = {}
-                minidict['CHECKSUM'] = resulting_md5
-                minidict['FILENAME'] = target_dir + final_file
+                CCD_LIST.append(ccd)
+                CHECKSUM_LIST.append(resulting_md5)
+                FILENAME_LIST.append(target_dir + final_file)
                 cmd = 'scp ' + pathway + " " + login_str + target_dir + final_file
                 print("Finish Time of SCP'ing %s IS: %s" % (pathway, get_timestamp()))
                 print("In forward() method, cmd is %s" % cmd)
                 os.system(cmd)
-                results[ccd] = minidict
+                results['CCD_LIST'] = CCD_LIST
+                results['FILENAME_LIST'] = FILENAME_LIST
+                results['CHECKSUM_LIST'] = CHECKSUM_LIST
 
         print("END Time of READOUT XFER IS: %s" % get_timestamp())
         print("In forward method, results are: \n%s" % results)

@@ -91,7 +91,6 @@ class ArchiveController:
 
 
     def on_archive_message(self, ch, method, properties, msg_dict):
-        print("INCOMING On_archive_message, msg is:\n%s" % msg_dict)
         LOGGER.info('Message from Archive callback message body is: %s', str(msg_dict))
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -112,33 +111,36 @@ class ArchiveController:
         
 
     def process_new_archive_item(self, params):
-        print("Incoming archive ctrl new archive item msg is:\n%s" % params)
         self.send_audit_message("received_", params)
         target_dir = self.construct_send_target_dir(params)
         self.send_new_item_ack(target_dir, params)
 
 
     def process_transfer_complete(self, params):
-        print("Incoming process transfer msg is:\n%s" % params)
-        print("\n\n") 
         transfer_results = {}
-        ccd_list = params['CCD_LIST']
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("The CCD_LIST is %s" % ccd_list)
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        ccds = list(ccd_list.keys())
-        print("The ccds are %s" % ccds)
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        for ccd in ccds:
-            pathway = ccd_list[ccd]['FILENAME']
-            csum = ccd_list[ccd]['CHECKSUM']
-            transfer_results[ccd] = self.check_transferred_file(pathway, csum)
+        ccds = params['RESULT_LIST']['CCD_LIST']
+        fnames = params['RESULT_LIST']['FILENAME_LIST']
+        csums = params['RESULT_SET']['CHECKSUM_LIST']
+        num_ccds = len(ccds)
+        transfer_results = {}
+        RECEIPT_LIST = [] 
+        for i in range(0, num_ccds):
+            ccd = ccds[i]
+            pathway = fnames[i]
+            csum = csums[i]
+            transfer_result = self.check_transferred_file(pathway, csum)
+            if transfer_result == None:
+                RECEIPT_LIST.append('0')
+            else:
+                RECEIPT_LIST.append(transfer_result
+        transfer_results['CCD_LIST'] = ccds
+        transfer_results['RECEIPT_LIST'] = RECEIPT_LIST
         self.send_transfer_complete_ack(transfer_results, params)
 
 
     def check_transferred_file(self, pathway, csum):
         if not os.path.isfile(pathway):
-            return (-1)
+            return ('-1')
 
         if self.CHECKSUM_ENABLED:
             with open(pathway) as file_to_calc:
@@ -146,7 +148,7 @@ class ArchiveController:
                 resulting_md5 = hashlib.md5(data).hexdigest()
 
                 if resulting_md5 != csum:
-                    return (0)
+                    return ('0')
 
         return self.next_receipt_number()
 
@@ -221,7 +223,6 @@ class ArchiveController:
         ack_params['IMAGE_ID'] = params['IMAGE_ID']
         ack_params['COMPONENT'] = self._name
         ack_params['ACK_BOOL'] = True
-        print("Outgoing new archive item ack is:\n%s" % ack_params)
         self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
 
 

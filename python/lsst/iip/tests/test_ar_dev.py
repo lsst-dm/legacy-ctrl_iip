@@ -142,12 +142,12 @@ class TestArDev:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        self.verify_dmcs_messages()
-        self.verify_ar_ctrl_messages()
+        sleep(10)
         self.verify_F1_messages()
         self.verify_F2_messages()
+        self.verify_dmcs_messages()
+        self.verify_ar_ctrl_messages()
 
-        sleep(2)
         print("Finished with AR tests.")
         #sys.exit(0)
 
@@ -157,8 +157,6 @@ class TestArDev:
         print("Starting send_messages")
         # Tests only an AR device
         
-        self.clear_message_lists()
-
         self.EXPECTED_AR_CTRL_MESSAGES = 2
         self.EXPECTED_DMCS_MESSAGES = 4
         self.EXPECTED_F1_MESSAGES = 3
@@ -169,7 +167,7 @@ class TestArDev:
         msg['SESSION_ID'] = 'SI_469976'
         msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        time.sleep(3)
+        time.sleep(2)
         print("New Session Message")
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
 
@@ -192,7 +190,8 @@ class TestArDev:
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'AR_ACK_94671'
         msg['CCD_LIST'] = [4,14,16,17,29,35,36]
-        time.sleep(4)
+        time.sleep(2)
+        print("AR Start Integration Message")
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
       
         msg = {}
@@ -203,49 +202,17 @@ class TestArDev:
         msg['SESSION_ID'] = '4_14_7211511'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'ACK_44221'
-        time.sleep(4)
+        time.sleep(2)
+        print("AR Readout Message")
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
 
-        """
-        #  while 1:
-        msg = {}
-        msg['MSG_TYPE'] = 'NEW_ARCHIVE_ITEM'
-        msg['SESSION_ID'] = "Tues_xx417"
-        msg['VISIT_ID'] = "V_5512"
-        msg['IMAGE_TYPE'] = 'AR'
-        msg['IMAGE_ID'] = "IMG_442"
-        msg['ACK_ID'] = "NEW_ITEM_ACK_14"
-        time.sleep(3)
-        sp1.publish_message("archive_ctrl_consume", msg)
-        """
-
-        """
-        msg = {}
-        msg['MSG_TYPE'] = 'AR_ITEMS_XFERD'
-        msg['IMAGE_ID'] = "IMG_442"
-        msg['CCD_LIST'] = {'4':{ 'FILENAME':'/mnt/xfer_dir/101_100_4.fits','CHECKSUM':'348e1dbe4956e9d8d2dfa97535744561'}}
-        msg['ACK_ID'] = 'AR_ITEMS_ACK_2241'
-        time.sleep(5)
-        sp1.publish_message("archive_ctrl_consume", msg)
-        """
-
- 
         time.sleep(2)
-
         print("Message Sender done")
 
-    def clear_message_lists(self):
-        self.dmcs_consumer_msg_list = []
-        self.ar_ctrl_consumer_msg_list = []
 
     def verify_dmcs_messages(self):
-        print("Messages received by verify_dmcs_messages:")
-        self.prp.pprint(self.dmcs_consumer_msg_list)
         len_list = len(self.dmcs_consumer_msg_list)
-        #if len_list != self.EXPECTED_DMCS_MESSAGES:
-        if False:
-            print("Messages received by verify_dmcs_messages:")
-            self.prp.pprint(self.dmcs_consumer_msg_list)
+        if len_list != self.EXPECTED_DMCS_MESSAGES:
             pytest.fail('DMCS simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_DMCS_MESSAGES, len_list))
 
@@ -259,12 +226,8 @@ class TestArDev:
    
 
     def verify_ar_ctrl_messages(self):
-        print("Messages received by verify_ar_ctrl_messages:")
-        self.prp.pprint(self.ar_ctrl_consumer_msg_list)
         len_list = len(self.ar_ctrl_consumer_msg_list)
         if len_list != self.EXPECTED_AR_CTRL_MESSAGES:
-            print("Messages received by verify_ar_ctrl_messages:")
-            self.prp.pprint(self.ar_ctrl_consumer_msg_list)
             pytest.fail('AR CTRL simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_AR_CTRL_MESSAGES, len_list))
 
@@ -278,12 +241,8 @@ class TestArDev:
    
 
     def verify_F1_messages(self):
-        print("Messages received by verify_F1_messages:")
-        self.prp.pprint(self.f1_consumer_msg_list)
         len_list = len(self.f1_consumer_msg_list)
         if len_list != self.EXPECTED_F1_MESSAGES:
-            print("Messages received by verify_F1_messages:")
-            self.prp.pprint(self.f1_consumer_msg_list)
             pytest.fail('F1 simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_F1_MESSAGES, len_list))
 
@@ -293,17 +252,13 @@ class TestArDev:
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
                 pytest.fail("The following message to F1 failed when compared with the sovereign example: %s" % msg)
-            else:
-                print("Messages to F1 pass verification.")
+
+        print("Messages to F1 pass verification.")
   
    
     def verify_F2_messages(self):
-        print("Messages received by verify_F2_messages:")
-        self.prp.pprint(self.f2_msg_list)
         len_list = len(self.f2_consumer_msg_list)
         if len_list != self.EXPECTED_F2_MESSAGES:
-            print("Messages received by verify_F2_messages:")
-            self.prp.pprint(self.f2_consumer_msg_list)
             pytest.fail('F2 simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_F2_MESSAGES, len_list))
 
@@ -313,8 +268,8 @@ class TestArDev:
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
                 pytest.fail("The following message to F2 failed when compared with the sovereign example: %s" % msg)
-            else:
-                print("Messages to F2 pass verification.")
+
+        print("Messages to F2 pass verification.")
   
  
     def on_dmcs_message(self, ch, method, properties, body):
@@ -339,13 +294,17 @@ class TestArDev:
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
             msg['IMAGE_ID'] = body['IMAGE_ID']
-            results_list = {}
-            ccd_list = list(body['CCD_LIST'].keys())
+            msg['RESULT_LIST'] = {}
+            msg['RESULT_LIST']['CCD_LIST'] = []
+            msg['RESULT_LIST']['RECEIPT_LIST'] = []
+            CCD_LIST = []
+            RECEIPT_LIST = []
+            ccd_list = body['RESULT_LIST']['CCD_LIST']
             for ccd in ccd_list:
-                results_list[ccd] = 'x14_' + str(ccd)
-            msg['RESULTS_LIST'] = results_list
-            print("IN Pytest test, AR_ITEMS_XFERD_ACK is :")
-            self.prp.pprint(msg)
+                CCD_LIST.append(ccd)  
+                RECEIPT_LIST.append('x14_' + str(ccd))
+            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST 
+            msg['RESULT_LIST']['RECEIPT_LIST'] = RECEIPT_LIST 
             self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
@@ -371,34 +330,42 @@ class TestArDev:
 
         elif body['MSG_TYPE'] == 'AR_FWDR_READOUT':
             # Find message in message list for xfer_params
-            readout_msg = None
-            for msg in self.f2_consumer_msg_list:
+            xfer_msg = None
+            for msg in self.f1_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
-                    readout_msg = msg
+                    xfer_msg = msg
                     break
-            if readout_msg == None:
-                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F2")
+            if xfer_msg == None:
+                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
 
             # use message to build response
             msg = {}
             msg['MSG_TYPE'] = 'AR_FWDR_READOUT_ACK'
             msg['COMPONENT'] = 'FORWARDER_1'
-            msg['JOB_NUM'] = readout_msg['JOB_NUM']
-            msg['IMAGE_ID'] = readout_msg['IMAGE_ID']
+            msg['JOB_NUM'] = xfer_msg['JOB_NUM']
+            msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            msg['RESULTS'] = {}
-            target_dir = readout_msg['TARGET_DIR']
-            ccd_list = readout_msg['XFER_PARAMS']['CCD_LIST']
+            msg['RESULT_LIST'] = {}
+            msg['RESULT_LIST']['CCD_LIST'] = []
+            msg['RESULT_LIST']['FILENAME_LIST'] = []
+            msg['RESULT_LIST']['CHECKSUM_LIST'] = []
+            CCD_LIST = []
+            FILENAME_LIST = []
+            CHECKSUM_LIST = []
+            target_dir = xfer_msg['TARGET_DIR']
+            ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
             for ccd in ccd_list:
-                md = {}
-                md['FILENAME'] = target_dir + str(ccd)
-                md['CHECKSUM'] = 'YYYYBBBB7777$$$$'
-                msg['RESULTS'][ccd] = md
+                CCD_LIST.append(ccd)
+                FILENAME_LIST.append(target_dir + str(ccd))
+                CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
+            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
+            msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
+            msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
             self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
-            pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
+            pytest.fail("The following unknown message was received by FWDR F1: %s" % body)
 
 
     def on_f2_message(self, ch, method, properties, body):
@@ -421,34 +388,38 @@ class TestArDev:
 
         elif body['MSG_TYPE'] == 'AR_FWDR_READOUT':
             # Find message in message list for xfer_params
-            readout_msg = None
+            xfer_msg = None
             for msg in self.f2_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
-                    readout_msg = msg
+                    xfer_msg = msg
                     break
-            if readout_msg == None:
+            if xfer_msg == None:
                 pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F2")
-            else:
-                print("Found message in ar_ctrl_consumer_message_list with type AR_FWDR_XFER_PARAMS")
-                print("Entire ar_fwdr_xfer_params readout_msg is:")
-                self.prp.pprint(readout_msg) 
 
             # use message to build response
             msg = {}
             msg['MSG_TYPE'] = 'AR_FWDR_READOUT_ACK'
             msg['COMPONENT'] = 'FORWARDER_2'
-            msg['JOB_NUM'] = readout_msg['JOB_NUM']
-            msg['IMAGE_ID'] = readout_msg['IMAGE_ID']
+            msg['JOB_NUM'] = xfer_msg['JOB_NUM']
+            msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            msg['RESULTS'] = {}
-            target_dir = readout_msg['TARGET_DIR']
-            ccd_list = readout_msg['XFER_PARAMS']['CCD_LIST']
+            msg['RESULT_LIST'] = {}
+            msg['RESULT_LIST']['CCD_LIST'] = []
+            msg['RESULT_LIST']['FILENAME_LIST'] = []
+            msg['RESULT_LIST']['CHECKSUM_LIST'] = []
+            CCD_LIST = []
+            FILENAME_LIST = []
+            CHECKSUM_LIST = []
+            target_dir = xfer_msg['TARGET_DIR']
+            ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
             for ccd in ccd_list:
-                md = {}
-                md['FILENAME'] = target_dir + str(ccd)
-                md['CHECKSUM'] = 'XXXXFFFF4444$$$$'
-                msg['RESULTS'][ccd] = md
+                CCD_LIST.append(ccd)
+                FILENAME_LIST.append(target_dir + str(ccd))
+                CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
+            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
+            msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
+            msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
             self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
