@@ -10,13 +10,14 @@ import os
 import time
 import datetime
 from time import sleep
-import _thread
+import threading
 from const import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
 from JobScoreboard import JobScoreboard
 from AckScoreboard import AckScoreboard
 from Consumer import Consumer
+from ThreadManager import ThreadManager
 from SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -35,56 +36,22 @@ class PromptProcessDevice:
     NCSA_PUBLISH = "ncsa_publish"
     NCSA_CONSUME = "ncsa_consume"
     FORWARDER_PUBLISH = "forwarder_publish"
-    ACK_PUBLISH = "ack_publish"
-    YAML = 'YAML'
-    EXCHANGE = 'message'
-    EXCHANGE_TYPE = 'direct'
-    MAX_CCDS_PER_FWDR = 10
+    prp = toolsmod.prp
 
 
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self.prp = pprint.PrettyPrinter(indent=4)
         self._config_file = CFG_FILE
         if filename != None:
             self._config_file = filename
 
-        try:
-            cdm = toolsmod.intake_yaml_file(self._config_file)
-        except IOError as e:
-            trace = traceback.print_exc()
-            emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
-            LOGGER.critical(emsg + trace)
-            sys.exit(102)
-
         LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values(cdm)
+        self.extract_config_values()
 
 
+        #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
-        #if 'QUEUE_PURGES' in cdm[ROOT]:
-        #    self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
-
-        self._base_msg_format = self.YAML
-        self._ncsa_msg_format = self.YAML
-
-        if 'BASE_MSG_FORMAT' in cdm[ROOT]:
-            self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
-
-        if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
-            self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
-
-        self._base_broker_url = 'amqp_url'
-        self._ncsa_broker_url = 'amqp_url'
-        self._next_timed_ack_id = 0
-
-
-        # Create Redis Forwarder table with Forwarder info
-
-        self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', self._scbd_dict['PP_FWD_SCBD'], self.forwarder_dict)
-        self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
 
         self._msg_actions = { 'PP_NEW_SESSION': self.set_session,
                               'PP_NEXT_VISIT': self.set_visit, 
@@ -93,112 +60,41 @@ class PromptProcessDevice:
                               'NCSA_RESOURCE_QUERY_ACK': self.process_ack,
                               'NCSA_START_INTEGRATION_ACK': self.process_ack,
                               'NCSA_READOUT_ACK': self.process_ack,
-                              'FORWARDER_HEALTH_CHECK_ACK': self.process_ack,
-                              'FORWARDER_JOB_PARAMS_ACK': self.process_ack,
-                              'FORWARDER_READOUT_ACK': self.process_ack,
+                              'PP_FWDR_HEALTH_CHECK_ACK': self.process_ack,
+                              'PP_FWDR_XFER_PARAMS_ACK': self.process_ack,
+                              'PP_FWDR_READOUT_ACK': self.process_ack,
                               'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
 
 
-        # Build all necessary Broker connection URLs
-        self._base_broker_url = "amqp://" + self._sub_name + ":" + \
-                                            self._sub_passwd + "@" + \
-                                            str(self._base_broker_addr)
 
+        self.setup_publishers()
+
+        self.setup_scoreboards()
+
+        LOGGER.info('pp foreman consumer setup')
+        self.thread_manager = None
+        self.setup_consumer_threads()
+
+        self._next_timed_ack_id = 0
+
+        LOGGER.info('Prompt Process Foreman Init complete')
+
+
+    def setup_publishers(self):
         self._pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
                                                 self._pub_passwd + "@" + \
                                                 str(self._base_broker_addr)
-
-        self._ncsa_broker_url = "amqp://" + self._sub_ncsa_name + ":" + \
-                                            self._sub_ncsa_passwd + "@" + \
-                                            str(self._ncsa_broker_addr)
 
         self._pub_ncsa_broker_url = "amqp://" + self._pub_ncsa_name + ":" + \
                                                 self._pub_ncsa_passwd + "@" + \
                                                 str(self._ncsa_broker_addr)
 
-        LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
-        LOGGER.info('Building _ncsa_broker_url. Result is %s', self._ncsa_broker_url)
-        LOGGER.info('Setting up consumers on %s', self._base_broker_url)
-        self.setup_publishers()
-        self.setup_consumers()
-
-
-    def setup_consumers(self):
-        """This method sets up a message listener from each entity
-           with which the BaseForeman has contact here. These
-           listeners are instanced in this class, but their run
-           methods are each called as a separate thread. While
-           pika does not claim to be thread safe, the manner in which 
-           the listeners are invoked below is a safe implementation
-           that provides non-blocking, fully asynchronous messaging
-           to the BaseForeman.
-
-           The code in this file expects message bodies to arrive as
-           YAML'd python dicts, while in fact, message bodies are sent
-           on the wire as XML; this way message format can be validated,
-           versioned, and specified in just one place. To make this work,
-           there is an object that translates the params dict to XML, and
-           visa versa. The translation object is instantiated by the consumer
-           and acts as a filter before sending messages on to the registered
-           callback for processing.
-
-        """
-        LOGGER.info('Running start_new_thread on all consumer methods')
-
-        self._dmcs_consumer = Consumer(self._base_broker_url, self.PP_FOREMAN_CONSUME, self._base_msg_format)
-        try:
-            _thread.start_new_thread( self.run_dmcs_consumer, ("thread-dmcs-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start DMCS consumer thread, exiting...')
-            sys.exit(99)
-
-        self._forwarder_consumer = Consumer(self._base_broker_url, self.FORWARDER_PUBLISH, self._base_msg_format)
-        try:
-            _thread.start_new_thread( self.run_forwarder_consumer, ("thread-forwarder-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start FORWARDERS consumer thread, exiting...')
-            sys.exit(100)
-
-        self._ncsa_consumer = Consumer(self._ncsa_broker_url, self.NCSA_PUBLISH, self._base_msg_format)
-        try:
-            _thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
-            sys.exit(101)
-
-        self._ack_consumer = Consumer(self._base_broker_url, self.PP_FOREMAN_ACK_PUBLISH, self._base_msg_format)
-        try:
-            _thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start ACK consumer thread, exiting...')
-            sys.exit(102)
-
-        LOGGER.info('Finished starting all three consumer threads')
-
-
-    def run_dmcs_consumer(self, threadname, delay):
-        self._dmcs_consumer.run(self.on_dmcs_message)
-
-
-    def run_forwarder_consumer(self, threadname, delay):
-        self._forwarder_consumer.run(self.on_forwarder_message)
-
-
-    def run_ncsa_consumer(self, threadname, delay):
-        self._ncsa_consumer.run(self.on_ncsa_message)
-
-    def run_ack_consumer(self, threadname, delay):
-        self._ack_consumer.run(self.on_ack_message)
-
-
-
-    def setup_publishers(self):
         LOGGER.info('Setting up Base publisher on %s using %s', self._base_broker_url, self._base_msg_format)
-        LOGGER.info('Setting up NCSA publisher on %s using %s', self._ncsa_broker_url, self._ncsa_msg_format)
         self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
-        self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
 
+        LOGGER.info('Setting up NCSA publisher on %s using %s', self._ncsa_broker_url, self._ncsa_msg_format)
+        self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
 
 
     def on_dmcs_message(self, ch, method, properties, body):
@@ -395,13 +291,13 @@ class PromptProcessDevice:
  
     def forwarder_health_check(self, params):
         # get timed_ack_id
-        timed_ack = self.get_next_timed_ack_id("FORWARDER_HEALTH_CHECK_ACK")
+        timed_ack = self.get_next_timed_ack_id("PP_FWDR_HEALTH_CHECK_ACK")
 
         forwarders = self.FWD_SCBD.return_forwarders_list()
         job_num = params[JOB_NUM] 
         # send health check messages
         msg_params = {}
-        msg_params[MSG_TYPE] = FORWARDER_HEALTH_CHECK
+        msg_params[MSG_TYPE] = PP_FWDR_HEALTH_CHECK
         msg_params['ACK_ID'] = timed_ack
         msg_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         msg_params[JOB_NUM] = job_num
@@ -460,7 +356,15 @@ class PromptProcessDevice:
         ##    Throw exception
 
         schedule = {}
+        schedule['FORWARDER_LIST'] = []
+        schedule['CCD_LIST'] = []  # A list of ccd lists; index of main list matches same forwarder list index
+        FORWARDER_LIST = []
+        CCD_LIST = [] # This is a 'list of lists'
         if num_fwdrs == 1:
+            FORWARDER_LIST.append(fwdrs_list[0])
+            CCD_LIST.append(ccd_list)
+            schedule['FORWARDERS_LIST'] = FORWARDER_LIST
+            schedule['CCD_LIST'] = CCD_LIST
             schedule[fwdrs_list[0]] = {}
             schedule[fwdrs_list[0]]['CCD_LIST'] = ccd_list
             self.prp.pprint(schedule)
@@ -468,7 +372,13 @@ class PromptProcessDevice:
 
         if num_ccds <= num_fwdrs:
             for k in range (0, num_ccds):
-                schedule[fwdrs_list[k]] = ccd_list[k]
+                little_list = []
+                FORWARDER_LIST.append(fwdrs_list[k])
+                little_list.append(ccd_list[k])
+                CCD_LIST.append(list(little_list))  # Need a copy here...
+                schedule['FORWARDER_LIST'] = FORWARDER_LIST
+                schedule['CCD_LIST'] = CCD_LIST
+                self.prp.pprint(schedule)
         else:
             ccds_per_fwdr = len(ccd_list) // num_fwdrs 
             remainder_ccds = len(ccd_list) % num_fwdrs
@@ -479,28 +389,34 @@ class PromptProcessDevice:
                     if (j) >= num_ccds:
                         break
                     tmp_list.append(ccd_list[j])
+                    CCD_LIST.append(ccd_list[j)
                 offset = offset + ccds_per_fwdr
                 if remainder_ccds != 0 and i == 0:
                     for k in range(offset, offset + remainder_ccds):
                         tmp_list.append(ccd_list[k])
                     offset = offset + remainder_ccds
                 #CCD_LIST = tmp_list
-                schedule[fwdrs_list[i]] = {} 
-                schedule[fwdrs_list[i]]['CCD_LIST'] = tmp_list
-                self.prp.pprint(schedule)
+                FORWARDER_LIST.append(fwdrs_list[i]
+                CCD_LIST.append(list(tmp_list))
+                
+                #schedule[fwdrs_list[i]] = {} 
+                #schedule[fwdrs_list[i]]['CCD_LIST'] = tmp_list
+            schedule['FORWARDER_LIST'] = FORWARDER_LIST
+            schedule['CCD_LIST'] = CCD_LIST
+            print("Finished work schedule is:\n %s" % self.prp.pprint(schedule))
         return schedule
 
 
     def ncsa_resources_query(self, params, work_schedule):
         job_num = str(params[JOB_NUM])
-        timed_ack_id = self.get_next_timed_ack_id("NCSA_Start_Int_Ack") 
+        timed_ack_id = self.get_next_timed_ack_id("NCSA_START_INTEGRATION_ACK") 
         ncsa_params = {}
         ncsa_params[MSG_TYPE] = "NCSA_START_INTEGRATION"
         ncsa_params[JOB_NUM] = job_num
         ncsa_params['VISIT_ID'] = params['VISIT_ID']
         ncsa_params['IMAGE_ID'] = params['IMAGE_ID']
         ncsa_params['SESSION_ID'] = params['SESSION_ID']
-        ncsa_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
+        ncsa_params['REPLY_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         ncsa_params[ACK_ID] = timed_ack_id
         ncsa_params["FORWARDERS"] = work_schedule
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "NCSA_START_INT_SENT")
@@ -681,6 +597,13 @@ class PromptProcessDevice:
 
 
     def extract_config_values(self, cdm):
+        LOGGER.info('Reading YAML Config file %s' % self._config_file)
+        try:
+            cdm = toolsmod.intake_yaml_file(self._config_file)
+        except IOError as e:
+            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
+            sys.exit(101)
+
         try:
             self._sub_name = cdm[ROOT][PFM_BROKER_NAME]      # Message broker user & passwd
             self._sub_passwd = cdm[ROOT][PFM_BROKER_PASSWD]
@@ -702,6 +625,64 @@ class PromptProcessDevice:
             print("KeyError when reading CFG file. Check logs...exiting...")
             sys.exit(99)
 
+        self._base_msg_format = 'YAML'
+        self._ncsa_msg_format = self.YAML
+
+        if 'BASE_MSG_FORMAT' in cdm[ROOT]:
+            self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
+
+        if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
+            self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
+
+    def setup_consumer_threads(self):
+        LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
+        base_broker_url = "amqp://" + self._msg_name + ":" + \
+                                            self._msg_passwd + "@" + \
+                                            str(self._base_broker_addr)
+
+        ncsa_broker_url = "amqp://" + self._sub_ncsa_name + ":" + \
+                                            self._sub_ncsa_passwd + "@" + \
+                                            str(self._ncsa_broker_addr)
+
+        # Set up kwargs that describe consumers to be started
+        # The Archive Device needs three message consumers
+        kws = {}
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-pp_foreman_consume'
+        md['queue'] = 'pp_foreman_consume'
+        md['callback'] = self.on_pp_foreman_message
+        md['format'] = "YAML"
+        md['test_val'] = None
+        kws[md['name']] = md
+
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-pp_foreman_ack_publish'
+        md['queue'] = 'pp_foreman_ack_publish'
+        md['callback'] = self.on_ack_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
+
+        md = {}
+        md['amqp_url'] = ncsa_broker_url
+        md['name'] = 'Thread-ncsa_publish'
+        md['queue'] = 'ncsa_publish'
+        md['callback'] = self.on_ncsa_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
+
+        self.thread_manager = ThreadManager('thread-manager', kws)
+        self.thread_manager.start()
+
+
+    def setup_scoreboards(self):
+        # Create Redis Forwarder table with Forwarder info
+        self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', self._scbd_dict['PP_FWD_SCBD'], self._forwarder_dict)
+        self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
+        self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
 
 
     def purge_broker(self, queues):

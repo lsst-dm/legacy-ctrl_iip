@@ -46,8 +46,7 @@ class ArchiveDevice:
         self.extract_config_values()
 
 
-        # if 'QUEUE_PURGES' in cdm[ROOT]:
-        #    self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
+        #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
 
 
@@ -62,11 +61,6 @@ class ArchiveDevice:
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack }
 
 
-        self._base_broker_url = "amqp://" + self._msg_name + ":" + self._msg_passwd + "@" + str(self._base_broker_addr)
-
-
-        LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
-
         self.setup_publishers()
 
         self.setup_scoreboards()
@@ -77,7 +71,7 @@ class ArchiveDevice:
 
         self._next_timed_ack_id = 0
 
-        LOGGER.info('DMCS Init complete')
+        LOGGER.info('Archive Foreman Init complete')
 
 
     def setup_publishers(self):

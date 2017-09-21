@@ -157,7 +157,7 @@ class TestPpDev:
         print("Starting send_messages")
         # Tests only an AR device
         
-        self.clear_message_lists()
+        # self.clear_message_lists()
 
         self.EXPECTED_NCSA_MESSAGES = 1
         self.EXPECTED_DMCS_MESSAGES = 1
@@ -301,7 +301,7 @@ class TestPpDev:
             msg['MSG_TYPE'] = 'NCSA_NEW_SESSION_ACK'
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            self.ncsa_publisher.publish_message(body['RESPONSE_QUEUE'], msg)
+            self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
             return
 
         if body['MSG_TYPE'] == 'NCSA_NEXT_VISIT':
@@ -309,7 +309,7 @@ class TestPpDev:
             msg['MSG_TYPE'] = 'NCSA_NEXT_VISIT_ACK'
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            self.ncsa_publisher.publish_message(body['RESPONSE_QUEUE'], msg)
+            self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
             return
 
         if body['MSG_TYPE'] == 'NCSA_START_INTEGRATION':
@@ -318,8 +318,7 @@ class TestPpDev:
             msg['MSG_TYPE'] = 'NCSA_START_INTEGRATION_ACK'
             msg['COMPONENT_NAME'] = 'NCSA_FOREMAN'
             fwdrs = copy.deepcopy(body['FORWARDERS'])
-            pp = pprint.PrettyPrinter(indent=2)
-            print("In callback2, fwdrs dict is:")
+            pp = pprint.PrettyPrinter(indent=4)
             pp.pprint(fwdrs)
             fwdrs_keys = list(fwdrs.keys())
             i = 1

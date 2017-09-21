@@ -161,7 +161,6 @@ class AckScoreboard(Scoreboard):
                 for key in keys:
                    component_dict[key] = yaml.load(self._redis.hget(timed_ack, key))
 
-                print("WAIT: Component_dict is:\n%s" % component_dict)
                 return component_dict
                 
                 params = {}
