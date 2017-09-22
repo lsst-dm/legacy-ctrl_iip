@@ -90,10 +90,10 @@ class PromptProcessDevice:
                                                 self._pub_ncsa_passwd + "@" + \
                                                 str(self._ncsa_broker_addr)
 
-        LOGGER.info('Setting up Base publisher on %s using %s', self._base_broker_url, self._base_msg_format)
+        LOGGER.info('Setting up Base publisher on %s using %s', self._pub_base_broker_url, self._base_msg_format)
         self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
 
-        LOGGER.info('Setting up NCSA publisher on %s using %s', self._ncsa_broker_url, self._ncsa_msg_format)
+        LOGGER.info('Setting up NCSA publisher on %s using %s', self._pub_ncsa_broker_url, self._ncsa_msg_format)
         self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
 
 
@@ -101,7 +101,6 @@ class PromptProcessDevice:
         #msg_dict = yaml.load(body) 
         msg_dict = body 
         LOGGER.info('In DMCS message callback')
-        LOGGER.debug('Thread in DMCS callback is %s', _thread.get_ident())
         LOGGER.info('Message from DMCS callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -114,8 +113,6 @@ class PromptProcessDevice:
         pass
 
     def on_ncsa_message(self,ch, method, properties, body):
-        LOGGER.info('In ncsa message callback, thread is %s', _thread.get_ident())
-        #msg_dict = yaml.load(body)
         msg_dict = body
         LOGGER.info('ncsa msg callback body is: %s', str(msg_dict))
 
@@ -125,7 +122,6 @@ class PromptProcessDevice:
     def on_ack_message(self, ch, method, properties, body):
         msg_dict = body 
         LOGGER.info('In ACK message callback')
-        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -297,9 +293,9 @@ class PromptProcessDevice:
         job_num = params[JOB_NUM] 
         # send health check messages
         msg_params = {}
-        msg_params[MSG_TYPE] = PP_FWDR_HEALTH_CHECK
+        msg_params[MSG_TYPE] = 'PP_FWDR_HEALTH_CHECK'
         msg_params['ACK_ID'] = timed_ack
-        msg_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
+        msg_params['REPLY_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         msg_params[JOB_NUM] = job_num
        
         self.JOB_SCBD.set_value_for_job(job_num, "STATE", "HEALTH_CHECK")
@@ -320,6 +316,7 @@ class PromptProcessDevice:
         dmcs_params = {}
         fail_dict = {}
         dmcs_params[MSG_TYPE] = NEW_JOB_ACK
+        dmcs_params['COMPONENT'] = self.COMPONENT_NAME
         dmcs_params[JOB_NUM] = job_num
         dmcs_params[ACK_BOOL] = False
         dmcs_params[ACK_ID] = ack_id
@@ -389,14 +386,14 @@ class PromptProcessDevice:
                     if (j) >= num_ccds:
                         break
                     tmp_list.append(ccd_list[j])
-                    CCD_LIST.append(ccd_list[j)
+                    CCD_LIST.append(ccd_list[j])
                 offset = offset + ccds_per_fwdr
                 if remainder_ccds != 0 and i == 0:
                     for k in range(offset, offset + remainder_ccds):
                         tmp_list.append(ccd_list[k])
                     offset = offset + remainder_ccds
                 #CCD_LIST = tmp_list
-                FORWARDER_LIST.append(fwdrs_list[i]
+                FORWARDER_LIST.append(fwdrs_list[i])
                 CCD_LIST.append(list(tmp_list))
                 
                 #schedule[fwdrs_list[i]] = {} 
@@ -427,26 +424,29 @@ class PromptProcessDevice:
 
 
     def distribute_job_params(self, params, pairs):
+        """ pairs param is a list of dicts. (look at messages.yaml, search for 'PAIR' key, and copy here
+        """
         #ncsa has enough resources...
         job_num = str(params[JOB_NUM])
         self.JOB_SCBD.set_pairs_for_job(job_num, pairs)          
         LOGGER.info('The following pairs will be used for Job #%s: %s',
                      job_num, pairs)
         fwd_ack_id = self.get_next_timed_ack_id("FWD_PARAMS_ACK")
-        fwders = list(pairs.keys())
         fwd_params = {}
-        fwd_params[MSG_TYPE] = "FORWARDER_JOB_PARAMS"
+        fwd_params[MSG_TYPE] = "PP_FORWARDER_JOB_PARAMS"
         fwd_params[JOB_NUM] = job_num
         fwd_params['IMAGE_ID'] = params['IMAGE_ID']
         fwd_params['VISIT_ID'] = params['VISIT_ID']
-        fwd_params['RESPONSE_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
+        fwd_params['REPLY_QUEUE'] = self.PP_FOREMAN_ACK_PUBLISH
         fwd_params[ACK_ID] = fwd_ack_id
-        for fwder in fwders:
-            fwd_params["TRANSFER_PARAMS"] = pairs[fwder]
-            if LOGGER.isEnabledFor(logging.DEBUG):
-                LOGGER.debug(print("Fwdr_params are:")) 
-                LOGGER.debug(self.prp.pprint(fwd_params) )
-            route_key = self.FWD_SCBD.get_value_for_forwarder(fwder, "CONSUME_QUEUE")
+        fwd_params['XFER_PARAMS'] = {}
+        for i in range(0, len(pairs)):
+            ddict = {}
+            ddict = pairs[i]
+            fwdr = ddict['FORWARDER']
+            fwd_params['XFER_PARAMS']['CCD_LIST'] = ddict['CCD_LIST']
+            fwd_params['XFER_PARAMS']['DISTRIBUTOR'] = ddict['DISTRIBUTOR']
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
             self._base_publisher.publish_message(route_key, fwd_params)
 
         return fwd_ack_id
@@ -456,6 +456,7 @@ class PromptProcessDevice:
         dmcs_message = {}
         dmcs_message[JOB_NUM] = job_num
         dmcs_message[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
+        dmcs_message['COMPONENT'] = self.COMPONENT_NAME
         dmcs_message[ACK_BOOL] = True
         self.JOB_SCBD.set_value_for_job(job_num, STATE, "JOB_ACCEPTED")
         self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ACCEPTED", get_timestamp())
@@ -466,6 +467,7 @@ class PromptProcessDevice:
     def insufficient_ncsa_resources(self, ncsa_response):
         dmcs_params = {}
         dmcs_params[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
+        dmcs_params['COMPONENT'] = self.COMPONENT_NAME
         dmcs_params[JOB_NUM] = job_num 
         dmcs_params[ACK_BOOL] = False
         dmcs_params[BASE_RESOURCES] = '1'
@@ -488,6 +490,7 @@ class PromptProcessDevice:
         needed_workers = len(ccd_list)
         dmcs_params = {}
         dmcs_params[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
+        dmcs_params['COMPONENT'] = self.COMPONENT_NAME
         dmcs_params[JOB_NUM] = job_num 
         dmcs_params[ACK_BOOL] = False
         dmcs_params[BASE_RESOURCES] = '1'
@@ -499,8 +502,8 @@ class PromptProcessDevice:
     def process_dmcs_readout(self, params):
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        date - get_timestamp()
-        self.JOB_SCBD.set_value_for_job(job_number, TIME_START_READOUT, date) 
+        date = get_timestamp()
+        self.JOB_SCBD.set_value_for_job(job_number, 'TIME_START_READOUT', date) 
         # The following line extracts the distributor FQNs from pairs dict using 
         # list comprehension values; faster than for loops
         distributors = [v['FQN'] for v in list(pairs.values())]
@@ -596,7 +599,7 @@ class PromptProcessDevice:
 
 
 
-    def extract_config_values(self, cdm):
+    def extract_config_values(self):
         LOGGER.info('Reading YAML Config file %s' % self._config_file)
         try:
             cdm = toolsmod.intake_yaml_file(self._config_file)
@@ -615,7 +618,7 @@ class PromptProcessDevice:
             self._pub_ncsa_passwd = cdm[ROOT]['PFM_NCSA_BROKER_PUB_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self.forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
+            self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
             self._policy_max_ccds_per_fwdr = int(cdm[ROOT]['POLICY']['MAX_CCDS_PER_FWDR'])
         except KeyError as e:
@@ -626,7 +629,7 @@ class PromptProcessDevice:
             sys.exit(99)
 
         self._base_msg_format = 'YAML'
-        self._ncsa_msg_format = self.YAML
+        self._ncsa_msg_format = 'YAML'
 
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
@@ -635,9 +638,9 @@ class PromptProcessDevice:
             self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
 
     def setup_consumer_threads(self):
-        LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
-        base_broker_url = "amqp://" + self._msg_name + ":" + \
-                                            self._msg_passwd + "@" + \
+        LOGGER.info('Building _base_broker_url')
+        base_broker_url = "amqp://" + self._sub_name + ":" + \
+                                            self._sub_passwd + "@" + \
                                             str(self._base_broker_addr)
 
         ncsa_broker_url = "amqp://" + self._sub_ncsa_name + ":" + \
@@ -651,7 +654,7 @@ class PromptProcessDevice:
         md['amqp_url'] = base_broker_url
         md['name'] = 'Thread-pp_foreman_consume'
         md['queue'] = 'pp_foreman_consume'
-        md['callback'] = self.on_pp_foreman_message
+        md['callback'] = self.on_dmcs_message
         md['format'] = "YAML"
         md['test_val'] = None
         kws[md['name']] = md

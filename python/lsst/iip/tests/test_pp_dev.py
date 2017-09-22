@@ -101,7 +101,7 @@ class TestPpDev:
         F1_pub_broker_url = "amqp://" + F1_pub_name + ":" + \
                                     F1_pub_passwd + "@" + \
                                     broker_addr
-        self.F1_publisher = SimplePublisher(F1_pub_broker_url, "YAML")
+        self.f1_publisher = SimplePublisher(F1_pub_broker_url, "YAML")
    
         F2_name = 'F2'
         F2_passwd = 'F2'
@@ -113,7 +113,7 @@ class TestPpDev:
         F2_pub_broker_url = "amqp://" + F2_pub_name + ":" + \
                                     F2_pub_passwd + "@" + \
                                     broker_addr
-        self.F2_publisher = SimplePublisher(F2_pub_broker_url, "YAML")
+        self.f2_publisher = SimplePublisher(F2_pub_broker_url, "YAML")
    
  
         # Must be done before consumer threads are started
@@ -160,10 +160,10 @@ class TestPpDev:
         
         # self.clear_message_lists()
 
-        self.EXPECTED_NCSA_MESSAGES = 1
-        self.EXPECTED_DMCS_MESSAGES = 1
-        self.EXPECTED_F1_MESSAGES = 1
-        self.EXPECTED_F2_MESSAGES = 1
+        self.EXPECTED_NCSA_MESSAGES = 4
+        self.EXPECTED_DMCS_MESSAGES = 4
+        self.EXPECTED_F1_MESSAGES = 3
+        self.EXPECTED_F2_MESSAGES = 3
 
         msg = {}
         msg['MSG_TYPE'] = "PP_NEW_SESSION"
@@ -300,6 +300,7 @@ class TestPpDev:
         if body['MSG_TYPE'] == 'NCSA_NEW_SESSION':
             msg = {}
             msg['MSG_TYPE'] = 'NCSA_NEW_SESSION_ACK'
+            msg['COMPONENT'] = 'NCSA_FOREMAN'
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
             self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
@@ -308,6 +309,7 @@ class TestPpDev:
         if body['MSG_TYPE'] == 'NCSA_NEXT_VISIT':
             msg = {}
             msg['MSG_TYPE'] = 'NCSA_NEXT_VISIT_ACK'
+            msg['COMPONENT'] = 'NCSA_FOREMAN'
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
             self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
@@ -317,8 +319,8 @@ class TestPpDev:
             msg = {}
             msg['ACK_ID'] = body['ACK_ID']
             msg['MSG_TYPE'] = 'NCSA_START_INTEGRATION_ACK'
-            msg['COMPONENT_NAME'] = 'NCSA_FOREMAN'
-            fwdrs = copy.deepcopy(body['FORWARDERS'])
+            msg['COMPONENT'] = 'NCSA_FOREMAN'
+            fwdrs = deepcopy(body['FORWARDERS'])
             fwdr_list = fwdrs['FORWARDER_LIST']
             ccd_list = fwdrs['CCD_LIST']
             i = 1
@@ -335,7 +337,7 @@ class TestPpDev:
                 pair['FORWARDER'] = fwdr_list[i]
                 pair['CCD_LIST'] = ccd_list[i]  #Get the list at index position i in ccd_list
                 pair['DISTRIBUTOR'] = dist
-                msg['PAIRS'].append(copy.deepcopy(pair))
+                msg['PAIRS'].append(deepcopy(pair))
         
             msg['ACK_BOOL'] = True
             msg['JOB_NUM'] = body['JOB_NUM']
@@ -345,7 +347,7 @@ class TestPpDev:
             self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
             return
 
-        if body['MSG_TYPE'] = 'NCSA_READOUT':
+        if body['MSG_TYPE'] == 'NCSA_READOUT':
             # Find earlier Start Int message
             st_int_msg = None
             for msg in self.ncsa_consumer_msg_list:
@@ -357,19 +359,19 @@ class TestPpDev:
 
             # Now build response with previous message
             msg = {}
-            msg["MSG_TYPE'] = 'NCSA_READOUT_ACK'
+            msg['MSG_TYPE'] = 'NCSA_READOUT_ACK'
             msg['JOB_NUM'] = body['JOB_NUM']
             msg['IMAGE_ID'] = body['IMAGE_ID']
             msg['VISIT_ID'] = body['VISIT_ID']
             msg['SESSION_ID'] = body['SESSION_ID']
-            msg['COMPONENT_NAME'] = 'NCSA_FOREMAN'
+            msg['COMPONENT'] = 'NCSA_FOREMAN'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
             #msg['RESULT_LIST']['FORWARDER_LIST'] = st_int_msg['FORWARDERS']['FORWARDER_LIST']
             ccd_list = st_int_msg['FORWARDERS']['CCD_LIST']
             receipt_list = []
             for i in range(0, len(ccd_list)):
-                receipt_list.append('Rec_x447_' = str(i))
+                receipt_list.append('Rec_x447_' + str(i))
             msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
             msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
 
@@ -420,7 +422,7 @@ class TestPpDev:
             ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
             receipt_list = []
             for i in range(0, len(ccd_list)):
-                receipt_list.append('F_Rec_x447_' = str(i))
+                receipt_list.append('F1_Rec_x477_' + str(i))
             msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
             msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
             self.f1_publisher.publish_message(body['REPLY_QUEUE'], msg)
@@ -471,7 +473,7 @@ class TestPpDev:
             ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
             receipt_list = []
             for i in range(0, len(ccd_list)):
-                receipt_list.append('F_Rec_x447_' = str(i))
+                receipt_list.append('F2_Rec_x447_' + str(i))
             msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
             msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
             self.f2_publisher.publish_message(body['REPLY_QUEUE'], msg)
