@@ -79,7 +79,7 @@ class AuditListener:
         L = []
         tags_dict = {}
         tags_dict['ack_type'] = msg['SUB_TYPE']
-        tags_dict['component'] = msg['COMPONENT_NAME']
+        tags_dict['component'] = msg['COMPONENT']
         tags_dict['job'] = msg['JOB_NUM']
         tags_dict['ack_id'] = msg['ACK_ID']
         tags_dict['image_id'] = msg['IMAGE_ID']
@@ -185,7 +185,7 @@ class AuditListener:
         L = []
         tags_dict = {}
         tags_dict['ack_type'] = msg['SUB_TYPE']
-        tags_dict['component'] = msg['COMPONENT_NAME']
+        tags_dict['component'] = msg['COMPONENT']
 
         fields_dict = {}
         fields_dict['ack_id'] = msg['ACK_ID']

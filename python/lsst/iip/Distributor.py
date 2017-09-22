@@ -143,7 +143,7 @@ class Distributor:
         readout_dict = {}
         readout_dict[MSG_TYPE] = "DISTRIBUTOR_READOUT_ACK"
         readout_dict[JOB_NUM] = params[JOB_NUM]
-        readout_dict["COMPONENT_NAME"] = self._fqn_name
+        readout_dict["COMPONENT"] = self._fqn_name
         readout_dict["ACK_BOOL"] = True
         readout_dict["ACK_ID"] = params["TIMED_ACK_ID"]
         self._publisher.publish_message(self._publish_queue, yaml.dump(readout_dict))

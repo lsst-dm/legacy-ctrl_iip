@@ -24,7 +24,7 @@ from PromptProcessDevice import *
 logging.basicConfig(filename='logs/PP_AR_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
 class TestPpDev:
-    ppdev = PromptProcessDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+    ppdev = PromptProcessDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_pp.yaml')
 
     dmcs_pub_broker_url = None
     dmcs_publisher = None
@@ -35,6 +35,16 @@ class TestPpDev:
     ncsa_publisher = None
     ncsa_ctrl_consumer = None
     ncsa_consumer_msg_list = []
+
+    F1_pub_broker_url = None
+    F1_publisher = None
+    F1_consumer = None
+    f1_consumer_msg_list = []
+
+    F2_pub_broker_url = None
+    F2_publisher = None
+    F2_consumer = None
+    f2_consumer_msg_list = []
 
     EXPECTED_NCSA_MESSAGES = 1
     EXPECTED_DMCS_MESSAGES = 1
@@ -132,13 +142,13 @@ class TestPpDev:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        #self.verify_dmcs_messages()
-        #self.verify_ar_ctrl_messages()
-        #self.verify_F1_messages()
-        #self.verify_F2_messages()
+        self.verify_dmcs_messages()
+        self.verify_ncsa_messages()
+        self.verify_F1_messages()
+        self.verify_F2_messages()
 
         sleep(2)
-        print("Finished with AR tests.")
+        print("Finished with PP tests.")
         #sys.exit(0)
 
 
@@ -196,30 +206,6 @@ class TestPpDev:
         time.sleep(4)
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
 
-        """
-        #  while 1:
-        msg = {}
-        msg['MSG_TYPE'] = 'NEW_ARCHIVE_ITEM'
-        msg['SESSION_ID'] = "Tues_xx417"
-        msg['VISIT_ID'] = "V_5512"
-        msg['IMAGE_TYPE'] = 'AR'
-        msg['IMAGE_ID'] = "IMG_442"
-        msg['ACK_ID'] = "NEW_ITEM_ACK_14"
-        time.sleep(3)
-        sp1.publish_message("archive_ctrl_consume", msg)
-        """
-
-        """
-        msg = {}
-        msg['MSG_TYPE'] = 'AR_ITEMS_XFERD'
-        msg['IMAGE_ID'] = "IMG_442"
-        msg['CCD_LIST'] = {'4':{ 'FILENAME':'/mnt/xfer_dir/101_100_4.fits','CHECKSUM':'348e1dbe4956e9d8d2dfa97535744561'}}
-        msg['ACK_ID'] = 'AR_ITEMS_ACK_2241'
-        time.sleep(5)
-        sp1.publish_message("archive_ctrl_consume", msg)
-        """
-
- 
         time.sleep(2)
 
         print("Message Sender done")
@@ -368,9 +354,116 @@ class TestPpDev:
             return
 
     def on_f1_message(self, ch, method, properties, body):
-        # pp_forwarder_publish
         self.f1_consumer_msg_list.append(body)
+        self.f1_consumer_msg_list.append(body)
+        if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
+            msg = {}
+            msg['MSG_TYPE'] = 'PP_FWDR_HEALTH_CHECK_ACK'
+            msg['COMPONENT'] = 'FORWARDER_1'
+            msg['ACK_BOOL'] = True
+            msg['ACK_ID'] = body['ACK_ID']
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        elif body['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
+            msg = {}
+            msg['MSG_TYPE'] = 'PP_FWDR_XFER_PARAMS_ACK'
+            msg['COMPONENT'] = 'FORWARDER_1'
+            msg['ACK_BOOL'] = True
+            msg['ACK_ID'] = body['ACK_ID']
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        elif body['MSG_TYPE'] == 'PP_FWDR_READOUT':
+            # Find message in message list for xfer_params
+            xfer_msg = None
+            for msg in self.f1_consumer_msg_list:
+                if msg['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
+                    xfer_msg = msg
+                    break
+            if xfer_msg == None:
+                pytest.fail("The PP_FWDR_XFER_PARAMS message was not received before PP_FWDR_READOUT in F1")
+
+            # use message to build response
+            msg = {}
+            msg['MSG_TYPE'] = 'PP_FWDR_READOUT_ACK'
+            msg['COMPONENT'] = 'FORWARDER_1'
+            msg['JOB_NUM'] = xfer_msg['JOB_NUM']
+            msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['ACK_BOOL'] = True
+            msg['RESULT_LIST'] = {}
+            msg['RESULT_LIST']['CCD_LIST'] = []
+            msg['RESULT_LIST']['FILENAME_LIST'] = []
+            msg['RESULT_LIST']['CHECKSUM_LIST'] = []
+            CCD_LIST = []
+            FILENAME_LIST = []
+            CHECKSUM_LIST = []
+            target_dir = xfer_msg['TARGET_DIR']
+            ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
+            for ccd in ccd_list:
+                CCD_LIST.append(ccd)
+                FILENAME_LIST.append(target_dir + str(ccd))
+                CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
+            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
+            msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
+            msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        else:
+            pytest.fail("The following unknown message was received by FWDR F1: %s" % body)
 
     def on_f2_message(self, ch, method, properties, body):
         self.f2_consumer_msg_list.append(body)
+        if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
+            msg = {}
+            msg['MSG_TYPE'] = 'PP_FWDR_HEALTH_CHECK_ACK'
+            msg['COMPONENT'] = 'FORWARDER_2'
+            msg['ACK_BOOL'] = True
+            msg['ACK_ID'] = body['ACK_ID']
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
+        elif body['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
+            msg = {}
+            msg['MSG_TYPE'] = 'PP_FWDR_XFER_PARAMS_ACK'
+            msg['COMPONENT'] = 'FORWARDER_2'
+            msg['ACK_BOOL'] = True
+            msg['ACK_ID'] = body['ACK_ID']
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        elif body['MSG_TYPE'] == 'PP_FWDR_READOUT':
+            # Find message in message list for xfer_params
+            xfer_msg = None
+            for msg in self.f2_consumer_msg_list:
+                if msg['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
+                    xfer_msg = msg
+                    break
+            if xfer_msg == None:
+                pytest.fail("The PP_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F2")
+
+            # use message to build response
+            msg = {}
+            msg['MSG_TYPE'] = 'PP_FWDR_READOUT_ACK'
+            msg['COMPONENT'] = 'FORWARDER_2'
+            msg['JOB_NUM'] = xfer_msg['JOB_NUM']
+            msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
+            msg['ACK_ID'] = body['ACK_ID']
+            msg['ACK_BOOL'] = True
+            msg['RESULT_LIST'] = {}
+            msg['RESULT_LIST']['CCD_LIST'] = []
+            msg['RESULT_LIST']['FILENAME_LIST'] = []
+            msg['RESULT_LIST']['CHECKSUM_LIST'] = []
+            CCD_LIST = []
+            FILENAME_LIST = []
+            CHECKSUM_LIST = []
+            target_dir = xfer_msg['TARGET_DIR']
+            ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
+            for ccd in ccd_list:
+                CCD_LIST.append(ccd)
+                FILENAME_LIST.append(target_dir + str(ccd))
+                CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
+            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
+            msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
+            msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
+            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+
+        else:
+            pytest.fail("The following unknown message was received by FWDR F2: %s" % body)

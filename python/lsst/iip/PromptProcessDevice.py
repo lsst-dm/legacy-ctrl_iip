@@ -240,7 +240,7 @@ class PromptProcessDevice:
         ack_id = params['ACK_ID']
         msg = {}
         msg['MSG_TYPE'] = 'NEW_SESSION_ACK'
-        msg['COMPONENT_NAME'] = 'AR_FOREMAN'
+        msg['COMPONENT'] = self.COMPONENT_NAME
         msg['ACK_ID'] = ack_id
         msg['ACK_BOOL'] = True
         route_key = params['RESPONSE_QUEUE']
@@ -257,7 +257,7 @@ class PromptProcessDevice:
         ncsa_result = self.send_visit_boresight_to_ncsa(visit_id, bore_sight)
 
         msg['MSG_TYPE'] = 'PP_NEXT_VISIT_ACK'
-        msg['COMPONENT_NAME'] = 'PP_FOREMAN'
+        msg['COMPONENT'] = self.COMPONENT_NAME
         msg['ACK_ID'] = ack_id
         msg['ACK_BOOL'] = True
         route_key = params['RESPONSE_QUEUE']

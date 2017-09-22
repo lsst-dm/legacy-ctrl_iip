@@ -391,7 +391,7 @@ class DMCS:
             msg['SESSION_ID'] = session_id
             msg[VISIT_ID] = params[VISIT_ID]
             msg[BORE_SIGHT] = params['BORE_SIGHT']
-            msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+            msg['REPLY_QUEUE'] = "dmcs_ack_consume"
             LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
             self._publisher.publish_message(consume_queue, msg)
 
@@ -430,7 +430,7 @@ class DMCS:
         msg_params[VISIT_ID] = visit_id
         image_id = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
         msg_params[IMAGE_ID] = image_id
-        msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
+        msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg_params['CCD_LIST'] = ccd_list
         session_id = self.STATE_SCBD.get_current_session()
         msg_params['SESSION_ID'] = session_id
@@ -472,7 +472,7 @@ class DMCS:
         msg_params = {}
         msg_params[VISIT_ID] = self.STATE_SCBD.get_current_visit()
         msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
-        msg_params['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
+        msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
         session_id = self.STATE_SCBD.get_current_session()
         msg_params['SESSION_ID'] = session_id
 
@@ -593,7 +593,7 @@ class DMCS:
         ack_ids = [] 
         msg = {}
         #msg['MSG_TYPE'] = 'NEW_SESSION'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        msg['REPLY_QUEUE'] = "dmcs_ack_consume"
         msg['SESSION_ID'] = session_id
 
         ddict = self.STATE_SCBD.get_devices()
