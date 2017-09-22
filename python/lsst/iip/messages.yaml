@@ -314,17 +314,20 @@ ROOT:
         ACK_BOOL: (TRUE if resources are available -  FALSE if insufficient resources)
         ACK_ID: Sequence number in string form chosen by the Base Foreman and returned here.
         FAIL_DETAILS: Optional, details about insufficient resources
-        PAIRS:
-            FORWARDER_LIST:
-            #FORWARDER_1:
-            #    CCD_LIST:
-            #    DISTRIBUTOR:
-            #        FQN: 
-            #        HOSTNAME:
-            #        IP_ADDR: 
-            #        NAME: 
-            #        TARGET_DIR: 
-            #FORWARDER_2:
+        PAIRS: #A list of dictionaries
+            #When testing via pytest, dictionaries below are sent one at a time to check shape
+            #with a special entry in this list called PAIRS, as the number of forwarders will vary
+            #
+            #FORWARDER: FORWARDER_1
+            #CCD_LIST:
+            #DISTRIBUTOR:
+            #    FQN: 
+            #    HOSTNAME:
+            #    IP_ADDR: 
+            #    NAME: 
+            #    TARGET_DIR: 
+            #
+            #FORWARDER: FORWARDER_2
             #CCD_LIST: 
             #DISTRIBUTOR:
             #    FQN: 
@@ -332,6 +335,39 @@ ROOT:
             #    IP_ADDR:
             #    NAME: 
             #    TARGET_DIR:
+
+    # Used for checking a part of the NCSA_START_INTEGRATION_ACK message above
+    PAIR:
+        FORWARDER:
+        CCD_LIST:
+        DISTRIBUTOR:
+            FQN:
+            HOSTNAME:
+            IP_ADDR:
+            NAME:
+            TARGET_DIR:
+    
+
+    NCSA_READOUT:
+        MSG_TYPE: NCSA_READOUT
+        VISIT_ID:
+        JOB_NUM:
+        SESSION_ID:
+        IMAGE_ID:
+        ACK_ID:
+
+    NCSA_READOUT_ACK:
+        MSG_TYPE: NCSA_READOUT_ACK
+        VISIT_ID:
+        JOB_NUM:
+        SESSION_ID:
+        IMAGE_ID:
+        COMPONENT_NAME: NCSA_FOREMAN
+        ACK_BOOL:
+        ACK_ID:
+        RESULT_LIST:
+            CCD_LIST:
+            RECEIPT_LIST:
 
  
 #        

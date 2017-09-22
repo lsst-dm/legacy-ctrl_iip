@@ -9,6 +9,7 @@ from time import sleep
 import threading
 import pytest
 import random
+from copy import deepcopy
 import logging
 sys.path.insert(1, '../iip')
 sys.path.insert(1, '../')
@@ -51,7 +52,7 @@ class TestPpDev:
     EXPECTED_F1_MESSAGES = 1
     EXPECTED_F2_MESSAGES = 1
 
-    ccd_list = [14,17,21.86]
+    ccd_list = [14,17,21,86]
     prp = toolsmod.prp
 
 
@@ -318,39 +319,63 @@ class TestPpDev:
             msg['MSG_TYPE'] = 'NCSA_START_INTEGRATION_ACK'
             msg['COMPONENT_NAME'] = 'NCSA_FOREMAN'
             fwdrs = copy.deepcopy(body['FORWARDERS'])
-            pp = pprint.PrettyPrinter(indent=4)
-            pp.pprint(fwdrs)
-            fwdrs_keys = list(fwdrs.keys())
+            fwdr_list = fwdrs['FORWARDER_LIST']
+            ccd_list = fwdrs['CCD_LIST']
             i = 1
-            for fwdr in fwdrs_keys:
-                dists = {}
-                dists['FQN'] = "Distributor_" + str(i)
-                dists['NAME'] = "D" + str(i)
-                dists['HOSTNAME'] = "D" + str(i)
-                dists['TARGET_DIR'] = "/dev/null"
-                dists['IP_ADDR'] = "141.142.237.16" + str(i)
-                fwdrs[fwdr]['DISTRIBUTOR'] = dists
-                i = i + 1
+            msg['PAIRS'] = []  # This will be a list of dictionaries
+            for i in range(0,len(fwdr_list)):
+                fwdr = fwdr_list[i]
+                dist = {}
+                pair = {}
+                dist['FQN'] = "Distributor_" + str(i)
+                dist['NAME'] = "D" + str(i)
+                dist['HOSTNAME'] = "D" + str(i)
+                dist['TARGET_DIR'] = "/dev/null"
+                dist['IP_ADDR'] = "141.142.237.16" + str(i)
+                pair['FORWARDER'] = fwdr_list[i]
+                pair['CCD_LIST'] = ccd_list[i]  #Get the list at index position i in ccd_list
+                pair['DISTRIBUTOR'] = dist
+                msg['PAIRS'].append(copy.deepcopy(pair))
         
-            #for fwdr in fwdrs_keys:
-            #    dists = {}
-            #    dists[fwdr] = {}
-            #    dists[fwdr]['FQN'] = "Distributor_" + str(i)
-            #    dists[fwdr]['NAME'] = "D" + str(i)
-            #    dists[fwdr]['HOSTNAME'] = "D" + str(i)
-            #    dists[fwdr]['TARGET_DIR'] = "/dev/null"
-            #    dists[fwdr]['IP_ADDR'] = "141.142.237.16" + str(i)
-            #    fwdrs[fwdr]['DISTRIBUTOR'] = dists
-            #    i = i + 1
-        
-            msg['PAIRS'] = fwdrs
             msg['ACK_BOOL'] = True
             msg['JOB_NUM'] = body['JOB_NUM']
             msg['IMAGE_ID'] = body['IMAGE_ID']
             msg['VISIT_ID'] = body['VISIT_ID']
             msg['SESSION_ID'] = body['SESSION_ID']
-            self.ncsa_publisher.publish_message(body['RESPONSE_QUEUE'], msg)
+            self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
             return
+
+        if body['MSG_TYPE'] = 'NCSA_READOUT':
+            # Find earlier Start Int message
+            st_int_msg = None
+            for msg in self.ncsa_consumer_msg_list:
+                if msg['MSG_TYPE'] == 'NCSA_START_INTEGRATION':
+                    st_int_msg = msg
+                    break
+            if st_int_msg == None:
+                pytest.fail("The NCSA_START_INTEGRATION message wasn't received before NCSA_READOUT in on_ncsa_msg")
+
+            # Now build response with previous message
+            msg = {}
+            msg["MSG_TYPE'] = 'NCSA_READOUT_ACK'
+            msg['JOB_NUM'] = body['JOB_NUM']
+            msg['IMAGE_ID'] = body['IMAGE_ID']
+            msg['VISIT_ID'] = body['VISIT_ID']
+            msg['SESSION_ID'] = body['SESSION_ID']
+            msg['COMPONENT_NAME'] = 'NCSA_FOREMAN'
+            msg['ACK_BOOL'] = True
+            msg['ACK_ID'] = body['ACK_ID']
+            #msg['RESULT_LIST']['FORWARDER_LIST'] = st_int_msg['FORWARDERS']['FORWARDER_LIST']
+            ccd_list = st_int_msg['FORWARDERS']['CCD_LIST']
+            receipt_list = []
+            for i in range(0, len(ccd_list)):
+                receipt_list.append('Rec_x447_' = str(i))
+            msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
+            msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
+
+            sleep(5) #Give FWDRs time to respond with ack first
+            self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
+     
 
     def on_f1_message(self, ch, method, properties, body):
         self.f1_consumer_msg_list.append(body)
@@ -361,7 +386,7 @@ class TestPpDev:
             msg['COMPONENT'] = 'FORWARDER_1'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.f1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
             msg = {}
@@ -369,7 +394,7 @@ class TestPpDev:
             msg['COMPONENT'] = 'FORWARDER_1'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.f1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'PP_FWDR_READOUT':
             # Find message in message list for xfer_params
@@ -391,24 +416,18 @@ class TestPpDev:
             msg['ACK_BOOL'] = True
             msg['RESULT_LIST'] = {}
             msg['RESULT_LIST']['CCD_LIST'] = []
-            msg['RESULT_LIST']['FILENAME_LIST'] = []
-            msg['RESULT_LIST']['CHECKSUM_LIST'] = []
-            CCD_LIST = []
-            FILENAME_LIST = []
-            CHECKSUM_LIST = []
-            target_dir = xfer_msg['TARGET_DIR']
+            msg['RESULT_LIST']['RECEIPT_LIST'] = []
             ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
-            for ccd in ccd_list:
-                CCD_LIST.append(ccd)
-                FILENAME_LIST.append(target_dir + str(ccd))
-                CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
-            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
-            msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
-            msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            receipt_list = []
+            for i in range(0, len(ccd_list)):
+                receipt_list.append('F_Rec_x447_' = str(i))
+            msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
+            msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
+            self.f1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
             pytest.fail("The following unknown message was received by FWDR F1: %s" % body)
+
 
     def on_f2_message(self, ch, method, properties, body):
         self.f2_consumer_msg_list.append(body)
@@ -418,7 +437,7 @@ class TestPpDev:
             msg['COMPONENT'] = 'FORWARDER_2'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.f2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
             msg = {}
@@ -426,7 +445,7 @@ class TestPpDev:
             msg['COMPONENT'] = 'FORWARDER_2'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.f2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'PP_FWDR_READOUT':
             # Find message in message list for xfer_params
@@ -448,21 +467,14 @@ class TestPpDev:
             msg['ACK_BOOL'] = True
             msg['RESULT_LIST'] = {}
             msg['RESULT_LIST']['CCD_LIST'] = []
-            msg['RESULT_LIST']['FILENAME_LIST'] = []
-            msg['RESULT_LIST']['CHECKSUM_LIST'] = []
-            CCD_LIST = []
-            FILENAME_LIST = []
-            CHECKSUM_LIST = []
-            target_dir = xfer_msg['TARGET_DIR']
+            msg['RESULT_LIST']['RECEIPT_LIST'] = []
             ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
-            for ccd in ccd_list:
-                CCD_LIST.append(ccd)
-                FILENAME_LIST.append(target_dir + str(ccd))
-                CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
-            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
-            msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
-            msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            receipt_list = []
+            for i in range(0, len(ccd_list)):
+                receipt_list.append('F_Rec_x447_' = str(i))
+            msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
+            msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
+            self.f2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
             pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
