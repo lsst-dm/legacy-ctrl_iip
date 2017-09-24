@@ -119,7 +119,7 @@ class ForwarderScoreboard(Scoreboard):
 
 
     def get_routing_key(self, forwarder):
-        return self._redis.hget(forwarder,'ROUTING_KEY')
+        return self._redis.hget(forwarder,'CONSUME_QUEUE')
 
 
     def print_all(self):

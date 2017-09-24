@@ -143,8 +143,9 @@ class TestPpDev:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        self.verify_dmcs_messages()
+        sleep(8)
         self.verify_ncsa_messages()
+        self.verify_dmcs_messages()
         self.verify_F1_messages()
         self.verify_F2_messages()
 
@@ -160,7 +161,7 @@ class TestPpDev:
         
         # self.clear_message_lists()
 
-        self.EXPECTED_NCSA_MESSAGES = 4
+        self.EXPECTED_NCSA_MESSAGES = 3
         self.EXPECTED_DMCS_MESSAGES = 4
         self.EXPECTED_F1_MESSAGES = 3
         self.EXPECTED_F2_MESSAGES = 3
@@ -169,7 +170,7 @@ class TestPpDev:
         msg['MSG_TYPE'] = "PP_NEW_SESSION"
         msg['SESSION_ID'] = 'SI_469976'
         msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
-        msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         time.sleep(3)
         print("New Session Message")
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
@@ -177,7 +178,7 @@ class TestPpDev:
         msg = {}
         msg['MSG_TYPE'] = "PP_NEXT_VISIT"
         msg['VISIT_ID'] = 'XX_28272' 
-        msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
         time.sleep(2)
@@ -190,9 +191,9 @@ class TestPpDev:
         msg['IMAGE_ID'] = 'IMG_444244'
         msg['VISIT_ID'] = 'V14494'
         msg['SESSION_ID'] = '4_14_7211511'
-        msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'AR_ACK_94671'
-        msg['CCD_LIST'] = [4,14.16,17,29,35,36]
+        msg['CCD_LIST'] = [4,14,16,17,29,35,36]
         time.sleep(4)
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
       
@@ -202,7 +203,7 @@ class TestPpDev:
         msg['IMAGE_ID'] = 'IMG_444244'
         msg['VISIT_ID'] = 'V14494'
         msg['SESSION_ID'] = '4_14_7211511'
-        msg['RESPONSE_QUEUE'] = 'dmcs_ack_consume'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'ACK_44221'
         time.sleep(4)
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
@@ -217,10 +218,8 @@ class TestPpDev:
         self.prp.pprint(self.dmcs_consumer_msg_list)
         len_list = len(self.dmcs_consumer_msg_list)
         if len_list != self.EXPECTED_DMCS_MESSAGES:
-            print("Messages received by verify_dmcs_messages:")
-            self.prp.pprint(self.dmcs_consumer_msg_list)
             pytest.fail('DMCS simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_DMCS_MESSAGES, len_list))
+                        % (self.EXPECTED_NCSA_MESSAGES, len_list))
 
         # Now check num keys in each message first, then check for key errors
         for i in range(0, len_list):
@@ -372,10 +371,11 @@ class TestPpDev:
             receipt_list = []
             for i in range(0, len(ccd_list)):
                 receipt_list.append('Rec_x447_' + str(i))
+            msg['RESULT_LIST'] = {}
             msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
             msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
 
-            sleep(5) #Give FWDRs time to respond with ack first
+            sleep(4) #Give FWDRs time to respond with ack first
             self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
      
 
