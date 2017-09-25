@@ -79,7 +79,7 @@ class ArchiveDevice:
                                             self._msg_pub_passwd + "@" + \
                                             str(self._base_broker_addr)
         LOGGER.info('Setting up Base publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
-        self._publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
+        self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
 
 
     def on_ar_foreman_message(self, ch, method, properties, body):
