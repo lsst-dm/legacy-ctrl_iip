@@ -143,11 +143,11 @@ class TestPpDev:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        sleep(8)
+        sleep(14)
         self.verify_ncsa_messages()
-        self.verify_dmcs_messages()
-        self.verify_F1_messages()
         self.verify_F2_messages()
+        self.verify_F1_messages()
+        self.verify_dmcs_messages()
 
         sleep(2)
         print("Finished with PP tests.")
@@ -192,7 +192,7 @@ class TestPpDev:
         msg['VISIT_ID'] = 'V14494'
         msg['SESSION_ID'] = '4_14_7211511'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'AR_ACK_94671'
+        msg['ACK_ID'] = 'PP_ACK_94671'
         msg['CCD_LIST'] = [4,14,16,17,29,35,36]
         time.sleep(4)
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
@@ -204,7 +204,7 @@ class TestPpDev:
         msg['VISIT_ID'] = 'V14494'
         msg['SESSION_ID'] = '4_14_7211511'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'ACK_44221'
+        msg['ACK_ID'] = 'PP_READOUT_ACK_44221'
         time.sleep(4)
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
 
@@ -219,7 +219,7 @@ class TestPpDev:
         len_list = len(self.dmcs_consumer_msg_list)
         if len_list != self.EXPECTED_DMCS_MESSAGES:
             pytest.fail('DMCS simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_NCSA_MESSAGES, len_list))
+                        % (self.EXPECTED_DMCS_MESSAGES, len_list))
 
         # Now check num keys in each message first, then check for key errors
         for i in range(0, len_list):
@@ -251,7 +251,7 @@ class TestPpDev:
 
     def verify_F1_messages(self):
         print("Messages received by verify_F1_messages:")
-        self.prp.pprint(self.f1_msg_list)
+        self.prp.pprint(self.f1_consumer_msg_list)
         len_list = len(self.f1_consumer_msg_list)
         if len_list != self.EXPECTED_F1_MESSAGES:
             print("Messages received by verify_F1_messages:")
@@ -271,7 +271,7 @@ class TestPpDev:
    
     def verify_F2_messages(self):
         print("Messages received by verify_F2_messages:")
-        self.prp.pprint(self.f2_msg_list)
+        self.prp.pprint(self.f2_consumer_msg_list)
         len_list = len(self.f2_consumer_msg_list)
         if len_list != self.EXPECTED_F2_MESSAGES:
             print("Messages received by verify_F2_messages:")
@@ -375,12 +375,11 @@ class TestPpDev:
             msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
             msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
 
-            sleep(4) #Give FWDRs time to respond with ack first
+            #sleep(2) #Give FWDRs time to respond with ack first
             self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
      
 
     def on_f1_message(self, ch, method, properties, body):
-        self.f1_consumer_msg_list.append(body)
         self.f1_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
             msg = {}

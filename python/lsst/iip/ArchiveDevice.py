@@ -61,6 +61,8 @@ class ArchiveDevice:
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack }
 
 
+        self._next_timed_ack_id = 0
+
         self.setup_publishers()
 
         self.setup_scoreboards()
@@ -68,8 +70,6 @@ class ArchiveDevice:
         LOGGER.info('ar foreman consumer setup')
         self.thread_manager = None
         self.setup_consumer_threads()
-
-        self._next_timed_ack_id = 0
 
         LOGGER.info('Archive Foreman Init complete')
 
