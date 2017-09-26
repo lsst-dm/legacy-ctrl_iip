@@ -67,6 +67,11 @@ ROOT:
     ARCHIVE_HOSTNAME: Archibald
     ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
     CHECKSUM_ENABLED: no
+  SPECTRO: 
+    SPECTRO_BROKER_NAME: spectro 
+    SPECTRO_BROKER_PASSWD: spectro 
+    SPECTRO_XFER_ROOT: /mnt/xfer_dir/
+    CHECKSUM_ENABLED: no 
   OCS: 
     OCS_NAME: OCS
     OCS_PASSWD: OCS
