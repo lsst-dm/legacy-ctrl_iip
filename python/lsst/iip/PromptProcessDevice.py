@@ -226,29 +226,21 @@ class PromptProcessDevice:
 
         work_schedule = self.divide_work(healthy_forwarders_list, ccd_list) 
 
-        print("Asking NCSA about resources...providing this work schedule: ")
-        self.prp.pprint(work_schedule)
-        print("\n\n--------------------------------\n")
         ack_id = self.ncsa_resources_query(input_params, work_schedule)
 
-        self.ack_timer(2)
+        ncsa_response = self.progressive_ack_timer(ack_id, 1, 2.0)
 
         #Check ACK scoreboard for response from NCSA
-        ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
         if ncsa_response:
-            print("NCSA sent the following response to the PP Foreman: ")
-            self.prp.pprint(ncsa_response)
-            print("\n\n--------------------------------\n")
-            pairs = {}
+            pairs = []
             pairs = ncsa_response['NCSA_FOREMAN']['PAIRS'] 
 
             # Distribute job params and tell DMCS we are ready.
             fwd_ack_id = self.distribute_job_params(input_params, pairs)
-            self.ack_timer(3)
+            num_fwdrs = len(pairs)
+            fwdr_params_response = self.progressive_ack_timer(fwd_ack_id, num_fwdrs, 3.0)
 
-            fwdr_params_response = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
-            print("FWDR_PARAMS_RESPONSE is %s" % fwdr_params_response)
-            if fwdr_params_response and (len(fwdr_params_response) == len(pairs)):
+            if fwdr_params_response:
                 self.JOB_SCBD.set_value_for_job(job_num, "STATE", "FWDR_PARAMS_RECEIVED")
                 in_ready_state = {'STATE':'READY_WITH_PARAMS'}
                 self.FWD_SCBD.set_forwarder_params(healthy_forwarders_list, in_ready_state) 
@@ -445,25 +437,6 @@ class PromptProcessDevice:
         return True
 
 
-    def insufficient_ncsa_resources(self, ncsa_response):
-        dmcs_params = {}
-        dmcs_params[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
-        dmcs_params['COMPONENT'] = self.COMPONENT_NAME
-        dmcs_params[JOB_NUM] = job_num 
-        dmcs_params[ACK_BOOL] = False
-        dmcs_params[BASE_RESOURCES] = '1'
-        dmcs_params[NCSA_RESOURCES] = '0'
-        dmcs_params[NEEDED_DISTRIBUTORS] = ncsa_response[NEEDED_DISTRIBUTORS]
-        dmcs_params[AVAILABLE_DISTRIBUTORS] = ncsa_response[AVAILABLE_DISTRIBUTORS]
-        #try: FIXME - catch exception
-        self._base_publisher.publish_message("dmcs_ack_consume", dmcs_params )
-        #except L1MessageError e:
-        #    return False
-
-        return True
-
-
-
     def ncsa_no_response(self,params):
         #No answer from NCSA...
         job_num = str(params[JOB_NUM])
@@ -483,7 +456,6 @@ class PromptProcessDevice:
     def process_dmcs_readout(self, params):
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        print("In process DMCS Readout - value of pairs is %s" % pairs)
 
         ### Send READOUT to NCSA with ACK_ID
         ack_id = self.get_next_timed_ack_id('NCSA_READOUT_ACK')
@@ -497,16 +469,14 @@ class PromptProcessDevice:
         ncsa_params[ACK_ID] = ack_id
         self._ncsa_publisher.publish_message(self.NCSA_CONSUME, ncsa_params)
 
-        self.ack_timer(3)
+        ncsa_response = self.progressive_ack_timer(ack_id, 1, 3.0)
 
-        ncsa_response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-        print("The Value For NCSA READOUT ACK Response is: %s" % ncsa_response)
         if ncsa_response:
             if ncsa_response['NCSA_FOREMAN']['ACK_BOOL'] == True:
                 #inform forwarders
                 fwd_ack_id = self.get_next_timed_ack_id('PP_FWDR_READOUT_ACK')
-                for i in range(0, len(pairs)):
-                    print("Sending message to %s" % pairs[i]['FORWARDER'])
+                len_pairs = len(pairs)
+                for i in range(0, len_pairs):
                     forwarder = pairs[i]['FORWARDER']
                     routing_key = self.FWD_SCBD.get_routing_key(forwarder)
                     msg_params = {}
@@ -517,19 +487,15 @@ class PromptProcessDevice:
                     self.FWD_SCBD.set_forwarder_state(forwarder, 'START_READOUT')
                     self._base_publisher.publish_message(routing_key, msg_params)
 
-                self.ack_timer(4)
+                forwarder_responses = self.progressive_ack_timer(fwd_ack_id, len_pairs, 4.0)
 
-                forwarder_responses = self.ACK_SCBD.get_components_for_timed_ack(fwd_ack_id)
-                if len(forwarder_responses) == len(pairs):
+                if forwarder_responses:
                     dmcs_params = {}
                     dmcs_params[MSG_TYPE] = 'PP_READOUT_ACK' 
                     dmcs_params[JOB_NUM] = job_number
                     dmcs_params['COMPONENT'] = self.COMPONENT_NAME
                     dmcs_params['ACK_BOOL'] = True
                     dmcs_params['ACK_ID'] = params['ACK_ID']
-                    print("\n||||||||||||||||||||||||||||||||||||||\n") 
-                    print("In fwdr responses == len(pairs); ack_id == %s" % params['ACK_ID'])
-                    print("\n||||||||||||||||||||||||||||||||||||||\n\n\n") 
                     self._base_publisher.publish_message(params['REPLY_QUEUE'], dmcs_params)
                     
             else:
@@ -566,6 +532,23 @@ class PromptProcessDevice:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
+    def progressive_ack_timer(self, ack_id, expected_replies, seconds):
+        counter = 0.0
+        while (counter < seconds):
+            sleep(0.5)
+            response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if len(list(response.keys())) == expected_replies:
+                print("Received all %s Acks in %s seconds." % (expected_replies, counter)) 
+                return response
+            counter = counter + 0.5
+
+        ## Try one final time 
+        response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+        if len(list(response.keys())) == expected_replies:
+            return response
+        else:
+            return None
 
 
     def set_pending_nonblock_acks(self, acks, wait_time):
