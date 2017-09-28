@@ -86,6 +86,7 @@ class Distributor:
         self._consumer.run(self.on_message)
 
     def on_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         msg_dict = yaml.load(body)
         LOGGER.info('In %s message callback', self._name)
         LOGGER.debug('Thread in %s callback is %s', self._name, _thread.get_ident())

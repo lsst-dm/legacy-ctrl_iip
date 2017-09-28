@@ -82,6 +82,7 @@ class Forwarder:
 
 
     def on_message(self, ch, method, properties, body):
+        ch.basic_ack(delivery_tag) 
         print("INcoming PARAMS, body is:\n%s" % body)
         msg_dict = body
 

@@ -84,6 +84,7 @@ class ArchiveDevice:
 
     def on_ar_foreman_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
+        ch.basic_ack(method.delivery_tag)
         msg_dict = body 
         LOGGER.info('In AR Foreman message callback')
         LOGGER.info('Message from DMCS to AR Foreman callback message body is: %s', str(msg_dict))
@@ -93,12 +94,14 @@ class ArchiveDevice:
     
 
     def on_archive_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         LOGGER.info('AR CTRL callback msg body is: %s', str(body))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
