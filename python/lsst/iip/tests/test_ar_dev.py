@@ -142,7 +142,7 @@ class TestArDev:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        sleep(10)
+        sleep(3)
         self.verify_F1_messages()
         self.verify_F2_messages()
         self.verify_dmcs_messages()

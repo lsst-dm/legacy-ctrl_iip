@@ -317,11 +317,7 @@ class PromptProcessDevice:
 
     def divide_work(self, fwdrs_list, ccd_list):
         num_fwdrs = len(fwdrs_list)
-        print("num_fwdrs, that is, length of fwdrs is %s" % num_fwdrs)
         num_ccds = len(ccd_list)
-        #fwdrs_keys_list = list(fwdrs_list.keys())
-        ## XXX FIX if num_ccds == none or 1:
-        ##    Throw exception
 
         schedule = {}
         schedule['FORWARDER_LIST'] = []
@@ -333,10 +329,6 @@ class PromptProcessDevice:
             CCD_LIST.append(ccd_list)
             schedule['FORWARDERS_LIST'] = FORWARDER_LIST
             schedule['CCD_LIST'] = CCD_LIST
-            #schedule[fwdrs_list[0]] = {}
-            #schedule[fwdrs_list[0]]['CCD_LIST'] = ccd_list
-            print("Printing schedule in divide_work - num fwdrs = 1")
-            self.prp.pprint(schedule)
             return schedule
 
         if num_ccds <= num_fwdrs:
@@ -347,7 +339,6 @@ class PromptProcessDevice:
                 CCD_LIST.append(list(little_list))  # Need a copy here...
                 schedule['FORWARDER_LIST'] = FORWARDER_LIST
                 schedule['CCD_LIST'] = CCD_LIST
-                self.prp.pprint(schedule)
         else:
             ccds_per_fwdr = len(ccd_list) // num_fwdrs 
             remainder_ccds = len(ccd_list) % num_fwdrs
@@ -364,7 +355,6 @@ class PromptProcessDevice:
                     for k in range(offset, offset + remainder_ccds):
                         tmp_list.append(ccd_list[k])
                     offset = offset + remainder_ccds
-                #CCD_LIST = tmp_list
                 FORWARDER_LIST.append(fwdrs_list[i])
                 CCD_LIST.append(list(tmp_list))
                 
@@ -372,7 +362,7 @@ class PromptProcessDevice:
                 #schedule[fwdrs_list[i]]['CCD_LIST'] = tmp_list
             schedule['FORWARDER_LIST'] = FORWARDER_LIST
             schedule['CCD_LIST'] = CCD_LIST
-            print("Finished work schedule is:\n %s" % (schedule))
+
         return schedule
 
 

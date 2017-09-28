@@ -223,26 +223,7 @@ class AckScoreboard(Scoreboard):
 
 
 def main():
-#    dull = {'MSG_TYPE':'ZZZ','ACK_ID':'ACK_222','COMPONENT':'BIG_BOB','JOB_NUM':'J444','RESULTS': {'HAY':'Haw','HOW':'Now','PRETTY':'Weird'}}
-#    duller = {'MSG_TYPE':'ZZZ','ACK_ID':'ACK_222','COMPONENT':'BIG_BARBARA','JOB_NUM':'J444','RESULTS': {'STRAW':'Soda','Why':'High','PRETTY':'Crazy'}}
-#    print "Printing dull and duller..."
-#    print dull
-#    print "--------"
-#    print duller
-##    print "==========================="
-    asb = AckScoreboard(3)
-#    asb.add_timed_ack(dull)
-#    asb.add_timed_ack(duller)
-#    x = asb.get_components_for_timed_ack('ACK_222')
-#    print "Printing entire ACK_222"
-#    print x
-#    print "============================"
-#    print "All finished."
-
-#    asb.add_timed_ack(ncsa_msg)
-
-#    comps = asb.get_components_for_timed_ack('NCSA_16')
-    sleep(2)
+    asb = AckScoreboard("Test", 3)
     print("AckScoreboard seems to be running OK.")
 
 
