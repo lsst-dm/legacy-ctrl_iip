@@ -90,10 +90,12 @@ class PromptProcessDevice:
                                                 self._pub_ncsa_passwd + "@" + \
                                                 str(self._ncsa_broker_addr)
 
-        LOGGER.info('Setting up Base publisher on %s using %s', self._pub_base_broker_url, self._base_msg_format)
+        LOGGER.info('Setting up Base publisher on %s using %s', \
+                     self._pub_base_broker_url, self._base_msg_format)
         self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
 
-        LOGGER.info('Setting up NCSA publisher on %s using %s', self._pub_ncsa_broker_url, self._ncsa_msg_format)
+        LOGGER.info('Setting up NCSA publisher on %s using %s', \
+                     self._pub_ncsa_broker_url, self._ncsa_msg_format)
         self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
 
 
@@ -114,6 +116,7 @@ class PromptProcessDevice:
         LOGGER.info('forwarder callback msg body is: %s', str(body))
         pass
 
+
     def on_ncsa_message(self,ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body
@@ -121,6 +124,7 @@ class PromptProcessDevice:
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
+
 
     def on_ack_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
@@ -130,6 +134,7 @@ class PromptProcessDevice:
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
+
 
     def set_session(self, params):
         self.JOB_SCBD.set_session(params['SESSION_ID'])
@@ -526,6 +531,7 @@ class PromptProcessDevice:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
 
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
         counter = 0.0

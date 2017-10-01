@@ -277,14 +277,15 @@ class NcsaForeman:
             self._base_publisher.publish_message(NCSA_PUBLISH, yaml.dump(ncsa_params)) 
 
             LOGGER.info('The following pairings have been sent to the Base:')
-            LOGGER.info(pairs_dict)
+            LOGGER.info(self.prp.pprint.pformat(pairs_dict))
 
             self.JOB_SCBD.set_pairs_for_job(job_num, pairs_dict)                
-            LOGGER.info('The following pairs will be used for Job #%s: %s',job_num, str(pairing_dict))
+            LOGGER.info('The following pairs will be used for Job #%s: %s', \
+                         job_num, self.prp.pprint.pformat(pairs_dict))
 
             self.DIST_SCBD.set_distributor_params(healthy_distributors, {STATE: IN_READY_STATE})
 
-            self.ack_timer(2)
+            self.progressive_ack_timer(job_params_ack, num_healthy_distributors, 2.0)
 
             dist_params_response = self.ACK_SCBD.get_components_for_timed_ack(job_params_ack)
             if len(keez) != len(dist_params_response):
@@ -416,6 +417,24 @@ class NcsaForeman:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
+    def progressive_ack_timer(self, ack_id, expected_replies, seconds):
+        counter = 0.0
+        while (counter < seconds):
+            sleep(0.5)
+            response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if len(list(response.keys())) == expected_replies:
+                print("Received all %s Acks in %s seconds." % (expected_replies, counter))
+                return response
+            counter = counter + 0.5
+
+        ## Try one final time
+        response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+        if len(list(response.keys())) == expected_replies:
+            return response
+        else:
+            return None
+
 
 
 def main():
