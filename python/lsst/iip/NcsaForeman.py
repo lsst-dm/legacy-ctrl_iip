@@ -14,6 +14,7 @@ from DistributorScoreboard import DistributorScoreboard
 from JobScoreboard import JobScoreboard
 from AckScoreboard import AckScoreboard
 from Consumer import Consumer
+from ThreadManager import ThreadManager
 from SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -22,60 +23,27 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NcsaForeman:
-    DIST_SCBD = None
-    JOB_SCBD = None
-    ACK_SCBD = None
     NCSA_CONSUME = "ncsa_consume"
     NCSA_PUBLISH = "ncsa_publish"
     DISTRIBUTOR_PUBLISH = "distributor_publish"
     ACK_PUBLISH = "ack_publish"
-    EXCHANGE = 'message'
-    EXCHANGE_TYPE = 'direct'
+    CFG_FILE = 'L1SystemCfg.yaml'
+    prp = toolsmod.prp
 
 
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self.pp = pprint.PrettyPrinter(indent=4)
-        self._config_file = CFG_FILE
+        self._config_file = self.CFG_FILE
         if filename != None:
             self._config_fie = filename
 
-        self._base_broker_url = 'amqp_url'
-        self._ncsa_broker_url = 'amqp_url'
-        self._pairing_dict = {}
-        self._next_timed_ack_id = 10000
+        #self._pairing_dict = {}
+
+        LOGGER.info('Extracting values from Config dictionary')
+        self.extract_config_values()
 
  
-        cdm = toolsmod.intake_yaml_file(self._config_file)
-        try:
-            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self._name = [ROOT]['NCSA']      # Message broker user & passwd
-            self._passwd = [ROOT]['NCSA']   
-            self._pub_name = [ROOT]['NCSA_PUB']  
-            self._pub_passwd = [ROOT]['NCSA_PUB']   
-            self._clstr_name = [ROOT]['NCSA_CLSTR']
-            self._clstr_passwd = [ROOT]['NCSA_CLSTR']   
-            self._clstr_pub_name = [ROOT]['NCSA_CLSTR_PUB']
-            self._clstr_pub_passwd = [ROOT]['NCSA_CLSTR_PUB']   
-            self._scbd_dict = cdm[ROOT]['SCOREBOARDS'] 
-            distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
-        except KeyError as e:
-            LOGGER.critical("CDM Dictionary error - missing Key")
-            LOGGER.critical("Offending Key is %s", str(e))
-            LOGGER.critical("Bailing Out...")
-            sys.exit(99)
-
-        # Create Redis Distributor table with Distributor info
-
-        self.DIST_SCBD = DistributorScoreboard('NCSA_DIST_SCBD', \
-                                               self._scbd_dict['NCSA_DIST_SCBD'], \
-                                               distributor_dict)
-        self.JOB_SCBD = JobScoreboard('NCSA_JOB_SCBD', self._scbd_dict['NCSA_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
 
         self._msg_actions = { 'NEXT_VISIT': self.process_next_visit,
                               'NEW_SESSION': self.process_new_session,
@@ -85,9 +53,13 @@ class NcsaForeman:
                               'DISTRIBUTOR_JOB_PARAMS_ACK': self.process_distributor_job_params_ack,
                               'DISTRIBUTOR_READOUT_ACK': self.process_readout_ack }
 
+        self._next_timed_ack_id = 10000
+
+        self.setup_publishers()
+
+        self.setup_scoreboards()
 
         self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
-        self._ncsa_broker_pub_url = "amqp://" + self._pub_name + ":" + self._pub_passwd + "@" + str(self._ncsa_broker_addr)
         self._ncsa_broker_clstr_url = "amqp://" + self._clster_name + ":" + self._clstr_passwd + "@" + str(self._ncsa_broker_addr)
         self._ncsa_broker_clstr_pub_url = "amqp://" + self._clstr_pub_name + ":" + self._clstr_pub_passwd + "@" + str(self._ncsa_broker_addr)
         LOGGER.info('Building _broker_url. Result is %s', self._ncsa_broker_url)
@@ -95,8 +67,33 @@ class NcsaForeman:
         self.setup_publishers()
         self.setup_consumers()
 
-        self._base_broker_url = "" 
-        self.setup_federated_exchange()
+        LOGGER.info('Ncsa foreman consumer setup')
+        self.thread_manager = None
+        self.setup_consumer_threads()
+
+        LOGGER.info('Ncsa Foreman Init complete')
+
+
+
+    def setup_publishers(self):
+        self._pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
+                                                self._pub_passwd + "@" + \
+                                                str(self._base_broker_addr)
+
+        self._pub_ncsa_broker_url = "amqp://" + self._pub_ncsa_name + ":" + \
+                                                self._pub_ncsa_passwd + "@" + \
+                                                str(self._ncsa_broker_addr)
+
+        LOGGER.info('Setting up Base publisher on %s using %s', \
+                     self._pub_base_broker_url, self._base_msg_format)
+        self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
+
+        LOGGER.info('Setting up NCSA publisher on %s using %s', \
+                     self._pub_ncsa_broker_url, self._ncsa_msg_format)
+        self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
+
+
+
 
 
     def setup_consumers(self):
@@ -149,13 +146,6 @@ class NcsaForeman:
         self._ack_consumer.run(self.on_ack_message)
 
 
-
-    def setup_publishers(self):
-        LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_pub_broker_url)
-        LOGGER.info('Setting up NCSA publisher on %s', self._ncsa_broker_url)
-
-        self._publisher = SimplePublisher(self._ncsa_broker_pub_url)
-        self._clstr_publisher = SimplePublisher(self._ncsa_broker_clstr_pub_url)
 
 
     def setup_federated_exchange(self):
@@ -446,6 +436,90 @@ class NcsaForeman:
             return response
         else:
             return None
+
+
+    def extract_config_values(self):
+        try:
+            cdm = toolsmod.intake_yaml_file(self._config_file)
+        except IOError as e:
+            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
+            sys.exit(101)
+
+        try:
+            self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
+            self._sub_name = [ROOT]['NCSA_BROKER_NAME']      # Message broker user & passwd
+            self._sub_passwd = [ROOT]['NCSA_BROKER_PASSWD']   
+            #### FIX FIX FIX - make work with setu consumer threads method
+            self._pub_name = [ROOT]['NCSA_BROKER_PUB_NAME']  
+            self._pub_passwd = [ROOT]['NCSA_BROKER_PUB_PASSWD']   
+            self._clstr_name = [ROOT]['NCSA_CLSTR']
+            self._clstr_passwd = [ROOT]['NCSA_CLSTR']   
+            self._clstr_pub_name = [ROOT]['NCSA_CLSTR_PUB']
+            self._clstr_pub_passwd = [ROOT]['NCSA_CLSTR_PUB']   
+            self._scbd_dict = cdm[ROOT]['SCOREBOARDS'] 
+            self.distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
+        except KeyError as e:
+            LOGGER.critical("CDM Dictionary error - missing Key")
+            LOGGER.critical("Offending Key is %s", str(e))
+            LOGGER.critical("Bailing Out...")
+            sys.exit(99)
+
+        self._base_msg_format = 'YAML'
+        self._ncsa_msg_format = 'YAML'
+
+        if 'BASE_MSG_FORMAT' in cdm[ROOT]:
+            self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
+
+        if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
+            self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
+
+
+
+    def setup_consumer_threads(self):
+        LOGGER.info('Building _base_broker_url')
+        base_broker_url = "amqp://" + self._sub_name + ":" + \
+                                            self._sub_passwd + "@" + \
+                                            str(self._base_broker_addr)
+
+        ncsa_broker_url = "amqp://" + self._sub_ncsa_name + ":" + \
+                                            self._sub_ncsa_passwd + "@" + \
+                                            str(self._ncsa_broker_addr)
+
+
+        # Set up kwargs that describe consumers to be started
+        # The Archive Device needs three message consumers
+        kws = {}
+        md = {}
+        md['amqp_url'] = ncsa_broker_url
+        md['name'] = 'Thread-ncsa_foreman_ack_publish'
+        md['queue'] = 'ncsa_foreman_ack_publish'
+        md['callback'] = self.on_ack_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
+
+        md = {}
+        md['amqp_url'] = ncsa_broker_url
+        md['name'] = 'Thread-ncsa_consume'
+        md['queue'] = 'ncsa_consume'
+        md['callback'] = self.on_pp_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
+
+        self.thread_manager = ThreadManager('thread-manager', kws)
+        self.thread_manager.start()
+
+    def setup_scoreboards(self):
+        # Create Redis Distributor table with Distributor info
+        self.DIST_SCBD = DistributorScoreboard('NCSA_DIST_SCBD', \
+                                               self._scbd_dict['NCSA_DIST_SCBD'], \
+                                               self.distributor_dict)
+        self.JOB_SCBD = JobScoreboard('NCSA_JOB_SCBD', self._scbd_dict['NCSA_JOB_SCBD'])
+        self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
 
 
 

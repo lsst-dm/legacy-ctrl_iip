@@ -36,13 +36,14 @@ class PromptProcessDevice:
     NCSA_PUBLISH = "ncsa_publish"
     NCSA_CONSUME = "ncsa_consume"
     FORWARDER_PUBLISH = "forwarder_publish"
+    CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
 
 
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self._config_file = CFG_FILE
+        self._config_file = self.CFG_FILE
         if filename != None:
             self._config_file = filename
 
