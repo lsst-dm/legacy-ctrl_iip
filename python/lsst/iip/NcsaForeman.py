@@ -198,17 +198,21 @@ class NcsaForeman:
 
     def process_start_integration(self, params):
         job_num = str(params[JOB_NUM])
-        LOGGER.info('NCSA received message from Base asking for available resources')#
-       
+        image_id = params['IMAGE_ID']
+        visit_id = params['VISIT_ID']
         response_timed_ack_id = params["ACK_ID"] 
-        forwarders_dict = params[FORWARDERS]
-        needed_workers = len(list(forwarders_dict.keys()))
-        self.JOB_SCBD.add_job(job_num, needed_workers)
-        LOGGER.info('Received new job %s. Needed workers is %s', job_num, str(needed_workers))
+        LOGGER.info('NCSA received Start Integration message from Base')
+        LOGGER.debug('NCSA Start Integration incoming message: %s' % pprint.pformat(params))
+       
+        forwarders_list = params['FORWARDERS']['FORWARDER_LIST']
+        ccds_list = params['FORWARDERS']['CCD_LIST'] # A list of lists...
+        len_forwarders_list = len(forwarders_list)
+        self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
+        LOGGER.info('Received new job %s. Needed workers is %s', job_num, str(len_forwarders_list))
 
         # run distributor health check
         # get timed_ack_id
-        timed_ack = self.get_next_timed_ack_id("Distributor_Ack")
+        timed_ack = self.get_next_timed_ack_id("DISTRIBUTOR_HEALTH_CHECK_ACK")
 
         distributors = self.DIST_SCBD.return_distributors_list()
         # Mark all healthy distributors Unknown
@@ -218,6 +222,7 @@ class NcsaForeman:
         # send health check messages
         ack_params = {}
         ack_params[MSG_TYPE] = "DISTRIBUTOR_HEALTH_CHECK"
+        ack_params['REPLY_QUEUE'] = 'ncsa_foreman_ack_publish'
         ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
         for distributor in distributors:
@@ -225,9 +230,11 @@ class NcsaForeman:
                                               (distributor,"CONSUME_QUEUE"), ack_params)
         
         # start timers
-        self.ack_timer(3) 
+        self.ack_timer(2)
+ 
         # at end of timer, get list of distributors
         healthy_distributors = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
+
         # update distributor scoreboard with healthy distributors 
         healthy_status = {"STATUS": "HEALTHY"}
         self.DIST_SCBD.set_distributor_params(healthy_distributors, healthy_status)
@@ -242,8 +249,6 @@ class NcsaForeman:
             ncsa_params[JOB_NUM] = job_num
             ncsa_params["ACK_BOOL"] = False
             ncsa_params["ACK_ID"] = response_timed_ack_id
-            ncsa_params[AVAILABLE_DISTRIBUTORS] = str(num_healthy_distributors)
-            ncsa_params[AVAILABLE_WORKERS] = str(0)
             self._base_publisher.publish_message(NCSA_PUBLISH, yaml.dump(ncsa_params))
             # delete job and leave distributors in Idle state
             self.JOB_SCBD.delete_job(job_num)
@@ -251,66 +256,73 @@ class NcsaForeman:
             self.DIST_SCBD.set_distributor_params(healthy_distributors, idle_state)
 
         else:
-            LOGGER.info('Sufficient distributors and workers are available. Informing NCSA')
-            pairs_dict = assemble_pairs_dict(forwarders_dict, healthy_distributors)
+            Pairs = assemble_pairs(forwarders_list, ccds_list, healthy_distributors)
+
+            # Now inform NCSA that all is in ready state
+            ncsa_params = {}
+            ncsa_params[MSG_TYPE] = "NCSA_START_INTEGRATION_ACK"
+            ncsa_params[JOB_NUM] = job_num
+            ncsa_params['IMAGE_ID'] = image_id
+            ncsa_params['VISIT_ID'] = visit_id
+            ncsa_params['SESSION'] params['SESSION']
+            ncsa_params['COMPONENT'] = 'NCSA_FOREMAN'
+            ncsa_params[ACK_BOOL] = True
+            ncsa_params["ACK_ID"] = response_timed_ack_id
+            ncsa_params["PAIRS"] = Pairs
+            self._base_publisher.publish_message(params['REPLY_QUEUE'], ncsa_params) 
+            LOGGER.info('Sufficient distributors and workers are available. Informing Base')
+            LOGGER.debug('NCSA Start Integration incoming message: %s' % pprint.pformat(ncsa_params))
 
             # send pair info to each distributor
             job_params_ack = self.get_next_timed_ack_id(DISTRIBUTOR_JOB_PARAMS_ACK)
             keez = list(pairs_dict.keys())
-            for fwdr in keez:
+            for j in range(0, len(Pairs)):
               tmp_msg = {}
               tmp_msg[MSG_TYPE] = DISTRIBUTOR_JOB_PARAMS
-              tmp_msg['TRANSFER_SOURCE'] = fwdr
+              tmp_msg['XFER_PARAMS'] = Pairs[i]
               tmp_msg[JOB_NUM] = job_num
               tmp_msg[ACK_ID] = job_params_ack
-              tmp_msg[RAFT] = pairs_dict[fwdr][RAFT]
-              route_key = self.DIST_SCBD.get_value_for_distributor(pairs_dict[fwdr][FQN], ROUTING_KEY)
-              self._publisher.publish_message(route_key, yaml.dump(tmp_msg))
+              tmp_msg['REPLY_QUEUE'] = 'ncsa_foreman_ack_publish'
+              tmp_msg['VISIT_ID'] = visit_id
+              tmp_msg['IMAGE_ID'] = image_id
+              fqn = Pairs[i]['DISTRIBUTOR']['FQN']
+              route_key = self.DIST_SCBD.get_value_for_distributor(fqn, "CONSUME_QUEUE')
+              self._publisher.publish_message(route_key, tmp_msg)
 
-            # Now inform NCSA that all is in ready state
-            ncsa_params = {}
-            ncsa_params[MSG_TYPE] = "NCSA_RESOURCES_QUERY_ACK"
-            ncsa_params[JOB_NUM] = job_num
-            ncsa_params[ACK_BOOL] = True
-            ncsa_params["ACK_ID"] = response_timed_ack_id
-            ncsa_params["PAIRS"] = pairs_dict
-            self._base_publisher.publish_message(NCSA_PUBLISH, yaml.dump(ncsa_params)) 
+            LOGGER.info('The following pairings have been sent to the Base for job %s:' % job_num)
+            LOGGER.info(self.prp.pprint.pformat(Pairs))
 
-            LOGGER.info('The following pairings have been sent to the Base:')
-            LOGGER.info(self.prp.pprint.pformat(pairs_dict))
-
-            self.JOB_SCBD.set_pairs_for_job(job_num, pairs_dict)                
-            LOGGER.info('The following pairs will be used for Job #%s: %s', \
-                         job_num, self.prp.pprint.pformat(pairs_dict))
+            self.JOB_SCBD.set_pairs_for_job(job_num, Pairs)                
 
             self.DIST_SCBD.set_distributor_params(healthy_distributors, {STATE: IN_READY_STATE})
 
-            self.progressive_ack_timer(job_params_ack, num_healthy_distributors, 2.0)
+            dist_params_response = self.progressive_ack_timer(job_params_ack, num_healthy_distributors, 2.0)
 
-            dist_params_response = self.ACK_SCBD.get_components_for_timed_ack(job_params_ack)
-            if len(keez) != len(dist_params_response):
-                pass  #Do something when a policy is set...maybe async msg to base foreman? 
+            if dist_params_response == None:
+                pass  #Do something such as raise a system wide exception 
 
 
-    def assemble_pairs_dict(forwarders_dict, healthy_distributors):
-        keez = list(forwarders_dict.keys())
+    def assemble_pairs(forwarders_list, ccds_list, healthy_distributors):
 
         #build dict...
-        pairs_dict = {}
+        PAIRS = []
 
-        number_pairs = len(keez)
-        for i in range (0, number_pairs):
+        for i in range (0, len(forwarders_list)):
             tmp_dict = {}
+            sub_dict = {}
+            tmp_dict['FORWARDER'] = forwarder_list[i]
+            tmp_dict['CCD_LIST'] = ccds_list[i]
+            tmp_dict['DISTRIBUTOR'] = {}
             distributor = healthy_distributors[i]
-            tmp_dict['FQN'] = distributor
-            tmp_dict['RAFT'] = forwarders_dict[keez[i]]
-            tmp_dict['HOSTNAME'] = self.DIST_SCBD.get_value_for_distributor(distributor, HOSTNAME)
-            tmp_dict['NAME'] = self.DIST_SCBD.get_value_for_distributor(distributor, NAME)
-            tmp_dict['IP_ADDR'] = self.DIST_SCBD.get_value_for_distributor(distributor, IP_ADDR)
-            tmp_dict['TARGET_DIR'] = self.DIST_SCBD.get_value_for_distributor(distributor, TARGET_DIR)
-            pairs_dict[keez[i]] = tmp_dict
+            sub_dict['FQN'] = distributor
+            sub_dict['HOSTNAME'] = self.DIST_SCBD.get_value_for_distributor(distributor, HOSTNAME)
+            sub_dict['NAME'] = self.DIST_SCBD.get_value_for_distributor(distributor, NAME)
+            sub_dict['IP_ADDR'] = self.DIST_SCBD.get_value_for_distributor(distributor, IP_ADDR)
+            sub_dict['TARGET_DIR'] = self.DIST_SCBD.get_value_for_distributor(distributor, TARGET_DIR)
+            tmp_dict['DISTRIBUTOR'] = sub_dict
+            PAIRS.append(tmp_dict)
 
-        return pairs_dict
+        return PAIRS
             
 
 

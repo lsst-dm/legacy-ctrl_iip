@@ -130,7 +130,7 @@ class JobScoreboard(Scoreboard):
             if i == 1:
                 return True
             else:
-                LOGGER.info('In add_job, had to reconnect to Redis - all set now')
+                LOGGER.info('Attempting to reconnect to Redis - all set now')
                 return True
         else: 
             LOGGER.info('In add_job, could not reconnect to Redis after 3 attempts')
