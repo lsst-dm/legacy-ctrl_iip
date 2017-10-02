@@ -1,6 +1,12 @@
 # Cfg settings for foreman
 ROOT:
   NUMBER_OF_PAIRS: 10
+
+  # Broker user names and passwds
+  # Why so many? To avoid broker connection 
+  # contention, each publisher should have its
+  # own connection. Some foremen, who message
+  # between the base and ncsa, have extra sets
   BASE_BROKER_NAME: BASE
   BASE_BROKER_PASSWD: BASE
   BASE_BROKER_PUB_NAME: BASE_PUB
@@ -20,6 +26,16 @@ ROOT:
   PFM_NCSA_BROKER_PASSWD: PFM_NCSA
   PFM_NCSA_BROKER_PUB_NAME: PFM_NCSA_PUB
   PFM_NCSA_BROKER_PUB_PASSWD: PFM_NCSA_PUB
+
+  NFM_BASE_BROKER_NAME: NFM_BASE
+  NFM_BASE_BROKER_PASSWD: NFM_BASE
+  NFM_BASE_BROKER_PUB_NAME: NFM_BASE_PUB
+  NFM_BASE_BROKER_PUB_PASSWD: NFM_BASE_PUB
+  #
+  NFM_NCSA_BROKER_NAME: NFM_NCSA
+  NFM_NCSA_BROKER_PASSWD: NFM_NCSA
+  NFM_NCSA_BROKER_PUB_NAME: NFM_NCSA_PUB
+  NFM_NCSA_BROKER_PUB_PASSWD: NFM_NCSA_PUB
 
   ARCHIVE_BROKER_NAME: ARCHIE
   ARCHIVE_BROKER_PASSWD: ARCHIE
@@ -227,67 +243,67 @@ ROOT:
         PUBLISH_QUEUE: distributor_publish
         TARGET_DIR: /home/D2/xfer_dir
 
-      DISTRIBUTOR_3:
-        NAME: D3
-        HOSTNAME: lsst-wf-dist03.ncsa.illinois.edu  
-        IP_ADDR: 141.142.237.163
-        CONSUME_QUEUE: D3_consume
-        PUBLISH_QUEUE: distributor_publish
-        TARGET_DIR: /home/D3/xfer_dir
-
-      DISTRIBUTOR_4:
-        NAME: D4
-        HOSTNAME: lsst-wf-dist04.ncsa.illinois.edu  
-        IP_ADDR: 141.142.237.164
-        CONSUME_QUEUE: D4_consume
-        PUBLISH_QUEUE: distributor_publish
-        TARGET_DIR: /home/D4/xfer_dir
-
-      DISTRIBUTOR_5:
-        NAME: D5
-        HOSTNAME: lsst-wf-dist05.ncsa.illinois.edu  
-        IP_ADDR: 141.142.237.165
-        CONSUME_QUEUE: D5_consume
-        PUBLISH_QUEUE: distributor_publish
-        TARGET_DIR: /home/D5/xfer_dir
-
-      DISTRIBUTOR_6:
-        NAME: D6
-        HOSTNAME: lsst-wf-dist06.ncsa.illinois.edu  
-        IP_ADDR: 141.142.237.166
-        CONSUME_QUEUE: D6_consume
-        PUBLISH_QUEUE: distributor_publish
-        TARGET_DIR: /home/D6/xfer_dir
-
-      DISTRIBUTOR_7:
-        NAME: D7
-        HOSTNAME: lsst-wf-dist07.ncsa.illinois.edu  
-        IP_ADDR: 141.142.237.167
-        CONSUME_QUEUE: D7_consume
-        PUBLISH_QUEUE: distributor_publish
-        TARGET_DIR: /home/D7/xfer_dir
-
-      DISTRIBUTOR_8:
-        NAME: D8
-        HOSTNAME: lsst-wf-dist08.ncsa.illinois.edu  
-        IP_ADDR: 141.142.237.168
-        CONSUME_QUEUE: D8_consume
-        PUBLISH_QUEUE: distributor_publish
-        TARGET_DIR: /home/D8/xfer_dir
-
-      DISTRIBUTOR_9:
-        NAME: D9
-        HOSTNAME: lsst-wf-dist09.ncsa.illinois.edu  
-        PUBLISH_QUEUE: distributor_publish
-        TARGET_DIR: /home/D9/xfer_dir
-
-      DISTRIBUTOR_10:
-        NAME: D10
-        HOSTNAME: lsst-wf-dist10.ncsa.illinois.edu  
-        IP_ADDR: 141.142.237.170
-        CONSUME_QUEUE: D10_consume
-        PUBLISH_QUEUE: distributor_publish
-        TARGET_DIR: /home/D10/xfer_dir
+#      DISTRIBUTOR_3:
+#        NAME: D3
+#        HOSTNAME: lsst-wf-dist03.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.237.163
+#        CONSUME_QUEUE: D3_consume
+#        PUBLISH_QUEUE: distributor_publish
+#        TARGET_DIR: /home/D3/xfer_dir
+#
+#      DISTRIBUTOR_4:
+#        NAME: D4
+#        HOSTNAME: lsst-wf-dist04.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.237.164
+#        CONSUME_QUEUE: D4_consume
+#        PUBLISH_QUEUE: distributor_publish
+#        TARGET_DIR: /home/D4/xfer_dir
+#
+#      DISTRIBUTOR_5:
+#        NAME: D5
+#        HOSTNAME: lsst-wf-dist05.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.237.165
+#        CONSUME_QUEUE: D5_consume
+#        PUBLISH_QUEUE: distributor_publish
+#        TARGET_DIR: /home/D5/xfer_dir
+#
+#      DISTRIBUTOR_6:
+#        NAME: D6
+#        HOSTNAME: lsst-wf-dist06.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.237.166
+#        CONSUME_QUEUE: D6_consume
+#        PUBLISH_QUEUE: distributor_publish
+#        TARGET_DIR: /home/D6/xfer_dir
+#
+#      DISTRIBUTOR_7:
+#        NAME: D7
+#        HOSTNAME: lsst-wf-dist07.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.237.167
+#        CONSUME_QUEUE: D7_consume
+#        PUBLISH_QUEUE: distributor_publish
+#        TARGET_DIR: /home/D7/xfer_dir
+#
+#      DISTRIBUTOR_8:
+#        NAME: D8
+#        HOSTNAME: lsst-wf-dist08.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.237.168
+#        CONSUME_QUEUE: D8_consume
+#        PUBLISH_QUEUE: distributor_publish
+#        TARGET_DIR: /home/D8/xfer_dir
+#
+#      DISTRIBUTOR_9:
+#        NAME: D9
+#        HOSTNAME: lsst-wf-dist09.ncsa.illinois.edu  
+#        PUBLISH_QUEUE: distributor_publish
+#        TARGET_DIR: /home/D9/xfer_dir
+#
+#      DISTRIBUTOR_10:
+#        NAME: D10
+#        HOSTNAME: lsst-wf-dist10.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.237.170
+#        CONSUME_QUEUE: D10_consume
+#        PUBLISH_QUEUE: distributor_publish
+#        TARGET_DIR: /home/D10/xfer_dir
 
   BROKER_VHOST: /bunny
   QUEUE_PURGES:

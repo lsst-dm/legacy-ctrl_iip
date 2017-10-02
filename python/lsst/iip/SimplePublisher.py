@@ -58,7 +58,7 @@ class SimplePublisher:
     if self._channel == None or self._channel.is_closed == True:
        try:
          self.connect()
-       except AMQPError, e:
+       except AMQPError as e:
          LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
          sys.exit(105)
 
@@ -73,7 +73,7 @@ class SimplePublisher:
                 self.publish(route_key, xmlMsg)
             else: 
                 raise L1MessageError("Message is invalid XML.")
-        except L1MessageError, e:
+        except L1MessageError as e:
             raise L1MessageError("Message is invalid XML.")
     else: 
         #print "In Simple Publisher, route_key is %s" % str(route_key)

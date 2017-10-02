@@ -25,6 +25,7 @@ LOGGER = logging.getLogger(__name__)
 class NcsaForeman:
     NCSA_CONSUME = "ncsa_consume"
     NCSA_PUBLISH = "ncsa_publish"
+    COMPONENT = 'NCSA_FOREMAN'
     DISTRIBUTOR_PUBLISH = "distributor_publish"
     ACK_PUBLISH = "ack_publish"
     CFG_FILE = 'L1SystemCfg.yaml'
@@ -45,8 +46,8 @@ class NcsaForeman:
 
  
 
-        self._msg_actions = { 'NEXT_VISIT': self.process_next_visit,
-                              'NEW_SESSION': self.process_new_session,
+        self._msg_actions = { 'NCSA_NEXT_VISIT': self.set_visit,
+                              'NCSA_NEW_SESSION': self.set_session,
                               'NCSA_START_INTEGRATION': self.process_start_integration,
                               'NCSA_READOUT': self.process_readout,
                               'DISTRIBUTOR_HEALTH_ACK': self.process_distributor_health_ack,
@@ -59,13 +60,8 @@ class NcsaForeman:
 
         self.setup_scoreboards()
 
-        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
-        self._ncsa_broker_clstr_url = "amqp://" + self._clster_name + ":" + self._clstr_passwd + "@" + str(self._ncsa_broker_addr)
-        self._ncsa_broker_clstr_pub_url = "amqp://" + self._clstr_pub_name + ":" + self._clstr_pub_passwd + "@" + str(self._ncsa_broker_addr)
-        LOGGER.info('Building _broker_url. Result is %s', self._ncsa_broker_url)
-
         self.setup_publishers()
-        self.setup_consumers()
+        self.setup_consumer_threads()
 
         LOGGER.info('Ncsa foreman consumer setup')
         self.thread_manager = None
@@ -76,8 +72,8 @@ class NcsaForeman:
 
 
     def setup_publishers(self):
-        self._pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
-                                                self._pub_passwd + "@" + \
+        self._pub_base_broker_url = "amqp://" + self._pub_base_name + ":" + \
+                                                self._pub_base_passwd + "@" + \
                                                 str(self._base_broker_addr)
 
         self._pub_ncsa_broker_url = "amqp://" + self._pub_ncsa_name + ":" + \
@@ -93,98 +89,53 @@ class NcsaForeman:
         self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
 
 
-
-
-
-    def setup_consumers(self):
-        """This method sets up a message listener from each entity
-           with which the BaseForeman has contact here. These
-           listeners are instanced in this class, but their run
-           methods are each called as a separate thread. While
-           pika does not claim to be thread safe, the manner in which 
-           the listeners are invoked below is a safe implementation
-           that provides non-blocking, fully asynchronous messaging
-           to the BaseForeman.
-
-        """
-        LOGGER.info('Setting up consumers on %s', self._ncsa_broker_url)
-        LOGGER.info('Running start_new_thread on all consumer methods')
-
-        self._ncsa_consumer = Consumer(self._ncsa_broker_url, self.NCSA_CONSUME)
-        try:
-            _thread.start_new_thread( self.run_ncsa_consumer, ("thread-ncsa-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start NCSA consumer thread, exiting...')
-            sys.exit(99)
-
-        self._distributor_consumer = Consumer(self._ncsa_broker_url, self.DISTRIBUTOR_PUBLISH)
-        try:
-            _thread.start_new_thread( self.run_distributor_consumer, ("thread-distributor-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start DISTRBUTORS consumer thread, exiting...')
-            sys.exit(100)
-
-        self._ack_consumer = Consumer(self._ncsa_broker_url, self.ACK_PUBLISH)
-        try:
-            _thread.start_new_thread( self.run_ack_consumer, ("thread-ack-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start ACK consumer thread, exiting...')
-            sys.exit(102)
-
-        LOGGER.info('Finished starting all three consumer threads')
-
-
-    def run_distributor_consumer(self, threadname, delay):
-        self._distributor_consumer.run(self.on_distributor_message)
-
-
-    def run_ncsa_consumer(self, threadname, delay):
-        self._ncsa_consumer.run(self.on_base_message)
-
-
-    def run_ack_consumer(self, threadname, delay):
-        self._ack_consumer.run(self.on_ack_message)
-
-
-
-
-    def setup_federated_exchange(self):
-        # Set up connection URL for Base Broker here.
-        self._base_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._base_broker_addr)
-        LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
-        pass
-
-
-    def on_distributor_message(self, ch, method, properties, body):
+    def on_pp_message(self,ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
-        msg_dict = body 
-        LOGGER.info('In Distributor message callback')
-        LOGGER.debug('Thread in Distributor callback is %s', _thread.get_ident())
-        LOGGER.info('Message from Distributor callback message body is: %s', str(msg_dict))
+        msg_dict = body
+        LOGGER.debug('Message from PP callback message body is: %s', self.prp.pformat(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
-    
 
-    def on_base_message(self,ch, method, properties, body):
-        ch.basic_ack(method.delivery_tag) 
-        LOGGER.info('In base message callback, thread is %s', _thread.get_ident())
-        msg_dict = yaml.load(body)
-        LOGGER.info('base msg callback body is: %s', str(msg_dict))
-
-        handler = self._msg_actions.get(msg_dict[MSG_TYPE])
-        result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
-        msg_dict = yaml.load(body) 
+        msg_dict = body 
         LOGGER.info('In ACK message callback')
-        LOGGER.debug('Thread in ACK callback is %s', _thread.get_ident())
-        LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
+        LOGGER.debug('Message from ACK callback message body is: %s', self.prp.pformat(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
-    
+
+
+    def set_visit(self, params):
+        bore_sight = params['BORE_SIGHT']
+        visit_id = params['VISIT_ID']
+        self.JOB_SCBD.set_visit_id(visit_id, bore_sight)
+        ack_id = params['ACK_ID']
+        msg = {}
+        ###
+        ### Send Boresight to Someone here...
+        ###
+        msg['MSG_TYPE'] = 'NCSA_NEXT_VISIT_ACK'
+        msg['COMPONENT'] = self.COMPONENT_NAME
+        msg['ACK_ID'] = ack_id
+        msg['ACK_BOOL'] = True
+        route_key = params['REPLY_QUEUE']
+        self._base_publisher.publish_message(route_key, msg)    
+
+
+    def set_session(self, params):
+        self.JOB_SCBD.set_session(params['SESSION_ID'])
+        ack_id = params['ACK_ID']
+        msg = {}
+        msg['MSG_TYPE'] = 'NCSA_NEW_SESSION_ACK'
+        msg['COMPONENT'] = self.COMPONENT_NAME
+        msg['ACK_ID'] = ack_id
+        msg['ACK_BOOL'] = True
+        route_key = params['REPLY_QUEUE']
+        self._base_publisher.publish_message(route_key, msg)
+
 
     def process_start_integration(self, params):
         job_num = str(params[JOB_NUM])
@@ -254,7 +205,7 @@ class NcsaForeman:
             ncsa_params[JOB_NUM] = job_num
             ncsa_params['IMAGE_ID'] = image_id
             ncsa_params['VISIT_ID'] = visit_id
-            ncsa_params['SESSION'] params['SESSION']
+            ncsa_params['SESSION'] = params['SESSION']
             ncsa_params['COMPONENT'] = 'NCSA_FOREMAN'
             ncsa_params[ACK_BOOL] = True
             ncsa_params["ACK_ID"] = response_timed_ack_id
@@ -276,7 +227,7 @@ class NcsaForeman:
               tmp_msg['VISIT_ID'] = visit_id
               tmp_msg['IMAGE_ID'] = image_id
               fqn = Pairs[i]['DISTRIBUTOR']['FQN']
-              route_key = self.DIST_SCBD.get_value_for_distributor(fqn, "CONSUME_QUEUE')
+              route_key = self.DIST_SCBD.get_value_for_distributor(fqn, 'CONSUME_QUEUE')
               self._publisher.publish_message(route_key, tmp_msg)
 
             LOGGER.info('The following pairings have been sent to the Base for job %s:' % job_num)
@@ -316,54 +267,68 @@ class NcsaForeman:
             
 
 
-    def process_base_readout(self, params):
+    def process_readout(self, params):
         job_number = params[JOB_NUM]
         response_ack_id = params[ACK_ID]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        date = get_timestamp()
-        ack_id = self.get_next_timed_ack_id(DISTRIBUTOR_READOUT)
+        len_pairs = len(pairs)
+        ack_id = self.get_next_timed_ack_id(DISTRIBUTOR_READOUT_ACK)
         self.JOB_SCBD.set_value_for_job(job_number, START_READOUT, date) 
         # The following line extracts the distributor FQNs from pairs dict using
         # list comprehension values; faster than for loops
-        distributors = [v['FQN'] for v in list(pairs.values())]
-        for distributor in distributors:
+        # distributors = [v['FQN'] for v in list(pairs.values())]
+        for i in range(0, len_pairs):  # Pairs is a list of dictionaries
+            distributor = pairs[i]['DISTRIBUTOR']['FQN']
             msg_params = {}
             msg_params[MSG_TYPE] = DISTRIBUTOR_READOUT
             msg_params[JOB_NUM] = job_number
+            msg_params['REPLY_QUEUE'] = 'ncsa_foreman_ack_publish'
             msg_params[ACK_ID] = ack_id
             routing_key = self.DIST_SCBD.get_routing_key(distributor)
             self.DIST_SCBD.set_distributor_state(distributor, START_READOUT)
-            self._publisher.publish_message(routing_key, yaml.dump(msg_params))
+            self._publisher.publish_message(routing_key, msg_params)
 
+        distributor_responses = self.progressive_ack_timer(ack_id, len_pairs, 24)
 
-        self.ack_timer(4)
-
-        distributor_responses = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-        if len(distributor_responses) == len(distributors):
+        if distributor_responses != None:
+            RESULT_LIST = {}
+            CCD_LIST = []
+            RECEIPT_LIST = []
             ncsa_params = {}
             ncsa_params[MSG_TYPE] = NCSA_READOUT_ACK
             ncsa_params[JOB_NUM] = job_number
+            ncsa_params['IMAGE_ID'] = params['IMAGE_ID']
+            ncsa_params['VISIT_ID'] = params['VISIT_ID']
+            ncsa_params['SESSION_ID'] = params['SESSION_ID']
+            ncsa_params['COMPONENT'] = 'NCSA_FOREMAN'
             ncsa_params[ACK_ID] = response_ack_id
             ncsa_params[ACK_BOOL] = True
-            self.publisher.publish_message("ncsa_publish", yaml.dump(msg_params))
+            distributors = list(distributor_responses.keys())
+            for dist in distributors:
+              ccd_list = distributor_responses[dist]['CCD_LIST']
+              receipt_list = distributor_responses[dist]['RECEIPT_LIST']
+              for i in range (0, len(ccd_list)):
+                  CCD_LIST.append(ccd_list[i])
+                  RECEIPT_LIST.append(receipt_list[i])
+            RESULT_LIST['CCD_LIST'] = CCD_LIST
+            RESULT_LIST['RECEIPT_LIST'] = RECEIPT_LIST
+            ncsa_params['RESULT_LIST'] = RESULT_LIST
+            self.publisher.publish_message(params['REPLY_QUEUE'], msg_params)
+
         else:
             ncsa_params = {}
             ncsa_params[MSG_TYPE] = NCSA_READOUT_ACK
             ncsa_params[JOB_NUM] = job_number
-            ncsa_params['COMPONENT_NAME'] = NCSA
+            ncsa_params['COMPONENT_NAME'] = NCSA_FOREMAN
+            ncsa_params['IMAGE_ID'] = params['IMAGE_ID']
+            ncsa_params['VISIT_ID'] = params['VISIT_ID']
+            ncsa_params['SESSION_ID'] = params['SESSION_ID']
             ncsa_params[ACK_ID] = response_ack_id
             ncsa_params[ACK_BOOL] = FALSE
-            ncsa_params[EXPECTED_DISTRIBUTOR_ACKS] = len(distributors)
-            ncsa_params[RECIEVED_DISTRIBUTOR_ACKS] = len(distributor_responses)
-            missing_distributors = {}
-            forwarders = list(pairs.keys())
-            for forwarder in forwarders:
-                if forwarder['MATE'] in distributor_responses:
-                    continue
-                else:
-                    missing_distributors[forwarder[MATE]] = forwarder[RAFT]
-            ncsa_params[MISSING_DISTRIBUTORS] = missing_distributors
-            self.publisher.publish_message("ncsa_publish", yaml.dump(msg_params))
+            ncsa_params['RESULT_LIST'] = {}
+            ncsa_params['RESULT_LIST']['CCD_LIST'] = None
+            ncsa_params['RESULT_LIST']['RECEIPT_LIST'] = None
+            self.publisher.publish_message(params['REPLY_QUEUE'], msg_params)
              
 
 
@@ -448,17 +413,17 @@ class NcsaForeman:
         try:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
-            self._sub_name = [ROOT]['NCSA_BROKER_NAME']      # Message broker user & passwd
-            self._sub_passwd = [ROOT]['NCSA_BROKER_PASSWD']   
-            #### FIX FIX FIX - make work with setu consumer threads method
-            self._pub_name = [ROOT]['NCSA_BROKER_PUB_NAME']  
-            self._pub_passwd = [ROOT]['NCSA_BROKER_PUB_PASSWD']   
-            self._clstr_name = [ROOT]['NCSA_CLSTR']
-            self._clstr_passwd = [ROOT]['NCSA_CLSTR']   
-            self._clstr_pub_name = [ROOT]['NCSA_CLSTR_PUB']
-            self._clstr_pub_passwd = [ROOT]['NCSA_CLSTR_PUB']   
+ 
+            self._sub_base_name = cdm[ROOT]['NFM_BASE_BROKER_NAME']      # Message broker user & passwd
+            self._sub_base_passwd = cdm[ROOT]['NFM_BASE_BROKER_PASSWD']   
+            self._sub_ncsa_name = cdm[ROOT]['NFM_NCSA_BROKER_NAME']      # Message broker user & passwd
+            self._sub_ncsa_passwd = cdm[ROOT]['NFM_NCSA_BROKER_PASSWD']   
+
+            self._pub_base_name = cdm[ROOT]['BASE_BROKER_PUB_NAME']  
+            self._pub_base_passwd = cdm[ROOT]['BASE_BROKER_PUB_PASSWD']   
+            self._pub_ncsa_name = cdm[ROOT]['NCSA_BROKER_PUB_NAME']  
+            self._pub_ncsa_passwd = cdm[ROOT]['NCSA_BROKER_PUB_PASSWD']
+
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS'] 
             self.distributor_dict = cdm[ROOT][XFER_COMPONENTS][DISTRIBUTORS]
         except KeyError as e:
@@ -480,14 +445,13 @@ class NcsaForeman:
 
     def setup_consumer_threads(self):
         LOGGER.info('Building _base_broker_url')
-        base_broker_url = "amqp://" + self._sub_name + ":" + \
-                                            self._sub_passwd + "@" + \
+        base_broker_url = "amqp://" + self._sub_base_name + ":" + \
+                                            self._sub_base_passwd + "@" + \
                                             str(self._base_broker_addr)
 
         ncsa_broker_url = "amqp://" + self._sub_ncsa_name + ":" + \
                                             self._sub_ncsa_passwd + "@" + \
                                             str(self._ncsa_broker_addr)
-
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
@@ -502,7 +466,7 @@ class NcsaForeman:
         kws[md['name']] = md
 
         md = {}
-        md['amqp_url'] = ncsa_broker_url
+        md['amqp_url'] = base_broker_url
         md['name'] = 'Thread-ncsa_consume'
         md['queue'] = 'ncsa_consume'
         md['callback'] = self.on_pp_message
@@ -512,6 +476,7 @@ class NcsaForeman:
 
         self.thread_manager = ThreadManager('thread-manager', kws)
         self.thread_manager.start()
+
 
     def setup_scoreboards(self):
         # Create Redis Distributor table with Distributor info

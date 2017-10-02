@@ -13,7 +13,7 @@ from copy import deepcopy
 import logging
 sys.path.insert(1, '../iip')
 sys.path.insert(1, '../')
-import DMCS
+import NcsaForeman
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from MessageAuthority import MessageAuthority
@@ -131,7 +131,6 @@ class TestNcsa:
         print("Finished with NCSA tests.")
         #sys.exit(0)
 
-=====================================================================================
 
     def send_messages(self):
 
@@ -146,24 +145,26 @@ class TestNcsa:
         self.EXPECTED_F2_MESSAGES = 3
 
         msg = {}
-        msg['MSG_TYPE'] = "PP_NEW_SESSION"
+        msg['MSG_TYPE'] = "NCSA_NEW_SESSION"
         msg['SESSION_ID'] = 'SI_469976'
-        msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
-        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
+        msg['ACK_ID'] = 'NCSA_NEW_SESSION_ACK_44221'
+        msg['REPLY_QUEUE'] = 'pp_foreman_ack_publish'
         time.sleep(3)
         print("New Session Message")
-        self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
+        self.pp_publisher.publish_message("ncsa_consume", msg)
 
         msg = {}
-        msg['MSG_TYPE'] = "PP_NEXT_VISIT"
+        msg['MSG_TYPE'] = "NCSA_NEXT_VISIT"
         msg['VISIT_ID'] = 'XX_28272' 
-        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
+        msg['SESSION_ID'] = 'NNV_469976'
+        msg['REPLY_QUEUE'] = 'pp_foreman_ack_publish'
+        msg['ACK_ID'] = 'NCSA_NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
         time.sleep(2)
         print("Next Visit Message")
-        self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
-          
+        self.pp_publisher.publish_message("ncsa_consume", msg)
+
+        """ 
         msg = {}
         msg['MSG_TYPE'] = "PP_START_INTEGRATION"
         msg['JOB_NUM'] = '4xx72'
@@ -186,6 +187,7 @@ class TestNcsa:
         msg['ACK_ID'] = 'PP_READOUT_ACK_44221'
         time.sleep(4)
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
+        """
 
         time.sleep(2)
 
@@ -271,7 +273,7 @@ class TestNcsa:
     def on_dmcs_message(self, ch, method, properties, body):
         self.dmcs_consumer_msg_list.append(body)
 
-    def on_ncsa_message(self, ch, method, properties, body):
+    def on_pp_message(self, ch, method, properties, body):
         # on_ncsa_publish
         self.ncsa_consumer_msg_list.append(body)
 
@@ -358,38 +360,38 @@ class TestNcsa:
             self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
      
 
-    def on_f1_message(self, ch, method, properties, body):
-        self.f1_consumer_msg_list.append(body)
-        if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
+    def on_d1_message(self, ch, method, properties, body):
+        self.d1_consumer_msg_list.append(body)
+        if body['MSG_TYPE'] == 'DISTRIBUTOR_HEALTH_CHECK':
             msg = {}
-            msg['MSG_TYPE'] = 'PP_FWDR_HEALTH_CHECK_ACK'
-            msg['COMPONENT'] = 'FORWARDER_1'
+            msg['MSG_TYPE'] = 'DISTRIBUTOR_HEALTH_CHECK_ACK'
+            msg['COMPONENT'] = 'DISTRIBUTOR_1'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
             self.f1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
-        elif body['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
+        elif body['MSG_TYPE'] == 'DISTRIBUTOR_XFER_PARAMS':
             msg = {}
-            msg['MSG_TYPE'] = 'PP_FWDR_XFER_PARAMS_ACK'
-            msg['COMPONENT'] = 'FORWARDER_1'
+            msg['MSG_TYPE'] = 'DISTRIBUTOR_XFER_PARAMS_ACK'
+            msg['COMPONENT'] = 'DISTRIBUTOR_1'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
             self.f1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
-        elif body['MSG_TYPE'] == 'PP_FWDR_READOUT':
+        elif body['MSG_TYPE'] == 'DISTRIBUTOR_READOUT':
             # Find message in message list for xfer_params
             xfer_msg = None
             for msg in self.f1_consumer_msg_list:
-                if msg['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
+                if msg['MSG_TYPE'] == 'DISTRIBUTOR_XFER_PARAMS':
                     xfer_msg = msg
                     break
             if xfer_msg == None:
-                pytest.fail("The PP_FWDR_XFER_PARAMS message was not received before PP_FWDR_READOUT in F1")
+                pytest.fail("The DISTRIBUTOR_XFER_PARAMS message was not received before DISTRIBUTOE_READOUT in D1")
 
             # use message to build response
             msg = {}
-            msg['MSG_TYPE'] = 'PP_FWDR_READOUT_ACK'
-            msg['COMPONENT'] = 'FORWARDER_1'
+            msg['MSG_TYPE'] = 'DISTRIBUTOR_READOUT_ACK'
+            msg['COMPONENT'] = 'DISTRIBUTOR_1'
             msg['JOB_NUM'] = xfer_msg['JOB_NUM']
             msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
             msg['ACK_ID'] = body['ACK_ID']
@@ -406,41 +408,41 @@ class TestNcsa:
             self.f1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
-            pytest.fail("The following unknown message was received by FWDR F1: %s" % body)
+            pytest.fail("The following unknown message was received by D1: %s" % body)
 
 
-    def on_f2_message(self, ch, method, properties, body):
-        self.f2_consumer_msg_list.append(body)
-        if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
+    def on_d2_message(self, ch, method, properties, body):
+        self.d2_consumer_msg_list.append(body)
+        if body['MSG_TYPE'] == 'DISTRIBUTOR_HEALTH_CHECK':
             msg = {}
-            msg['MSG_TYPE'] = 'PP_FWDR_HEALTH_CHECK_ACK'
-            msg['COMPONENT'] = 'FORWARDER_2'
+            msg['MSG_TYPE'] = 'DISTRIBUTOR_HEALTH_CHECK_ACK'
+            msg['COMPONENT'] = 'DISTRIBUTOR_2'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
             self.f2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
-        elif body['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
+        elif body['MSG_TYPE'] == 'DISTRIBUTOR_XFER_PARAMS':
             msg = {}
-            msg['MSG_TYPE'] = 'PP_FWDR_XFER_PARAMS_ACK'
-            msg['COMPONENT'] = 'FORWARDER_2'
+            msg['MSG_TYPE'] = 'DISTRIBUTOR_XFER_PARAMS_ACK'
+            msg['COMPONENT'] = 'DISTRIBUTOR_2'
             msg['ACK_BOOL'] = True
             msg['ACK_ID'] = body['ACK_ID']
             self.f2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
-        elif body['MSG_TYPE'] == 'PP_FWDR_READOUT':
+        elif body['MSG_TYPE'] == 'DISTRIBUTOR_READOUT':
             # Find message in message list for xfer_params
             xfer_msg = None
-            for msg in self.f2_consumer_msg_list:
-                if msg['MSG_TYPE'] == 'PP_FWDR_XFER_PARAMS':
+            for msg in self.d2_consumer_msg_list:
+                if msg['MSG_TYPE'] == 'DISTRIBUTOR_XFER_PARAMS':
                     xfer_msg = msg
                     break
             if xfer_msg == None:
-                pytest.fail("The PP_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F2")
+                pytest.fail("The DISTRIBUTOR_XFER_PARAMS message was not received before DISTRIBUTOR_READOUT in D2")
 
             # use message to build response
             msg = {}
-            msg['MSG_TYPE'] = 'PP_FWDR_READOUT_ACK'
-            msg['COMPONENT'] = 'FORWARDER_2'
+            msg['MSG_TYPE'] = 'DISTRIBUTOR_READOUT_ACK'
+            msg['COMPONENT'] = 'DISTRIBUTOR_2'
             msg['JOB_NUM'] = xfer_msg['JOB_NUM']
             msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
             msg['ACK_ID'] = body['ACK_ID']
@@ -457,4 +459,4 @@ class TestNcsa:
             self.f2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
-            pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
+            pytest.fail("The following unknown message was received by D2: %s" % body)

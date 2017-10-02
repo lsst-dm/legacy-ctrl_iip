@@ -5,6 +5,9 @@ import logging
 import redis
 import time
 import sys
+from toolsmod import get_epoch_timestamp
+from toolsmod import L1RedisError
+from toolsmod import L1RabbitConnectionError
 from Scoreboard import Scoreboard
 from const import * 
 
@@ -16,10 +19,28 @@ class DistributorScoreboard(Scoreboard):
     DISTRIBUTOR_ROWS = 'distributor_rows'
     ROUTING_KEY = 'ROUTING_KEY'
     PUBLISH_QUEUE = 'distributor_publish'
+    DB_TYPE = ""
+    DB_INSTANCE = None
 
-    def __init__(self, ddict):
-        LOGGER.info('Setting up DistributorDcoreboard')
-        self.connect()
+    def __init__(self, db_type, db_instance, ddict):
+        LOGGER.info('Setting up DistributorScoreboard')
+        self.DB_TYPE = db_type
+        self.DB_INSTANCE = db_instance
+
+        try:
+            Scoreboard.__init__(self)
+        except L1RabbitConnectionError as e:
+            LOGGER.error('Failed to make connection to Message Broker: %s', e.arg)
+            print("No Monitoring for YOU")
+            raise L1Error('Calling super.init in DistScoreboard init caused: %s', e.arg)
+
+        try:
+            self._redis = self.connect()
+        except L1RedisError as e:
+            LOGGER.error('Failed to make connection to Redis: %s', e.arg)
+            print("No Redis for YOU")
+            raise L1Error('Calling Redis connect in Distributor Scoreboard init caused: %s', e.arg)
+
         self._redis.flushdb()
 
         distributors = list(ddict.keys())
@@ -46,7 +67,7 @@ class DistributorScoreboard(Scoreboard):
 
 
     def connect(self):
-        #pool = redis.ConnectionPool(host='localhost', port=6379, db=DIST_SCOREBOARD_DB)
+        #pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
         #self._redis = redis.Redis(connection_pool=pool)
         try:
             sconn = redis.StrictRedis(host='localhost',port='6379', \
