@@ -35,15 +35,14 @@ class TestNcsa:
     D1_pub_broker_url = None
     D1_publisher = None
     D1_consumer = None
-    D1_consumer_msg_list = []
+    d1_consumer_msg_list = []
 
     D2_pub_broker_url = None
     D2_publisher = None
     D2_consumer = None
-    D2_consumer_msg_list = []
+    d2_consumer_msg_list = []
 
-    EXPECTED_NCSA_MESSAGES = 1
-    EXPECTED_DMCS_MESSAGES = 1
+    EXPECTED_PP_MESSAGES = 1
     EXPECTED_D1_MESSAGES = 1
     EXPECTED_D2_MESSAGES = 1
 
@@ -139,10 +138,9 @@ class TestNcsa:
         
         # self.clear_message_lists()
 
-        self.EXPECTED_NCSA_MESSAGES = 3
-        self.EXPECTED_DMCS_MESSAGES = 4
-        self.EXPECTED_F1_MESSAGES = 3
-        self.EXPECTED_F2_MESSAGES = 3
+        self.EXPECTED_PP_MESSAGES = 2
+        self.EXPECTED_D1_MESSAGES = 0
+        self.EXPECTED_D2_MESSAGES = 0
 
         msg = {}
         msg['MSG_TYPE'] = "NCSA_NEW_SESSION"
@@ -194,80 +192,63 @@ class TestNcsa:
         print("Message Sender done")
 
 
-    def verify_dmcs_messages(self):
-        print("Messages received by verify_dmcs_messages:")
-        self.prp.pprint(self.dmcs_consumer_msg_list)
-        len_list = len(self.dmcs_consumer_msg_list)
-        if len_list != self.EXPECTED_DMCS_MESSAGES:
-            pytest.fail('DMCS simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_DMCS_MESSAGES, len_list))
+    def verify_pp_messages(self):
+        print("Messages received by verify_pp_messages:")
+        self.prp.pprint(self.pp_consumer_msg_list)
+        len_list = len(self.pp_consumer_msg_list)
+        if len_list != self.EXPECTED_PP_MESSAGES:
+            print("Messages received by verify_pp_messages:")
+            self.prp.pprint(self.pp_consumer_msg_list)
+            pytest.fail('PP simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_PP_MESSAGES, len_list))
 
         # Now check num keys in each message first, then check for key errors
         for i in range(0, len_list):
-            msg = self.dmcs_consumer_msg_list[i]
+            msg = self.pp_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
-                pytest.fail("The following DMCS Bridge response message failed when compared with the sovereign example: %s" % msg)
-        print("Responses to DMCS Bridge pass verification.")
+                pytest.fail("The following message to the PP Foreman failed when compared with the sovereign example: %s" % msg)
+        print("Messages to the PP Foreman pass verification.")
    
 
-    def verify_ncsa_messages(self):
-        print("Messages received by verify_ncsa_messages:")
-        self.prp.pprint(self.ncsa_consumer_msg_list)
-        len_list = len(self.ncsa_consumer_msg_list)
-        if len_list != self.EXPECTED_NCSA_MESSAGES:
-            print("Messages received by verify_ncsa_messages:")
-            self.prp.pprint(self.ncsa_consumer_msg_list)
-            pytest.fail('NCSA simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_NCSA_MESSAGES, len_list))
-
-        # Now check num keys in each message first, then check for key errors
-        for i in range(0, len_list):
-            msg = self.ncsa_consumer_msg_list[i]
-            result = self._msg_auth.check_message_shape(msg)
-            if result == False:
-                pytest.fail("The following message to the NCSA Foreman failed when compared with the sovereign example: %s" % msg)
-        print("Messages to the NCSA Foreman pass verification.")
-   
-
-    def verify_F1_messages(self):
-        print("Messages received by verify_F1_messages:")
-        self.prp.pprint(self.f1_consumer_msg_list)
-        len_list = len(self.f1_consumer_msg_list)
-        if len_list != self.EXPECTED_F1_MESSAGES:
-            print("Messages received by verify_F1_messages:")
+    def verify_D1_messages(self):
+        print("Messages received by verify_D1_messages:")
+        self.prp.pprint(self.d1_consumer_msg_list)
+        len_list = len(self.d1_consumer_msg_list)
+        if len_list != self.EXPECTED_D1_MESSAGES:
+            print("Messages received by verify_D1_messages:")
             self.prp.pprint(self.f1_consumer_msg_list)
             pytest.fail('F1 simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_F1_MESSAGES, len_list))
+                        % (self.EXPECTED_D1_MESSAGES, len_list))
 
         # Now check num keys in each message first, then check for key errors
         for i in range(0, len_list):
-            msg = self.f1_consumer_msg_list[i]
+            msg = self.d1_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
-                pytest.fail("The following message to F1 failed when compared with the sovereign example: %s" % msg)
+                pytest.fail("The following message to D1 failed when compared with the sovereign example: %s" % msg)
             else:
-                print("Messages to F1 pass verification.")
+                print("Messages to D1 pass verification.")
   
    
-    def verify_F2_messages(self):
-        print("Messages received by verify_F2_messages:")
-        self.prp.pprint(self.f2_consumer_msg_list)
-        len_list = len(self.f2_consumer_msg_list)
-        if len_list != self.EXPECTED_F2_MESSAGES:
-            print("Messages received by verify_F2_messages:")
-            self.prp.pprint(self.f2_consumer_msg_list)
-            pytest.fail('F2 simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_F2_MESSAGES, len_list))
+    def verify_D2_messages(self):
+        print("Messages received by verify_D2_messages:")
+        self.prp.pprint(self.d2_consumer_msg_list)
+        len_list = len(self.d2_consumer_msg_list)
+        if len_list != self.EXPECTED_D2_MESSAGES:
+            print("Messages received by verify_D2_messages:")
+            self.prp.pprint(self.d2_consumer_msg_list)
+            pytest.fail('D2 simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_D2_MESSAGES, len_list))
 
         # Now check num keys in each message first, then check for key errors
         for i in range(0, len_list):
-            msg = self.f2_consumer_msg_list[i]
+            msg = self.d2_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
-                pytest.fail("The following message to F2 failed when compared with the sovereign example: %s" % msg)
+                pytest.fail("The following message to D2 failed when compared with the sovereign example: %s" % msg)
             else:
-                print("Messages to F2 pass verification.")
+                print("Messages to D2 pass verification.")
   
  
     def on_dmcs_message(self, ch, method, properties, body):
