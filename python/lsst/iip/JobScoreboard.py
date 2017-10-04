@@ -271,7 +271,7 @@ class JobScoreboard(Scoreboard):
         if pairs:
             return yaml.load(pairs)
         else:
-            print("ERROR: No pairs associated with JOB %s" % job_number)
+            LOGGER.critical("ERROR: No pairs associated with JOB %s" % job_number)
             return None
 
     def set_ccds_for_job(self, job_number, ccds):

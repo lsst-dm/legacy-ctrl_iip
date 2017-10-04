@@ -93,9 +93,6 @@ class NcsaForeman:
 
     def on_pp_message(self,ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
-        print("Incoming on_pp_message is:")
-        self.prp.pprint(body)
-        print("----------------------------------")
         msg_dict = body
         LOGGER.debug('Message from PP callback message body is: %s', self.prp.pformat(msg_dict))
 
@@ -105,9 +102,6 @@ class NcsaForeman:
 
     def on_ack_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
-        print("Incoming on_ack_message is:")
-        self.prp.pprint(body)
-        print("----------------------------------")
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Message from ACK callback message body is: %s', self.prp.pformat(msg_dict))
@@ -134,7 +128,6 @@ class NcsaForeman:
 
 
     def set_session(self, params):
-        print("Made it to set_session handler...incoming message is %s" % params)
         self.JOB_SCBD.set_session(params['SESSION_ID'])
         ack_id = params['ACK_ID']
         msg = {}
@@ -143,7 +136,6 @@ class NcsaForeman:
         msg['ACK_ID'] = ack_id
         msg['ACK_BOOL'] = True
         route_key = params['REPLY_QUEUE']
-        print("About to send new session ack...route_key is %s" % route_key)
         self._base_publisher.publish_message(route_key, msg)
 
 
@@ -177,9 +169,6 @@ class NcsaForeman:
         ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
         for distributor in distributors:
-            print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-            print("NOTE: About to send message to THIS distributor queue: %s" % self.DIST_SCBD.get_value_for_distributor(distributor, "CONSUME_QUEUE"))
-            print("\n\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
             self._ncsa_publisher.publish_message(self.DIST_SCBD.get_value_for_distributor
                                               (distributor,"CONSUME_QUEUE"), ack_params)
         
@@ -286,10 +275,6 @@ class NcsaForeman:
         job_number = params[JOB_NUM]
         response_ack_id = params[ACK_ID]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
-        print("XXXXXXXXXXXXXX In process_readout XXXXXXXXXXXXXXXX")
-        print("pairs printout is: ")
-        self.prp.pprint(pairs)
-        print("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\n")
         sleep(3)
         len_pairs = len(pairs)
         ack_id = self.get_next_timed_ack_id(DISTRIBUTOR_READOUT_ACK)
@@ -354,37 +339,6 @@ class NcsaForeman:
         self.ACK_SCBD.add_timed_ack(params)
 
 
-    def intake_yaml_file(self):
-        """This method reads the ForemanCfg.yaml config file
-           found in the same directory as the BaseForeman class.
-           The config file can list an initial set of forwarders and/or
-           distributors, as well as the message broker address, default 
-           file transfer values, etc.
-    
-        """
-        try:
-            f = open('ForemanCfg.yaml')
-        except IOError:
-            print("Cant open ForemanCfg.yaml")
-            print("Bailing out...")
-            sys.exit(99)
-
-        #cfg data map...
-        cdm = yaml.safe_load(f)
-
-        try:
-            self._xfer_app = cdm[XFER_APP]
-        except KeyError as e:
-            pass #use default or await reassignment
-
-        try:
-            self._xfer_file = cdm[XFER_FILE]
-        except KeyError:
-            pass #use default or await reassignment
-
-        return cdm
-
-
     def get_next_timed_ack_id(self, ack_type):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
@@ -401,7 +355,6 @@ class NcsaForeman:
             sleep(0.5)
             response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
             if len(list(response.keys())) == expected_replies:
-                print("Received all %s Acks in %s seconds." % (expected_replies, counter))
                 return response
             counter = counter + 0.5
 

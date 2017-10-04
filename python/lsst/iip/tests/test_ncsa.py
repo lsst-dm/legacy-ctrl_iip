@@ -196,12 +196,8 @@ class TestNcsa:
 
 
     def verify_pp_messages(self):
-        print("Messages received by verify_pp_messages:")
-        self.prp.pprint(self.pp_consumer_msg_list)
         len_list = len(self.pp_consumer_msg_list)
         if len_list != self.EXPECTED_PP_MESSAGES:
-            print("Messages received by verify_pp_messages:")
-            self.prp.pprint(self.pp_consumer_msg_list)
             pytest.fail('PP simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_PP_MESSAGES, len_list))
 
@@ -245,8 +241,6 @@ class TestNcsa:
    
 
     def verify_D1_messages(self):
-        print("Messages received by verify_D1_messages:")
-        self.prp.pprint(self.d1_consumer_msg_list)
         len_list = len(self.d1_consumer_msg_list)
         if len_list != self.EXPECTED_D1_MESSAGES:
             print("Messages received by verify_D1_messages:")
@@ -265,8 +259,6 @@ class TestNcsa:
   
    
     def verify_D2_messages(self):
-        print("Messages received by verify_D2_messages:")
-        self.prp.pprint(self.d2_consumer_msg_list)
         len_list = len(self.d2_consumer_msg_list)
         if len_list != self.EXPECTED_D2_MESSAGES:
             print("Messages received by verify_D2_messages:")
@@ -279,104 +271,15 @@ class TestNcsa:
             msg = self.d2_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
-                print("\n+++++++++++++++++++++++++++++++++++++++++++")
-                print("Failed D2 Message is: ")
-                self.prp.pprint(msg)
-                print("\n\n+++++++++++++++++++++++++++++++++++++++++++\n")
                 pytest.fail("The following message to D2 failed when compared with the sovereign example: %s" % msg)
             else:
                 print("Messages to D2 pass verification.")
   
  
-    def on_dmcs_message(self, ch, method, properties, body):
-        self.dmcs_consumer_msg_list.append(body)
-
     def on_pp_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
         self.pp_consumer_msg_list.append(body)
 
-#        if body['MSG_TYPE'] == 'NCSA_NEW_SESSION':
-#            msg = {}
-#            msg['MSG_TYPE'] = 'NCSA_NEW_SESSION_ACK'
-#            msg['COMPONENT'] = 'NCSA_FOREMAN'
-#            msg['ACK_ID'] = body['ACK_ID']
-#            msg['ACK_BOOL'] = True
-#            self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
-#            return
-#
-#        if body['MSG_TYPE'] == 'NCSA_NEXT_VISIT':
-#            msg = {}
-#            msg['MSG_TYPE'] = 'NCSA_NEXT_VISIT_ACK'
-#            msg['COMPONENT'] = 'NCSA_FOREMAN'
-#            msg['ACK_ID'] = body['ACK_ID']
-#            msg['ACK_BOOL'] = True
-#            self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
-#            return
-#
-#        if body['MSG_TYPE'] == 'NCSA_START_INTEGRATION_ACK':
-#            msg = {}
-#            msg['ACK_ID'] = body['ACK_ID']
-#            msg['MSG_TYPE'] = 'NCSA_START_INTEGRATION_ACK'
-#            msg['COMPONENT'] = 'NCSA_FOREMAN'
-#            fwdrs = deepcopy(body['FORWARDERS'])
-#            fwdr_list = fwdrs['FORWARDER_LIST']
-#            ccd_list = fwdrs['CCD_LIST']
-#            i = 1
-#            msg['PAIRS'] = []  # This will be a list of dictionaries
-#            for i in range(0,len(fwdr_list)):
-#                fwdr = fwdr_list[i]
-#                dist = {}
-#                pair = {}
-#                dist['FQN'] = "Distributor_" + str(i)
-#                dist['NAME'] = "D" + str(i)
-#                dist['HOSTNAME'] = "D" + str(i)
-#                dist['TARGET_DIR'] = "/dev/null"
-#                dist['IP_ADDR'] = "141.142.237.16" + str(i)
-#                pair['FORWARDER'] = fwdr_list[i]
-#                pair['CCD_LIST'] = ccd_list[i]  #Get the list at index position i in ccd_list
-#                pair['DISTRIBUTOR'] = dist
-#                msg['PAIRS'].append(deepcopy(pair))
-#        
-#            msg['ACK_BOOL'] = True
-#            msg['JOB_NUM'] = body['JOB_NUM']
-#            msg['IMAGE_ID'] = body['IMAGE_ID']
-#            msg['VISIT_ID'] = body['VISIT_ID']
-#            msg['SESSION_ID'] = body['SESSION_ID']
-#            self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
-#            return
-#
-#        if body['MSG_TYPE'] == 'NCSA_READOUT':
-#            # Find earlier Start Int message
-#            st_int_msg = None
-#            for msg in self.ncsa_consumer_msg_list:
-#                if msg['MSG_TYPE'] == 'NCSA_START_INTEGRATION':
-#                    st_int_msg = msg
-#                    break
-#            if st_int_msg == None:
-#                pytest.fail("The NCSA_START_INTEGRATION message wasn't received before NCSA_READOUT in on_ncsa_msg")
-#
-#            # Now build response with previous message
-#            msg = {}
-#            msg['MSG_TYPE'] = 'NCSA_READOUT_ACK'
-#            msg['JOB_NUM'] = body['JOB_NUM']
-#            msg['IMAGE_ID'] = body['IMAGE_ID']
-#            msg['VISIT_ID'] = body['VISIT_ID']
-#            msg['SESSION_ID'] = body['SESSION_ID']
-#            msg['COMPONENT'] = 'NCSA_FOREMAN'
-#            msg['ACK_BOOL'] = True
-#            msg['ACK_ID'] = body['ACK_ID']
-#            #msg['RESULT_LIST']['FORWARDER_LIST'] = st_int_msg['FORWARDERS']['FORWARDER_LIST']
-#            ccd_list = st_int_msg['FORWARDERS']['CCD_LIST']
-#            receipt_list = []
-#            for i in range(0, len(ccd_list)):
-#                receipt_list.append('Rec_x447_' + str(i))
-#            msg['RESULT_LIST'] = {}
-#            msg['RESULT_LIST']['RECEIPT_LIST'] = receipt_list
-#            msg['RESULT_LIST']['CCD_LIST'] = list(ccd_list)
-#
-#            #sleep(2) #Give FWDRs time to respond with ack first
-#            self.ncsa_publisher.publish_message(body['REPLY_QUEUE'], msg)
-#     
 
     def on_d1_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)

@@ -207,7 +207,6 @@ class PromptProcessDevice:
         unknown_status = {"STATUS": "UNKNOWN", "STATE":"UNRESPONSIVE"}
         self.FWD_SCBD.setall_forwarder_params(unknown_status)
 
-        print("Sending Forwarder Health Checks")
         ack_id = self.forwarder_health_check(input_params)
          
         self.ack_timer(2.5) 
@@ -216,14 +215,10 @@ class PromptProcessDevice:
         if healthy_forwarders == None:
             self.JOB_SCBD.set_job_state(job_number, 'SCRUBBED')
             self.JOB_SCBD.set_job_status(job_number, 'INACTIVE')
-            print("Telling DMCS Insufficient Forwarders for job")
             result = self.insufficient_base_resources(input_params, None)
             return result
             
         healthy_forwarders_list = list(healthy_forwarders.keys())
-        print("Health check finished - %s Forwarders responded as healthy" % len(healthy_forwarders_list))
-        self.prp.pprint(healthy_forwarders_list)
-        print("------------------------------\n\n")
         for forwarder in healthy_forwarders_list:
             self.FWD_SCBD.set_forwarder_state(forwarder, 'BUSY')
             self.FWD_SCBD.set_forwarder_status(forwarder, 'HEALTHY')
@@ -257,7 +252,6 @@ class PromptProcessDevice:
                 # Tell DMCS we are ready
                 result = self.accept_job(input_params['ACK_ID'],job_num)
             else:
-                print("NOT GETTING A DING DANG XFER PARAMS ACK!!!")
 
         else:
             result = self.ncsa_no_response(input_params)
@@ -540,7 +534,6 @@ class PromptProcessDevice:
             sleep(0.5)
             response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
             if len(list(response.keys())) == expected_replies:
-                print("Received all %s Acks in %s seconds." % (expected_replies, counter)) 
                 return response
             counter = counter + 0.5
 

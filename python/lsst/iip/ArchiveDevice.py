@@ -473,7 +473,6 @@ class ArchiveDevice:
             sleep(0.5)
             response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
             if len(list(response.keys())) == expected_replies:
-                print("Received all %s Acks in %s seconds." % (expected_replies, counter))
                 return response
             counter = counter + 0.5
 
