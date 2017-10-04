@@ -7,7 +7,8 @@ import yaml
 import sys
 import os
 import time
-import _thread
+from time import sleep
+import threading
 from const import *
 from Scoreboard import Scoreboard
 from DistributorScoreboard import DistributorScoreboard
@@ -19,13 +20,14 @@ from SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
+logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=LOG_FORMAT)
 LOGGER = logging.getLogger(__name__)
 
 
 class NcsaForeman:
     NCSA_CONSUME = "ncsa_consume"
     NCSA_PUBLISH = "ncsa_publish"
-    COMPONENT = 'NCSA_FOREMAN'
+    COMPONENT_NAME = 'NCSA_FOREMAN'
     DISTRIBUTOR_PUBLISH = "distributor_publish"
     ACK_PUBLISH = "ack_publish"
     CFG_FILE = 'L1SystemCfg.yaml'
@@ -37,7 +39,7 @@ class NcsaForeman:
 
         self._config_file = self.CFG_FILE
         if filename != None:
-            self._config_fie = filename
+            self._config_file = filename
 
         #self._pairing_dict = {}
 
@@ -50,9 +52,9 @@ class NcsaForeman:
                               'NCSA_NEW_SESSION': self.set_session,
                               'NCSA_START_INTEGRATION': self.process_start_integration,
                               'NCSA_READOUT': self.process_readout,
-                              'DISTRIBUTOR_HEALTH_ACK': self.process_distributor_health_ack,
-                              'DISTRIBUTOR_JOB_PARAMS_ACK': self.process_distributor_job_params_ack,
-                              'DISTRIBUTOR_READOUT_ACK': self.process_readout_ack }
+                              'DISTRIBUTOR_HEALTH_CHECK_ACK': self.process_ack,
+                              'DISTRIBUTOR_XFER_PARAMS_ACK': self.process_ack,
+                              'DISTRIBUTOR_READOUT_ACK': self.process_ack }
 
         self._next_timed_ack_id = 10000
 
@@ -91,6 +93,9 @@ class NcsaForeman:
 
     def on_pp_message(self,ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
+        print("Incoming on_pp_message is:")
+        self.prp.pprint(body)
+        print("----------------------------------")
         msg_dict = body
         LOGGER.debug('Message from PP callback message body is: %s', self.prp.pformat(msg_dict))
 
@@ -100,6 +105,9 @@ class NcsaForeman:
 
     def on_ack_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
+        print("Incoming on_ack_message is:")
+        self.prp.pprint(body)
+        print("----------------------------------")
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.debug('Message from ACK callback message body is: %s', self.prp.pformat(msg_dict))
@@ -126,6 +134,7 @@ class NcsaForeman:
 
 
     def set_session(self, params):
+        print("Made it to set_session handler...incoming message is %s" % params)
         self.JOB_SCBD.set_session(params['SESSION_ID'])
         ack_id = params['ACK_ID']
         msg = {}
@@ -134,6 +143,7 @@ class NcsaForeman:
         msg['ACK_ID'] = ack_id
         msg['ACK_BOOL'] = True
         route_key = params['REPLY_QUEUE']
+        print("About to send new session ack...route_key is %s" % route_key)
         self._base_publisher.publish_message(route_key, msg)
 
 
@@ -143,10 +153,10 @@ class NcsaForeman:
         visit_id = params['VISIT_ID']
         response_timed_ack_id = params["ACK_ID"] 
         LOGGER.info('NCSA received Start Integration message from Base')
-        LOGGER.debug('NCSA Start Integration incoming message: %s' % pprint.pformat(params))
+        LOGGER.debug('NCSA Start Integration incoming message: %s' % params)
        
         forwarders_list = params['FORWARDERS']['FORWARDER_LIST']
-        ccds_list = params['FORWARDERS']['CCD_LIST'] # A list of lists...
+        ccd_list = params['FORWARDERS']['CCD_LIST'] # A list of lists...
         len_forwarders_list = len(forwarders_list)
         self.JOB_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
         LOGGER.info('Received new job %s. Needed workers is %s', job_num, str(len_forwarders_list))
@@ -167,14 +177,18 @@ class NcsaForeman:
         ack_params["ACK_ID"] = timed_ack
         ack_params[JOB_NUM] = job_num
         for distributor in distributors:
-            self._publisher.publish_message(self.DIST_SCBD.get_value_for_distributor
+            print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+            print("NOTE: About to send message to THIS distributor queue: %s" % self.DIST_SCBD.get_value_for_distributor(distributor, "CONSUME_QUEUE"))
+            print("\n\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+            self._ncsa_publisher.publish_message(self.DIST_SCBD.get_value_for_distributor
                                               (distributor,"CONSUME_QUEUE"), ack_params)
         
         # start timers
         self.ack_timer(2)
  
         # at end of timer, get list of distributors
-        healthy_distributors = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
+        dicts_of_distributors = self.ACK_SCBD.get_components_for_timed_ack(timed_ack)
+        healthy_distributors = list(dicts_of_distributors.keys())
 
         # update distributor scoreboard with healthy distributors 
         healthy_status = {"STATUS": "HEALTHY"}
@@ -182,7 +196,8 @@ class NcsaForeman:
 
 
         num_healthy_distributors = len(healthy_distributors)
-        if needed_workers > num_healthy_distributors:
+        if len_forwarders_list > num_healthy_distributors:
+            print("Cannot Do Job - more fwdrs than dists")
             # send response msg to base refusing job
             LOGGER.info('Reporting to base insufficient healthy distributors for job #%s', job_num)
             ncsa_params = {}
@@ -197,53 +212,53 @@ class NcsaForeman:
             self.DIST_SCBD.set_distributor_params(healthy_distributors, idle_state)
 
         else:
-            Pairs = assemble_pairs(forwarders_list, ccds_list, healthy_distributors)
+            Pairs = self.assemble_pairs(forwarders_list, ccd_list, healthy_distributors)
+            self.JOB_SCBD.set_pairs_for_job(job_num, Pairs)                
 
-            # Now inform NCSA that all is in ready state
+            # send pair info to each distributor
+            job_params_ack = self.get_next_timed_ack_id('DISTRIBUTOR_XFER_PARAMS_ACK')
+            for j in range(0, len(Pairs)):
+              tmp_msg = {}
+              tmp_msg[MSG_TYPE] = 'DISTRIBUTOR_XFER_PARAMS'
+              tmp_msg['XFER_PARAMS'] = Pairs[j]
+              tmp_msg[JOB_NUM] = job_num
+              tmp_msg[ACK_ID] = job_params_ack
+              tmp_msg['REPLY_QUEUE'] = 'ncsa_foreman_ack_publish'
+              tmp_msg['VISIT_ID'] = visit_id
+              tmp_msg['IMAGE_ID'] = image_id
+              fqn = Pairs[j]['DISTRIBUTOR']['FQN']
+              route_key = self.DIST_SCBD.get_value_for_distributor(fqn, 'CONSUME_QUEUE')
+              self._ncsa_publisher.publish_message(route_key, tmp_msg)
+
+            self.DIST_SCBD.set_distributor_params(healthy_distributors, {STATE: IN_READY_STATE})
+            dist_params_response = self.progressive_ack_timer(job_params_ack, num_healthy_distributors, 2.0)
+
+            if dist_params_response == None:
+                print("RECEIVED NO ACK RESPONSES FROM DISTRIBUTORS AFTER SENDING XFER PARAMS")
+                pass  #Do something such as raise a system wide exception 
+
+
+
+            # Now inform PP Foreman that all is in ready state
             ncsa_params = {}
             ncsa_params[MSG_TYPE] = "NCSA_START_INTEGRATION_ACK"
             ncsa_params[JOB_NUM] = job_num
             ncsa_params['IMAGE_ID'] = image_id
             ncsa_params['VISIT_ID'] = visit_id
-            ncsa_params['SESSION'] = params['SESSION']
+            ncsa_params['SESSION_ID'] = params['SESSION_ID']
             ncsa_params['COMPONENT'] = 'NCSA_FOREMAN'
             ncsa_params[ACK_BOOL] = True
             ncsa_params["ACK_ID"] = response_timed_ack_id
             ncsa_params["PAIRS"] = Pairs
             self._base_publisher.publish_message(params['REPLY_QUEUE'], ncsa_params) 
             LOGGER.info('Sufficient distributors and workers are available. Informing Base')
-            LOGGER.debug('NCSA Start Integration incoming message: %s' % pprint.pformat(ncsa_params))
-
-            # send pair info to each distributor
-            job_params_ack = self.get_next_timed_ack_id(DISTRIBUTOR_JOB_PARAMS_ACK)
-            keez = list(pairs_dict.keys())
-            for j in range(0, len(Pairs)):
-              tmp_msg = {}
-              tmp_msg[MSG_TYPE] = DISTRIBUTOR_JOB_PARAMS
-              tmp_msg['XFER_PARAMS'] = Pairs[i]
-              tmp_msg[JOB_NUM] = job_num
-              tmp_msg[ACK_ID] = job_params_ack
-              tmp_msg['REPLY_QUEUE'] = 'ncsa_foreman_ack_publish'
-              tmp_msg['VISIT_ID'] = visit_id
-              tmp_msg['IMAGE_ID'] = image_id
-              fqn = Pairs[i]['DISTRIBUTOR']['FQN']
-              route_key = self.DIST_SCBD.get_value_for_distributor(fqn, 'CONSUME_QUEUE')
-              self._publisher.publish_message(route_key, tmp_msg)
+            LOGGER.debug('NCSA Start Integration incoming message: %s' % ncsa_params)
 
             LOGGER.info('The following pairings have been sent to the Base for job %s:' % job_num)
-            LOGGER.info(self.prp.pprint.pformat(Pairs))
-
-            self.JOB_SCBD.set_pairs_for_job(job_num, Pairs)                
-
-            self.DIST_SCBD.set_distributor_params(healthy_distributors, {STATE: IN_READY_STATE})
-
-            dist_params_response = self.progressive_ack_timer(job_params_ack, num_healthy_distributors, 2.0)
-
-            if dist_params_response == None:
-                pass  #Do something such as raise a system wide exception 
+            LOGGER.info(Pairs)
 
 
-    def assemble_pairs(forwarders_list, ccds_list, healthy_distributors):
+    def assemble_pairs(self, forwarders_list, ccd_list, healthy_distributors):
 
         #build dict...
         PAIRS = []
@@ -251,8 +266,8 @@ class NcsaForeman:
         for i in range (0, len(forwarders_list)):
             tmp_dict = {}
             sub_dict = {}
-            tmp_dict['FORWARDER'] = forwarder_list[i]
-            tmp_dict['CCD_LIST'] = ccds_list[i]
+            tmp_dict['FORWARDER'] = forwarders_list[i]
+            tmp_dict['CCD_LIST'] = ccd_list[i]
             tmp_dict['DISTRIBUTOR'] = {}
             distributor = healthy_distributors[i]
             sub_dict['FQN'] = distributor
@@ -271,9 +286,13 @@ class NcsaForeman:
         job_number = params[JOB_NUM]
         response_ack_id = params[ACK_ID]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
+        print("XXXXXXXXXXXXXX In process_readout XXXXXXXXXXXXXXXX")
+        print("pairs printout is: ")
+        self.prp.pprint(pairs)
+        print("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\n")
+        sleep(3)
         len_pairs = len(pairs)
         ack_id = self.get_next_timed_ack_id(DISTRIBUTOR_READOUT_ACK)
-        self.JOB_SCBD.set_value_for_job(job_number, START_READOUT, date) 
         # The following line extracts the distributor FQNs from pairs dict using
         # list comprehension values; faster than for loops
         # distributors = [v['FQN'] for v in list(pairs.values())]
@@ -285,8 +304,8 @@ class NcsaForeman:
             msg_params['REPLY_QUEUE'] = 'ncsa_foreman_ack_publish'
             msg_params[ACK_ID] = ack_id
             routing_key = self.DIST_SCBD.get_routing_key(distributor)
-            self.DIST_SCBD.set_distributor_state(distributor, START_READOUT)
-            self._publisher.publish_message(routing_key, msg_params)
+            self.DIST_SCBD.set_distributor_state(distributor, 'START_READOUT')
+            self._ncsa_publisher.publish_message(routing_key, msg_params)
 
         distributor_responses = self.progressive_ack_timer(ack_id, len_pairs, 24)
 
@@ -305,15 +324,15 @@ class NcsaForeman:
             ncsa_params[ACK_BOOL] = True
             distributors = list(distributor_responses.keys())
             for dist in distributors:
-              ccd_list = distributor_responses[dist]['CCD_LIST']
-              receipt_list = distributor_responses[dist]['RECEIPT_LIST']
+              ccd_list = distributor_responses[dist]['RESULT_LIST']['CCD_LIST']
+              receipt_list = distributor_responses[dist]['RESULT_LIST']['RECEIPT_LIST']
               for i in range (0, len(ccd_list)):
                   CCD_LIST.append(ccd_list[i])
                   RECEIPT_LIST.append(receipt_list[i])
             RESULT_LIST['CCD_LIST'] = CCD_LIST
             RESULT_LIST['RECEIPT_LIST'] = RECEIPT_LIST
             ncsa_params['RESULT_LIST'] = RESULT_LIST
-            self.publisher.publish_message(params['REPLY_QUEUE'], msg_params)
+            self._base_publisher.publish_message(params['REPLY_QUEUE'], msg_params)
 
         else:
             ncsa_params = {}
@@ -328,21 +347,12 @@ class NcsaForeman:
             ncsa_params['RESULT_LIST'] = {}
             ncsa_params['RESULT_LIST']['CCD_LIST'] = None
             ncsa_params['RESULT_LIST']['RECEIPT_LIST'] = None
-            self.publisher.publish_message(params['REPLY_QUEUE'], msg_params)
+            self._base_publisher.publish_message(params['REPLY_QUEUE'], msg_params)
              
 
-
-    def process_distributor_health_ack(self, params):
+    def process_ack(self, params):
         self.ACK_SCBD.add_timed_ack(params)
 
-       
-    def process_distributor_job_params_ack(self, params):
-        self.ACK_SCBD.add_timed_ack(params)
-       
- 
-    def process_readout_ack(self, params):
-        self.ACK_SCBD.add_timed_ack(params)
-        
 
     def intake_yaml_file(self):
         """This method reads the ForemanCfg.yaml config file

@@ -229,7 +229,7 @@ ROOT:
         NAME: D1
         HOSTNAME: lsst-wf-dist01.ncsa.illinois.edu  
         IP_ADDR: 141.142.237.161
-        CONSUME_QUEUE: D1_consume
+        CONSUME_QUEUE: d1_consume
         PUBLISH_QUEUE: distributor_publish
         TARGET_DIR: /home/D1/xfer_dir
 
@@ -237,7 +237,7 @@ ROOT:
         NAME: D2
         HOSTNAME: lsst-wf-dist02.ncsa.illinois.edu  
         IP_ADDR: 141.142.237.162
-        CONSUME_QUEUE: D2_consume
+        CONSUME_QUEUE: d2_consume
         PUBLISH_QUEUE: distributor_publish
         TARGET_DIR: /home/D2/xfer_dir
 #

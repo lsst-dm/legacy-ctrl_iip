@@ -34,6 +34,8 @@ rabbitmqctl -p /test purge_queue pp_foreman_ack_publish
 rabbitmqctl -p /test purge_queue audit_consume
 rabbitmqctl -p /test purge_queue f1_consume
 rabbitmqctl -p /test purge_queue f2_consume
+rabbitmqctl -p /test purge_queue d1_consume
+rabbitmqctl -p /test purge_queue d2_consume
 rabbitmqctl -p /test purge_queue f3_consume
 rabbitmqctl -p /test purge_queue f4_consume
 rabbitmqctl -p /test purge_queue ncsa_consume

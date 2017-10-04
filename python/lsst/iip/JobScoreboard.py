@@ -1,4 +1,5 @@
 import redis
+import toolsmod
 from toolsmod import get_timestamp
 from toolsmod import get_epoch_timestamp
 from toolsmod import L1RedisError
@@ -42,6 +43,7 @@ class JobScoreboard(Scoreboard):
     AR = 'AR'
     PP = 'PP'
     CU = 'CU'
+    prp = toolsmod.prp
   
 
     def __init__(self, db_type, db_instance):
