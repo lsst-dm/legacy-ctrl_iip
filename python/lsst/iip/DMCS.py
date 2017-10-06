@@ -58,6 +58,17 @@ class DMCS:
 
 
     def __init__(self, filename=None):
+        """ Create a new instance of the DMCS class. Initiate DMCS with config_file
+            and store handler methods for each message type. Set up publishers and
+            scoreboards. The multiple consumer threads run within a ThreadManager
+            object that monitors their health, replaces them if they die, and 
+            manages thread semaphores that allow the app to be shut down cleanly.
+
+            :params filename: Default 'L1SystemCfg.yaml'. Can be overridden and
+                    assigned by user; during unit testing, for example.
+
+            :return: None.
+        """
         toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
