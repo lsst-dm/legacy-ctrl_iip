@@ -54,6 +54,7 @@ class DMCS:
     CCD_LIST = [] 
     OCS_CONSUMER_THREAD = "ocs_consumer_thread"
     ACK_CONSUMER_THREAD = "ack_consumer_thread"
+    prp = toolsmod.prp
 
 
     def __init__(self, filename=None):
@@ -174,6 +175,9 @@ class DMCS:
 
             :return: None.
         """
+        print("On_ocs_message - message is: ")
+        self.prp.pprint(msg_dict)
+        print("\n----------------------------------\n\n")
         ch.basic_ack(method.delivery_tag) 
         LOGGER.info('Processing message in OCS message callback')
         LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
@@ -307,12 +311,12 @@ class DMCS:
 
 
     def process_fault_command(self, msg):
-       """ None.
+        """ None.
 
            :params: None.
 
            :return: None.
-       """
+        """
         pass
 
 
@@ -412,6 +416,7 @@ class DMCS:
             :params params: Provide image_id.
 
             :return: None.
+        """
         ## FIX - see temp hack below...
         ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         ccd_list = self.CCD_LIST
@@ -486,12 +491,12 @@ class DMCS:
 
 
     def process_telemetry(self, msg):
-       """ None.
+        """ None.
 
            :params: None.
 
            :return: None.
-       """
+        """
         pass
 
 
