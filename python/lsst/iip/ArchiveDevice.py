@@ -26,6 +26,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ArchiveDevice:
+    """ The Archive Device is a commandable device which coordinates the ingest of
+        images from the telescope camera and then the transfer of those images to
+        the base site archive storage.
+        It receives jobs and divides and assigns the work to forwarders, records state and
+        status change of forwarders, and sends messages accordingly.
+    """
     COMPONENT_NAME = 'ARCHIVE_FOREMAN'
     AR_FOREMAN_CONSUME = "ar_foreman_consume"
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
@@ -36,6 +42,18 @@ class ArchiveDevice:
 
 
     def __init__(self, filename=None):
+        """ Create a new instance of the Archive Device class.
+            Instantiate the instance, raise assertion error if already instantiated.
+            Extract config values from yaml file.
+            Store handler methods for each message type.
+            Set up base broker url, publishers, and scoreboards. Consumer threads
+            are started within a Thread Manager object so that they can be monitored
+            for health and shutdown/joined cleanly when the app exits.
+
+            :params filename: Deflaut 'L1SystemCfg.yaml'. Can be assigned by user.
+
+            :return: None.
+        """
         toolsmod.singleton(self)
 
         self._config_file = 'L1SystemCfg.yaml'
@@ -75,6 +93,13 @@ class ArchiveDevice:
 
 
     def setup_publishers(self):
+        """ Set up base publisher with pub_base_broker_url by creating a new instance
+            of SimplePublisher class with yaml format
+
+            :params: None.
+
+            :return: None.
+        """
         self.pub_base_broker_url = "amqp://" + self._msg_pub_name + ":" + \
                                             self._msg_pub_passwd + "@" + \
                                             str(self._base_broker_addr)
@@ -83,6 +108,16 @@ class ArchiveDevice:
 
 
     def on_ar_foreman_message(self, ch, method, properties, body):
+        """ Calls the appropriate AR message action handler according to message type.
+
+            :params ch: Channel to message broker, unused unless testing.
+            :params method: Delivery method from Pika, unused unless testing.
+            :params properties: Properties from DMCS to AR Foreman callback message
+                                body, unused unless testing.
+            :params body: A dictionary that stores the message body.
+
+            :return: None.
+        """
         #msg_dict = yaml.load(body) 
         ch.basic_ack(method.delivery_tag)
         msg_dict = body 
@@ -94,6 +129,16 @@ class ArchiveDevice:
     
 
     def on_archive_message(self, ch, method, properties, body):
+        """ Calls the appropriate AR message action handler according to message type.
+
+            :params ch: Channel to message broker, unused unless testing.
+            :params method: Delivery method from Pika, unused unless testing.
+            :params properties: Properties from AR CTRL callback message body,
+                                unused unless testing.
+            :params body: A dictionary that stores the message body.
+
+            :return: None.
+        """
         ch.basic_ack(method.delivery_tag)
         LOGGER.info('AR CTRL callback msg body is: %s', str(body))
 
@@ -101,6 +146,16 @@ class ArchiveDevice:
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
+        """ Calls the appropriate AR message action handler according to message type.
+
+            :params ch: Channel to message broker, unused unless testing.
+            :params method: Delivery method from Pika, unused unless testing.
+            :params properties: Properties from ACK callback message body, unused
+                                unless testing.
+            :params body: A dictionary that stores the message body.
+
+            :return: None.
+        """
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback')
@@ -112,6 +167,26 @@ class ArchiveDevice:
 
 
     def process_start_integration(self, params):
+        """ Receives new job/job_number, image_id, work details, ack_id from params, then
+            retrieves the current session_id and visit_id, and those those params with
+            the new job entry in the scoreboard.
+
+            Does health checks on available forwarders, and prepares a worker list. If
+            workers are not available, the job is refused and job state is set 
+            to  SCRUBBED.
+
+            Send NEW_ARCHIVE_ITEM message to archive controller, which responds with
+            a new target directory.
+
+            Divide image fetch across forwarders. Send image_id, target dir, and job,
+            session, visit and work to do to healthy forwarders. Update Forwarder 
+            state to AWAITING_READOUT.
+
+            :params params: A dictionary that stores job_num, image_id, ccd_list, and
+                            ack_id.
+
+            :return: None.
+        """
         # receive new job_number and image_id; session and visit are current
         # and deep copy it with some additions such as aseesion and visit
         session_id = self.get_current_session()
@@ -160,25 +235,6 @@ class ArchiveDevice:
         # if ar_response == None:
         #    raise L1 exception and bail out
        
-        """ 
-        if ar_response['ARCHIVE_CTRL'][ACK_BOOL] == False:
-            start_int_params['ACK_ID'] = start_int__ack_id
-            self.refuse_job(start_int_params, ar_response['AR_CTRL']['FAIL_DETAILS'])
-            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
-            self.JOB_SCBD.set_job_params(job_number, scrub_params)
-            fscbd_params = {'STATE':'IDLE', 'STATUS':'HEALTHY'}
-            self.FWD_SCBD.set_forwarder_params(healthy_forwarders, fscbd_params)
-            return
-
-        else:
-            start_int_params['ACK_ID'] = start_int_ack_id
-            self.refuse_job(start_int_params, "No response from archive")
-            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
-            self.JOB_SCBD.set_job_params(job_number, scrub_params)
-            fscbd_params = {'STATE':'IDLE', 'STATUS':'HEALTHY'}
-            self.FWD_SCBD.set_forwarder_params(healthy_fwdrs, fscbd_params)
-            return
-        """
         target_dir = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
         self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 'TARGET_DIR': dir})
         
@@ -220,21 +276,32 @@ class ArchiveDevice:
 
         self.JOB_SCBD.set_value_for_job(job_number,'STATE','XFER_PARAMS_SENT')
 
-        ##################ACCEPT_JOB
+        # accept job by Ach'ing True
         st_int_params_ack = {}
+        st_int_params_ack['MSG_TYPE'] = 'AR_START_INTEGRATION_ACK'
         st_int_params_ack['ACK_ID'] = start_int_ack_id
+        st_int_params_ack['ACK_BOOL'] = True
         st_int_params_ack['JOB_NUM'] = job_number
         st_int_params_ack['SESSION_ID'] = session_id
         st_int_params_ack['IMAGE_ID'] = image_id
         st_int_params_ack['VISIT_ID'] = visit_id
         st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
         self.accept_job(st_int_params_ack)
+
         self.JOB_SCBD.set_value_for_job(job_number, STATE, "JOB_ACCEPTED")
         fscbd_params = {'STATE':'AWAITING_READOUT'}
         self.FWD_SCBD.set_forwarder_params(healthy_fwdrs, fscbd_params)
 
 
     def fwdr_health_check(self, ack_id):
+        """ Send AR_FWDR_HEALTH_CHECK message to ar_foreman_ack_publish queue.
+            Retrieve available forwarders from ForwarderScoreboard, set their state to
+            HEALTH_CHECK, status to UNKNOWN, and publish the message.
+
+            :params ack_id: Ack id for AR forwarder health check.
+
+            :return: Number of health checks sent.
+        """
         msg_params = {}
         msg_params[MSG_TYPE] = 'AR_FWDR_HEALTH_CHECK'
         msg_params[ACK_ID] = ack_id
@@ -249,6 +316,19 @@ class ArchiveDevice:
 
 
     def divide_work(self, fwdrs_list, ccd_list):
+        """ Divide work (ccds) among forwarders.
+
+            If only one forwarder available, give it all the work.
+            If have less or equal ccds then forwarders, give the first few forwarders one
+            ccd each.
+            Else, evenly distribute ccds among forwarders, and give extras to the first
+            forwarder, make sure that ccd list for each forwarder is continuous.
+
+            :params fwdrs_list: List of available forwarders for the job.
+            :params ccd_list: List of ccds to be distributed.
+
+            :return schedule: Distribution of ccds among forwarders.
+        """
         num_fwdrs = len(fwdrs_list)
         num_ccds = len(ccd_list)
 
@@ -295,6 +375,13 @@ class ArchiveDevice:
 
 
     def send_xfer_params(self, params, work_schedule):
+        """ For each forwarder, send the needed details for the work they are asked to do.
+
+            :params params: Info about the job.
+            :params work_schedule: The list of ccds each forwarder work on.
+
+            :return: None.
+        """
         fwdrs = work_schedule['FORWARDER_LIST']
         CCD_LIST = work_schedule['CCD_LIST']
         for i in range(0, len(fwdrs)):
@@ -303,20 +390,28 @@ class ArchiveDevice:
             self._publisher.publish_message(route_key, params)
 
 
-    def accept_job(self, params):
-        dmcs_message = {}
-        dmcs_message['JOB_NUM'] = params['JOB_NUM']
-        dmcs_message[MSG_TYPE] = 'AR_START_INTEGRATION_ACK'
-        dmcs_message['ACK_ID'] = params['ACK_ID']
-        dmcs_message['SESSION_ID'] = params['SESSION_ID']
-        dmcs_message['VISIT_ID'] = params['VISIT_ID']
-        dmcs_message['IMAGE_ID'] = params['IMAGE_ID']
-        dmcs_message[ACK_BOOL] = True
-        dmcs_message['COMPONENT'] = self.COMPONENT_NAME
+    def accept_job(self, dmcs_message):
+        """ Send AR_START_INTEGRATION_ACK message with ack_bool equals True (job accepted)
+            and other job specs to dmcs_ack_consume queue.
+
+            :params dmcs_message: A dictionary that stores info of a job.
+
+            :return: None.
         self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
 
 
     def refuse_job(self, params, fail_details):
+        """ Send AR_START_INTEGRATION_ACK message with ack_bool equals False (job refused)
+            and other job specs to dmcs_ack_consume queue.
+
+            Set job state as JOB_REFUSED in JobScoreboard.
+
+            :params parmas: A dictionary that stores info of a job.
+
+            :params fail_details: A string that describes what went wrong, not used for now.
+
+            :return: None.
+        """
         dmcs_message = {}
         dmcs_message[JOB_NUM] = params[JOB_NUM]
         dmcs_message[MSG_TYPE] = 'AR_START_INTEGRATION_ACK'
@@ -331,6 +426,15 @@ class ArchiveDevice:
 
 
     def process_dmcs_readout(self, params):
+        """ Set job state as PREPARE_READOUT in JobScoreboard.
+            Send readout to forwarders.
+            Set job state as READOUT_STARTED in JobScoreboard.
+            Wait to retrieve and process readout responses.
+
+            :params parmas: A dictionary that stores info of a job.
+
+            :return: None.
+        """
         readout_ack_id = params[ACK_ID]
         job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
@@ -351,6 +455,19 @@ class ArchiveDevice:
         self.process_readout_responses(readout_ack_id, image_id, readout_responses)
 
     def process_readout_responses(self, readout_ack_id, image_id, readout_responses):
+        """ From readout_responses param, retrieve image_id and job_number, and create list of
+            ccd, filename, and checksum from all forwarders. Store into xfer_list_msg and
+            send to archive to confirm each file made it intact.
+            Send AR_READOUT_ACK message with results and ack_bool equals True to
+            dmcs_ack_comsume queue.
+
+
+            :params readout_ack_id: Ack id for AR_READOUT_ACK message.
+            :params image_id:
+            :params readout_responses: Readout responses from AckScoreboard.
+
+            :return: None.
+        """
         job_number = None
         image_id = None
         confirm_ack = self.get_next_timed_ack_id('AR_ITEMS_XFERD_ACK')
@@ -402,6 +519,14 @@ class ArchiveDevice:
 
                    
     def send_readout(self, params, fwdrs, readout_ack):
+        """ Send AR_FWDR_READOUT message to each forwarder working on the job with
+            ar_foreman_ack_publish queue as reply queue.
+
+            :params params: A dictionary that stores info of a job.
+            :params readout_ack: Ack id for AR_FWDR_READOUT message.
+
+            :return: None.
+        """
         ro_params = {}
         job_number = params['JOB_NUM']
         ro_params['MSG_TYPE'] = 'AR_FWDR_READOUT'
@@ -420,15 +545,36 @@ class ArchiveDevice:
 
  
     def process_ack(self, params):
+        """ Add new ACKS for a particular ACK_ID to the Ack Scoreboards
+            where they are collated.
+
+            :params: New ack to be checked in.
+
+            :return: None.
+        """
         self.ACK_SCBD.add_timed_ack(params)
         
 
     def get_next_timed_ack_id(self, ack_type):
+        """ Increment ack id by 1, and store it.
+            Return ack id with ack type as a string.
+
+            :params ack_type: Informational string to prepend Ack ID.
+
+            :return retval: String with ack type followed by next ack id.
+        """
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
 
 
     def set_session(self, params):
+        """ Record new session in JobScoreboard.
+            Send AR_NEW_SESSION_ACK message with ack_bool equals True to specified reply queue.
+
+            :params params: Dictionary with info about new session.
+
+            :return: None.
+        """
         self.JOB_SCBD.set_session(params['SESSION_ID'])
         ack_id = params['ACK_ID']
         msg = {}
@@ -441,10 +587,23 @@ class ArchiveDevice:
 
 
     def get_current_session(self):
+        """ Retreive current session from JobSocreboard.
+
+            :params: None.
+
+            :return: Current session returned by JobSocreboard.
+        """
         return self.JOB_SCBD.get_current_session()
 
 
     def set_visit(self, params):
+        """ Set current visit_id in JobScoreboard.
+            Send AR_NEXT_VISIT_ACK message with ack_bool equals True to specified reply queue.
+
+            :params params: Message dictionary with info about new visit.
+
+            :return: None.
+        """
         bore_sight = params['BORE_SIGHT']
         self.JOB_SCBD.set_visit_id(params['VISIT_ID'], bore_sight)
         ack_id = params['ACK_ID']
@@ -459,15 +618,40 @@ class ArchiveDevice:
 
 
     def get_current_visit(self):
+        """ Retrieve current visit from JobSocreboard.
+
+            :params: None.
+
+            :return: Current visit returned by JobSocreboard.
+        """
         return self.JOB_SCBD.get_current_visit()
         
 
     def ack_timer(self, seconds):
+        """ Sleeps for user-defined seconds.
+
+            :params seconds: Time to sleep in seconds.
+
+            :return: True.
+        """
         sleep(seconds)
         return True
 
 
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
+        """ Sleeps for user-defined seconds, or less if everyone has reported back in.
+
+            :params ack_id: Ack ID to wait for.
+
+            :params expected_replies: Number of components expected to ack..
+
+            :params seconds: Maximum time to wait in seconds.
+
+            :return: The dictionary that represents the responses from the components ack'ing.
+                     Note: If only one component will ack, this method breaks out of its
+                           loop after the one ack shows up - effectively beating the maximum
+                           wait time.
+        """
         counter = 0.0
         while (counter < seconds):
             sleep(0.5)
@@ -485,6 +669,13 @@ class ArchiveDevice:
 
 
     def extract_config_values(self):
+        """ Parse system config yaml file.
+            Throw error messages if Yaml file or key not found.
+
+            :params: None.
+
+            :return: True.
+        """
         LOGGER.info('Reading YAML Config file %s' % self._config_file)
         try:
             cdm = toolsmod.intake_yaml_file(self._config_file)
@@ -520,6 +711,12 @@ class ArchiveDevice:
 
 
     def setup_consumer_threads(self):
+        """ Create ThreadManager object with base broker url and kwargs to setup consumers.
+
+            :params: None.
+
+            :return: None.
+        """
         base_broker_url = "amqp://" + self._msg_name + ":" + \
                                             self._msg_passwd + "@" + \
                                             str(self._base_broker_addr)
@@ -560,16 +757,17 @@ class ArchiveDevice:
         self.thread_manager.start()
 
     def setup_scoreboards(self):
+        """ Create Redis Forwarder table with Forwarder info. Create Job and Ack Scoreboard
+            objects with values retrieved from configuration file.
+
+            :params: None.
+
+            :return: None.
+        """
         # Create Redis Forwarder table with Forwarder info
         self.FWD_SCBD = ForwarderScoreboard('AR_FWD_SCBD', self._scbd_dict['AR_FWD_SCBD'], self._forwarder_dict)
         self.JOB_SCBD = JobScoreboard('AR_JOB_SCBD', self._scbd_dict['AR_JOB_SCBD'])
         self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
-
-
-    def purge_broker(self, queues):
-        for q in queues:
-            cmd = "rabbitmqctl -p /tester purge_queue " + q
-            os.system(cmd)
 
 
 def main():
