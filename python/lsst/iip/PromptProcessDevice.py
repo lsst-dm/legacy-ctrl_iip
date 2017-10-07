@@ -77,6 +77,7 @@ class PromptProcessDevice:
 
         LOGGER.info('pp foreman consumer setup')
         self.thread_manager = None
+        self.shutdown_event = threading.Event()
         self.setup_consumer_threads()
 
         LOGGER.info('Prompt Process Foreman Init complete')
@@ -624,7 +625,7 @@ class PromptProcessDevice:
         md['queue'] = 'pp_foreman_consume'
         md['callback'] = self.on_dmcs_message
         md['format'] = "YAML"
-        md['test_val'] = None
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         md = {}
@@ -633,7 +634,7 @@ class PromptProcessDevice:
         md['queue'] = 'pp_foreman_ack_publish'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
-        md['test_val'] = 'test_it'
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         md = {}
@@ -642,11 +643,15 @@ class PromptProcessDevice:
         md['queue'] = 'ncsa_publish'
         md['callback'] = self.on_ncsa_message
         md['format'] = "YAML"
-        md['test_val'] = 'test_it'
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         self.thread_manager = ThreadManager('thread-manager', kws)
         self.thread_manager.start()
+
+        if self.shutdown_event.is_set():
+            #perform cleanup?
+            pass
 
 
     def setup_scoreboards(self):
@@ -662,6 +667,12 @@ class PromptProcessDevice:
             os.system(cmd)
 
 
+    def shutdown_threads(self):
+        # shutdown_stuff
+        self.shutdown_event.set()
+        # need to join threads. Done in ThreadManager?
+
+
 def main():
     logging.basicConfig(filename='logs/PromptProcess.log', level=logging.DEBUG, format=LOG_FORMAT)
     b_fm = PromptProcessDevice()
@@ -670,6 +681,7 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        b_fm.shutdown_threads()
         pass
 
     print("")

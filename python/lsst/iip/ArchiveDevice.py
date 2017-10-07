@@ -87,6 +87,7 @@ class ArchiveDevice:
 
         LOGGER.info('ar foreman consumer setup')
         self.thread_manager = None
+        self.shutdown_event = threading.Event()
         self.setup_consumer_threads()
 
         LOGGER.info('Archive Foreman Init complete')
@@ -397,6 +398,7 @@ class ArchiveDevice:
             :params dmcs_message: A dictionary that stores info of a job.
 
             :return: None.
+        """
         self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
 
 
@@ -732,7 +734,7 @@ class ArchiveDevice:
         md['queue'] = 'ar_foreman_consume'
         md['callback'] = self.on_ar_foreman_message
         md['format'] = "YAML"
-        md['test_val'] = None
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         md = {}
@@ -741,7 +743,7 @@ class ArchiveDevice:
         md['queue'] = 'ar_foreman_ack_publish'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
-        md['test_val'] = 'test_it'
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         md = {}
@@ -750,11 +752,15 @@ class ArchiveDevice:
         md['queue'] = 'archive_ctrl_publish'
         md['callback'] = self.on_archive_message
         md['format'] = "YAML"
-        md['test_val'] = 'test_it'
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         self.thread_manager = ThreadManager('thread-manager', kws)
         self.thread_manager.start()
+
+        if self.shutdown_event.is_set():
+            #perform cleanup?
+            pass
 
     def setup_scoreboards(self):
         """ Create Redis Forwarder table with Forwarder info. Create Job and Ack Scoreboard
@@ -770,6 +776,12 @@ class ArchiveDevice:
         self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
 
+    def shutdown_threads(self):
+        # shutdown_stuff
+        self.shutdown_event.set()
+        # need to join threads. Done in ThreadManager?
+
+
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     a_fm = ArchiveDevice()
@@ -778,6 +790,7 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        a_fm.shutdown_threads()
         pass
 
     print("")

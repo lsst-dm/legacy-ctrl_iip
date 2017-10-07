@@ -120,6 +120,7 @@ class DMCS:
 
         LOGGER.info('DMCS consumer setup')
         self.thread_manager = None
+        self.shutdown_event = threading.Event()
         self.setup_consumer_threads()
 
         self.init_ack_id()
@@ -916,7 +917,7 @@ class DMCS:
         md['queue'] = 'ocs_dmcs_consume'
         md['callback'] = self.on_ocs_message
         md['format'] = "YAML"
-        md['test_val'] = None
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         md = {}
@@ -925,11 +926,15 @@ class DMCS:
         md['queue'] = 'dmcs_ack_consume'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
-        md['test_val'] = 'test_it'
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         self.thread_manager = ThreadManager('thread-manager', kws)
         self.thread_manager.start()
+
+        if self.shutdown_event.is_set():
+            #perform cleanup?
+            pass
          
 
     def setup_scoreboards(self):
@@ -983,6 +988,11 @@ class DMCS:
         pass
 
 
+    def shutdown_threads(self):
+        # shutdown_stuff
+        self.shutdown_event.set()
+        # need to join threads. Done in ThreadManager?
+
 
 def main():
     logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
@@ -991,6 +1001,7 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        dmsc.shutdown_threads()
         pass
 
     print("")

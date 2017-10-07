@@ -62,11 +62,12 @@ class NcsaForeman:
 
         self.setup_scoreboards()
 
-        self.setup_publishers()
-        self.setup_consumer_threads()
+        #self.setup_publishers()
+        #self.setup_consumer_threads()
 
         LOGGER.info('Ncsa foreman consumer setup')
         self.thread_manager = None
+        self.shutdown_event = threading.Event()
         self.setup_consumer_threads()
 
         LOGGER.info('Ncsa Foreman Init complete')
@@ -425,7 +426,7 @@ class NcsaForeman:
         md['queue'] = 'ncsa_foreman_ack_publish'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
-        md['test_val'] = 'test_it'
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         md = {}
@@ -434,11 +435,15 @@ class NcsaForeman:
         md['queue'] = 'ncsa_consume'
         md['callback'] = self.on_pp_message
         md['format'] = "YAML"
-        md['test_val'] = 'test_it'
+        md['test_val'] = self.shutdown_event
         kws[md['name']] = md
 
         self.thread_manager = ThreadManager('thread-manager', kws)
         self.thread_manager.start()
+
+        if self.shutdown_event.is_set():
+            #perform cleanups?
+            pass
 
 
     def setup_scoreboards(self):
@@ -450,6 +455,11 @@ class NcsaForeman:
         self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
 
 
+    def shutdown_threads(self):
+        # shutdown_stuff
+        self.shutdown_event.set()
+        # need to join threads. Done in ThreadManager?
+
 
 def main():
     logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=LOG_FORMAT)
@@ -459,6 +469,7 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        n_fm.shutdown_threads()
         pass
 
     print("")
