@@ -53,18 +53,14 @@ int test_camera_takeImages_controller()
         cout << "    wfs : " << SALInstance.wfs << endl;
         cout << "    imageSequenceName : " << SALInstance.imageSequenceName << endl;
        ostringstream msg;
-       msg << "{ MSG_TYPE: TAKE_IMAGES"
-           << ", DEVICE: " << SALInstance.device
-           << ", PROPERTY: " << SALInstance.property
-           << ", ACTION: " << SALInstance.action
-           << ", VALUE: " << SALInstance.value
+       msg << "{ MSG_TYPE: CCS_TAKE_IMAGES"
            << ", NUM_IMAGES: " << SALInstance.numImages
            << ", EXP_TIME: " << SALInstance.expTime
            << ", SHUTTER: " << SALInstance.shutter
            << ", SCIENCE: " << SALInstance.science
            << ", GUIDE: " << SALInstance.guide
            << ", WFS: " << SALInstance.wfs
-           << ", IMAGE_SEQUENCENAME: " << SALInstance.imageSequenceName << "}"; 
+           << ", IMAGE_SEQUENCE_NAME: " << SALInstance.imageSequenceName << "}"; 
        publisher->publish_message("ocs_dmcs_consume", msg.str());
 
        if (timeout > 0) {

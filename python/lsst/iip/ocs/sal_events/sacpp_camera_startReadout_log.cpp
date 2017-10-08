@@ -53,7 +53,7 @@ int test_camera_startReadout_Log()
 
     cout << "    priority : " << SALInstance.priority << endl;
     ostringstream msg; 
-    msg << "{ MSG_TYPE: READOUT}"; 
+    msg << "{ MSG_TYPE: CCS_READOUT}"; 
     publisher->publish_message("ocs_dmcs_consume", msg.str()); 
 
     }

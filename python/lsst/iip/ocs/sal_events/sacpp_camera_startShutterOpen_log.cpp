@@ -53,7 +53,7 @@ int test_camera_startShutterOpen_Log()
 
     cout << "    priority : " << SALInstance.priority << endl;
     ostringstream msg; 
-    msg << "{ MSG_TYPE: SHUTTER_OPEN }"; 
+    msg << "{ MSG_TYPE: CCS_SHUTTER_OPEN }"; 
     publisher->publish_message("ocs_dmcs_consume", msg.str()); 
 
     }

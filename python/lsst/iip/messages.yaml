@@ -675,4 +675,41 @@ ROOT:
 
 
 
+    # -------------------------------------------------------------------------------
 
+    CCS_START_INTEGRATION: 
+        MSG_TYPE: CCS_START_INTEGRATION 
+        IMAGE_NAME: 
+
+    CCS_READOUT: 
+        MSG_TYPE: CCS_READOUT
+
+    CCS_SHUTTER_CLOSE: 
+        MSG_TYPE: CCS_SHUTTER_CLOSE
+
+    CCS_SHUTTER_OPEN: 
+        MSG_TYPE: CCS_SHUTTER_OPEN
+
+    CCS_TAKE_IMAGES: 
+        MSG_TYPE: CCS_TAKE_IMAGES
+        NUM_IMAGES: 
+        EXP_TIME: exposure time
+        SHUTTER: 
+        SCIENCE: 
+        GUIDE: 
+        WFS: 
+        IMAGE_SEQUENCE_NAME: 
+
+    SEQ_TARGET_VISIT:
+        MSG_TYPE: SEQ_TARGET_VISIT
+        TARGET_ID: 
+        FIELD_ID: 
+        GROUP_ID:
+        FILTER:
+        REQUEST_TIME:
+        REQUEST_MJD: 
+        RA: 
+        DECL: 
+        ANGLE: 
+        NUM_EXPOSURES: 
+        EXPOSURE_TIMES: 

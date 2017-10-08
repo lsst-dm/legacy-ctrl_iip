@@ -56,7 +56,7 @@ int test_camera_startIntegration_Log()
     cout << "    priority : " << SALInstance.priority << endl;
 
     ostringstream msg; 
-    msg << "{ MSG_TYPE: START_INTEGRATION"
+    msg << "{ MSG_TYPE: CCS_START_INTEGRATION"
         << ", IMAGE_NAME: " << SALInstance.imageName  << "}"; 
     publisher->publish_message("ocs_dmcs_consume", msg.str()); 
     }

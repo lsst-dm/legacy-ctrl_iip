@@ -93,7 +93,7 @@ int SALTelemetrySubscriber(char *topic_name)
     cout << "    solar_elong : " << SALInstance.solar_elong << endl;
 
     ostringstream msg; 
-    msg << "{ MSG_TYPE: TARGET" 
+    msg << "{ MSG_TYPE: SEQ_TARGET_VISIT" 
         << ", TARGET_ID : " << SALInstance.targetId
         << ", FIELD_ID : " << SALInstance.fieldId
         << ", GROUP_ID : " << SALInstance.groupId
