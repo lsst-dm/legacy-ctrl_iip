@@ -22,7 +22,7 @@ CAMERA   = /opt/sal/ts_sal/test/camera/cpp
 SCHEDULER= /opt/sal/ts_sal/test/scheduler_target/cpp
 CFLAGS   = -g -Wall -c 
 
-all: takeImages startIntegration readout shutterOpen shutterClose schedulerTarget
+all: takeImages startIntegration readout startShutterOpen endShutterOpen startShutterClose endShutterClose schedulerTarget
 
 takeImages: sacpp_camera_takeImages_controller.cpp SimplePublisher 
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o takeImages sacpp_camera_takeImages_controller.cpp $(LDLIBS) 
@@ -33,11 +33,17 @@ startIntegration: sacpp_camera_startIntegration_log.cpp SimplePublisher
 readout: sacpp_camera_startReadout_log.cpp SimplePublisher 
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o readout sacpp_camera_startReadout_log.cpp $(LDLIBS) 
 
-shutterOpen: sacpp_camera_startShutterOpen_log.cpp SimplePublisher 
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o shutterOpen sacpp_camera_startShutterOpen_log.cpp $(LDLIBS) 
+startShutterOpen: sacpp_camera_startShutterOpen_log.cpp SimplePublisher 
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o startShutterOpen sacpp_camera_startShutterOpen_log.cpp $(LDLIBS) 
 
-shutterClose: sacpp_camera_startShutterClose_log.cpp SimplePublisher 
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o shutterClose sacpp_camera_startShutterClose_log.cpp $(LDLIBS) 
+endShutterOpen: sacpp_camera_endShutterOpen_log.cpp SimplePublisher 
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o endShutterOpen sacpp_camera_startShutterOpen_log.cpp $(LDLIBS) 
+
+startShutterClose: sacpp_camera_startShutterClose_log.cpp SimplePublisher 
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o startShutterClose sacpp_camera_startShutterClose_log.cpp $(LDLIBS) 
+
+endShutterClose: sacpp_camera_endShutterClose_log.cpp SimplePublisher 
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o endShutterClose sacpp_camera_startShutterClose_log.cpp $(LDLIBS) 
 
 schedulerTarget: scheduler_targetDataSubscriber.cpp SimplePublisher 
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(SCHEDULER)/standalone/.obj/SAL_scheduler.o $(SCHEDULER)/standalone/.obj/CheckStatus.o SimplePublisher.o -Wall -o schedulerTarget scheduler_targetDataSubscriber.cpp $(LDLIBS) 
