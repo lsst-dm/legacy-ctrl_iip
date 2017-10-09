@@ -248,7 +248,7 @@ class TestDMCS_AR:
         len_list = len(self.ar_consumer_msg_list)
         if len_list != self.EXPECTED_AR_MESSAGES:
             print("Messages received by verify_ar_messages:")
-            self.prp.pprint(self.ar_consumer_list)
+            self.prp.pprint(self.ar_consumer_msg_list)
             pytest.fail('AR simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_AR_MESSAGES, len_list))
 

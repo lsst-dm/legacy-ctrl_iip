@@ -96,7 +96,14 @@ class DMCS:
                               'NEXT_VISIT': self.process_next_visit_event,
                               'START_INTEGRATION': self.process_start_integration_event,
                               'READOUT': self.process_readout_event,
-                              'TELEMETRY': self.process_telemetry }
+                              'TELEMETRY': self.process_telemetry, 
+                              'CCS_START_INTEGRATION': self.process_ccs_start_int_event,
+                              'CCS_READOUT': self.process_ccs_readout_event,
+                              'CCS_SHUTTER_CLOSE': self.process_ccs_shutter_close_event,
+                              'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
+                              'CCS_TAKE_IMAGES': self.process_ccs_take_images_event,
+                              'SEQ_TARGET_VISIT': self.process_seq_target_visit_event }
+
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
                               'PP_NEW_SESSION_ACK': self.process_ack,
@@ -499,6 +506,41 @@ class DMCS:
         wait_time = 5  # seconds...
         self.set_pending_nonblock_acks(acks, wait_time)
         # add in two additional acks for format and transfer complete
+
+
+
+    def process_ccs_start_int_event(self, params):
+        print("Incoming message to process_ccs_start_int_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_ccs_readout_event(self, params):
+        print("Incoming message to process_ccs_readout_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_ccs_shutter_close_event(self, params):
+        print("Incoming message to process_ccs_shutter_close_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_ccs_shutter_open_event(self, params):
+        print("Incoming message to process_ccs_shutter_open_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_ccs_take_images_event(self, params):
+        print("Incoming message to process_ccs_take_images_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_seq_target_visit_event(self, params):
+        print("Incoming message to process_seq_target_visit_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+
+
 
 
     def process_telemetry(self, msg):
@@ -987,6 +1029,7 @@ class DMCS:
 def main():
     logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
     dmsc = DMCS()
+    print("DMCS seems to be working")
     try:
         while 1:
             pass
