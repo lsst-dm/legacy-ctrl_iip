@@ -72,7 +72,7 @@ class DMCS:
         toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
-        self._config_file = 'L1SystemCfg.yaml'
+        self._config_file = self.DEFAULT_CFG_FILE
         if filename != None:
             self._config_file = filename
 
@@ -193,6 +193,7 @@ class DMCS:
 
             :return: None.
         """
+        ch.basic_ack(method.delivery_tag)
         print("On_ocs_message - message is: ")
         self.prp.pprint(msg_dict)
         print("\n----------------------------------\n\n")
@@ -451,6 +452,7 @@ class DMCS:
 
 
         enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+        print("Enabled Devices are %s" % enabled_devices)
         acks = []
         for k in list(enabled_devices.keys()):
             ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
@@ -463,6 +465,7 @@ class DMCS:
             msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
+            print("Consume queue for enabled device is: %s" % self.STATE_SCBD.get_device_consume_queue(k))
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
 
@@ -652,6 +655,8 @@ class DMCS:
             ack_id = self.get_next_timed_ack_id(k + "_NEW_SESSION_ACK")
             msg['ACK_ID'] = ack_id
             ack_ids.append(ack_id)
+            print("Sending new session message to %s" % k)
+            print("Using this queue for session message: %s" % consume_queue)
             self._publisher.publish_message(consume_queue, msg)
 
         # Non-blocking Acks placed directly into ack_scoreboard
