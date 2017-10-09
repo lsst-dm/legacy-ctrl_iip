@@ -747,6 +747,7 @@ class DMCS:
         message['MSG_TYPE'] = msg_in['MSG_TYPE'] + "_ACK"
         message['DEVICE'] = msg_in['DEVICE']
         message['ACK_ID'] = msg_in['ACK_ID']
+        message['CMD_ID'] = msg_in['CMD_ID']
         message['ACK_BOOL'] = transition_check
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
@@ -972,7 +973,7 @@ class DMCS:
         md['queue'] = 'dmcs_ack_consume'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
-        md['test_val'] = 'test_it'
+        md['test_val'] = None
         kws[md['name']] = md
 
         self.thread_manager = ThreadManager('thread-manager', kws)
