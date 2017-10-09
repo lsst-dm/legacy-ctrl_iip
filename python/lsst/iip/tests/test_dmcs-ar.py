@@ -54,10 +54,10 @@ class TestDMCS_AR:
     
         broker_addr = cdm[ROOT]['BASE_BROKER_ADDR']
     
-        ocs_name = cdm[ROOT]['BASE_BROKER_NAME']
-        ocs_passwd = cdm[ROOT]['BASE_BROKER_PASSWD']
-        ocs_pub_name = cdm[ROOT]['BASE_BROKER_PUB_NAME']
-        ocs_pub_passwd = cdm[ROOT]['BASE_BROKER_PUB_PASSWD']
+        ocs_name = cdm[ROOT]['OCS_BROKER_NAME']
+        ocs_passwd = cdm[ROOT]['OCS_BROKER_PASSWD']
+        ocs_pub_name = cdm[ROOT]['OCS_BROKER_PUB_NAME']
+        ocs_pub_passwd = cdm[ROOT]['OCS_BROKER_PUB_PASSWD']
         ocs_broker_url = "amqp://" + ocs_name + ":" + \
                                  ocs_passwd + "@" + \
                                  broker_addr
@@ -95,7 +95,9 @@ class TestDMCS_AR:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
+        sleep(3)
         self.verify_ocs_messages()
+        sleep(7)
         self.verify_ar_messages()
 
         sleep(2)
@@ -111,11 +113,23 @@ class TestDMCS_AR:
         self.clear_message_lists()
 
         self.EXPECTED_OCS_MESSAGES = 6
-        self.EXPECTED_AR_MESSAGES = 6
+        self.EXPECTED_AR_MESSAGES = 5
 
+        #msg = {}
+        #msg['MSG_TYPE'] = "ENTER_CONTROL"
+        #msg['DEVICE'] = 'AR'
+        #msg['CMD_ID'] = '17718411'
+        #msg['CFG_KEY'] = "2C16"
+        #msg['ACK_ID'] = 'AR_4'
+        #msg['ACK_DELAY'] = 2
+        #time.sleep(2)
+        #print("AR ENTER CONTROL")
+        #self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+      
         msg = {}
         msg['MSG_TYPE'] = "STANDBY"
         msg['DEVICE'] = 'AR'
+        msg['CMD_ID'] = '17718411'
         msg['CFG_KEY'] = "2C16"
         msg['ACK_ID'] = 'AR_4'
         msg['ACK_DELAY'] = 2
@@ -123,37 +137,31 @@ class TestDMCS_AR:
         print("AR STANDBY")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
-        #msg = {}
-        #msg['MSG_TYPE'] = "NEW_SESSION"
-        #msg['SESSION_ID'] = 'SI_469976'
-        #msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
-        #msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        ##time.sleep(3)
-        ##self.ocs_publisher.publish_message("ar_foreman_consume", msg)
-      
         msg = {}
         msg['MSG_TYPE'] = "DISABLE"
         msg['DEVICE'] = 'AR'
+        msg['CMD_ID'] = '17718411'
         msg['ACK_ID'] = 'AR_6'
         msg['ACK_DELAY'] = 2
         time.sleep(2)
         print("AR DISABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
 
-        sleep(0.5)
+        sleep(4.5)
         assert self.dmcs.STATE_SCBD.get_archive_state() == 'DISABLE'
       
       
         msg = {}
         msg['MSG_TYPE'] = "ENABLE"
         msg['DEVICE'] = 'AR'
+        msg['CMD_ID'] = '17718411'
         msg['ACK_ID'] = 'AR_11'
         msg['ACK_DELAY'] = 2
-        time.sleep(2)
+        time.sleep(4)
         print("AR ENABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
-        sleep(0.5)
+        sleep(4.5)
         assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
 
         msg = {}
@@ -162,7 +170,7 @@ class TestDMCS_AR:
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
-        time.sleep(2)
+        time.sleep(4)
         print("Next Visit Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
 
@@ -177,7 +185,7 @@ class TestDMCS_AR:
         msg['ACK_ID'] = 'START_INT_ACK_76'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['CCD_LIST'] = self.ccd_list
-        time.sleep(2)
+        time.sleep(4)
         print("Start Integration Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
@@ -188,7 +196,7 @@ class TestDMCS_AR:
         msg['IMAGE_SRC'] = 'MAIN'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['ACK_ID'] = 'READOUT_ACK_77'
-        time.sleep(2)
+        time.sleep(5)
         print("READOUT Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
@@ -200,7 +208,7 @@ class TestDMCS_AR:
         msg['ACK_ID'] = 'START_INT_ACK_78'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['CCD_LIST'] = self.ccd_list
-        time.sleep(2)
+        time.sleep(5)
         print("Start Integration Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
@@ -211,11 +219,11 @@ class TestDMCS_AR:
         msg['IMAGE_SRC'] = 'MAIN'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['ACK_ID'] = 'READOUT_ACK_79'
-        time.sleep(2)
+        time.sleep(5)
         print("READOUT Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
-        time.sleep(2)
+        time.sleep(5)
 
         print("Message Sender done")
 

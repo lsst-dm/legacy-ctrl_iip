@@ -63,7 +63,9 @@ class StateScoreboard(Scoreboard):
 
         self._redis.flushdb()
 
-        weekday = subprocess.check_output('date +"%u"', shell=True)
+        weekday = subprocess.check_output('date +"%u"', shell=True).decode("utf-8")
+
+        print("Weekday is %s" % weekday)
         job_num_seed = int(weekday) + 1000
         #set up auto sequence
         self._redis.set(self.JOB_SEQUENCE_NUM, int(job_num_seed))
@@ -297,10 +299,12 @@ class StateScoreboard(Scoreboard):
 
     def get_next_job_num(self, prefix):
         if self.check_connection():
+            print("getting next job num")
             self._redis.incr(self.JOB_SEQUENCE_NUM)
             job_num_str = prefix + str( self._redis.get(self.JOB_SEQUENCE_NUM))
             return job_num_str
         else:
+            print("Cannot get next job num")
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
 
@@ -309,14 +313,20 @@ class StateScoreboard(Scoreboard):
            where initial attributes are inserted.
         """
         if self.check_connection():
+            print("iAdding Job") 
             self._redis.hset(job_number, 'IMAGE_ID', image_id)
             self._redis.hset(job_number, 'VISIT_ID', visit_id)
             self._redis.lpush(self.JOBS, job_number)
+            print("Past first three redis calls in add_job")
             self.set_ccds_for_job(job_number, ccds)
+            print("Past ccds for job")
             self.set_job_state(job_number, 'NEW')
+            print("Past set job state")
             self.set_value_for_job(job_number, STATUS, 'ACTIVE')
+            print("Done Adding Job")
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
+            print("Cannot add job due to no connection to redis") 
             #raise exception
             ### FIX add adit message?
 
@@ -324,12 +334,12 @@ class StateScoreboard(Scoreboard):
     def set_job_state(self, job_number, state):
         if self.check_connection():
             self._redis.hset(job_number, STATE, state)
-            params = {}
-            params[JOB_NUM] = job_number
-            params['SUB_TYPE'] = self.JOB_STATE
-            params['STATE'] = state
-            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+            #params = {}
+            #params[JOB_NUM] = job_number
+            #params['SUB_TYPE'] = self.JOB_STATE
+            #params['STATE'] = state
+            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            #self.persist(self.build_monitor_data(params))
 
 
     def set_value_for_job(self, job_number, kee, val):
@@ -352,16 +362,24 @@ class StateScoreboard(Scoreboard):
 
 
     def set_current_device_job(self, job_number, device):
-        if self.check_connection():
-            if device == self.AR:
-                self._redis.lpush('AR_JOBS', job_number)
-            if device == self.PP:
-                self._redis.lpush('PP_JOBS', job_number)
-            if device == self.CU:
-                self._redis.lpush('CU_JOBS', job_number)
+        print("In State SCBD, set_current_device_job")
+        try:
+            if self.check_connection():
+                if device == self.AR:
+                    self._redis.lpush('AR_JOBS', job_number)
+                if device == self.PP:
+                    self._redis.lpush('PP_JOBS', job_number)
+                if device == self.CU:
+                    self._redis.lpush('CU_JOBS', job_number)
+        except Exception as e:
+            print("EXCEPTION in SET_CURRENT_DEVICE_JOB")
+            print("Job Number is %s, Device is %s" % (job_number,device))
+            print("Exception is %s" % e)
 
+        print("Leaving set_current_device_job")
 
     def get_current_device_job(self, device):
+        print("Getting current job for device in State SCBD")
         if self.check_connection():
             if device == self.AR:
                 return self._redis.lindex('AR_JOBS', 0)

@@ -458,8 +458,11 @@ class DMCS:
             ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
             acks.append(ack_id)
             job_num = self.STATE_SCBD.get_next_job_num( session_id)
+            print("Made it to Job num assignment - new job is %s" % job_num)
             self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
+            print("Now made it past add job ")
             self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
+            print("Now made it past add job ")
             self.STATE_SCBD.set_current_device_job(job_num, str(k))
             self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
             msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
@@ -686,6 +689,8 @@ class DMCS:
         current_index = toolsmod.state_enumeration[current_state]
         new_index = toolsmod.state_enumeration[new_state]
 
+        print("Incoming DMCS Command Msg Type is %s" % msg_in['MSG_TYPE'])
+
         if msg_in['MSG_TYPE'] == 'START': 
             if 'CFG_KEY' in msg_in:
                 good_cfg = self.STATE_SCBD.check_cfgs_for_cfg(device,msg_in['CFG_KEY'])
@@ -701,10 +706,12 @@ class DMCS:
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
         if transition_is_valid == True:
             self.STATE_SCBD.set_device_state(device, new_state)
+            print("DMCS - Device %s State being set to %s" % (device, new_state))
             response = str(device) + " device in " + new_state
             response = response + cfg_response
             self.send_ocs_ack(transition_is_valid, response, msg_in)
         else:
+            print("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
             response = "Invalid transition: " + str(current_state) + " to " + new_state
             #response = response + ". Device remaining in " + current_state + " state."
             self.send_ocs_ack(transition_is_valid, response, msg_in)
