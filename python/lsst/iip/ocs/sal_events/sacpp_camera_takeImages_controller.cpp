@@ -62,12 +62,6 @@ int test_camera_takeImages_controller()
            << ", WFS: " << SALInstance.wfs
            << ", IMAGE_SEQUENCE_NAME: " << SALInstance.imageSequenceName << "}"; 
        publisher->publish_message("ocs_dmcs_consume", msg.str());
-
-       if (timeout > 0) {
-          mgr.ackCommand_takeImages(cmdId, SAL__CMD_INPROGRESS, 0, "Ack : OK");
-          os_nanoSleep(delay_10ms);
-       }       
-       mgr.ackCommand_takeImages(cmdId, SAL__CMD_COMPLETE, 0, "Done : OK");
     }
     os_nanoSleep(delay_10ms);
   }

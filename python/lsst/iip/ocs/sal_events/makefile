@@ -22,7 +22,7 @@ CAMERA   = /opt/sal/ts_sal/test/camera/cpp
 SCHEDULER= /opt/sal/ts_sal/test/scheduler_target/cpp
 CFLAGS   = -g -Wall -c 
 
-all: takeImages startIntegration readout startShutterOpen endShutterOpen startShutterClose endShutterClose schedulerTarget
+all: takeImages startIntegration startReadout startShutterOpen endShutterOpen startShutterClose endShutterClose schedulerTarget
 
 takeImages: sacpp_camera_takeImages_controller.cpp SimplePublisher 
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o takeImages sacpp_camera_takeImages_controller.cpp $(LDLIBS) 
