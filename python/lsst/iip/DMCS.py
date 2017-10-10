@@ -6,6 +6,7 @@ import redis
 import yaml
 import sys, traceback
 import os, os.path
+from subprocess import call
 import time
 import datetime
 from time import sleep
@@ -389,6 +390,7 @@ class DMCS:
         visit_id = params['VISIT_ID']
         self.STATE_SCBD.set_visit_id(visit_id)
         enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
+        print
         LOGGER.debug("Enabled device list is:")
         LOGGER.debug(enabled_devices)
         session_id = self.STATE_SCBD.get_current_session()
@@ -407,10 +409,12 @@ class DMCS:
             msg[VISIT_ID] = params[VISIT_ID]
             msg[BORE_SIGHT] = params['BORE_SIGHT']
             msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+            print("PRINTING out consume queue for next visit message: %s" % consume_queue)
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n")
             LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
             self._publisher.publish_message(consume_queue, msg)
 
-        self.ack_timer(2)
+        self.ack_timer(3)
         for a in acks:
             ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
 
@@ -1047,6 +1051,9 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        x = os.getpid()
+        print("Killing PID: %s" % x)
+        call(["kill","-9",str(x)])
         pass
 
     print("")
