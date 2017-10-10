@@ -279,7 +279,7 @@ class TestDMCS_AR_PP:
         print("Next Visit Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
 
-        sleep(0.5)
+        sleep(3.5)
         assert self.dmcs.STATE_SCBD.get_current_visit() == 'V_1443'
       
         msg = {}
@@ -396,13 +396,16 @@ class TestDMCS_AR_PP:
 
     
     def on_ocs_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.ocs_consumer_msg_list.append(body)
 
  
     def on_ar_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.ar_consumer_msg_list.append(body)
 
     
     def on_pp_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.pp_consumer_msg_list.append(body)
 

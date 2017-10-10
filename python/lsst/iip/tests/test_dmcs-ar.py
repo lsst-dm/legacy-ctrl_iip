@@ -270,9 +270,11 @@ class TestDMCS_AR:
    
 
     def on_ocs_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.ocs_consumer_msg_list.append(body)
 
  
     def on_ar_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.ar_consumer_msg_list.append(body)
 

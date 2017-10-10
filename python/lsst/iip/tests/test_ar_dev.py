@@ -273,10 +273,12 @@ class TestArDev:
   
  
     def on_dmcs_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.dmcs_consumer_msg_list.append(body)
 
 
     def on_ar_ctrl_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.ar_ctrl_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'NEW_ARCHIVE_ITEM':
             msg = {}
@@ -311,6 +313,7 @@ class TestArDev:
             pytest.fail("The following unknown message was received by the Archive CTRL: %s" % body)
 
     def on_f1_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.f1_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'AR_FWDR_HEALTH_CHECK':
             msg = {}
@@ -369,6 +372,7 @@ class TestArDev:
 
 
     def on_f2_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.f2_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'AR_FWDR_HEALTH_CHECK':
             msg = {}
