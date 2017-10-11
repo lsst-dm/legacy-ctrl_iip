@@ -48,7 +48,7 @@ void EventSubscriber::setup_events_listeners() {
     
     for (int i = 0; i < thread_counts; i++) { 
         ostringstream rmq_url; 
-        rmq_url << "amqp://ENV" << (i+1) << ":ENV" << (i+1) << "@" << base_broker_addr; 
+        rmq_url << "amqp://EVN" << (i+1) << ":EVN" << (i+1) << "@" << base_broker_addr; 
     
         cout << rmq_url.str() << endl; 
         pthread_t thread; 

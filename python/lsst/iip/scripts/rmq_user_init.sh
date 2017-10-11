@@ -128,9 +128,10 @@ for i in {1..25}; do
    done
 
 
-
-
-
-
-
+for i in {1..25}; do 
+   x =  "EVN"$i; 
+   rabbitmqctl add_user $x $x;
+   rabbitmqctl set_permissions -p /test $x \'.\*\' \'.\*\' \'.\*\'
+   rabbitmqctl set_permissions -p /bunny $x \'.\*\' \'.\*\' \'.\*\'
+   done
 
