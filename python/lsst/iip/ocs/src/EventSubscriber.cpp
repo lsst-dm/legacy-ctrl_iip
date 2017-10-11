@@ -78,7 +78,7 @@ void *EventSubscriber::run_ccs_takeImages(void *args) {
         status = mgr.acceptCommand_takeImages(&SALInstance); 
 
         if (status > 0) { 
-            cout << "## Command takeImages Received." << endl; 
+            cout << "=== Command takeImages Received. =" << endl; 
             ostringstream msg; 
             msg << "{ MSG_TYPE: CCS_TAKE_IMAGES"
                 << ", NUM_IMAGES: " << SALInstance.numImages
