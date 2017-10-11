@@ -290,9 +290,11 @@ class TestPpDev:
   
  
     def on_dmcs_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.dmcs_consumer_msg_list.append(body)
 
     def on_ncsa_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         # on_ncsa_publish
         self.ncsa_consumer_msg_list.append(body)
 
@@ -380,6 +382,7 @@ class TestPpDev:
      
 
     def on_f1_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.f1_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
             msg = {}
@@ -431,6 +434,7 @@ class TestPpDev:
 
 
     def on_f2_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.f2_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
             msg = {}

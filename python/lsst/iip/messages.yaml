@@ -6,11 +6,13 @@ ROOT:
     ENTER_CONTROL:        
         MSG_TYPE: ENTER_CONTROL
         DEVICE: AR, PP, or CU
+        CMD_ID:
         ACK_ID:
 
     ENTER_CONTROL_ACK:
         MSG_TYPE: ENTER_CONTROL_ACK
         DEVICE: AR, PP, or CU
+        CMD_ID:
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
@@ -18,11 +20,13 @@ ROOT:
     START:
         MSG_TYPE: START
         DEVICE: AR, PP, or CU
+        CMD_ID:
         CFG_KEY:
 
     START_ACK:
         MSG_TYPE: START
         DEVICE: AR, PP, or CU
+        CMD_ID:
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
@@ -30,12 +34,14 @@ ROOT:
     STANDBY:
         MSG_TYPE: STANDBY
         DEVICE: AR, PP, or CU
+        CMD_ID:
         CFG_KEY:
         ACK_ID:
         
     STANDBY_ACK:
         MSG_TYPE: STANDBY_ACK
         DEVICE:
+        CMD_ID:
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
@@ -43,11 +49,13 @@ ROOT:
     DISABLE:
         MSG_TYPE: DISABLE
         DEVICE:
+        CMD_ID:
         ACK_ID:
 
     DISABLE_ACK:
         MSG_TYPE: DISABLE_ACK
         DEVICE:
+        CMD_ID:
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
@@ -55,11 +63,13 @@ ROOT:
     ENABLE:
         MSG_TYPE: ENABLE
         DEVICE:
+        CMD_ID:
         ACK_ID:
 
     ENABLE_ACK:
         MSG_TYPE: ENABLE_ACK
         DEVICE:
+        CMD_ID:
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
@@ -67,12 +77,14 @@ ROOT:
     SET_VALUE:
         MSG_TYPE: SET_VALUE
         DEVICE: AR, PP, or CU
+        CMD_ID:
         VALUE:
         ACK_ID:
 
     SET_VALUE_ACK:
         MSG_TYPE: SET_VALUE_ACK
         DEVICE: AR, PP, or CU
+        CMD_ID:
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
@@ -80,11 +92,13 @@ ROOT:
     EXIT_CONTROL:
         MSG_TYPE: EXIT_CONTROL
         DEVICE: AR, PP, or CU
+        CMD_ID:
         ACK_ID:
 
     EXIT_CONTROL_ACK:
         MSG_TYPE: EXIT_CONTROL_ACK
         DEVICE: AR, PP, or CU
+        CMD_ID:
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
@@ -104,11 +118,13 @@ ROOT:
     STOP:
         MSG_TYPE: STOP
         DEVICE: AR, PP, or CU
+        CMD_ID:
         ACK_ID:
 
     STOP_ACK:
         MSG_TYPE: STOP_ACK
         DEVICE: AR, PP, or CU
+        CMD_ID:
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
