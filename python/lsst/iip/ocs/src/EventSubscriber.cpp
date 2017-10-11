@@ -1,25 +1,33 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <pthread.h>
 #include "SAL_camera.h"
+#include "SAL_tcs.h"
 #include "ccpp_sal_camera.h"
+#include "ccpp_sal_tcs.h"
 #include "os.h"
+#include <yaml-cpp/yaml.h>
 #include <stdlib.h>
 
-#include "example_main.h"
+// #include "example_main.h"
 #include "SimplePublisher.h"
+#include "EventSubscriber.h"
 
 using namespace DDS;
 using namespace camera;
+using namespace tcs; 
 using namespace YAML; 
 
+typedef void* (*funcptr)(void *args);  
 
 EventSubscriber::EventSubscriber() { 
-    // OCS_Bridge SimplePublisher needs to be new.
-    Node root = 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-    setup_events_controllers(); 
+    Node config_file = LoadFile("../../L1SystemCfg.yaml"); 
+    Node root = config_file["ROOT"]; 
+    base_broker_addr = root["BASE_BROKER_ADDR"].as<string>(); 
+    queue_name = root["OCS"]["OCS_PUBLISH"].as<string>(); 
 
+    setup_events_listeners(); 
     cout << "=== dm EVENT/Telemetry controller ready" << endl; 
 }
 
@@ -27,30 +35,41 @@ EventSubscriber::~EventSubscriber() {
 } 
 
 void EventSubscriber::setup_events_listeners() { 
-    pthread takeImages, startIntegration, startReadout, endReadout, 
-            startShutterOpen, startShutterClose, endShutterOpen, endShutterClose, schedulerTarget;  
-
-    // TODO: add arguments to these threads.
-    pthread_create(&takeImages, NULL, &EventListener::run_ccs_takeImages, NULL); 
-    pthread_create(&startIntegration, NULL, &EventListener::run_ccs_startIntegration, NULL); 
-    pthread_create(&startReadout, NULL, &EventListener::run_ccs_startReadout, NULL); 
-    pthread_create(&endReadout, NULL, &EventListener::run_ccs_endReadout, NULL); 
-    pthread_create(&startShutterOpen, NULL, &EventListener::run_ccs_startShutterOpen, NULL); 
-    pthread_create(&startShutterClose, NULL, &EventListener::run_ccs_startShutterClose, NULL); 
-    pthread_create(&endShutterOpen, NULL, &EventListener::run_ccs_endShutterOpen, NULL); 
-    pthread_create(&endShutterClose, NULL, &EventListener::run_ccs_endShutterClose, NULL); 
-    pthread_create(&schedulerTarget, NULL, &EventListener::run_tcs_target, NULL); 
+    int thread_counts = 9; 
+    funcptr thread_funcs[] {  &EventSubscriber::run_ccs_takeImages, 
+                               &EventSubscriber::run_ccs_startIntegration, 
+                               &EventSubscriber::run_ccs_startReadout, 
+                               &EventSubscriber::run_ccs_endReadout, 
+                               &EventSubscriber::run_ccs_startShutterOpen, 
+                               &EventSubscriber::run_ccs_startShutterClose, 
+                               &EventSubscriber::run_ccs_endShutterOpen, 
+                               &EventSubscriber::run_ccs_endShutterClose, 
+                               &EventSubscriber::run_tcs_target }; 
+    
+    for (int i = 0; i < thread_counts; i++) { 
+        ostringstream rmq_url; 
+        rmq_url << "amqp://ENV" << (i+1) << ":ENV" << (i+1) << "@" << base_broker_addr; 
+    
+        cout << rmq_url.str() << endl; 
+        pthread_t thread; 
+        
+        thread_args = new event_args; 
+        thread_args->publish_queue = queue_name; 
+        thread_args->broker_addr = rmq_url.str(); 
+        
+        pthread_create(&thread, NULL, thread_funcs[i], thread_args); 
+    }  
 } 
 
-void *EventListener::run_ccs_takeImages(void *args) { 
+void *EventSubscriber::run_ccs_takeImages(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
     SAL_camera mgr = SAL_camera(); 
-    camera_camera_takeImagesC SALInstance; 
+    camera_command_takeImagesC SALInstance; 
 
     mgr.salProcessor("camera_command_takeImages"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
@@ -77,10 +96,10 @@ void *EventListener::run_ccs_takeImages(void *args) {
     return 0;
 } 
 
-void *EventListener::run_ccs_startIntegration(void *args) { 
+void *EventSubscriber::run_ccs_startIntegration(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
@@ -106,10 +125,10 @@ void *EventListener::run_ccs_startIntegration(void *args) {
     return 0;
 } 
 
-void *EventListener::run_ccs_startReadout(void *args) { 
+void *EventSubscriber::run_ccs_startReadout(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
@@ -134,10 +153,10 @@ void *EventListener::run_ccs_startReadout(void *args) {
     return 0;
 } 
 
-void *EventListener::run_ccs_endReadout(void *args) { 
+void *EventSubscriber::run_ccs_endReadout(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
@@ -162,10 +181,10 @@ void *EventListener::run_ccs_endReadout(void *args) {
     return 0;
 } 
 
-void *EventListener::run_ccs_startShutterOpen(void *args) { 
+void *EventSubscriber::run_ccs_startShutterOpen(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
@@ -190,10 +209,10 @@ void *EventListener::run_ccs_startShutterOpen(void *args) {
     return 0;
 } 
 
-void *EventListener::run_ccs_startShutterClose(void *args) { 
+void *EventSubscriber::run_ccs_startShutterClose(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
@@ -218,10 +237,10 @@ void *EventListener::run_ccs_startShutterClose(void *args) {
     return 0;
 } 
 
-void *EventListener::run_ccs_endShutterOpen(void *args) { 
+void *EventSubscriber::run_ccs_endShutterOpen(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
@@ -246,10 +265,10 @@ void *EventListener::run_ccs_endShutterOpen(void *args) {
     return 0;
 } 
 
-void *EventListener::run_ccs_endShutterClose(void *args) { 
+void *EventSubscriber::run_ccs_endShutterClose(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
@@ -274,10 +293,10 @@ void *EventListener::run_ccs_endShutterClose(void *args) {
     return 0;
 } 
 
-void *EventListener::run_tcs_target(void *args) { 
+void *EventSubscriber::run_tcs_target(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; // USERNAME
+    string broker_addr = params->broker_addr; 
     os_time delay_10ms = { 0, 10000000 };
 
     int cmdId = -1;
@@ -285,7 +304,7 @@ void *EventListener::run_tcs_target(void *args) {
     SAL_tcs mgr = SAL_tcs();
 
     mgr.salProcessor("tcs_command_target");
-    SimplePublisher *publisher = new SimplePubisher(broker_addr); 
+    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while (1) {
         cmdId = mgr.acceptCommand_target(&SALInstance);
@@ -294,17 +313,17 @@ void *EventListener::run_tcs_target(void *args) {
 
             ostringstream msg; 
             msg << " { MSG_TYPE: TCS_TARGET" 
-            << ", TARGETiD : " << SALInstance.targetId;
-            << ", FIELDiD : " << SALInstance.fieldId;
-            << ", GROUPiD : " << SALInstance.groupId;
-            << ", FILTER : " << SALInstance.filter;
-            << ", REQUESTtIME : " << SALInstance.requestTime;
-            << ", RA : " << SALInstance.ra;
-            << ", DEC : " << SALInstance.dec;
-            << ", ANGLE : " << SALInstance.angle;
-            << ", NUM_EXPOSURES : " << SALInstance.num_exposures;
-            << ", EXPOSURE_TIMES : " << SALInstance.exposure_times;
-            << ", SLEW_TIME : " << SALInstance.slew_time << "}";
+                << ", TARGET_ID: " << SALInstance.targetId
+                << ", FIELD_ID: " << SALInstance.fieldId
+                << ", GROUP_ID: " << SALInstance.groupId
+                << ", FILTER: " << SALInstance.filter
+                << ", REQUEST_IIME: " << SALInstance.requestTime
+                << ", RA: " << SALInstance.ra
+                << ", DEC: " << SALInstance.dec
+                << ", ANGLE: " << SALInstance.angle
+                << ", NUM_EXPOSURES: " << SALInstance.num_exposures
+                << ", EXPOSURE_TIMES: " << SALInstance.exposure_times
+                << ", SLEW_TIME: " << SALInstance.slew_time << "}";
 
             publisher->publish_message(queue, msg.str());
         }       
@@ -314,5 +333,10 @@ void *EventListener::run_tcs_target(void *args) {
     return 0;
 } 
 
+int main() { 
+    EventSubscriber event; 
+    while(1) { 
 
-
+    } 
+    return 0; 
+} 
