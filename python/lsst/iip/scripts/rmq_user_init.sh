@@ -121,7 +121,7 @@ rabbitmqctl set_permissions -p /test AUDIT '.*' '.*' '.*'
 
 
 for i in {1..25}; do 
-   x="CL"$i; 
+   x="CL_"$i; 
    rabbitmqctl add_user $x $x;
    rabbitmqctl set_permissions -p /test $x \'.\*\' \'.\*\' \'.\*\'
    rabbitmqctl set_permissions -p /bunny $x \'.\*\' \'.\*\' \'.\*\'
@@ -129,7 +129,7 @@ for i in {1..25}; do
 
 
 for i in {1..25}; do 
-   x="EVN"$i; 
+   x="EVN_"$i; 
    rabbitmqctl add_user $x $x;
    rabbitmqctl set_permissions -p /test $x \'.\*\' \'.\*\' \'.\*\'
    rabbitmqctl set_permissions -p /bunny $x \'.\*\' \'.\*\' \'.\*\'
