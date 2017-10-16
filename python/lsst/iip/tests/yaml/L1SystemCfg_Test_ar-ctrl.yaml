@@ -69,7 +69,7 @@ ROOT:
     ARCHIVE_LOGIN: archive
     ARCHIVE_IP: 141.142.230.190
     ARCHIVE_HOSTNAME: Archibald
-    ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
+    ARCHIVE_XFER_ROOT: /home/centos/
     CHECKSUM_ENABLED: no
   OCS: 
     OCS_NAME: OCS

@@ -482,15 +482,49 @@ ROOT:
             RECEIPT_LIST:
 
 
-#Msg # AR1: Archive Health Check from Base Archive Foreman to Archive Controller 
-#MSG_TYPE: ARCHIVE_HEALTH_CHECK
-#SESSION_ID: num from OCS (if archive wants it...for dir name?
-#ACK_ID: seq. num
-#-------------------------------------------------
-#Msg # AR2: Archive Health Check ACK from Archive Controller to Base Archive Foreman
-#MSG_TYPE: ARCHIVE_HEALTH_CHECK_ACK
-#ACK_BOOL: True or False
-#ACK_ID: return seq. num
+    #Msg # AR1: Archive Health Check from Base Archive Foreman to Archive Controller 
+
+    AR_JOB_PARAMS_ACK: 
+        MSG_TYPE: AR_JOB_PARAMS_ACK
+        ACK_ID: 
+
+    AR_READOUT: 
+        MSG_TYPE: AR_READOUT
+        IMAGE_ID: 
+        ACK_ID:
+
+    AR_READOUT_ACK: 
+        MSG_TYPE: AR_READOUT_ACK
+        JOB_NUM: 
+        IMAGE_ID: 
+        REPLY_QUEUE:
+        ACK_ID:
+        RESULTS: 
+            CCD_LIST:
+                FILENAME:
+                CHECKSUM: 
+
+    AR_ITEMS_XFERD: 
+        MSG_TYPE: AR_ITEMS_XFERD
+        ACK_ID: 
+        IMAGE_ID: 
+        CCD_LIST:
+            FILENAME: 
+            CHECKSUM: 
+
+    AR_ITEMS_XFERD_ACK: 
+        MSG_TYPE: AR_ITEMS_XFERD_ACK
+        IMAGE_ID:
+        ACK_ID:
+        RESULTS_LIST: 
+                CCD: 
+    #SESSION_ID: num from OCS (if archive wants it...for dir name?
+    #ACK_ID: seq. num
+    #-------------------------------------------------
+    #Msg # AR2: Archive Health Check ACK from Archive Controller to Base Archive Foreman
+    #MSG_TYPE: ARCHIVE_HEALTH_CHECK_ACK
+    #ACK_BOOL: True or False
+    #ACK_ID: return seq. num
 
 
     AR_FWDR_HEALTH_CHECK:
@@ -519,6 +553,9 @@ ROOT:
         COMPONENT: ARCHIVE_CTRL
         ACK_ID: return seq. number
         TARGET_DIR: Path of intended location
+        ACK_BOOL: 
+        JOB_NUM: 
+        IMAGE_ID: 
 
 
     AR_FWDR_XFER_PARAMS:
@@ -584,9 +621,14 @@ ROOT:
         IMAGE_ID: 
         ACK_ID: return seq. number
         ACK_BOOL:
-        RESULT_LIST:
+        REPLY_QUEUE:
+        RESULTS:
             CCD_LIST: 
             RECEIPT_LIST: Alphanumeric receipt or 'none' for failure
+        RESULT_LIST: 
+            CCD_LIST:
+            CHECKSUM_LIST:
+            FILENAME_LIST:
 
 
 
