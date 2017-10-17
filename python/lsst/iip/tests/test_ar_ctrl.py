@@ -40,13 +40,11 @@ class TestAR_Ctrl:
 
         self.xfer_root = cdm[ROOT]["ARCHIVE"]["ARCHIVE_XFER_ROOT"] 
 
-        # ar_foreman publisher 
         ar_dev_pub_broker_url = "amqp://" + afm_pub_name + ":" +\
                                 afm_pub_pwd + "@" +\
                                 broker_addr
         self.ar_dev_publisher = SimplePublisher(ar_dev_pub_broker_url, "YAML")
 
-        # ar_foreman consumer 
         ar_dev_broker_url = "amqp://" + afm_name + ":" +\
                             afm_pwd + "@" +\
                             broker_addr 
@@ -55,9 +53,7 @@ class TestAR_Ctrl:
         self.ar_dev_consumer.start()
         print("Test setup Complete. Commencing Messages...") 
 
-        # message authority 
         self._msg_auth = MessageAuthority('/home/centos/src/git/ctrl_iip/python/lsst/iip/messages.yaml')
-
 
         self.send_messages()
         sleep(10) 
