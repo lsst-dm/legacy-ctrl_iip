@@ -1,24 +1,19 @@
-# OCS_Bridge System descriptions
-OCS Bridge takes DDS messages from OpenSplice, converts them to RabbitMq messages and sends them to L1 System. 
- 
-## How to Run
-In OCS machine, 
-* Run CommandListener executable in one terminal. CommandListener takes about 3-4 seconds to start. 
-* Run EventListener executable in another terminal window. 
-* Run AckSubscriber executable in another terminal window. 
+# How to run OCS components
 
-### CommandListener.cpp 
-  CommandListener listens to command messages(enable, disable, standby...) from OCS system. 
+## Prerequisites
+* SAL environment is installed and configured.  
+* [Yaml-CPP](https://github.com/jbeder/yaml-cpp)
+* [SimpleAmqpClient](https://github.com/alanxz/SimpleAmqpClient) 
+* [Rabbitmq-C](https://github.com/alanxz/rabbitmq-c) 
 
-### EventListener.cpp 
-  EventListener listens to dm events messages(START_INTEGRATION, NEXT_VISIT, READOUT) from OCS system.
+## RUN
+1. run `./AckSubscriber`, `./CommandListener`, `./EventSubscriber` in 3 different terminals. 
 
-### AckSubscriber.cpp 
-  AckSubscriber listens to messages from DMCS and acks back to OCS System.
+## Descriptions
+* AckSubscriber listens to acks from DMCS and ack them back to OCS. 
+* CommandListener listens to commands from OCS to DMCS relating to archiver, catchuparchiver and processingcluster. 
+* EventSubscriber listens to events from OCS and forwards them to DMCS. 
 
-### OCS_Bridge.cpp 
-  OCS_Bridge is the parent of CommandListener and EventListener. It reads the configuration file and sets up the rabbitmq publisher. 
-
-If there are not any executables, run `make` in the directory where `makefile` resides.
-`make <component-name>` will generate each individual executable. 
-where component-name = CommandListener/EventListener/AckSubscriber    
+## Simulation
+* To simulate OCS commands for DM devices(AR, CU, PP), the commands are in iip/ocs/commands directory. 
+* To simulate OCS commands for Events from TCS, CCS, event commands are in iip/ocs/sal_events directory. 
