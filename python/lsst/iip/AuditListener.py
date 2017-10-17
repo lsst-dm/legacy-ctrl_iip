@@ -70,6 +70,7 @@ class AuditListener:
 
     def on_influx_message(self, ch, method, properties, msg):
         #print "In audit, msg contents is:  %s" % msg
+        ch.basic_ack(method.delivery_tag) 
         handler = self.msg_actions.get(msg['DATA_TYPE'])
         result = handler(msg)
 

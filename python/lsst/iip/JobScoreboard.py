@@ -1,4 +1,5 @@
 import redis
+import toolsmod
 from toolsmod import get_timestamp
 from toolsmod import get_epoch_timestamp
 from toolsmod import L1RedisError
@@ -42,6 +43,7 @@ class JobScoreboard(Scoreboard):
     AR = 'AR'
     PP = 'PP'
     CU = 'CU'
+    prp = toolsmod.prp
   
 
     def __init__(self, db_type, db_instance):
@@ -130,7 +132,7 @@ class JobScoreboard(Scoreboard):
             if i == 1:
                 return True
             else:
-                LOGGER.info('In add_job, had to reconnect to Redis - all set now')
+                LOGGER.info('Attempting to reconnect to Redis - all set now')
                 return True
         else: 
             LOGGER.info('In add_job, could not reconnect to Redis after 3 attempts')
@@ -269,20 +271,10 @@ class JobScoreboard(Scoreboard):
         if pairs:
             return yaml.load(pairs)
         else:
+            LOGGER.critical("ERROR: No pairs associated with JOB %s" % job_number)
             return None
 
     def set_ccds_for_job(self, job_number, ccds):
-        """Pairs is a temporary relationship between Forwarders 
-           and Distributors that lasts for one job. Note the use of yaml...
-           Unlike python dicts, Redis is not a nested level database. For a 
-           field to have a dict attached to it, it is necessary to serialize 
-           the dict using yaml, json, or pickle. Pyyaml is already in use 
-           for conf files.
-
-           :param str job_number: cast as str below just to make certain.
-           :param  dict pairs: Forwarders and Distributors arranged in a
-           dictionary.
-        """
         if self.check_connection():
             self._redis.hset(str(job_number), 'CCDS', yaml.dump(ccds))
             return True
@@ -296,6 +288,37 @@ class JobScoreboard(Scoreboard):
         ### XXX FIX - Check for existence of pairs...
         if ccds:
             return yaml.load(ccds)
+        else:
+            return None
+
+
+    def set_work_schedule_for_job(self, job_number, schedule):
+        """The work schedule is a temporary relationship between Forwarders 
+           and CCDs that lasts for one job. Note the use of yaml...
+           Unlike python dicts, Redis is not a nested level database. For a 
+           field to have a dict attached to it, it is necessary to serialize 
+           the dict using yaml, json, or pickle. Pyyaml is already in use 
+           for conf files.
+
+           :param str job_number: cast as str below just to make certain.
+           :param  dict schedule: A dictionary with two items - a 'FORWARDER_LIST']
+                                  and a 'CCD_LIST' which is a list of lists. Every
+                                  index in 'FORWARDER_LIST' matches an index position in
+                                  'CCD_LIST' which contains a list of CCDs.
+        """
+        if self.check_connection():
+            self._redis.hset(str(job_number), 'WORK_SCHEDULE', yaml.dump(schedule))
+            return True
+        else:
+            return False
+
+
+    def get_work_schedule_for_job(self, job_number):
+        if self.check_connection():
+            sched =  self._redis.hget(str(job_number), 'WORK_SCHEDULE')
+
+        if sched:
+            return yaml.load(sched)
         else:
             return None
 
@@ -405,16 +428,6 @@ def main():
   print("Job Scoreboard seems to be running OK")
   time.sleep(2)
   print("Done.")
-  #jbs.charge_database()
-  #jbs.print_all()
-  #Ps = jbs.get_value_for_job(str(1), 'PAIRS')
-  #print "printing Ps"
-  #print Ps
-  #ppps = eval(Ps)
-  #pps = ppps.keys()
-  #print "final line"
-  #print ppps == pairs
-
 
 
 if __name__ == "__main__": main()

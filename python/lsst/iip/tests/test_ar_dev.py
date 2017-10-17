@@ -142,7 +142,7 @@ class TestArDev:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        sleep(10)
+        sleep(3)
         self.verify_F1_messages()
         self.verify_F2_messages()
         self.verify_dmcs_messages()
@@ -318,7 +318,7 @@ class TestArDev:
             msg['COMPONENT'] = 'FORWARDER_1'
             msg['ACK_BOOL'] = True 
             msg['ACK_ID'] = body['ACK_ID']
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
             msg = {}
@@ -326,7 +326,7 @@ class TestArDev:
             msg['COMPONENT'] = 'FORWARDER_1'
             msg['ACK_BOOL'] = True 
             msg['ACK_ID'] = body['ACK_ID']
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_FWDR_READOUT':
             # Find message in message list for xfer_params
@@ -362,7 +362,7 @@ class TestArDev:
             msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
             msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
             msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
             pytest.fail("The following unknown message was received by FWDR F1: %s" % body)
@@ -376,7 +376,7 @@ class TestArDev:
             msg['COMPONENT'] = 'FORWARDER_2'
             msg['ACK_BOOL'] = True 
             msg['ACK_ID'] = body['ACK_ID']
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
             msg = {}
@@ -384,7 +384,7 @@ class TestArDev:
             msg['COMPONENT'] = 'FORWARDER_2'
             msg['ACK_BOOL'] = True 
             msg['ACK_ID'] = body['ACK_ID']
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_FWDR_READOUT':
             # Find message in message list for xfer_params
@@ -420,7 +420,7 @@ class TestArDev:
             msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
             msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
             msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
-            self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
             pytest.fail("The following unknown message was received by FWDR F2: %s" % body)

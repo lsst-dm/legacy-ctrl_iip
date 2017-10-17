@@ -117,6 +117,15 @@ class DMCS:
 
 
     def init_ack_id(self):
+        """ Create an ack_id for the message. If dmcs_ack_id_file is a valid path,
+            increment it's current_ack_id. Start from 1 if exceeds 999900 or
+            dmcs_ack_id_file does not exist, and store current_ack_id to
+            dmcs_ack_id_file.
+
+            :params: None.
+
+            :return: None.
+        """
         ### FIX change to use redis db incr...
         self._next_timed_ack_id = 0
         if os.path.isfile(self.dmcs_ack_id_file):
@@ -137,6 +146,13 @@ class DMCS:
 
 
     def setup_publishers(self):
+        """ Set up base publisher with pub_base_broker_url by calling a new instance
+            of SimplePublisher class.
+
+            :params: None.
+
+            :return: None.
+        """
         self.pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
                                             self._pub_passwd + "@" + \
                                             str(self._base_broker_addr)
@@ -149,8 +165,17 @@ class DMCS:
 
 
     def on_ocs_message(self, ch, method, properties, msg_dict):
+        """ Calls the appropriate OCS action handler according to message type.
+
+            :params ch: Channel to message broker, unused unless testing.
+            :params method: Delivery method from Pika, unused unless testing.
+            :params properties: Properties from DMCS callback message body.
+            :params msg_dict: A dictionary that stores the message body.
+
+            :return: None.
+        """
+        ch.basic_ack(method.delivery_tag) 
         LOGGER.info('Processing message in OCS message callback')
-        #LOGGER.debug('Thread in OCS message callback of DMCS is %s', _thread.get_ident())
         LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
                     (str(msg_dict),properties))
 
@@ -160,8 +185,17 @@ class DMCS:
 
 
     def on_ack_message(self, ch, method, properties, msg_dict):
+        """ Calls the appropriate foreman action handler according to message type.
+
+            :params ch: Channel to message broker, unused unless testing.
+            :params method: Delivery method from Pika, unused unless testing.
+            :params properties: Properties from DMCS callback message body.
+            :params msg_dict: A dictionary that stores the message body.
+
+            :return: None.
+        """
+        ch.basic_ack(method.delivery_tag) 
         LOGGER.info('Processing message in ACK message callback')
-        #LOGGER.debug('Thread in ACK callback od DMCS is %s', _thread.get_ident())
         LOGGER.debug('Message and properties from ACK callback message body is: %s', 
                      (str(msg_dict),properties))
 
@@ -173,16 +207,38 @@ class DMCS:
     ### Remaining methods in this class are workhorse methods for the running threads
 
     def process_enter_control_command(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_start_command(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_standby_command(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition. If state transition is valid, create a new session
+            id and send a 'NEW_SESSION' message.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
@@ -193,16 +249,38 @@ class DMCS:
 
 
     def process_disable_command(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_enable_command(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_set_value_command(self, msg):
+        """ Generate ack message with value from passed in message and publish to
+            OCS Bridge. Send an error message (ack_bool = false) if current state
+            isn't ENABLE or message's value is invalid.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         device = msg['DEVICE']
         ack_msg = {}
         ack_msg['MSG_TYPE'] = msg['MSG_TYPE'] + "_ACK"
@@ -229,29 +307,61 @@ class DMCS:
 
 
     def process_fault_command(self, msg):
+       """ None.
+
+           :params: None.
+
+           :return: None.
+       """
         pass
 
 
     def process_exit_control_command(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_abort_command(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
         # Send out ABORT messages!!!
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_stop_command(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
         new_state = toolsmod.next_state[msg['MSG_TYPE']]
         transition_check = self.validate_transition(new_state, msg)
 
 
     def process_next_visit_event(self, params):
-        # Send next visit info to any devices in enable state
-        # Keep track of current Next Visit for each device.
+        """ Send next visit info to any devices in enable state.
+            Keep track of current Next Visit for each device.
+            Wait for timeout and then check for each ack's response.
 
+            :params params: Next visit info.
+
+            :return: None.
+        """
         # First, get dict of devices in Enable state with their consume queues
         visit_id = params['VISIT_ID']
         self.STATE_SCBD.set_visit_id(visit_id)
@@ -295,8 +405,13 @@ class DMCS:
 
 
     def process_start_integration_event(self, params):
-        # Send start int message to all enabled devices, with details of job...include new job_num
+        """ Send start integration message to all enabled devices with details of job,
+            including new job_num and image_id.
+            Send pending_ack message to all enabled devices, expires in 5s.
 
+            :params params: Provide image_id.
+
+            :return: None.
         ## FIX - see temp hack below...
         ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         ccd_list = self.CCD_LIST
@@ -333,6 +448,14 @@ class DMCS:
 
  
     def process_readout_event(self, params):
+        """ Send readout message to all enabled devices with details of job, including
+            new job_num and image_id.
+            Send pending_ack message to all enabled devices, expires in 5s.
+
+            :params params: Provide image_id.
+
+            :return: None.
+        """
         ## FIX - see temp hack below...
         ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         ccd_list = self.CCD_LIST
@@ -363,19 +486,43 @@ class DMCS:
 
 
     def process_telemetry(self, msg):
+       """ None.
+
+           :params: None.
+
+           :return: None.
+       """
         pass
 
 
     def process_ack(self, params):
+        """ Add new ack message to AckScoreboard. 
+
+            :params params: Ack message.
+
+            :return: None.
+        """
         self.ACK_SCBD.add_timed_ack(params)
 
 
     def process_pending_ack(self, params):
+        """ Store pending_ack message in AckScoreboard.
+
+            :params params: pending_ck message.
+
+            :return: None.
+        """
         self.ACK_SCBD.add_pending_nonblock_ack(params)
 
 
     def process_readout_results_ack(params):
-        # FIXME make certain devices/job_nums are kept separate so OCS can be informed of results properly.
+        """ Mark job_num as COMPLETE and store its results.
+            Add CCDs to Backlog Scoreboard if any failed to be transferred.
+
+            :params params: readout_results message to be processed.
+
+            :return: None.
+        """
         job_num = params[JOB_NUM]
         results = params['RESULTS_LIST']
 
@@ -398,19 +545,41 @@ class DMCS:
 
 
     def get_backlog_stats(self):
-        # return brief info on all backlog items.
+        """ Return brief info on all backlog items.
+
+            :params: None.
+
+            :return: None.
+        """
         pass
 
     def get_backlog_details(self):
-        # return detailed dictionary of all backlog items and the nature of each.
+        """ Return detailed dictionary of all backlog items and the nature of each.
+
+            :params: None.
+
+            :return: None.
+        """
         pass
 
     def get_next_backlog_item(self):
-        # This method will return a backlog item according to a policy in place.
+        """ This method will return a backlog item according to a policy in place.
+
+            :params: None.
+
+            :return: None.
+        """
         pass
 
 
     def send_new_session_msg(self, session_id):
+        """ Send a new mession message to all devices.
+            Send pending_ack message to all devices, expires in 3s.
+
+            :params session_id: New session id to be processed.
+
+            :return: None.
+        """
 
         ack_ids = [] 
         msg = {}
@@ -433,6 +602,20 @@ class DMCS:
 
 
     def validate_transition(self, new_state, msg_in):
+        """ Check if state transition is valid.
+
+            For message with type START: if cfg key is valid, call StateScoreboard
+            to set device cfg key; if not, send error message to OCS Bridge.
+
+            For other type of message: if transition is valid, set device state in
+            StateScoreboard and send message to OCS Bridge; if not, send error message
+            to OCS Bridge.
+
+            :params new_state: State to transition to.
+            :params msg_in: Message to be processed.
+
+            :return transition_is_valid: If the transition is valid.
+        """
         device = msg_in['DEVICE']
         cfg_response = ""
         current_state = self.STATE_SCBD.get_device_state(device)
@@ -467,6 +650,14 @@ class DMCS:
  
 
     def set_pending_nonblock_acks(self, acks, wait_time):
+        """ Send pending_ack message to dmcs_ack_comsume queue with wait_time as
+            expiry_time.
+
+            :params acks: List of ack_id to send pending_ack message to.
+            :params wait_time: expiry_time in seconds.
+
+            :return: None.
+        """
         start_time = datetime.datetime.now().time()
         expiry_time = self.add_seconds(start_time, wait_time)
         ack_msg = {}
@@ -478,6 +669,17 @@ class DMCS:
 
 
     def send_ocs_ack(self, transition_check, response, msg_in):
+        """ Send ack message to OCS Bridge.
+
+            If transition is valid, call send_appropriate_events_by_state to update
+            and publish new state of device.
+
+            :params transition_check: If transition is valid.
+            :params response: String, appropriate response for the transition.
+            :params msg_in: Message to be processed.
+
+            :return: None.
+        """
         message = {}
         message['MSG_TYPE'] = msg_in['MSG_TYPE'] + "_ACK"
         message['DEVICE'] = msg_in['DEVICE']
@@ -491,7 +693,13 @@ class DMCS:
 
 
     def send_appropriate_events_by_state(self, dev, transition):
+        """ Send appropriate messages of state transition for device to OCS Bridge.
 
+            :params dev: Device with state change.
+            :params transition: Next state for device.
+
+            :return: None.
+        """
         if transition == 'START':
             self.send_setting_applied_event(dev)
             self.send_summary_state_event(dev)
@@ -514,6 +722,12 @@ class DMCS:
 
 
     def send_summary_state_event(self, device):
+        """ Send SUMMARY_STATE_EVENT message of device with its current state to OCS Bridge.
+
+            :params device: Device with state change.
+
+            :return: None.
+        """
         message = {}
         message[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
         message['DEVICE'] = device
@@ -522,6 +736,13 @@ class DMCS:
 
 
     def send_recommended_setting_versions_event(self, device):
+        """ Send RECOMMENDED_SETTINGS_VERSION_EVENT message of device with its list of cfg keys to
+            OCS Bridge.
+
+            :params device: Device with state change.
+
+            :return: None.
+        """
         message = {}
         message[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
         message['DEVICE'] = device
@@ -530,6 +751,12 @@ class DMCS:
 
 
     def send_setting_applied_event(self, device):
+        """ Send SETTINGS_APPLIED_EVENT message of device to OCS Bridge.
+
+            :params device: Device with state change.
+
+            :return: None.
+        """
         message = {}
         message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
         message['DEVICE'] = device
@@ -538,6 +765,12 @@ class DMCS:
 
 
     def send_applied_setting_match_start_event(self, device):
+        """ Send APPLIED_SETTINGS_MATCH_START_EVENT message of device to OCS Bridge.
+
+            :params device: Device with state change.
+
+            :return: None.
+        """
         message = {}
         message[MSG_TYPE] = 'APPLIED_SETTINGS_MATCH_START_EVENT'
         message['DEVICE'] = device
@@ -546,6 +779,12 @@ class DMCS:
 
 
     def send_error_code_event(self, device):
+        """ Send ERROR_CODE_EVENT message of device with error code 102 to OCS Bridge.
+
+            :params device: Device with state change.
+
+            :return: None.
+        """
         message = {}
         message[MSG_TYPE] = 'ERROR_CODE_EVENT'
         message['DEVICE'] = device
@@ -554,6 +793,13 @@ class DMCS:
 
 
     def get_next_timed_ack_id(self, ack_type):
+        """ Increment ack by 1, and persist latest value between starts.
+            Return ack id merged with ack type string.
+
+            :params ack_type: Description of ack.
+
+            :return retval: String with ack type followed by next ack id.
+        """
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         val = {}
         val['CURRENT_ACK_ID'] = self._next_timed_ack_id
@@ -563,8 +809,45 @@ class DMCS:
 
 
     def ack_timer(self, seconds):
+        """ Sleeps for user-defined seconds.
+
+            :params seconds: Time to sleep in seconds.
+
+            :return: True.
+        """
         sleep(seconds)
         return True
+
+
+    def progressive_ack_timer(self, ack_id, expected_replies, seconds):
+        """ Sleeps for user-defined seconds, or less if everyone has reported back in.
+
+            :params ack_id: Ack ID to wait for.
+
+            :params expected_replies: Number of components expected to ack..
+
+            :params seconds: Maximum time to wait in seconds.
+
+            :return: The dictionary that represents the responses from the components ack'ing.
+                     Note: If only one component will ack, this method breaks out of its
+                           loop after the one ack shows up - effectively beating the maximum
+                           wait time.
+        """
+        counter = 0.0
+        while (counter < seconds):
+            sleep(0.5)
+            response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if len(list(response.keys())) == expected_replies:
+                return response
+            counter = counter + 0.5
+
+        ## Try one final time
+        response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+        if len(list(response.keys())) == expected_replies:
+            return response
+        else:
+            return None
+
 
     def extract_config_values(self):
         LOGGER.info('Reading YAML Config file %s' % self._config_file)

@@ -46,8 +46,7 @@ class ArchiveDevice:
         self.extract_config_values()
 
 
-        # if 'QUEUE_PURGES' in cdm[ROOT]:
-        #    self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
+        #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
 
 
@@ -62,10 +61,7 @@ class ArchiveDevice:
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack }
 
 
-        self._base_broker_url = "amqp://" + self._msg_name + ":" + self._msg_passwd + "@" + str(self._base_broker_addr)
-
-
-        LOGGER.info('Building _base_broker_url. Result is %s', self._base_broker_url)
+        self._next_timed_ack_id = 0
 
         self.setup_publishers()
 
@@ -75,9 +71,7 @@ class ArchiveDevice:
         self.thread_manager = None
         self.setup_consumer_threads()
 
-        self._next_timed_ack_id = 0
-
-        LOGGER.info('DMCS Init complete')
+        LOGGER.info('Archive Foreman Init complete')
 
 
     def setup_publishers(self):
@@ -85,11 +79,12 @@ class ArchiveDevice:
                                             self._msg_pub_passwd + "@" + \
                                             str(self._base_broker_addr)
         LOGGER.info('Setting up Base publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
-        self._publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
+        self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
 
 
     def on_ar_foreman_message(self, ch, method, properties, body):
         #msg_dict = yaml.load(body) 
+        ch.basic_ack(method.delivery_tag)
         msg_dict = body 
         LOGGER.info('In AR Foreman message callback')
         LOGGER.info('Message from DMCS to AR Foreman callback message body is: %s', str(msg_dict))
@@ -99,12 +94,14 @@ class ArchiveDevice:
     
 
     def on_archive_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         LOGGER.info('AR CTRL callback msg body is: %s', str(body))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
     def on_ack_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
@@ -157,20 +154,13 @@ class ArchiveDevice:
         start_int_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
         self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
-        self.ack_timer(2)
-        
-        # receive target dir back in ack from AC
-        ar_response = self.ACK_SCBD.get_components_for_timed_ack(ac_timed_ack)
-        ## XXX FIX Check for None below
-        if len(ar_response) < 1:
-            start_int_params['ACK_ID'] = start_int__ack_id
-            self.refuse_job(start_int_params, "No response from archive")
-            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
-            self.JOB_SCBD.set_job_params(job_number, scrub_params)
-            fscbd_params = {'STATE':'IDLE', 'STATUS':'HEALTHY'}
-            self.FWD_SCBD.set_forwarder_params(healthy_forwarders, fscbd_params)
-            return
 
+        ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
+
+        # if ar_response == None:
+        #    raise L1 exception and bail out
+       
+        """ 
         if ar_response['ARCHIVE_CTRL'][ACK_BOOL] == False:
             start_int_params['ACK_ID'] = start_int__ack_id
             self.refuse_job(start_int_params, ar_response['AR_CTRL']['FAIL_DETAILS'])
@@ -180,16 +170,26 @@ class ArchiveDevice:
             self.FWD_SCBD.set_forwarder_params(healthy_forwarders, fscbd_params)
             return
 
+        else:
+            start_int_params['ACK_ID'] = start_int_ack_id
+            self.refuse_job(start_int_params, "No response from archive")
+            scrub_params = {'STATE':'scrubbed', 'STATUS':'INACTIVE'}
+            self.JOB_SCBD.set_job_params(job_number, scrub_params)
+            fscbd_params = {'STATE':'IDLE', 'STATUS':'HEALTHY'}
+            self.FWD_SCBD.set_forwarder_params(healthy_fwdrs, fscbd_params)
+            return
+        """
         target_dir = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
         self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 'TARGET_DIR': dir})
         
 
         # divide image fetch across forwarders
-        work_schedule = self.divide_work(list(healthy_fwdrs.keys()), ccds)
+        list_of_fwdrs = list(healthy_fwdrs.keys())
+        work_schedule = self.divide_work(list_of_fwdrs, ccds)
 
         # send image_id, target dir, and job, session,visit and work to do to healthy forwarders
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
-        self.JOB_SCBD.set_ccds_for_job(job_number, work_schedule)
+        self.JOB_SCBD.set_work_schedule_for_job(job_number, work_schedule)
        
         xfer_params_ack_id = self.get_next_timed_ack_id("AR_FWDR_PARAMS_ACK") 
 
@@ -213,11 +213,10 @@ class ArchiveDevice:
 
 
         # receive ack back from forwarders that they have job params
-        self.ack_timer(2)
-        params_acks = self.ACK_SCBD.get_components_for_timed_ack(xfer_params_ack_id)
-        if len(params_acks) != len(healthy_fwdrs):
-            #do something...refuse_job?
-            pass
+        params_acks = self.progressive_ack_timer(xfer_params_ack_id, len(list_of_fwdrs), 2.0)
+
+        # if params_acks == None:
+        #     raise L1Exception and bail
 
         self.JOB_SCBD.set_value_for_job(job_number,'STATE','XFER_PARAMS_SENT')
 
@@ -252,17 +251,26 @@ class ArchiveDevice:
     def divide_work(self, fwdrs_list, ccd_list):
         num_fwdrs = len(fwdrs_list)
         num_ccds = len(ccd_list)
-        ## XXX FIX if num_ccds == none or 1:
-        ##    Throw exception
 
         schedule = {}
+        schedule['FORWARDER_LIST'] = []
+        schedule['CCD_LIST'] = []  # A list of ccd lists; index of main list matches same forwarder list index
+        FORWARDER_LIST = []
+        CCD_LIST = [] # This is a 'list of lists'
         if num_fwdrs == 1:
-            schedule[fwdrs_list[0]]['CCD_LIST'] = ccd_list
+            FORWARDER_LIST.append(fwdrs_list[0])
+            CCD_LIST.append(ccd_list)
+            schedule['FORWARDER_LIST'] = FORWARDER_LIST
+            schedule['CCD_LIST'] = CCD_LIST
             return schedule
 
         if num_ccds <= num_fwdrs:
             for k in range (0, num_ccds):
-                schedule[fwdrs_list[k]] = ccd_list[k]
+                FORWARDER_LIST.append(fwdrs_list[k])
+                little_list.append(ccd_list[k])
+                CCD_LIST.append(list(little_list))  # Need a copy here...
+                schedule['FORWARDER_LIST'] = FORWARDER_LIST
+                schedule['CCD_LIST'] = CCD_LIST
         else:
             ccds_per_fwdr = len(ccd_list) // num_fwdrs 
             remainder_ccds = len(ccd_list) % num_fwdrs
@@ -278,17 +286,20 @@ class ArchiveDevice:
                     for k in range(offset, offset + remainder_ccds):
                         tmp_list.append(ccd_list[k])
                     offset = offset + remainder_ccds
-                #CCD_LIST = tmp_list
-                schedule[fwdrs_list[i]] = {}
-                schedule[fwdrs_list[i]]['CCD_LIST'] = tmp_list
+                FORWARDER_LIST.append(fwdrs_list[i])
+                CCD_LIST.append(list(tmp_list))
+            schedule['FORWARDER_LIST'] = FORWARDER_LIST
+            schedule['CCD_LIST'] = CCD_LIST
+
         return schedule
 
 
     def send_xfer_params(self, params, work_schedule):
-        fwdrs = list(work_schedule.keys())
-        for fwdr in fwdrs:
-            params['XFER_PARAMS']['CCD_LIST'] = work_schedule[fwdr]['CCD_LIST'] 
-            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
+        fwdrs = work_schedule['FORWARDER_LIST']
+        CCD_LIST = work_schedule['CCD_LIST']
+        for i in range(0, len(fwdrs)):
+            params['XFER_PARAMS']['CCD_LIST'] = CCD_LIST[i] 
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdrs[i], "CONSUME_QUEUE")
             self._publisher.publish_message(route_key, params)
 
 
@@ -326,35 +337,20 @@ class ArchiveDevice:
         # send readout to forwarders
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'PREPARE_READOUT')
         fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
-        self.send_readout(params, fwdr_readout_ack)
+        work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
+        fwdrs = work_schedule['FORWARDER_LIST']
+
+        self.send_readout(params, fwdrs, fwdr_readout_ack)
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT_STARTED')
 
-        ## XXX FIX Add method to forwarders scboreboard to ask which fwdrs are active and set this, 
-        ##         as it is needed for auditing
-        #fscbd_params = {'STATE':'READOUT'}
-        #self.FWD_SCBD.set_forwarder_params(healthy_forwarders, fscbd_params)
+        readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len(fwdrs), 4.0)
 
-        self.ack_timer(4)
-
-        readout_responses = self.ACK_SCBD.get_components_for_timed_ack(fwdr_readout_ack)
+        # if readout_responses == None:
+        #    raise L1 exception 
 
         self.process_readout_responses(readout_ack_id, image_id, readout_responses)
 
     def process_readout_responses(self, readout_ack_id, image_id, readout_responses):
-        # Prep Job SCBD for results
-        # This section creates another yaml'd multi-level dict
-        # in the job scbd. It will look like this:
-        # job_number ->
-        #    WORK_RESULTS ->
-        #        forwarder_x ->
-        #                   IMAGE_ID:
-        #                   CCDS ->
-        #                     CCD: ccd_num
-        #                     TARGET_DIR:
-        #                     FILENAME: None
-        #                     CHECKSUM: None
-        #                     RECEIPT: None
-        #                     ARCHIVE_CHECK: False 
         job_number = None
         image_id = None
         confirm_ack = self.get_next_timed_ack_id('AR_ITEMS_XFERD_ACK')
@@ -385,9 +381,11 @@ class ArchiveDevice:
         xfer_list_msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, xfer_list_msg) 
            
-        self.ack_timer(4) 
+        xfer_check_responses = self.progressive_ack_timer(confirm_ack, 1, 4.0) 
 
-        xfer_check_responses = self.ACK_SCBD.get_components_for_timed_ack(confirm_ack)
+        # if xfer_check_responses == None:
+        #    raise L1 exception and bail
+
         results = xfer_check_responses['ARCHIVE_CTRL']['RESULT_LIST']
 
         ack_msg = {}
@@ -403,7 +401,7 @@ class ArchiveDevice:
 
 
                    
-    def send_readout(self, params, readout_ack):
+    def send_readout(self, params, fwdrs, readout_ack):
         ro_params = {}
         job_number = params['JOB_NUM']
         ro_params['MSG_TYPE'] = 'AR_FWDR_READOUT'
@@ -413,8 +411,6 @@ class ArchiveDevice:
         ro_params['IMAGE_ID'] = params['IMAGE_ID']
         ro_params['ACK_ID'] = readout_ack
         ro_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH 
-        work_schedule = self.JOB_SCBD.get_ccds_for_job(job_number)
-        fwdrs = list(work_schedule.keys())
         for fwdr in fwdrs:
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
             self._publisher.publish_message(route_key, ro_params)
@@ -469,6 +465,23 @@ class ArchiveDevice:
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+
+
+    def progressive_ack_timer(self, ack_id, expected_replies, seconds):
+        counter = 0.0
+        while (counter < seconds):
+            sleep(0.5)
+            response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if len(list(response.keys())) == expected_replies:
+                return response
+            counter = counter + 0.5
+
+        ## Try one final time
+        response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+        if len(list(response.keys())) == expected_replies:
+            return response
+        else:
+            return None
 
 
     def extract_config_values(self):
