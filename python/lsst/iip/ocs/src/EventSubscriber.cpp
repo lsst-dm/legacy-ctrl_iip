@@ -48,7 +48,7 @@ void EventSubscriber::setup_events_listeners() {
     
     for (int i = 0; i < thread_counts; i++) { 
         ostringstream rmq_url; 
-        rmq_url << "amqp://EVN" << (i+1) << ":EVN" << (i+1) << "@" << base_broker_addr; 
+        rmq_url << "amqp://EVN_" << (i+1) << ":EVN_" << (i+1) << "@" << base_broker_addr; 
     
         cout << rmq_url.str() << endl; 
         pthread_t thread; 
@@ -200,7 +200,7 @@ void *EventSubscriber::run_ccs_startShutterOpen(void *args) {
         if (status == SAL__OK) { 
             cout << "=== Event startShutterOpen received = " << endl;
             ostringstream msg; 
-            msg << "{ MSG_TYPE: CCS_SHUTTER_OPEN }"; 
+            msg << "{ MSG_TYPE: CCS_START_SHUTTER_OPEN }"; 
             publisher->publish_message(queue, msg.str()); 
         } 
         os_nanoSleep(delay_10ms);
@@ -228,7 +228,7 @@ void *EventSubscriber::run_ccs_startShutterClose(void *args) {
         if (status == SAL__OK) { 
             cout << "=== Event startShutterClose received = " << endl;
             ostringstream msg; 
-            msg << "{ MSG_TYPE: CCS_SHUTTER_CLOSE }"; 
+            msg << "{ MSG_TYPE: CCS_START_SHUTTER_CLOSE }"; 
             publisher->publish_message(queue, msg.str()); 
         } 
         os_nanoSleep(delay_10ms);
@@ -317,7 +317,7 @@ void *EventSubscriber::run_tcs_target(void *args) {
                 << ", FIELD_ID: " << SALInstance.fieldId
                 << ", GROUP_ID: " << SALInstance.groupId
                 << ", FILTER: " << SALInstance.filter
-                << ", REQUEST_IIME: " << SALInstance.requestTime
+                << ", REQUEST_TIME: " << SALInstance.requestTime
                 << ", RA: " << SALInstance.ra
                 << ", DEC: " << SALInstance.dec
                 << ", ANGLE: " << SALInstance.angle

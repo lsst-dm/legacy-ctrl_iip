@@ -15,10 +15,9 @@ from time import sleep
 
 class TestOCS_CommandListener: 
 
-    # TODO: KILL CommandListener with pid
-    # os.chdir("ocs/src")
-    # subprocess.call("./CommandListener&", shell=True)
-    # sleep(5) 
+    os.chdir("ocs/src")
+    cmd = subprocess.Popen("./Test_CommandListener&", shell=True, preexec_fn=os.setsid)
+    sleep(10) 
 
     EXPECTED_DMCS_MESSAGES = 24
     dmcs_consumer = None
@@ -26,7 +25,7 @@ class TestOCS_CommandListener:
 
     def test_ocs_commandlistener(self): 
         try: 
-            cdm = toolsmod.intake_yaml_file("/home/centos/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ocs_cmdListener.yaml")
+            cdm = toolsmod.intake_yaml_file("/home/centos/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml")
         except IOError as e: 
             trace = traceback.print_exc() 
             emsg = "Unable to fine CFG Yaml file %s\n" % self._config_file 
@@ -52,19 +51,23 @@ class TestOCS_CommandListener:
         self.send_messages() 
         sleep(10)
 
+        os.killpg(os.getpgid(self.cmd.pid), signal.SIGTERM) 
         self.verify_ocs_messages() 
         print("Finished with CommandListener tests.") 
 
     def send_messages(self): 
-        # os.chdir("../commands/")
-        os.chdir("ocs/commands/")
+        os.chdir("../commands/")
         
         commands = ["start", "stop", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
         devices = ["archiver", "catchuparchiver", "processingcluster"] 
 
         for device in devices: 
             for command in commands: 
-                cmd = "./sacpp_" + device + "_" + command + "_commander 0"
+                cmd = None
+                if command == "start": 
+                    cmd = "./sacpp_" + device + "_" + command + "_commander Normal"
+                else: 
+                    cmd = "./sacpp_" + device + "_" + command + "_commander 0"
                 p = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
                 print("=== " + device.upper() + " " + command.upper() + " Message")
                 sleep(10)  # this is not random. startup .sacpp_ thing takes about 7 seconds. 
@@ -73,10 +76,8 @@ class TestOCS_CommandListener:
         print("Message Sender Done.") 
 
     def verify_ocs_messages(self): 
-        print("Messages received by verify_ocs_messages:")
         len_list = len(self.dmcs_consumer_msg_list)
         if len_list != self.EXPECTED_DMCS_MESSAGES: 
-            print("Messages received by verify_ocs_messages:")
             pytest.fail("DMCS simulator received incorrect number of messages.\n Expected %s but received %s" \
                     % (self.EXPECTED_DMCS_MESSAGES, len_list))
 
@@ -93,4 +94,5 @@ class TestOCS_CommandListener:
 
 
     def on_ocs_message(self, ch, method, properties, body): 
+        ch.basic_ack(method.delivery_tag)
         self.dmcs_consumer_msg_list.append(body)

@@ -21,6 +21,7 @@ ROOT:
         MSG_TYPE: START
         DEVICE: AR, PP, or CU
         CMD_ID:
+        ACK_ID: 
         CFG_KEY:
 
     START_ACK:
@@ -35,7 +36,6 @@ ROOT:
         MSG_TYPE: STANDBY
         DEVICE: AR, PP, or CU
         CMD_ID:
-        CFG_KEY:
         ACK_ID:
         
     STANDBY_ACK:
@@ -74,21 +74,6 @@ ROOT:
         ACK_BOOL:
         ACK_STATEMENT:
 
-    SET_VALUE:
-        MSG_TYPE: SET_VALUE
-        DEVICE: AR, PP, or CU
-        CMD_ID:
-        VALUE:
-        ACK_ID:
-
-    SET_VALUE_ACK:
-        MSG_TYPE: SET_VALUE_ACK
-        DEVICE: AR, PP, or CU
-        CMD_ID:
-        ACK_ID:
-        ACK_BOOL:
-        ACK_STATEMENT:
-
     EXIT_CONTROL:
         MSG_TYPE: EXIT_CONTROL
         DEVICE: AR, PP, or CU
@@ -107,6 +92,7 @@ ROOT:
         MSG_TYPE: ABORT
         DEVICE: AR, PP, or CU
         ACK_ID:
+        CMD_ID: 
 
     ABORT_ACK:
         MSG_TYPE: ABORT_ACK
@@ -739,14 +725,23 @@ ROOT:
         MSG_TYPE: CCS_START_INTEGRATION 
         IMAGE_NAME: 
 
-    CCS_READOUT: 
-        MSG_TYPE: CCS_READOUT
+    CCS_START_READOUT: 
+        MSG_TYPE: CCS_START_READOUT
 
-    CCS_SHUTTER_CLOSE: 
-        MSG_TYPE: CCS_SHUTTER_CLOSE
+    CCS_END_READOUT: 
+        MSG_TYPE: CCS_END_READOUT
 
-    CCS_SHUTTER_OPEN: 
-        MSG_TYPE: CCS_SHUTTER_OPEN
+    CCS_START_SHUTTER_CLOSE: 
+        MSG_TYPE: CCS_START_SHUTTER_CLOSE
+
+    CCS_START_SHUTTER_OPEN: 
+        MSG_TYPE: CCS_START_SHUTTER_OPEN
+
+    CCS_END_SHUTTER_CLOSE: 
+        MSG_TYPE: CCS_END_SHUTTER_CLOSE
+
+    CCS_END_SHUTTER_OPEN: 
+        MSG_TYPE: CCS_END_SHUTTER_OPEN
 
     CCS_TAKE_IMAGES: 
         MSG_TYPE: CCS_TAKE_IMAGES
@@ -758,16 +753,16 @@ ROOT:
         WFS: 
         IMAGE_SEQUENCE_NAME: 
 
-    SEQ_TARGET_VISIT:
-        MSG_TYPE: SEQ_TARGET_VISIT
+    TCS_TARGET:
+        MSG_TYPE: TCS_TARGET
         TARGET_ID: 
         FIELD_ID: 
         GROUP_ID:
         FILTER:
         REQUEST_TIME:
-        REQUEST_MJD: 
         RA: 
-        DECL: 
+        DEC: 
         ANGLE: 
         NUM_EXPOSURES: 
         EXPOSURE_TIMES: 
+        SLEW_TIME: 

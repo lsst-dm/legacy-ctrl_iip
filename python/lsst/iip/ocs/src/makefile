@@ -21,7 +21,7 @@ TCS      = /opt/sal/ts_sal/test/tcs/cpp
 CAMERA   = /opt/sal/ts_sal/test/camera/cpp
 CFLAGS   = -g -Wall -c 
 
-all: CommandListener AckSubscriber EventSubscriber SimplePublisher Consumer
+all: CommandListener AckSubscriber EventSubscriber Test_CommandListener Test_AckSubscriber Test_EventSubscriber SimplePublisher Consumer
 
 OCS_Bridge: OCS_Bridge.cpp SimplePublisher
 	$(CC) -std=c++11 -I.. -L/usr/local/lib -lSimpleAmqpClient -lyaml-cpp SimplePublisher.o -c -o OCS_Bridge.o OCS_Bridge.cpp
@@ -34,6 +34,18 @@ AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod
 
 EventSubscriber: EventSubscriber.cpp SimplePublisher
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(TCS)/src/.obj/SAL_tcs.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(LDLIBS) 
+
+Test_OCS_Bridge: Test_OCS_Bridge.cpp SimplePublisher
+	$(CC) -std=c++11 -I.. -L/usr/local/lib -lSimpleAmqpClient -lyaml-cpp SimplePublisher.o -c -o Test_OCS_Bridge.o Test_OCS_Bridge.cpp
+
+Test_CommandListener: Test_CommandListener.cpp Test_OCS_Bridge Toolsmod
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o Test_OCS_Bridge.o SimplePublisher.o Toolsmod.o -Wall -o Test_CommandListener Test_CommandListener.cpp $(LDLIBS) 
+
+Test_AckSubscriber: Test_AckSubscriber.cpp Consumer SimplePublisher Test_OCS_Bridge Toolsmod
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o Test_OCS_Bridge.o Consumer.o SimplePublisher.o Toolsmod.o -Wall -g -o Test_AckSubscriber Test_AckSubscriber.cpp $(LDLIBS) 
+
+Test_EventSubscriber: Test_EventSubscriber.cpp SimplePublisher
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(TCS)/src/.obj/SAL_tcs.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -g -o Test_EventSubscriber Test_EventSubscriber.cpp $(LDLIBS) 
 
 SimplePublisher: SimplePublisher.cpp
 	$(CC) -L/usr/local/lib -lSimpleAmqpClient -c -o SimplePublisher.o SimplePublisher.cpp
