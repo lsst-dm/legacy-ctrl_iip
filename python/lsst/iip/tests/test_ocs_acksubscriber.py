@@ -27,7 +27,7 @@ class TestOCS_AckSubscriber:
     sleep(10) 
 
 
-    EXPECTED_OCS_MESSAGES = 12
+    EXPECTED_OCS_MESSAGES = 36
     ocs_consumer_msg_list = [] 
 
     def test_ocs_acksubscriber(self): 
@@ -90,19 +90,19 @@ class TestOCS_AckSubscriber:
         os.chdir("../commands/")
         
         commands = ["start", "stop", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
-        #devices = ["archiver" , "catchuparchiver", "processingcluster"] 
+        devices = ["archiver" , "catchuparchiver", "processingcluster"] 
 
-        #for device in devices: 
-        #    for command in commands: 
-        #        cmd = None
-        #        if command == "start": 
-        #            cmd = "./sacpp_" + device + "_" + command + "_commander Normal"
-        #        else: 
-        #            cmd = "./sacpp_" + device + "_" + command + "_commander 0"
-        #        p = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
-        #        print("=== " + device.upper() + " " + command.upper() + " Message")
-        #        sleep(10)  # this is not random. startup .sacpp_ thing takes about 7 seconds. 
-        #        os.killpg(os.getpgid(p.pid), signal.SIGTERM) 
+        for device in devices: 
+            for command in commands: 
+                cmd = None
+                if command == "start": 
+                    cmd = "./sacpp_" + device + "_" + command + "_commander Normal"
+                else: 
+                    cmd = "./sacpp_" + device + "_" + command + "_commander 0"
+                p = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
+                print("=== " + device.upper() + " " + command.upper() + " Message")
+                sleep(10)  # this is not random. startup .sacpp_ thing takes about 7 seconds. 
+                os.killpg(os.getpgid(p.pid), signal.SIGTERM) 
 
         device_sh = ["AR", "CU", "PP"]
 
@@ -122,7 +122,7 @@ class TestOCS_AckSubscriber:
             msg["DEVICE"] = device
             msg["CURRENT_STATE"] = 0
             self.dmcs_publisher.publish_message("dmcs_ocs_publish", msg)  
-            print("=== " + device.upper() + " SummaryState Controller Message")
+            print("=== " + device.upper() + " SummaryState Event Message")
             sleep(10)
             os.killpg(os.getpgid(run.pid), signal.SIGTERM) 
 
@@ -134,7 +134,7 @@ class TestOCS_AckSubscriber:
             msg1["DEVICE"] = device
             msg1["CFG_KEY"] = "Normal"
             self.dmcs_publisher.publish_message("dmcs_ocs_publish", msg1)  
-            print("=== " + device.upper() + " RecommendSettingsVersion Controller Message")
+            print("=== " + device.upper() + " RecommendSettingsVersion Event Message")
             sleep(10)
             os.killpg(os.getpgid(run1.pid), signal.SIGTERM) 
 
@@ -147,7 +147,7 @@ class TestOCS_AckSubscriber:
             msg2["SETTING"] = "Normal"
             msg2["APPLIED"] = True
             self.dmcs_publisher.publish_message("dmcs_ocs_publish", msg2)  
-            print("=== " + device.upper() + " AppliedSettingsMatchStart Controller Message")
+            print("=== " + device.upper() + " AppliedSettingsMatchStart Event Message")
             sleep(10)
             os.killpg(os.getpgid(run2.pid), signal.SIGTERM) 
 
@@ -159,7 +159,7 @@ class TestOCS_AckSubscriber:
             msg3["DEVICE"] = device
             msg3["ERROR_CODE"] = 0
             self.dmcs_publisher.publish_message("dmcs_ocs_publish", msg3)  
-            print("=== " + device.upper() + " ErrorCode Controller Message")
+            print("=== " + device.upper() + " ErrorCode Event Message")
             sleep(10)
             os.killpg(os.getpgid(run3.pid), signal.SIGTERM) 
 
@@ -191,12 +191,11 @@ class TestOCS_AckSubscriber:
         msg["MSG_TYPE"] = msg_type + "_ACK"
         msg["ACK_BOOL"] = True 
         msg["ACK_STATEMENT"] = "test" 
-        print("MY BODY SENT: %s" % msg)
         
         self.dmcs_publisher.publish_message("dmcs_ocs_publish", msg)  
 
     def on_dmcs_message(self, ch, method, properties, body): 
-        # ch.basic_ack(method.delivery_tag)
+        ch.basic_ack(method.delivery_tag)
         self.ocs_consumer_msg_list.append(body)
 
     

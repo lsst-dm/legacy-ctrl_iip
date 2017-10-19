@@ -60,7 +60,7 @@ int test_archiver_SettingVersions_Log()
 
     cout << "    recommendedSettingVersion : " << SALInstance.recommendedSettingVersion << endl;
     cout << "    priority : " << SALInstance.priority << endl;
-     publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: RECOMMENDED_SETTINGS_VERSION_EVENT, DEVICE: None, CFG_KEY: None }");  
+    publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: RECOMMENDED_SETTINGS_VERSION_EVENT, DEVICE: None, CFG_KEY: None }");  
 
     }
     os_nanoSleep(delay_10ms);
