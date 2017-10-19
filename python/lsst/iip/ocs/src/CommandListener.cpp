@@ -455,7 +455,7 @@ void *CommandListener::run_resolve_publisher(void *pargs) {
     string consume_q = params->consume_queue; 
     while (1) { 
 	rabbit_publisher->publish_message(consume_q, "{MSG_TYPE: RESOLVE_ACK}"); 
-	usleep(5000000);
+	usleep(10000000);
     }  
     return 0; 
 } 

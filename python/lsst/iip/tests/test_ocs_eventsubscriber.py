@@ -23,7 +23,7 @@ class TestOCS_EventSubscriber:
     dmcs_consumer = None
     dmcs_consumer_msg_list = [] 
 
-    def test_ocs_commandlistener(self): 
+    def test_ocs_eventsubscriber(self): 
         try: 
             cdm = toolsmod.intake_yaml_file("/home/centos/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml")
         except IOError as e: 

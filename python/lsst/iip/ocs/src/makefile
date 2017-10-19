@@ -6,7 +6,6 @@ INC	 = -I$(ARCHIVE) -I$(ARCHIVE)/src -I$(CARCHIVE) -I$(CARCHIVE)/src -I$(PCLUSTE
 SALPATH	 = /opt/sal/ts_opensplice/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux
 LIBSAL	 = /opt/sal/ts_sal/lsstsal/lib
 CC	 = g++
-SOPATH   = /opt/sal/ts_sal/test/archiver/cpp/src/.obj
 LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config -L/usr/local/lib -L/opt/sal/test/dm/cpp
 LDLIBS	 = -lsacpp_archiver_types -lsacpp_catchuparchiver_types -lsacpp_processingcluster_types \
 -lsacpp_camera_types -lsacpp_tcs_types \

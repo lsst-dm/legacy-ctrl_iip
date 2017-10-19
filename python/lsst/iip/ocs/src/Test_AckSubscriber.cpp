@@ -362,7 +362,7 @@ void AckSubscriber::process_resolve_ack(Node n, SAL_archiver ar, SAL_catchuparch
 
 	if (check_box == "false") { 
 	    string dict_time = ack_dict.second.find("TIME")->second; 
-	    int ack_delay = 2; 
+	    int ack_delay = 10; 
 
 	    int time_delta = get_time_delta(dict_time); 
 	    bool timeout_result = time_delta > ack_delay ? true : false; 
