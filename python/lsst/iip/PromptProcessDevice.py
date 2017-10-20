@@ -26,6 +26,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class PromptProcessDevice:
+    """ Receive jobs and assign to forwarders. Record state and status change of 
+        forwaders, and send messages accordingly. 
+
+        Send files to NCSA at the University of Illinois - Urbana, Champaign for alert 
+        science processing.
+    """
     PP_JOB_SCBD = None
     PP_FWD_SCBD = None
     PP_ACK_SCBD = None
@@ -41,6 +47,16 @@ class PromptProcessDevice:
 
 
     def __init__(self, filename=None):
+        """ Create a new instance of the Prompt Process Device class. 
+            Instantiate the instance, raise assertion error if already instantiated. 
+            Extract config values from yaml file.
+            Store handler methods for each message type. 
+            Initiate ack_id to 0. Set up publishers, scoreboards, and consumer threads.
+
+            :params filename: Deflaut 'L1SystemCfg.yaml'. Can be assigned by user.
+
+            :return: None.
+        """
         toolsmod.singleton(self)
 
         self._config_file = self.CFG_FILE
@@ -83,6 +99,12 @@ class PromptProcessDevice:
 
 
     def setup_publishers(self):
+        """ Set public base and NCSA broker url. 
+        
+            :params: None.
+
+            :return: None.
+        """
         self._pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
                                                 self._pub_passwd + "@" + \
                                                 str(self._base_broker_addr)
@@ -101,6 +123,17 @@ class PromptProcessDevice:
 
 
     def on_dmcs_message(self, ch, method, properties, body):
+        """ Calls the appropriate Prompt Process message action handler according to 
+            message type.
+        
+            :params ch: Channel to message broker.
+            :params method: Delivery method from Pika.
+            :params properties: Properties of DMCS callback message body, unused unless 
+                                testing.
+            :params body: A dictionary that stores the message body.
+            
+            :return: None.
+        """
         ch.basic_ack(method.delivery_tag) 
         #msg_dict = yaml.load(body) 
         msg_dict = body 
@@ -112,6 +145,16 @@ class PromptProcessDevice:
     
 
     def on_forwarder_message(self, ch, method, properties, body):
+        """ None.
+        
+            :params ch: Channel to message broker.
+            :params method: Delivery method from Pika.
+            :params properties: Properties of Forwarder callback message body, unused 
+                                unless testing.
+            :params body: A dictionary that stores the message body.
+            
+            :return: None.
+        """
         ch.basic_ack(method.delivery_tag) 
         LOGGER.info('In Forwarder message callback, thread is %s', _thread.get_ident())
         LOGGER.info('forwarder callback msg body is: %s', str(body))
@@ -119,6 +162,17 @@ class PromptProcessDevice:
 
 
     def on_ncsa_message(self,ch, method, properties, body):
+        """ Calls the appropriate Prompt Process message action handler according to 
+            message type.
+        
+            :params ch: Channel to message broker.
+            :params method: Delivery method from Pika.
+            :params properties: Properties of NCSA callback message body, unused unless 
+                                testing.
+            :params body: A dictionary that stores the message body.
+            
+            :return: None.
+        """
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body
         LOGGER.info('ncsa msg callback body is: %s', str(msg_dict))
@@ -128,6 +182,17 @@ class PromptProcessDevice:
 
 
     def on_ack_message(self, ch, method, properties, body):
+        """ Calls the appropriate Prompt Process message action handler according to 
+            message type.
+        
+            :params ch: Channel to message broker.
+            :params method: Delivery method from Pika.
+            :params properties: Properties of ACK callback message body, unused unless 
+                                testing.
+            :params body: A dictionary that stores the message body.
+            
+            :return: None.
+        """
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback')
@@ -138,6 +203,15 @@ class PromptProcessDevice:
 
 
     def set_session(self, params):
+        """ Retrieve session id, ack id, and reply queue from params. 
+            Set session id in Redis through Job Scoreboard.
+            Send PP_NEW_SESSION_ACK message with ack_id equals True (set session id done)
+            to reply queue.
+
+            :params params: A dictionary that stores info about a session.
+            
+            :return: None.
+        """
         self.JOB_SCBD.set_session(params['SESSION_ID'])
         ack_id = params['ACK_ID']
         msg = {}
@@ -150,6 +224,16 @@ class PromptProcessDevice:
 
  
     def set_visit(self, params):
+        """ Retrieve bore sight, visit id, ack id, and reply queue from params. 
+            Set bore sight and visit id in Redis through Job Scoreboard and send change
+            message to audit consume queue.
+            Call send_visit_boresight_to_ncsa and send PP_NEW_VISIT_ACK message with 
+            ack_id equals True (set visit done) to reply queue.
+
+            :params params: A dictionary that stores info about a session.
+            
+            :return: None.
+        """
         bore_sight = params['BORE_SIGHT']
         visit_id = params['VISIT_ID'] 
         self.JOB_SCBD.set_visit_id(visit_id, bore_sight)
@@ -167,6 +251,16 @@ class PromptProcessDevice:
 
 
     def send_visit_boresight_to_ncsa(self, visit_id, bore_sight):
+
+        """ Send NCSA_NEXT_VISIT message with PP_FOREMAN_ACK_PUBLISH as reply queue to
+            NCSA consume queue.
+            Send pending_ack message that expires in 4s.
+
+            :params visit_id: Visit id of next visit.
+            :params bore_sight: Bore sight of next visit.
+            
+            :return: None.
+        """
         msg = {}
         msg['MSG_TYPE'] = 'NCSA_NEXT_VISIT'
         msg['VISIT_ID'] = visit_id
@@ -184,20 +278,25 @@ class PromptProcessDevice:
 
 
     def process_start_integration(self, input_params):
+        """ Add job with params from input_params to Job Scoreboard.
+            
+            Set all forwarder to unknown status and unresponsive state and check forwarder
+            health. Wait for 2.5s to retrieve healthy forwarders and set forwarder state as
+            BUSY, status as HEALTHY. If none of them are healthy, set job state as SCRUBBED,
+            status as INACTIVE, report to DMCS that there are insufficient healthy forwarders,
+            refuse job and return False.
+            
+            Set healthy forwarders to ready status. Divide work among forwarders and send 
+            schedule to NCSA as a dictionary. If NCSA checked in successfully for the job,
+            distribute job params and set job state as FWDR_PARAMS_RECEIVED, set healthy 
+            forwarders to READY_WITH_PARAMS state. Tell DMCS job is accepted.
+            
+            If NCSA did not check in, inform DMCS and set forwarders to IDLE state.
+        
+            :params input_params: A dictionary that stores info about the job.
+            
+            :return: False if doesn't have healthy forwarders. (Or NCSA did not respond???)
         """
-        Add job to Job Scoreboard
-        Check forwarder health
-        Check Policy, bail if necessary
-        Mark Forwarder scoreboard as a result of above
-        Divide work and assemble as a forwarder dictionary for NCSA
-        Send work division to NCSA
-        Check Policy, bail if necessary
-        Persist pairings to Job Scoreboard
-        Send params to Forwarders
-        Confirm Forwarder Acks
-        Send confirm to DMCS
-        """
-
         ccd_list = input_params['CCD_LIST']
         job_num = str(input_params[JOB_NUM])
         visit_id = input_params['VISIT_ID']
@@ -267,6 +366,15 @@ class PromptProcessDevice:
 
  
     def forwarder_health_check(self, params):
+        """ Get ack id for PP_FWDR_HEALTH_CHECK.
+            Retrieve available forwarders from ForwarderScoreboard, set their state to
+            HEALTH_CHECK, send PP_FWDR_HEALTH_CHECK message for each forwarder to 
+            pp_foreman_ack_publish queue.
+            
+            :params params: A dictionary that stores info about the job.
+            
+            :return: Ack id for PP_FWDR_HEALTH_CHECK.
+        """
         # get timed_ack_id
         timed_ack = self.get_next_timed_ack_id("PP_FWDR_HEALTH_CHECK_ACK")
 
@@ -287,6 +395,15 @@ class PromptProcessDevice:
 
 
     def insufficient_base_resources(self, params, healthy_forwarders):
+        """ Send NEW_JOB_ACK message to dmcs ack consume queue.
+            Set job state to JOB_ABORTED and record time. 
+            Set healthy forwarders to IDLE state.
+
+            :params params: A dictionary that stores info about the job.
+            :params healthy_forwarders: List of forwarders that are healthy.
+            
+            :return: False.
+        """
         # send response msg to dmcs refusing job
         job_num = str(params[JOB_NUM])
         raft_list = params[RAFTS]
@@ -325,6 +442,19 @@ class PromptProcessDevice:
 
 
     def divide_work(self, fwdrs_list, ccd_list):
+        """ Divide work (ccds) among forwarders.
+        
+            If only one forwarder available, give it all the work. 
+            If have less or equal ccds then forwarders, give the first few forwarders one 
+            ccd each.
+            Else, evenly distribute ccds among forwarders, and give extras to the first 
+            forwarder, make sure that ccd list for each forwarder is continuous.
+            
+            :params fwdrs_list: List of available forwarders for the job.
+            :params ccd_list: List of ccds to be distributed.
+            
+            :return schedule: Distribution of ccds among forwarders.
+        """
         num_fwdrs = len(fwdrs_list)
         num_ccds = len(ccd_list)
 
@@ -376,6 +506,16 @@ class PromptProcessDevice:
 
 
     def ncsa_resources_query(self, params, work_schedule):
+        """ Get ack id for NCSA_START_INTEGRATION.
+            Send NCSA_START_INTEGRATION message with details about job, forwarder work
+            schedule, and reply queue as PP_FOREMAN_ACK_PUBLISH queue to NCSA consume queue.
+            Set job state as NCSA_START_INT_SENT in Job Scoreboard.
+
+            :params params: A dictionary that stores info about the job.
+            :params work_schedule: Distribution of ccds among healthy forwarders.
+            
+            :return timed_ack_id: Ack id for NCSA_START_INTEGRATION.
+        """
         job_num = str(params[JOB_NUM])
         timed_ack_id = self.get_next_timed_ack_id("NCSA_START_INTEGRATION_ACK") 
         ncsa_params = {}
@@ -395,7 +535,14 @@ class PromptProcessDevice:
 
 
     def distribute_job_params(self, params, pairs):
-        """ pairs param is a list of dicts. (look at messages.yaml, search for 'PAIR' key, and copy here
+        """ Set distributor and forwarder pairs for job.
+            Send PP_FWDR_XFER_PARAMS message to each forwarder's consume queue with its 
+            distributor and ccds, and reply queue as PP_FOREMAN_ACK_PUBLISH queue.
+
+            :params params: A dictionary that stores info about the job.
+            :params pairs: A list of dicts. Stores distributor and forwarder pairs for job.
+            
+            :return fwd_ack_id: Ack id for FWD_PARAMS_ACK.
         """
         #ncsa has enough resources...
         job_num = str(params[JOB_NUM])
@@ -424,6 +571,15 @@ class PromptProcessDevice:
 
 
     def accept_job(self, ack_id, job_num):
+        """ Send PP_START_INTEGRATION_ACK message with ack_bool equals True (job accepted)
+            and other job specs to dmcs_ack_consume queue.
+            Set job state as JOB_ACCEPTED and store timestamp in Job Scoreboard.
+            
+            :params ack_id: Ack id.
+            :params job_num: Job number of the job that's accepted.
+            
+            :return: True.
+        """
         dmcs_message = {}
         dmcs_message[JOB_NUM] = job_num
         dmcs_message[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
@@ -437,6 +593,13 @@ class PromptProcessDevice:
 
 
     def ncsa_no_response(self,params):
+        """ Send PP_START_INTEGRATION_ACK message with ack_bool equals False and indication
+            of NCSA not responsive to dmcs_ack_consume queue.
+
+            :params params: A dictionary that stores info about the job.
+            
+            :return: None.
+        """
         #No answer from NCSA...
         job_num = str(params[JOB_NUM])
         ccd_list = params['CCD_LIST']
@@ -453,6 +616,24 @@ class PromptProcessDevice:
 
 
     def process_dmcs_readout(self, params):
+        """ Send NCSA_READOUT message to NCSA_CONSUME queue with pp_foreman_ack_publish as 
+            reply queue.
+            Retrieve response from NCSA. 
+            
+            If NCSA responses and approves, inform forwarders and send all forwarders in 
+            pairs PP_FWDR_READOUT message with pp_foreman_ack_publish as reply queue. 
+            If forwarders response, send PP_READOUT_ACK message to reply queue to confirm job.
+            
+            If NCSA does not approve, send problem with NCSA to DMCS through PP_READOUT_ACK
+            message.
+            
+            If NCSA does not respond, send 'no response from ncsa' to DMCS through 
+            PP_READOUT_ACK message.
+    
+            :params params: A dictionary that stores info about the job.
+            
+            :return: None.
+        """        
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
 
@@ -520,20 +701,51 @@ class PromptProcessDevice:
         
 
     def process_ack(self, params):
+        """ Add new ACKS for a particular ACK_ID.
+        
+            :params: None.
+            
+            :return: None.
+        """
         self.ACK_SCBD.add_timed_ack(params)
         
 
     def get_next_timed_ack_id(self, ack_type):
+        """ Increment ack id by 1, store it to toolsmod.py.
+            Return ack id with ack type as a string.
+        
+            :params ack_type: Type of Ack.
+
+            :return retval: String with ack type followed by next ack id.
+        """
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
 
 
     def ack_timer(self, seconds):
+        """ Sleeps for user-defined seconds.
+        
+            :params seconds: Time to sleep in seconds.
+
+            :return: True.
+        """
         sleep(seconds)
         return True
 
 
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
+       """ Help retrieve components who checked in successfully for a specific ack id.
+           Keep on retrieving every 0.5 seconds until reach limit (defined by parameter
+           seconds) if the number of keys for retrieved response is not as expected.
+           At the end, try one last time.
+           
+            :params ack_id: Ack id to retrieve components.
+            :params expected_replies: Expected number of keys in retrieved components.
+            :params seconds: Time to wait for response.
+
+            :return: Response retrieved if it has the right number of keys.
+                     None otherwise.
+        """
         counter = 0.0
         while (counter < seconds):
             counter = counter + 0.5
@@ -555,6 +767,14 @@ class PromptProcessDevice:
 
 
     def set_pending_nonblock_acks(self, acks, wait_time):
+        """ Send PENDING_ACK message for each ack in parameter acks to 
+            PP_FOREMAN_ACK_PUBLISH queue and specifies that it expires in wait_time seconds.
+            
+            :params acks: List of ack_id to send pending_ack message to.
+            :params wait_time: expiry_time in seconds.
+            
+            :return: None.
+        """
         start_time = datetime.datetime.now().time()
         expiry_time = self.add_seconds(start_time, wait_time)
         ack_msg = {}
@@ -566,10 +786,24 @@ class PromptProcessDevice:
 
 
     def process_pending_ack(self, params):
+        """ Call Ack Scoreboard to store ack id and its expiry time to 'PENDING_ACKS' in
+            Redis.
+
+            :params params: A dictionary that stores info about the ack.
+            
+            :return: None.
+        """
         self.ACK_SCBD.add_pending_nonblock_ack(params)
 
 
     def add_seconds(self, intime, secs):
+        """ Add user-defined seconds to intime.
+        
+            :params intime: Time to be incremented.
+            :params secs: Seconds to add to intime.
+
+            :return newtime.time(): Time object with seconds added to intime.
+        """
         basetime = datetime.datetime(100, 1, 1, intime.hour, intime.minute, intime.second)
         newtime = basetime + datetime.timedelta(seconds=secs)
         return newtime.time()
@@ -577,6 +811,15 @@ class PromptProcessDevice:
 
 
     def extract_config_values(self):
+        """ Try to get configuration values from toolsmod.py. Throw error messages if Yaml 
+            file or key not found.
+            Retrieve base and NCSA messsage format from cdm root if they exist. Or else, 
+            set them to 'YAML'.
+        
+            :params: None.
+
+            :return: True.
+        """
         LOGGER.info('Reading YAML Config file %s' % self._config_file)
         try:
             cdm = toolsmod.intake_yaml_file(self._config_file)
@@ -615,6 +858,14 @@ class PromptProcessDevice:
             self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
 
     def setup_consumer_threads(self):
+        """ Set up base and NCSA broker url and kwargs that describe consumers to be started
+            for the three message consumers that Archive Device needs.
+            Create and start ThreadManager object with the kwargs.
+        
+            :params: None.
+
+            :return: None.
+        """        
         LOGGER.info('Building _base_broker_url')
         base_broker_url = "amqp://" + self._sub_name + ":" + \
                                             self._sub_passwd + "@" + \
@@ -659,6 +910,13 @@ class PromptProcessDevice:
 
 
     def setup_scoreboards(self):
+        """ Create Redis Forwarder table with Forwarder info. Create Job and Ack Scoreboard 
+            objects with values retrieved from configuration file.
+        
+            :params: None.
+
+            :return: None.
+        """
         # Create Redis Forwarder table with Forwarder info
         self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', self._scbd_dict['PP_FWD_SCBD'], self._forwarder_dict)
         self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
@@ -666,6 +924,12 @@ class PromptProcessDevice:
 
 
     def purge_broker(self, queues):
+        """ Purge selected queues in /tester vhost.
+        
+            :params queues: Queues to be purged.
+
+            :return: None.
+        """
         for q in queues:
             cmd = "rabbitmqctl -p /tester purge_queue " + q
             os.system(cmd)
