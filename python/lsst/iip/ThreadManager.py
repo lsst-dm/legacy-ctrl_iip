@@ -35,7 +35,8 @@ class ThreadManager(threading.Thread):
         callback = consumer_params['callback']
         format = consumer_params['format']
         test_val = consumer_params['test_val']
-
+#need to keep copies of the events
+#so it cen set it.
         new_thread = Consumer(url, q, threadname, callback, format, test_val)
         new_thread.start()
         sleep(1)
@@ -47,14 +48,16 @@ class ThreadManager(threading.Thread):
         sleep(2)
         try:
             while 1:
+#check if I need to shutdown then call a function that sets each event
+#if they're all set then end myself.
                 # self.get_next_backlog_item() ???
                 sleep(1)
                 self.check_thread_health()
                 # self.resolve_non-blocking_acks() ???
         except KeyboardInterrupt:
             pass
-
-
+#just use one event
+#need to join at some point?
     def check_thread_health(self):
         num_threads = len(self.running_threads)
         for i in range(0, num_threads):

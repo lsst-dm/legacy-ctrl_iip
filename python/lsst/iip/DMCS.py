@@ -992,7 +992,7 @@ class DMCS:
         # shutdown_stuff
         self.shutdown_event.set()
         # need to join threads. Done in ThreadManager?
-
+# don't set. Needs to kill itself.
 
 def main():
     logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
