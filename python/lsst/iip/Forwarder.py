@@ -20,12 +20,30 @@ from SimplePublisher import SimplePublisher
 
 
 class Forwarder:
-    """Presents a vanilla L1 Forwarder personality. In
-       nightly operation, at least 21 of these 
-       components will be available at any time (one for each raft).
+    """ Set and read info about job from Scratchpad.py.
+    
+        Use those info to respond to health check and other requests from other devices
+        through sending message back to the reply queue. 
+    
+        Forward ccd files from .data files to .fits files.
+        
+        Presents a vanilla L1 Forwarder personality. In nightly operation, at least 21 
+        of these components will be available at any time (one for each raft).
+        A resource group will be used to satisfy L1 tasks such as prompt processing for 
+        alerts, archiving, and spectrograph.
     """
 
     def __init__(self):
+        """ Try to extract config values from yaml file, raise KeyError otherwise.
+            Set home directory, _base_broker_url.
+            Store handler methods for each message type. 
+            Set up publishers, scoreboards, and consumer threads.
+            Initiate Scratchpad with _base_broker_url.
+
+            :params: None.
+
+            :return: None.
+        """        
         self._registered = False
         f = open('ForwarderCfg.yaml')
         #cfg data map...
@@ -62,10 +80,23 @@ class Forwarder:
 
 
     def setup_publishers(self):
+        """ Initiate SimplePublisher with _base_broker_url. 
+        
+            :params: None.
+
+            :return: None.
+        """
         self._publisher = SimplePublisher(self._base_broker_url)
 
  
     def setup_consumers(self):
+        """ Initiate treadname and try to start a new consumer thread with treadname and
+            2s of delay. Exit if have error.
+
+            :params: None.
+
+            :return: None.
+        """
         threadname = "thread-" + self._consume_queue
         print("Threadname is %s" % threadname)
 
@@ -82,7 +113,18 @@ class Forwarder:
 
 
     def on_message(self, ch, method, properties, body):
-        ch.basic_ack(delivery_tag) 
+        """ Calls the appropriate Forwarder message action handler according to 
+            message type.
+        
+            :params ch: Channel to message broker.
+            :params method: Delivery method from Pika, unused unless testing.
+            :params properties: Properties of DMCS callback message body, unused unless 
+                                testing.
+            :params body: A dictionary that stores the message body.
+            
+            :return: None.
+        """
+        ch.basic_ack(method.delivery_tag) 
         print("INcoming PARAMS, body is:\n%s" % body)
         msg_dict = body
 
@@ -91,33 +133,26 @@ class Forwarder:
 
 
     def process_health_check(self, params):
+        """ Send health status of forwarders back through FORWARDER_HEALTH_CHECK_ACK 
+            message.
+
+            :params params: A dictionary that stores info about forwarders.
+
+            :return: None.
+        """
         self.send_ack_response("FORWARDER_HEALTH_CHECK_ACK", params)
 
 
     def process_job_params(self, params):
-        """ The structure of the incoming job params is identical to the way job params 
-            are sent to prompt processing forwarders:
-               MSG_TYPE: AR_FWDR_XFER_PARAMS
-               JOB_NUM: .....
-               ACK_ID: x1
-               REPLY_QUEUE: .....
-               FITS: FITS metadata someday?
-               TRANSFER_PARAMS:
-                   DISTRIBUTOR:
-                       FQN: Name of entity receivine file
-                       NAME: login name for receiving entity
-                       HOSTNAME: Full host name for receiving entity
-                       IP_ADDR: ip addr of archive
-                       TARGET_DIR: Where to put file
-                    ##  Below might be better as 'xfer_unit_list' for ccds or rafts, or other
-                    CCD_LIST: for example...[1,2,3,7,10,14]
-                    XFER_UNIT: CCD
-                    FITS: FITS metadata someday?
+        """ Get job and xfer params and remove fits files in xfer_dir.
+            Store ccd list, login string, target directory (where to put file) and 
+            filename in Scratchpad.
+            Store job state as READY_WITH_PARAMS in Scratchpad.
+            Send back FORWARDER_JOB_PARAMS_ACK message to show that job params are set.
 
-              After the xfer params arrive, and ack is returned, we set up some short cut helpers, such as:
-                 1) Make a filename stub for job that leaves out all but the CCD number
-                 2) Put together the scp/bbftp string with login name and ip addr, plus target dir
-                    
+            :params params: A dictionary that stores info about job.
+
+            :return: None.
         """
         job_params = copy.deepcopy(params)
         xfer_params = job_params['TRANSFER_PARAMS']
@@ -150,6 +185,18 @@ class Forwarder:
 
 
     def process_foreman_readout(self, params):
+        """ Get a dictionary of raw ccd files and format them into fits files for each 
+            ccd.
+            
+            Call forward to move data from camera to archive or NCSA for science 
+            processing.
+            
+            Send AR_ITEMS_XFERD_ACK message back to indicate that work is done.
+            
+            :params params: A dictionary that stores info about job.
+
+            :return: None.
+        """
         # self.send_ack_response("FORWARDER_READOUT_ACK", params)
         reply_queue = params['REPLY_QUEUE']
 
@@ -179,6 +226,13 @@ class Forwarder:
 
 
     def fetch(self, job_num):
+        """ Retrieve the ccds in a job. Create raw_files_dict to store ccds and their 
+            filenames.
+
+            :params job_num: Job number.
+
+            :return: None.
+        """
         raw_files_dict = {}
         ccd_list = self._job_scratchpad.get_job_value(job_num, 'CCD_LIST')
         for ccd in ccd_list:
@@ -194,6 +248,7 @@ class Forwarder:
         :param file_list: dictionary of file_name against raw file name 
         :param mdata: primary meta data stream fetched from camera daq
     """ 
+    ## FIX: The two format methods have the same numbers of parameters. Probably comment one out
     def format(self, file_list, mdata): 
         final_filenames = [] 
         for ccd_id, raw_file_name in file_list.items(): 
@@ -211,6 +266,14 @@ class Forwarder:
         return final_filenames
 
     def format(self, job_num, raw_files_dict):
+        """ For each ccd, add its header, data path, and timestamp to its fits file.
+            Return the dictionary of fits file for each ccd.
+            
+            :params job_num: Job number.
+            :params raw_files_dict: Dictionary of ccds and their .data file paths.
+
+            :return final_filenames: Dictionary of ccds and their .fits file paths.
+        """
         keez = list(raw_files_dict.keys())
         filename_stub = self._job_scratchpad.get_job_value(job_num, 'FILENAME_STUB')
         final_filenames = {}
@@ -238,6 +301,18 @@ class Forwarder:
 
 
     def forward(self, job_num, final_filenames):
+        """ Read .fits file for each ccd and store ccds, md5 encrypted data, and filenames
+            for all ccds into a list in results dict.
+            Send .fits file to server (login_str) in target_dir directory under the same
+            filename.
+            
+            :params job_num: Job number.
+            :params final_filenames: Dictionary of ccds and their .fits file paths.
+
+            :return results: Dictionary that stores lists of ccds, their .fits file paths,
+                             and md5 encrypted data.
+        """
+        ## FIX: change CHECKSUM_ENABLED in init
         print("Start Time of READOUT IS: %s" % get_timestamp())
         login_str = self._job_scratchpad.get_job_value(job_num, 'LOGIN_STR')
         target_dir = self._job_scratchpad.get_job_value(job_num, 'TARGET_DIR')
@@ -276,6 +351,13 @@ class Forwarder:
 
 
     def send_ack_response(self, type, params):
+        """ Send forwarder responses for ack_id back through message. 
+
+            :params type: Message type.
+            :params params: A dictionary that stores info about the response.
+
+            :return: None.
+        """
         timed_ack = params.get("ACK_ID")
         job_num = params.get(JOB_NUM)
         response_queue = params['RESPONSE_QUEUE']
@@ -289,6 +371,12 @@ class Forwarder:
 
 
     def register(self):
+        """ None.
+        
+            :params: None.
+
+            :return: None.
+        """
         pass
         # pass in msg to foreman stating cfg settings
         # pass in name of special one time use queue that will be deleted afterwards
