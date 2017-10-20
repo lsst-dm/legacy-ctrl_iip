@@ -195,10 +195,6 @@ class DMCS:
             :return: None.
         """
         ch.basic_ack(method.delivery_tag)
-        print("On_ocs_message - message is: ")
-        self.prp.pprint(msg_dict)
-        print("\n----------------------------------\n\n")
-        ch.basic_ack(method.delivery_tag) 
         LOGGER.info('Processing message in OCS message callback')
         LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
                     (str(msg_dict),properties))
@@ -390,7 +386,6 @@ class DMCS:
         visit_id = params['VISIT_ID']
         self.STATE_SCBD.set_visit_id(visit_id)
         enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
-        print
         LOGGER.debug("Enabled device list is:")
         LOGGER.debug(enabled_devices)
         session_id = self.STATE_SCBD.get_current_session()
@@ -409,8 +404,6 @@ class DMCS:
             msg[VISIT_ID] = params[VISIT_ID]
             msg[BORE_SIGHT] = params['BORE_SIGHT']
             msg['REPLY_QUEUE'] = "dmcs_ack_consume"
-            print("PRINTING out consume queue for next visit message: %s" % consume_queue)
-            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n")
             LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
             self._publisher.publish_message(consume_queue, msg)
 
@@ -456,23 +449,18 @@ class DMCS:
 
 
         enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
-        print("Enabled Devices are %s" % enabled_devices)
         acks = []
         for k in list(enabled_devices.keys()):
             ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
             acks.append(ack_id)
             job_num = self.STATE_SCBD.get_next_job_num( session_id)
-            print("Made it to Job num assignment - new job is %s" % job_num)
             self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
-            print("Now made it past add job ")
             self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
-            print("Now made it past add job ")
             self.STATE_SCBD.set_current_device_job(job_num, str(k))
             self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
             msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
-            print("Consume queue for enabled device is: %s" % self.STATE_SCBD.get_device_consume_queue(k))
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
 
@@ -662,8 +650,6 @@ class DMCS:
             ack_id = self.get_next_timed_ack_id(k + "_NEW_SESSION_ACK")
             msg['ACK_ID'] = ack_id
             ack_ids.append(ack_id)
-            print("Sending new session message to %s" % k)
-            print("Using this queue for session message: %s" % consume_queue)
             self._publisher.publish_message(consume_queue, msg)
 
         # Non-blocking Acks placed directly into ack_scoreboard
@@ -693,8 +679,6 @@ class DMCS:
         current_index = toolsmod.state_enumeration[current_state]
         new_index = toolsmod.state_enumeration[new_state]
 
-        print("Incoming DMCS Command Msg Type is %s" % msg_in['MSG_TYPE'])
-
         if msg_in['MSG_TYPE'] == 'START': 
             if 'CFG_KEY' in msg_in:
                 good_cfg = self.STATE_SCBD.check_cfgs_for_cfg(device,msg_in['CFG_KEY'])
@@ -710,7 +694,6 @@ class DMCS:
         transition_is_valid = toolsmod.state_matrix[current_index][new_index]
         if transition_is_valid == True:
             self.STATE_SCBD.set_device_state(device, new_state)
-            print("DMCS - Device %s State being set to %s" % (device, new_state))
             response = str(device) + " device in " + new_state
             response = response + cfg_response
             self.send_ocs_ack(transition_is_valid, response, msg_in)
@@ -910,15 +893,19 @@ class DMCS:
         """
         counter = 0.0
         while (counter < seconds):
+            counter = counter + 0.5
             sleep(0.5)
             response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if response == None:
+                continue
             if len(list(response.keys())) == expected_replies:
                 return response
-            counter = counter + 0.5
 
         ## Try one final time
         response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-        if len(list(response.keys())) == expected_replies:
+        if response == None:
+            return None
+        elif len(list(response.keys())) == expected_replies:
             return response
         else:
             return None
