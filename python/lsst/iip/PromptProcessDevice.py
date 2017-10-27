@@ -49,7 +49,12 @@ class PromptProcessDevice:
             self._config_file = filename
 
         LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values()
+        try:
+            self.extract_config_values()
+        except Exception as e:
+            LOGGER.error('PP_Device problem configuring with file %s: %s" % (self._config_file, e.arg))
+            print('PP_Device unable to read Config file %s: %s" % (self._config_file, e.arg))
+            sys.exit(self.ErrorCodePrefix + 20)
 
 
         #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
@@ -72,13 +77,23 @@ class PromptProcessDevice:
 
         self._next_timed_ack_id = 0
 
-        self.setup_publishers()
+        try:
+            self.setup_publishers()
+        except L1PublisherError as e:
+            LOGGER.error('PP_Device unable to start Publishers: %s" % e.arg)
+            print('PP_Device unable to start Publishers: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 31)
 
         self.setup_scoreboards()
 
         LOGGER.info('pp foreman consumer setup')
         self.thread_manager = None
-        self.setup_consumer_threads()
+        try:
+            self.setup_consumer_threads()
+        except L1Exception as e:
+            LOGGER.error('PP_Device unable to launch ThreadManager: %s" % e.arg)
+            print('PP_Device unable to launch ThreadManager: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 01)
 
         LOGGER.info('Prompt Process Foreman Init complete')
 
@@ -92,13 +107,18 @@ class PromptProcessDevice:
                                                 self._pub_ncsa_passwd + "@" + \
                                                 str(self._ncsa_broker_addr)
 
-        LOGGER.info('Setting up Base publisher on %s using %s', \
-                     self._pub_base_broker_url, self._base_msg_format)
-        self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
+        try:
+            LOGGER.info('Setting up Base publisher on %s using %s', \
+                         self._pub_base_broker_url, self._base_msg_format)
+            self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
 
-        LOGGER.info('Setting up NCSA publisher on %s using %s', \
-                     self._pub_ncsa_broker_url, self._ncsa_msg_format)
-        self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
+            LOGGER.info('Setting up NCSA publisher on %s using %s', \
+                         self._pub_ncsa_broker_url, self._ncsa_msg_format)
+            self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
+        except Exception as e:
+            LOGGER.error('PP_Device unable to start Publishers: %s" % e.arg)
+            print('PP_Device unable to start Publishers: %s" % e.arg)
+            raise L1PublisherError("Critical Error: Unable to create Publishers: %s" % e.arg)
 
 
     def on_dmcs_message(self, ch, method, properties, body):
@@ -583,7 +603,8 @@ class PromptProcessDevice:
             cdm = toolsmod.intake_yaml_file(self._config_file)
         except IOError as e:
             LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
-            sys.exit(101)
+            print("Unable to find CFG Yaml file %s\n" % self._config_file)
+            raise L1ConfigIOError("Trouble opening CFG Yaml file %s: %s" % (self._config_file, e.arg))
 
         try:
             self._sub_name = cdm[ROOT][PFM_BROKER_NAME]      # Message broker user & passwd
@@ -604,8 +625,8 @@ class PromptProcessDevice:
             LOGGER.critical("Offending Key is %s", str(e)) 
             LOGGER.critical("Bailing out...")
             print("KeyError when reading CFG file. Check logs...exiting...")
-            sys.exit(99)
-
+            raise L1ConfigKeyError("Key Error when reading config file: %s" % e.arg)
+ 
         self._base_msg_format = 'YAML'
         self._ncsa_msg_format = 'YAML'
 
@@ -614,6 +635,7 @@ class PromptProcessDevice:
 
         if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
             self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
+
 
     def setup_consumer_threads(self):
         LOGGER.info('Building _base_broker_url')
@@ -658,12 +680,15 @@ class PromptProcessDevice:
 
         try:
             self.thread_manager = ThreadManager('thread-manager', kws)
+            self.thread_manager.start()
+        except ThreadError as e:
+            LOGGER.error('PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
+            print('PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
+            raise L1ConsumerError("Thread problem preventing Consumer launch: %s" % e.arg)
         except Exception as e:
             LOGGER.error('PP_Device unable to launch Consumers: %s" % e.arg)
             print('PP_Device unable to launch Consumers: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 01)
-
-        self.thread_manager.start()
+            raise L1Error(PP_Device unable to launch Consumers - Rabbit Problem?: %s" % e.arg)
 
 
     def setup_scoreboards(self):

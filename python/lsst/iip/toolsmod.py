@@ -132,10 +132,18 @@ class L1Exception(Exception):
 #
 # Error Codes
 # Suffixes (Two least significant digits)
-# 01 - Threadding error
+# 01 - Threading error
 # 10 - General Scoreboard init error
 # 11 - Rabbit Connection error
 # 12 - Redis Connection Error
+#
+# 20 - Component Configuration Setup
+#
+# 30 - General Message error
+# 31 - Publisher error
+# 32 - Consumer error
+# 35 - Message Handler error
+#
 #
 
 class L1Error(L1Exception): 
@@ -173,7 +181,27 @@ class L1DMCSError(L1Error):
     def __init__(self, arg): 
         self.errormsg = arg
 
+class L1ConsumerError(L1Error):
+    """ Raise for general Archive Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1PublisherError(L1Error):
+    """ Raise for general Archive Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
 class L1ForwarderError(L1Error):
+    """ Raise for general Forwarder error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1ConfigIOError(L1Error):
+    """ Raise for general Forwarder error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1ConfigKeyError(L1Error):
     """ Raise for general Forwarder error """
     def __init__(self, arg): 
         self.errormsg = arg
