@@ -16,6 +16,28 @@ def singleton(object, instantiated=[]):
 
 prp = pprint.PrettyPrinter(indent=4)
 
+def intake_yaml_file(filename):
+    try:
+        f = open(filename)
+    except IOError:
+        raise L1Error("Cant open %s" % filename)
+
+    #cfg data map...
+    cdm = yaml.safe_load(f)
+    f.close()
+    return cdm
+
+def export_yaml_file(filename, params):
+    try:
+        f = open(filename, "w")
+    except IOError:
+        raise L1Error("Cant open %s" % filename)
+
+    #cfg data map...
+    f.write(yaml.dump(params))
+    f.close()
+
+########
 # Dictionary showing the state a transition ends in
 next_state = {}
 next_state["ENTER_CONTROL"] = "STANDBY"
@@ -108,6 +130,13 @@ class L1Exception(Exception):
 # The two least significant digits are specific errors
 # So, Error Code 5371 is a DM Error originating in the Archive Device. Error is #71
 #
+# Error Codes
+# Suffixes (Two least significant digits)
+# 01 - Threadding error
+# 10 - General Scoreboard init error
+# 11 - Rabbit Connection error
+# 12 - Redis Connection Error
+#
 
 class L1Error(L1Exception): 
     """ Raise as general exception from main execution layer """
@@ -148,26 +177,5 @@ class L1ForwarderError(L1Error):
     """ Raise for general Forwarder error """
     def __init__(self, arg): 
         self.errormsg = arg
-
-def intake_yaml_file(filename):
-    try:
-        f = open(filename)
-    except IOError:
-        raise L1Error("Cant open %s" % filename)
-
-    #cfg data map...
-    cdm = yaml.safe_load(f)
-    f.close()
-    return cdm
-
-def export_yaml_file(filename, params):
-    try:
-        f = open(filename, "w")
-    except IOError:
-        raise L1Error("Cant open %s" % filename)
-
-    #cfg data map...
-    f.write(yaml.dump(params))
-    f.close()
 
 

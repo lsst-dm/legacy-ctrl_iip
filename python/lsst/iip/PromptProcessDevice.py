@@ -37,6 +37,7 @@ class PromptProcessDevice:
     NCSA_CONSUME = "ncsa_consume"
     FORWARDER_PUBLISH = "forwarder_publish"
     CFG_FILE = 'L1SystemCfg.yaml'
+    ERROR_CODE_PREFIX = 5500
     prp = toolsmod.prp
 
 
@@ -626,43 +627,65 @@ class PromptProcessDevice:
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
-        kws = {}
-        md = {}
-        md['amqp_url'] = base_broker_url
-        md['name'] = 'Thread-pp_foreman_consume'
-        md['queue'] = 'pp_foreman_consume'
-        md['callback'] = self.on_dmcs_message
-        md['format'] = "YAML"
-        md['test_val'] = None
-        kws[md['name']] = md
+        try:
+            kws = {}
+            md = {}
+            md['amqp_url'] = base_broker_url
+            md['name'] = 'Thread-pp_foreman_consume'
+            md['queue'] = 'pp_foreman_consume'
+            md['callback'] = self.on_dmcs_message
+            md['format'] = "YAML"
+            md['test_val'] = None
+            kws[md['name']] = md
+    
+            md = {}
+            md['amqp_url'] = base_broker_url
+            md['name'] = 'Thread-pp_foreman_ack_publish'
+            md['queue'] = 'pp_foreman_ack_publish'
+            md['callback'] = self.on_ack_message
+            md['format'] = "YAML"
+            md['test_val'] = 'test_it'
+            kws[md['name']] = md
+    
+            md = {}
+            md['amqp_url'] = ncsa_broker_url
+            md['name'] = 'Thread-ncsa_publish'
+            md['queue'] = 'ncsa_publish'
+            md['callback'] = self.on_ncsa_message
+            md['format'] = "YAML"
+            md['test_val'] = 'test_it'
+            kws[md['name']] = md
 
-        md = {}
-        md['amqp_url'] = base_broker_url
-        md['name'] = 'Thread-pp_foreman_ack_publish'
-        md['queue'] = 'pp_foreman_ack_publish'
-        md['callback'] = self.on_ack_message
-        md['format'] = "YAML"
-        md['test_val'] = 'test_it'
-        kws[md['name']] = md
+        try:
+            self.thread_manager = ThreadManager('thread-manager', kws)
+        except Exception as e:
+            LOGGER.error('PP_Device unable to launch Consumers: %s" % e.arg)
+            print('PP_Device unable to launch Consumers: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 01)
 
-        md = {}
-        md['amqp_url'] = ncsa_broker_url
-        md['name'] = 'Thread-ncsa_publish'
-        md['queue'] = 'ncsa_publish'
-        md['callback'] = self.on_ncsa_message
-        md['format'] = "YAML"
-        md['test_val'] = 'test_it'
-        kws[md['name']] = md
-
-        self.thread_manager = ThreadManager('thread-manager', kws)
         self.thread_manager.start()
 
 
     def setup_scoreboards(self):
-        # Create Redis Forwarder table with Forwarder info
-        self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', self._scbd_dict['PP_FWD_SCBD'], self._forwarder_dict)
-        self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
+        try:
+            # Create Redis Forwarder table with Forwarder info
+            self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', 
+                                                self._scbd_dict['PP_FWD_SCBD'], 
+                                                self._forwarder_dict)
+            self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
+            self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
+        except L1RabbitConnectionError as e:
+            LOGGER.error('PP_Device unable to complete setup_scoreboards-No Rabbit Connect: %s" % e.arg)
+            print('PP_Device unable to complete setup_scoreboards - No Rabbit Connection: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 11)
+        except L1RedisError as e:
+            LOGGER.error("PP_Device unable to complete setup_scoreboards - no Redis connect: %s" % e.arg)
+            print("PP_Device unable to complete setup_scoreboards - no Redis connection: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 12)
+        except Exception as e:
+            LOGGER.error('PP_Device init unable to complete setup_scoreboards: %s" % e.arg)
+            print('PP_Device unable to complete setup_scoreboards: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 10)
 
 
     def purge_broker(self, queues):

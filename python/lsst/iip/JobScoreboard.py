@@ -77,17 +77,17 @@ class JobScoreboard(Scoreboard):
         self._session_id = str(1)
         try:
             Scoreboard.__init__(self)
-        except L1RabbitConnectionError as e:
-            LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print("No Monitoring for YOU")
-            raise L1Error('Calling super.init in JobScoreboard init caused: ', e.arg)
+        except Exception as e:
+            LOGGER.error('Job SCBD Auditor Failed to make connection to Message Broker:  ', e.arg)
+            print("No Auditing for YOU")
+            raise L1RabbitConnectionError('Calling super.init() in JobScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()
-        except L1RedisError as e:
-            LOGGER.error("Cannot make connection to Redis:  " , e)  
-            print("No Redis for YOU")
-            raise L1Error('Calling redis connect in JobScoreboard init caused:  ', e.arg)
+        except Exception as e:
+            LOGGER.error("Cannot make connection to Redis: %s." % e.arg)  
+            print("Job SCBD: No Redis for YOU:")
+            raise L1RedisError('Calling redis connect in JobScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
 
