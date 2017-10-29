@@ -42,8 +42,8 @@ ROOT:
   NCSA_BROKER_CLSTR_PUB_PASSWD: NCSA_CLSTR_PUB
   #BASE_BROKER_ADDR: 141.142.208.191:5672/%2ftester
   #BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
-  BASE_BROKER_ADDR: 141.142.238.160:5672/%2ftest?heartbeat=300
-  NCSA_BROKER_ADDR: 141.142.238.160:5672/%2ftest?heartbeat=300
+  BASE_BROKER_ADDR: 141.142.238.160:5672/%2ftest
+  NCSA_BROKER_ADDR: 141.142.238.160:5672/%2ftest
 
   INFLUX_DB: L1_Test
   SESSION_ID_FILE: "/var/session_id"
@@ -104,7 +104,7 @@ ROOT:
         IP_ADDR: 141.142.238.161
         STATE: IDLE
         CONSUME_QUEUE: f1_consume
-        PUBLISH_QUEUE: pp_foreman_ack_publish
+        PUBLISH_QUEUE: ar_foreman_ack_publish
 
       FORWARDER_2:
         NAME: F2
@@ -112,7 +112,7 @@ ROOT:
         IP_ADDR: 141.142.238.162
         STATE: IDLE
         CONSUME_QUEUE: f2_consume
-        PUBLISH_QUEUE: pp_foreman_ack_publish
+        PUBLISH_QUEUE: ar_foreman_ack_publish
 
 #      FORWARDER_3:
 #        NAME: F3

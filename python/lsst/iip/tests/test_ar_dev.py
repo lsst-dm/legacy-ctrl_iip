@@ -13,15 +13,16 @@ import logging
 sys.path.insert(1, '../iip')
 sys.path.insert(1, '../')
 import DMCS
+import toolsmod
+from toolsmod import get_timestamp
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from MessageAuthority import MessageAuthority
 from const import *
-import toolsmod
 
 from ArchiveDevice import *
 
-logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
+logging.basicConfig(filename='logs/ARCHIVE_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
 class TestArDev:
     ardev = ArchiveDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ar.yaml')
@@ -57,7 +58,7 @@ class TestArDev:
 
     def test_ardev(self):
         try:
-            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ar.yaml')
         except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
@@ -76,6 +77,7 @@ class TestArDev:
         dmcs_pub_broker_url = "amqp://" + dmcs_pub_name + ":" + \
                                  dmcs_pub_passwd + "@" + \
                                  broker_addr
+        print("Opening publisher with this URL string: %s" % dmcs_pub_broker_url)
         self.dmcs_publisher = SimplePublisher(dmcs_pub_broker_url, "YAML")
     
         ar_ctrl_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']
@@ -88,6 +90,7 @@ class TestArDev:
         ar_ctrl_pub_broker_url = "amqp://" + ar_ctrl_pub_name + ":" + \
                                     ar_ctrl_pub_passwd + "@" + \
                                     broker_addr
+        print("Opening publisher with this URL string: %s" % ar_ctrl_pub_broker_url)
         self.ar_ctrl_publisher = SimplePublisher(ar_ctrl_pub_broker_url, "YAML")
     
         F1_name = 'F1'
@@ -100,6 +103,7 @@ class TestArDev:
         F1_pub_broker_url = "amqp://" + F1_pub_name + ":" + \
                                     F1_pub_passwd + "@" + \
                                     broker_addr
+        print("Opening publisher with this URL string: %s" % F1_pub_broker_url)
         self.F1_publisher = SimplePublisher(F1_pub_broker_url, "YAML")
    
         F2_name = 'F2'
@@ -112,6 +116,7 @@ class TestArDev:
         F2_pub_broker_url = "amqp://" + F2_pub_name + ":" + \
                                     F2_pub_passwd + "@" + \
                                     broker_addr
+        print("Opening publisher with this URL string: %s" % F2_pub_broker_url)
         self.F2_publisher = SimplePublisher(F2_pub_broker_url, "YAML")
    
  
@@ -142,11 +147,11 @@ class TestArDev:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        sleep(3)
+        sleep(8)
+        self.verify_ar_ctrl_messages()
+        self.verify_dmcs_messages()
         self.verify_F1_messages()
         self.verify_F2_messages()
-        self.verify_dmcs_messages()
-        self.verify_ar_ctrl_messages()
 
         print("Finished with AR tests.")
         #sys.exit(0)
@@ -206,7 +211,7 @@ class TestArDev:
         print("AR Readout Message")
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
 
-        time.sleep(2)
+        time.sleep(9)
         print("Message Sender done")
 
 
@@ -273,10 +278,12 @@ class TestArDev:
   
  
     def on_dmcs_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.dmcs_consumer_msg_list.append(body)
 
 
     def on_ar_ctrl_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.ar_ctrl_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'NEW_ARCHIVE_ITEM':
             msg = {}
@@ -311,6 +318,7 @@ class TestArDev:
             pytest.fail("The following unknown message was received by the Archive CTRL: %s" % body)
 
     def on_f1_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.f1_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'AR_FWDR_HEALTH_CHECK':
             msg = {}
@@ -369,6 +377,7 @@ class TestArDev:
 
 
     def on_f2_message(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
         self.f2_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'AR_FWDR_HEALTH_CHECK':
             msg = {}
@@ -420,6 +429,9 @@ class TestArDev:
             msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
             msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
             msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
+            print("----------------------\nAt end of  F2 Message AR_FWDR_READOUT...")
+            print("%s" % get_timestamp())
+            print("------------------------------------\n\n")
             self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:

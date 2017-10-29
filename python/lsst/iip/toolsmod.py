@@ -2,22 +2,17 @@ import subprocess
 import yaml
 import pprint
 
-#def get_timestamp():
-#    return subprocess.check_output('date +"%Y-%m-%dT%H:%M:%S.%5N"', shell=True)
-
 def get_timestamp():
-    return subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
-
-#def get_epoch_timestamp():
-#    return (int(subprocess.check_output('date +"%s%N"', shell=True)) / 86400)
+    return (subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)).decode('ascii')
 
 def get_epoch_timestamp():
-    return subprocess.check_output('date +"%s%N"', shell=True)
+    return (subprocess.check_output('date +"%s%N"', shell=True)).decode('ascii')
 
 def singleton(object, instantiated=[]):
     assert object.__class__ not in instantiated, \
         "%s is a Singleton class but is already instantiated" % object.__class__
     instantiated.append(object.__class__)
+
 
 prp = pprint.PrettyPrinter(indent=4)
 
@@ -98,11 +93,26 @@ state_matrix[6][6] = True
 class L1Exception(Exception): 
     pass 
 
+# Error codes are 4 digit numbers
+# Most Significant digit is 5 for DM Errors
+# Next digit (the 'hundreds' position) is:
+# 1 OCS BRidge
+# 2 DMCS
+# 3 ArchiveDevice
+# 4 Archive Controller
+# 5 PromptProcess Device
+# 6 Forwarder
+# 7 NCSA Foreman
+# 8 Distributor
+#
+# The two least significant digits are specific errors
+# So, Error Code 5371 is a DM Error originating in the Archive Device. Error is #71
+#
+
 class L1Error(L1Exception): 
     """ Raise as general exception from main execution layer """
     def __init__(self, arg): 
         self.errormsg = arg
-        raise
 
 class L1MessageError(L1Exception): 
     """ Raise when asserting check_message in XML returns exception """
@@ -116,6 +126,26 @@ class L1RedisError(L1Exception):
 
 class L1RabbitConnectionError(L1Exception):
     """ Raise when unable to connect to rabbit """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1ArchiveDeviceError(L1Error):
+    """ Raise for general Archive Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1PromptProcessError(L1Error):
+    """ Raise for general Prompt Process Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1DMCSError(L1Error):
+    """ Raise for general DMCS error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1ForwarderError(L1Error):
+    """ Raise for general Forwarder error """
     def __init__(self, arg): 
         self.errormsg = arg
 

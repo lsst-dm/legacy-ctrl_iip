@@ -63,7 +63,8 @@ class StateScoreboard(Scoreboard):
 
         self._redis.flushdb()
 
-        weekday = subprocess.check_output('date +"%u"', shell=True)
+        weekday = subprocess.check_output('date +"%u"', shell=True).decode("utf-8")
+
         job_num_seed = int(weekday) + 1000
         #set up auto sequence
         self._redis.set(self.JOB_SEQUENCE_NUM, int(job_num_seed))
@@ -324,12 +325,12 @@ class StateScoreboard(Scoreboard):
     def set_job_state(self, job_number, state):
         if self.check_connection():
             self._redis.hset(job_number, STATE, state)
-            params = {}
-            params[JOB_NUM] = job_number
-            params['SUB_TYPE'] = self.JOB_STATE
-            params['STATE'] = state
-            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+            #params = {}
+            #params[JOB_NUM] = job_number
+            #params['SUB_TYPE'] = self.JOB_STATE
+            #params['STATE'] = state
+            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            #self.persist(self.build_monitor_data(params))
 
 
     def set_value_for_job(self, job_number, kee, val):
@@ -352,13 +353,18 @@ class StateScoreboard(Scoreboard):
 
 
     def set_current_device_job(self, job_number, device):
-        if self.check_connection():
-            if device == self.AR:
-                self._redis.lpush('AR_JOBS', job_number)
-            if device == self.PP:
-                self._redis.lpush('PP_JOBS', job_number)
-            if device == self.CU:
-                self._redis.lpush('CU_JOBS', job_number)
+        try:
+            if self.check_connection():
+                if device == self.AR:
+                    self._redis.lpush('AR_JOBS', job_number)
+                if device == self.PP:
+                    self._redis.lpush('PP_JOBS', job_number)
+                if device == self.CU:
+                    self._redis.lpush('CU_JOBS', job_number)
+        except Exception as e:
+            print("EXCEPTION in SET_CURRENT_DEVICE_JOB")
+            print("Job Number is %s, Device is %s" % (job_number,device))
+            print("Exception is %s" % e)
 
 
     def get_current_device_job(self, device):
@@ -438,15 +444,6 @@ def main():
   print("State Scoreboard seems to be running OK")
   time.sleep(2)
   print("Done.")
-  #jbs.charge_database()
-  #jbs.print_all()
-  #Ps = jbs.get_value_for_job(str(1), 'PAIRS')
-  #print "printing Ps"
-  #print Ps
-  #ppps = eval(Ps)
-  #pps = ppps.keys()
-  #print "final line"
-  #print ppps == pairs
 
 
 

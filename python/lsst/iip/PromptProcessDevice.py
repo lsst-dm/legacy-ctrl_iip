@@ -253,6 +253,11 @@ class PromptProcessDevice:
                 # Tell DMCS we are ready
                 result = self.accept_job(input_params['ACK_ID'],job_num)
             else:
+                # FIX remove this torpid set of code and simply raise an L1Exception
+                result = self.ncsa_no_response(input_params)
+                idle_params = {'STATE': 'IDLE'}
+                self.FWD_SCBD.set_forwarder_params(needed_forwarders, idle_params)
+                return result
 
         else:
             result = self.ncsa_no_response(input_params)
@@ -532,15 +537,19 @@ class PromptProcessDevice:
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
         counter = 0.0
         while (counter < seconds):
+            counter = counter + 0.5
             sleep(0.5)
             response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if response == None:
+                continue
             if len(list(response.keys())) == expected_replies:
                 return response
-            counter = counter + 0.5
 
         ## Try one final time 
         response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-        if len(list(response.keys())) == expected_replies:
+        if response == None:
+            return None
+        elif len(list(response.keys())) == expected_replies:
             return response
         else:
             return None
