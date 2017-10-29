@@ -6,6 +6,7 @@ import redis
 import yaml
 import sys, traceback
 import os, os.path
+from subprocess import call
 import time
 import datetime
 from time import sleep
@@ -72,7 +73,7 @@ class DMCS:
         toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
-        self._config_file = 'L1SystemCfg.yaml'
+        self._config_file = self.DEFAULT_CFG_FILE
         if filename != None:
             self._config_file = filename
 
@@ -96,7 +97,14 @@ class DMCS:
                               'NEXT_VISIT': self.process_next_visit_event,
                               'START_INTEGRATION': self.process_start_integration_event,
                               'READOUT': self.process_readout_event,
-                              'TELEMETRY': self.process_telemetry }
+                              'TELEMETRY': self.process_telemetry, 
+                              'CCS_START_INTEGRATION': self.process_ccs_start_int_event,
+                              'CCS_READOUT': self.process_ccs_readout_event,
+                              'CCS_SHUTTER_CLOSE': self.process_ccs_shutter_close_event,
+                              'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
+                              'CCS_TAKE_IMAGES': self.process_ccs_take_images_event,
+                              'SEQ_TARGET_VISIT': self.process_seq_target_visit_event }
+
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
                               'PP_NEW_SESSION_ACK': self.process_ack,
@@ -120,7 +128,6 @@ class DMCS:
 
         LOGGER.info('DMCS consumer setup')
         self.thread_manager = None
-        self.shutdown_event = threading.Event()
         self.setup_consumer_threads()
 
         self.init_ack_id()
@@ -187,10 +194,7 @@ class DMCS:
 
             :return: None.
         """
-        print("On_ocs_message - message is: ")
-        self.prp.pprint(msg_dict)
-        print("\n----------------------------------\n\n")
-        ch.basic_ack(method.delivery_tag) 
+        ch.basic_ack(method.delivery_tag)
         LOGGER.info('Processing message in OCS message callback')
         LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
                     (str(msg_dict),properties))
@@ -403,7 +407,7 @@ class DMCS:
             LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
             self._publisher.publish_message(consume_queue, msg)
 
-        self.ack_timer(2)
+        self.ack_timer(3)
         for a in acks:
             ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
 
@@ -500,6 +504,41 @@ class DMCS:
         wait_time = 5  # seconds...
         self.set_pending_nonblock_acks(acks, wait_time)
         # add in two additional acks for format and transfer complete
+
+
+
+    def process_ccs_start_int_event(self, params):
+        print("Incoming message to process_ccs_start_int_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_ccs_readout_event(self, params):
+        print("Incoming message to process_ccs_readout_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_ccs_shutter_close_event(self, params):
+        print("Incoming message to process_ccs_shutter_close_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_ccs_shutter_open_event(self, params):
+        print("Incoming message to process_ccs_shutter_open_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_ccs_take_images_event(self, params):
+        print("Incoming message to process_ccs_take_images_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+    def process_seq_target_visit_event(self, params):
+        print("Incoming message to process_seq_target_visit_event: ")
+        self.prp.pprint(params) 
+        print("------------------------------\n\n")
+
+
+
 
 
     def process_telemetry(self, msg):
@@ -659,6 +698,7 @@ class DMCS:
             response = response + cfg_response
             self.send_ocs_ack(transition_is_valid, response, msg_in)
         else:
+            print("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
             response = "Invalid transition: " + str(current_state) + " to " + new_state
             #response = response + ". Device remaining in " + current_state + " state."
             self.send_ocs_ack(transition_is_valid, response, msg_in)
@@ -701,6 +741,7 @@ class DMCS:
         message['MSG_TYPE'] = msg_in['MSG_TYPE'] + "_ACK"
         message['DEVICE'] = msg_in['DEVICE']
         message['ACK_ID'] = msg_in['ACK_ID']
+        message['CMD_ID'] = msg_in['CMD_ID']
         message['ACK_BOOL'] = transition_check
         message['ACK_STATEMENT'] = response
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
@@ -852,15 +893,19 @@ class DMCS:
         """
         counter = 0.0
         while (counter < seconds):
+            counter = counter + 0.5
             sleep(0.5)
             response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if response == None:
+                continue
             if len(list(response.keys())) == expected_replies:
                 return response
-            counter = counter + 0.5
 
         ## Try one final time
         response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-        if len(list(response.keys())) == expected_replies:
+        if response == None:
+            return None
+        elif len(list(response.keys())) == expected_replies:
             return response
         else:
             return None
@@ -917,7 +962,7 @@ class DMCS:
         md['queue'] = 'ocs_dmcs_consume'
         md['callback'] = self.on_ocs_message
         md['format'] = "YAML"
-        md['test_val'] = self.shutdown_event
+        md['test_val'] = None
         kws[md['name']] = md
 
         md = {}
@@ -926,15 +971,11 @@ class DMCS:
         md['queue'] = 'dmcs_ack_consume'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
-        md['test_val'] = self.shutdown_event
+        md['test_val'] = None
         kws[md['name']] = md
 
         self.thread_manager = ThreadManager('thread-manager', kws)
         self.thread_manager.start()
-
-        if self.shutdown_event.is_set():
-            #perform cleanup?
-            pass
          
 
     def setup_scoreboards(self):
@@ -988,20 +1029,18 @@ class DMCS:
         pass
 
 
-    def shutdown_threads(self):
-        # shutdown_stuff
-        self.shutdown_event.set()
-        # need to join threads. Done in ThreadManager?
-# don't set. Needs to kill itself.
 
 def main():
     logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
     dmsc = DMCS()
+    print("DMCS seems to be working")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
-        dmsc.shutdown_threads()
+        x = os.getpid()
+        print("Killing PID: %s" % x)
+        call(["kill","-9",str(x)])
         pass
 
     print("")
