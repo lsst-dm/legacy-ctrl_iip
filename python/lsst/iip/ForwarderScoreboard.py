@@ -1,7 +1,8 @@
 from Scoreboard import Scoreboard
 import redis
 import logging
-from const import * 
+from const import *
+import sys 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

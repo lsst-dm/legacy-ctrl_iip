@@ -36,7 +36,7 @@ class ThreadManager(threading.Thread):
         format = consumer_params['format']
         test_val = consumer_params['test_val']
 #need to keep copies of the events
-#so it cen set it.
+#so it can set it.
         new_thread = Consumer(url, q, threadname, callback, format, test_val)
         new_thread.start()
         sleep(1)
@@ -48,8 +48,8 @@ class ThreadManager(threading.Thread):
         sleep(2)
         try:
             while 1:
-#check if I need to shutdown then call a function that sets each event
-#if they're all set then end myself.
+                #check if I need to shutdown then call a function that sets each event
+                #if they're all set then end myself.
                 # self.get_next_backlog_item() ???
                 sleep(1)
                 self.check_thread_health()
@@ -73,3 +73,9 @@ class ThreadManager(threading.Thread):
 
                 self.running_threads.append(new_consumer)
 
+
+    def shutdown_myself(self):
+        self.shutdown_event.set()
+
+    def shutdown_others(self):
+        # call shutdown_threads method in DMCS, PromptProcessDevice, NcsaForeman, ArchiveDevice
