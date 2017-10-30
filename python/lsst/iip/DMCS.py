@@ -55,6 +55,7 @@ class DMCS:
     CCD_LIST = [] 
     OCS_CONSUMER_THREAD = "ocs_consumer_thread"
     ACK_CONSUMER_THREAD = "ack_consumer_thread"
+    ERROR_CODE_PREFIX = 5500
     prp = toolsmod.prp
 
 
@@ -190,11 +191,11 @@ class DMCS:
         except L1RabbitException as e: 
             LOGGER.error("DMCS unable to setup_publishers: %s" % e.arg) 
             print("DMCS unable to setup_publishers: %s" % e.arg) 
-            sys.exit(self.ErrorCodePrefix + 11)
+            sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
             LOGGER.error("DMCS unable to setup_publishers: %s" % e.arg) 
             print("DMCS unable to setup_publishers: %s" % e.arg) 
-            sys.exit(self.ErrorCodePrefix + 11)
+            sys.exit(self.ERROR_CODE_PREFIX + 11)
         
 
 
@@ -964,11 +965,11 @@ class DMCS:
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.arg)
             print("DMCS unable to send_summary_state_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 11)
+            sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
             LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.arg)
             print("DMCS unable to send_summary_state_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 10)
+            sys.exit(self.ERROR_CODE_PREFIX + 10)
 
 
     def send_recommended_setting_versions_event(self, device):
@@ -988,11 +989,11 @@ class DMCS:
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_recommended_settings_version_event: %s" % e.arg)
             print("DMCS unable to send_recommended_settings_version_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 11)
+            sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
             LOGGER.error("DMCS unable to send_recommended_settings_version_event: %s" % e.arg)
             print("DMCS unable to send_recommended_settings_version_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 10)
+            sys.exit(self.ERROR_CODE_PREFIX + 10)
 
 
     def send_setting_applied_event(self, device):
@@ -1011,11 +1012,11 @@ class DMCS:
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.arg)
             print("DMCS unable to send_setting_applied_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 11)
+            sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
             LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.arg)
             print("DMCS unable to send_setting_applied_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 10)
+            sys.exit(self.ERROR_CODE_PREFIX + 10)
         
 
 
@@ -1035,11 +1036,11 @@ class DMCS:
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_applied_setting_match_start_event: %s" % e.arg)
             print("DMCS unable to send_applied_setting_match_start_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 11)
+            sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
             LOGGER.error("DMCS unable to send_applied_setting_match_start_event: %s" % e.arg)
             print("DMCS unable to send_applied_setting_match_start_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 10)
+            sys.exit(self.ERROR_CODE_PREFIX + 10)
 
 
     def send_error_code_event(self, device):
@@ -1058,11 +1059,11 @@ class DMCS:
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_error_code_event: %s" % e.arg)
             print("DMCS unable to send_error_code_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 11)
+            sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
             LOGGER.error("DMCS unable to send_error_code_event: %s" % e.arg)
             print("DMCS unable to send_error_code_event: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 10)
+            sys.exit(self.ERROR_CODE_PREFIX + 10)
         
 
     def get_next_timed_ack_id(self, ack_type):
@@ -1082,11 +1083,11 @@ class DMCS:
         except KeyError as e: 
             LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.arg)
             print("DMCS unable to get_next_timed_ack_id: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 02); 
+            sys.exit(self.ERROR_CODE_PREFIX + 2); 
         except Exception as e: 
             LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.arg)
             print("DMCS unable to get_next_timed_ack_id: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 03); 
+            sys.exit(self.ERROR_CODE_PREFIX + 3); 
 
         return retval 
 
@@ -1209,7 +1210,7 @@ class DMCS:
         except Exception as e: 
             LOGGER.error("DMCS unable to launch Consumers: %s" % e.arg)
             print("DMCS unable to launch Consumers: %s" % e.arg)
-            sys.exit(self.ErrroCodePrefix + 01) 
+            sys.exit(self.ERROR_CODE_PREFIX + 1) 
 
         self.thread_manager.start()
          
@@ -1221,15 +1222,15 @@ class DMCS:
             self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance)
             self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to complete setup_scoreboards - No Rabbit Connect: %s" % 
+            LOGGER.error("DMCS unable to complete setup_scoreboards - No Rabbit Connect: %s" % e.arg)
         except L1RedisError as e: 
             LOGGER.error("DMCS unable to complete setup_scoreboards - No Redis connect: %s" % e.arg)
             print("DMCS unable to complete setup_scoreboards - No Redis connection: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 12)
+            sys.exit(self.ERROR_CODE_PREFIX + 12)
         except Exception as e: 
             LOGGER.error("DMCS init unable to complete setup_scoreboards: %s" % e.arg)
             print("DMCS unable to complete setup_scoreboards: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 10)
+            sys.exit(self.ERROR_CODE_PREFIX + 10)
 
         try: 
             # All devices wake up in OFFLINE state
@@ -1254,7 +1255,7 @@ class DMCS:
         except Exception as e: 
             LOGGER.error("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.arg)
             print("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.arg) 
-            sys.exit(self.ErrorCodePrefix + 10) 
+            sys.exit(self.ERROR_CODE_PREFIX + 10) 
         LOGGER.info('DMCS Scoreboard Init complete')
 
 
