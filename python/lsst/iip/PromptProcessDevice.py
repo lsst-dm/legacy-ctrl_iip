@@ -35,8 +35,8 @@ class PromptProcessDevice:
     PP_START_INTEGRATION_ACK = "PP_START_INTEGRATION_ACK"
     NCSA_PUBLISH = "ncsa_publish"
     NCSA_CONSUME = "ncsa_consume"
-    NCSA_NO_RESPONSE = 705
-    FORWARDER_NO_RESPONSE = 605 
+    NCSA_NO_RESPONSE = 5705
+    FORWARDER_NO_RESPONSE = 5605 
     FORWARDER_PUBLISH = "forwarder_publish"
     CFG_FILE = 'L1SystemCfg.yaml'
     ERROR_CODE_PREFIX = 5500
@@ -54,8 +54,8 @@ class PromptProcessDevice:
         try:
             self.extract_config_values()
         except Exception as e:
-            LOGGER.error('PP_Device problem configuring with file %s: %s" % (self._config_file, e.arg))
-            print('PP_Device unable to read Config file %s: %s" % (self._config_file, e.arg))
+            LOGGER.error("PP_Device problem configuring with file %s: %s" % (self._config_file, e.arg))
+            print("PP_Device unable to read Config file %s: %s" % (self._config_file, e.arg))
             sys.exit(self.ErrorCodePrefix + 20)
 
 
@@ -82,8 +82,8 @@ class PromptProcessDevice:
         try:
             self.setup_publishers()
         except L1PublisherError as e:
-            LOGGER.error('PP_Device unable to start Publishers: %s" % e.arg)
-            print('PP_Device unable to start Publishers: %s" % e.arg)
+            LOGGER.error("PP_Device unable to start Publishers: %s" % e.arg)
+            print("PP_Device unable to start Publishers: %s" % e.arg)
             sys.exit(self.ErrorCodePrefix + 31)
 
         self.setup_scoreboards()
@@ -93,9 +93,9 @@ class PromptProcessDevice:
         try:
             self.setup_consumer_threads()
         except L1Exception as e:
-            LOGGER.error('PP_Device unable to launch ThreadManager: %s" % e.arg)
-            print('PP_Device unable to launch ThreadManager: %s" % e.arg)
-            sys.exit(self.ErrorCodePrefix + 01)
+            LOGGER.error("PP_Device unable to launch ThreadManager: %s" % e.arg)
+            print("PP_Device unable to launch ThreadManager: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 1)
 
         LOGGER.info('Prompt Process Foreman Init complete')
 
@@ -118,8 +118,8 @@ class PromptProcessDevice:
                          self._pub_ncsa_broker_url, self._ncsa_msg_format)
             self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
         except Exception as e:
-            LOGGER.error('PP_Device unable to start Publishers: %s" % e.arg)
-            print('PP_Device unable to start Publishers: %s" % e.arg)
+            LOGGER.error("PP_Device unable to start Publishers: %s" % e.arg)
+            print("PP_Device unable to start Publishers: %s" % e.arg)
             raise L1PublisherError("Critical Error: Unable to create Publishers: %s" % e.arg)
 
 
@@ -599,46 +599,45 @@ class PromptProcessDevice:
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
-        try:
-            kws = {}
-            md = {}
-            md['amqp_url'] = base_broker_url
-            md['name'] = 'Thread-pp_foreman_consume'
-            md['queue'] = 'pp_foreman_consume'
-            md['callback'] = self.on_dmcs_message
-            md['format'] = "YAML"
-            md['test_val'] = None
-            kws[md['name']] = md
+        kws = {}
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-pp_foreman_consume'
+        md['queue'] = 'pp_foreman_consume'
+        md['callback'] = self.on_dmcs_message
+        md['format'] = "YAML"
+        md['test_val'] = None
+        kws[md['name']] = md
     
-            md = {}
-            md['amqp_url'] = base_broker_url
-            md['name'] = 'Thread-pp_foreman_ack_publish'
-            md['queue'] = 'pp_foreman_ack_publish'
-            md['callback'] = self.on_ack_message
-            md['format'] = "YAML"
-            md['test_val'] = 'test_it'
-            kws[md['name']] = md
+        md = {}
+        md['amqp_url'] = base_broker_url
+        md['name'] = 'Thread-pp_foreman_ack_publish'
+        md['queue'] = 'pp_foreman_ack_publish'
+        md['callback'] = self.on_ack_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
     
-            md = {}
-            md['amqp_url'] = ncsa_broker_url
-            md['name'] = 'Thread-ncsa_publish'
-            md['queue'] = 'ncsa_publish'
-            md['callback'] = self.on_ncsa_message
-            md['format'] = "YAML"
-            md['test_val'] = 'test_it'
-            kws[md['name']] = md
+        md = {}
+        md['amqp_url'] = ncsa_broker_url
+        md['name'] = 'Thread-ncsa_publish'
+        md['queue'] = 'ncsa_publish'
+        md['callback'] = self.on_ncsa_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        kws[md['name']] = md
 
         try:
             self.thread_manager = ThreadManager('thread-manager', kws)
             self.thread_manager.start()
         except ThreadError as e:
-            LOGGER.error('PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
-            print('PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
+            LOGGER.error("PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
+            print("PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
             raise L1ConsumerError("Thread problem preventing Consumer launch: %s" % e.arg)
         except Exception as e:
-            LOGGER.error('PP_Device unable to launch Consumers: %s" % e.arg)
-            print('PP_Device unable to launch Consumers: %s" % e.arg)
-            raise L1Error(PP_Device unable to launch Consumers - Rabbit Problem?: %s" % e.arg)
+            LOGGER.error("PP_Device unable to launch Consumers: %s" % e.arg)
+            print("PP_Device unable to launch Consumers: %s" % e.arg)
+            raise L1Error("PP_Device unable to launch Consumers - Rabbit Problem?: %s" % e.arg)
 
 
     def setup_scoreboards(self):
@@ -650,22 +649,22 @@ class PromptProcessDevice:
             self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
             self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
         except L1RabbitConnectionError as e:
-            LOGGER.error('PP_Device unable to complete setup_scoreboards-No Rabbit Connect: %s" % e.arg)
-            print('PP_Device unable to complete setup_scoreboards - No Rabbit Connection: %s" % e.arg)
+            LOGGER.error("PP_Device unable to complete setup_scoreboards-No Rabbit Connect: %s" % e.arg)
+            print("PP_Device unable to complete setup_scoreboards - No Rabbit Connection: %s" % e.arg)
             sys.exit(self.ErrorCodePrefix + 11)
         except L1RedisError as e:
             LOGGER.error("PP_Device unable to complete setup_scoreboards - no Redis connect: %s" % e.arg)
             print("PP_Device unable to complete setup_scoreboards - no Redis connection: %s" % e.arg)
             sys.exit(self.ErrorCodePrefix + 12)
         except Exception as e:
-            LOGGER.error('PP_Device init unable to complete setup_scoreboards: %s" % e.arg)
-            print('PP_Device unable to complete setup_scoreboards: %s" % e.arg)
+            LOGGER.error("PP_Device init unable to complete setup_scoreboards: %s" % e.arg)
+            print("PP_Device unable to complete setup_scoreboards: %s" % e.arg)
             sys.exit(self.ErrorCodePrefix + 10)
 
     def send_fault(error_string, error_code, job_num, component_name):
         msg = {}
         msg['MSG_TYPE'] = 'FAULT'
-        msg['COMPONENT' = component_name
+        msg['COMPONENT'] = component_name
         msg['JOB_NUM'] = job_num
         msg['ERROR_CODE'] = str(error_code)
         msg["DESCRIPTION"] = error_string
