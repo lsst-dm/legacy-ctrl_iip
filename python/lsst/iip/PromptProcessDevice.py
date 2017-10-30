@@ -35,6 +35,8 @@ class PromptProcessDevice:
     PP_START_INTEGRATION_ACK = "PP_START_INTEGRATION_ACK"
     NCSA_PUBLISH = "ncsa_publish"
     NCSA_CONSUME = "ncsa_consume"
+    NCSA_NO_RESPONSE = 705
+    FORWARDER_NO_RESPONSE = 605 
     FORWARDER_PUBLISH = "forwarder_publish"
     CFG_FILE = 'L1SystemCfg.yaml'
     ERROR_CODE_PREFIX = 5500
@@ -236,8 +238,9 @@ class PromptProcessDevice:
         if healthy_forwarders == None:
             self.JOB_SCBD.set_job_state(job_number, 'SCRUBBED')
             self.JOB_SCBD.set_job_status(job_number, 'INACTIVE')
-            result = self.insufficient_base_resources(input_params, None)
-            return result
+            self.send_fault("No Response From Forwarders", 
+                            self.FORWARDER_NO_RESPONSE, job_num, self.COMPONENT_NAME)
+            raise L1ForwarderError("No response from any Forwarder when sending job params")
             
         healthy_forwarders_list = list(healthy_forwarders.keys())
         for forwarder in healthy_forwarders_list:
@@ -273,11 +276,11 @@ class PromptProcessDevice:
                 # Tell DMCS we are ready
                 result = self.accept_job(input_params['ACK_ID'],job_num)
             else:
-                # FIX remove this torpid set of code and simply raise an L1Exception
-                result = self.ncsa_no_response(input_params)
                 idle_params = {'STATE': 'IDLE'}
                 self.FWD_SCBD.set_forwarder_params(needed_forwarders, idle_params)
-                return result
+                self.send_fault("No RESPONSE FROM NCSA FOREMAN", 
+                                 self.NCSA_NO_RESPONSE, job_num, self.COMPONENT_NAME)
+                raise L1NcsaForemanError("No Response From NCSA Foreman")
 
         else:
             result = self.ncsa_no_response(input_params)
@@ -305,44 +308,6 @@ class PromptProcessDevice:
             self._base_publisher.publish_message(self.FWD_SCBD.get_routing_key(forwarder), msg_params)
 
         return timed_ack
-
-
-    def insufficient_base_resources(self, params, healthy_forwarders):
-        # send response msg to dmcs refusing job
-        job_num = str(params[JOB_NUM])
-        raft_list = params[RAFTS]
-        ack_id = params['ACK_ID']
-        needed_workers = len(raft_list)
-        LOGGER.info('Reporting to DMCS that there are insufficient healthy forwarders for job #%s', job_num)
-        dmcs_params = {}
-        fail_dict = {}
-        dmcs_params[MSG_TYPE] = NEW_JOB_ACK
-        dmcs_params['COMPONENT'] = self.COMPONENT_NAME
-        dmcs_params[JOB_NUM] = job_num
-        dmcs_params[ACK_BOOL] = False
-        dmcs_params[ACK_ID] = ack_id
-
-        ### NOTE FOR DMCS ACK PROCESSING:
-        ### if ACK_BOOL == True, there will NOT be a FAIL_DETAILS section
-        ### If ACK_BOOL == False, there will always be a FAIL_DICT to examine AND there will always be a 
-        ###   BASE_RESOURCES inside the FAIL_DICT
-        ### If ACK_BOOL == False, and the BASE_RESOURCES inside FAIL_DETAILS == 0,
-        ###   there will be only NEEDED and AVAILABLE Forwarder params - nothing more
-        ### If ACK_BOOL == False and BASE_RESOURCES inside FAIL_DETAILS == 1, there will always be a 
-        ###   NCSA_RESOURCES inside FAIL_DETAILS set to either 0 or 'NO_RESPONSE'
-        ### if NCSA_RESPONSE == 0, there will be NEEDED and AVAILABLE Distributor params
-        ### if NCSA_RESOURCES == 'NO_RESPONSE' there will be nothing else 
-        fail_dict['BASE_RESOURCES'] = '0'
-        fail_dict[NEEDED_FORWARDERS] = str(needed_workers)
-        fail_dict[AVAILABLE_FORWARDERS] = str(len(healthy_forwarders))
-        dmcs_params['FAIL_DETAILS'] = fail_dict
-        self._base_publisher.publish_message("dmcs_ack_consume", dmcs_params)
-        # mark job refused, and leave Forwarders in Idle state
-        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "JOB_ABORTED")
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ABORTED_BASE_RESOURCES", get_timestamp())
-        idle_state = {"STATE": "IDLE"}
-        self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_state)
-        return False
 
 
     def divide_work(self, fwdrs_list, ccd_list):
@@ -455,22 +420,6 @@ class PromptProcessDevice:
         self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ACCEPTED", get_timestamp())
         self._base_publisher.publish_message("dmcs_ack_consume", dmcs_message)
         return True
-
-
-    def ncsa_no_response(self,params):
-        #No answer from NCSA...
-        job_num = str(params[JOB_NUM])
-        ccd_list = params['CCD_LIST']
-        needed_workers = len(ccd_list)
-        dmcs_params = {}
-        dmcs_params[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
-        dmcs_params['COMPONENT'] = self.COMPONENT_NAME
-        dmcs_params[JOB_NUM] = job_num 
-        dmcs_params[ACK_BOOL] = False
-        dmcs_params[BASE_RESOURCES] = '1'
-        dmcs_params[NCSA_RESOURCES] = 'NO_RESPONSE'
-        self._base_publisher.publish_message("dmcs_ack_consume", dmcs_params )
-
 
 
     def process_dmcs_readout(self, params):
@@ -619,6 +568,7 @@ class PromptProcessDevice:
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
+            self.DMCS_FAULT_QUEUE = cdm[ROOT]['DMCS_FAULT_QUEUE']
             self._policy_max_ccds_per_fwdr = int(cdm[ROOT]['POLICY']['MAX_CCDS_PER_FWDR'])
         except KeyError as e:
             LOGGER.critical("CDM Dictionary Key error")
@@ -711,6 +661,15 @@ class PromptProcessDevice:
             LOGGER.error('PP_Device init unable to complete setup_scoreboards: %s" % e.arg)
             print('PP_Device unable to complete setup_scoreboards: %s" % e.arg)
             sys.exit(self.ErrorCodePrefix + 10)
+
+    def send_fault(error_string, error_code, job_num, component_name):
+        msg = {}
+        msg['MSG_TYPE'] = 'FAULT'
+        msg['COMPONENT' = component_name
+        msg['JOB_NUM'] = job_num
+        msg['ERROR_CODE'] = str(error_code)
+        msg["DESCRIPTION"] = error_string
+        self._base_publisher.publish_message(self.DMCS_FAULT_QUEUE, msg)
 
 
     def purge_broker(self, queues):

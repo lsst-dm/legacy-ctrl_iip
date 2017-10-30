@@ -729,3 +729,12 @@ ROOT:
         ANGLE: 
         NUM_EXPOSURES: 
         EXPOSURE_TIMES: 
+
+    FAULT:
+        MSG_TYPE: FAULT
+        COMPONENT: 
+        JOB_NUM:
+        ERROR_CODE: (string)
+        DESCRIPTION: (string)
+
+

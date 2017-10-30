@@ -133,6 +133,7 @@ class L1Exception(Exception):
 # Error Codes
 # Suffixes (Two least significant digits)
 # 01 - Threading error
+# 05 - No Response error
 # 10 - General Scoreboard init error
 # 11 - Rabbit Connection error
 # 12 - Redis Connection Error
@@ -163,6 +164,11 @@ class L1RedisError(L1Exception):
 
 class L1RabbitConnectionError(L1Exception):
     """ Raise when unable to connect to rabbit """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1NcsaForemanError(L1Error):
+    """ Raise for general Archive Foreman error """
     def __init__(self, arg): 
         self.errormsg = arg
 
