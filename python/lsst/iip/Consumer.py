@@ -39,7 +39,7 @@ class Consumer(threading.Thread):
     QUEUE = 'text'
     ROUTING_KEY = 'example.text'
 
-    def __init__(self, amqp_url, queue, name, callback, formatOptions, test_val):
+    def __init__(self, amqp_url, queue, name, callback, formatOptions, shutdown_event):
         threading.Thread.__init__(self, group=None, target=None, name=name)
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
@@ -58,7 +58,7 @@ class Consumer(threading.Thread):
         #self._message_callback = None
         self.QUEUE = queue
         self.ROUTING_KEY = queue
-        self.test_val = test_val
+        self.shutdown_event = shutdown_event
         self._xml_handler = None 
         self._yaml_handler = None 
         self._format_options = formatOptions
@@ -345,7 +345,16 @@ class Consumer(threading.Thread):
 
         """
         self._connection = self.connect()
-        self._connection.ioloop.start()
+
+        while (1):
+            if self.shutdown_event.isSet():
+                break
+
+        LOGGER.info('Stopping Consumer %s' % )
+        self._closing = True
+        self.stop_consuming()
+            
+        #self._connection.ioloop.start()
 
     def stop(self):
         """Cleanly shutdown the connection to RabbitMQ by stopping the consumer
