@@ -597,6 +597,8 @@ class PromptProcessDevice:
                                             self._sub_ncsa_passwd + "@" + \
                                             str(self._ncsa_broker_addr)
 
+        self.shutdown_event = threading.Event()
+
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
         kws = {}
@@ -628,7 +630,7 @@ class PromptProcessDevice:
         kws[md['name']] = md
 
         try:
-            self.thread_manager = ThreadManager('thread-manager', kws)
+            self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
             self.thread_manager.start()
         except ThreadError as e:
             LOGGER.error("PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
@@ -677,14 +679,23 @@ class PromptProcessDevice:
             os.system(cmd)
 
 
+    def shutdown(self):
+        LOGGER.debug("PromptProcessDevice: Shutting down Consumer threads.")
+        self.shutdown_event.set()
+        LOGGER.debug("Thread Manager shutting down and app exiting...")
+        #sys.exit(0)
+        os._exit(0)
+
+
 def main():
     logging.basicConfig(filename='logs/PromptProcess.log', level=logging.DEBUG, format=LOG_FORMAT)
-    b_fm = PromptProcessDevice()
+    pp_fm = PromptProcessDevice()
     print("Beginning PromptProcessDevice event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
+        pp_fm.shutdown()
         pass
 
     print("")

@@ -26,6 +26,7 @@ logging.basicConfig(filename='logs/ARCHIVE_TEST.log', level=logging.INFO, format
 
 class TestArDev:
     ardev = ArchiveDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ar.yaml')
+    shutdown_event = threading.Event()
 
     dmcs_pub_broker_url = None
     dmcs_publisher = None
@@ -63,8 +64,7 @@ class TestArDev:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
             print(emsg + trace)
-            sys.exit(101)
-    
+            raise  
         broker_addr = cdm[ROOT]['BASE_BROKER_ADDR']
     
         dmcs_name = cdm[ROOT]['DMCS_BROKER_NAME']
@@ -125,22 +125,22 @@ class TestArDev:
         self._msg_auth = MessageAuthority()
 
         self.dmcs_consumer = Consumer(dmcs_broker_url,'dmcs_ack_consume', 'thread-dmcs',
-                                     self.on_dmcs_message,'YAML', None)
+                                     self.on_dmcs_message,'YAML', self.shutdown_event)
         self.dmcs_consumer.start()
 
 
         self.ar_ctrl_consumer = Consumer(ar_ctrl_broker_url,'archive_ctrl_consume', 'thread-ar-ctrl', 
-                                    self.on_ar_ctrl_message,'YAML', None)
+                                    self.on_ar_ctrl_message,'YAML', self.shutdown_event)
         self.ar_ctrl_consumer.start()
 
 
         self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
-                                    self.on_f1_message,'YAML', None)
+                                    self.on_f1_message,'YAML', self.shutdown_event)
         self.F1_consumer.start()
 
 
         self.F2_consumer = Consumer(F2_broker_url,'f2_consume', 'thread-f2', 
-                                    self.on_f2_message,'YAML', None)
+                                    self.on_f2_message,'YAML', self.shutdown_event)
         self.F2_consumer.start()
 
         sleep(3)
@@ -148,13 +148,19 @@ class TestArDev:
 
         self.send_messages()
         sleep(8)
-        self.verify_ar_ctrl_messages()
         self.verify_dmcs_messages()
+        self.verify_ar_ctrl_messages()
         self.verify_F1_messages()
         self.verify_F2_messages()
-
+        sleep(6)
         print("Finished with AR tests.")
+        """
+        try:
+            self.ardev.shutdown()
+        except SystemExit as e:
+            pass
         #sys.exit(0)
+        """
 
 
     def send_messages(self):

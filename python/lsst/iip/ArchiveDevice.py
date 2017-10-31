@@ -732,6 +732,9 @@ class ArchiveDevice:
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
+        self.shutdown_event = threading.Event()
+        self.shutdown_event.clear()
+
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
@@ -763,7 +766,7 @@ class ArchiveDevice:
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', kws)
+        self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
     def setup_scoreboards(self):
@@ -780,6 +783,14 @@ class ArchiveDevice:
         self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
 
+    def shutdown(self):
+        LOGGER.info("Shutting down Consumer threads.")
+        self.shutdown_event.set()
+        LOGGER.debug("Thread Manager shutting down and app exiting...")
+        #sys.exit(0)
+        os._exit(0)
+
+
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     a_fm = ArchiveDevice()
@@ -788,6 +799,7 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        a_fm.shutdown()
         pass
 
     print("")

@@ -420,6 +420,8 @@ class NcsaForeman:
                                             self._sub_ncsa_passwd + "@" + \
                                             str(self._ncsa_broker_addr)
 
+        self.shutdown_event = threading.Event()
+
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
         kws = {}
@@ -454,6 +456,12 @@ class NcsaForeman:
         self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
 
 
+    def shutdown(self):
+        LOGGER.debug("NCSA Foreman: Shutting down Consumer threads.")
+        self.shutdown_event.set()
+        LOGGER.debug("Thread Manager shutting down and app exiting...")
+        sys.exit(0)
+
 
 def main():
     logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=LOG_FORMAT)
@@ -463,6 +471,7 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        n_fm.shutdown()
         pass
 
     print("")

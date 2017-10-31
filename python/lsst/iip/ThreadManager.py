@@ -18,6 +18,7 @@ class ThreadManager(threading.Thread):
         self.running_threads = []
         self.shutdown_event = shutdown_event
         self.consumer_shutdown_event = threading.Event()
+        self.consumer_shutdown_event.clear()
 
         #self.consumer_kwargs = deepcopy(kwargs)
         self.consumer_kwargs = kwargs
@@ -36,7 +37,6 @@ class ThreadManager(threading.Thread):
         threadname = consumer_params['name']
         callback = consumer_params['callback']
         format = consumer_params['format']
-        test_val = consumer_params['test_val']
 
         new_thread = Consumer(url, q, threadname, callback, format, self.consumer_shutdown_event)
         new_thread.start()
@@ -49,13 +49,13 @@ class ThreadManager(threading.Thread):
         sleep(2)
         try:
             while 1:
-                # self.get_next_backlog_item() ???
+                # self.get_next_backlog_item() 
                 if self.shutdown_event.isSet():
                     self.shutdown_consumers()
                     break
                 sleep(1)
                 self.check_thread_health()
-                # self.resolve_non-blocking_acks() ???
+                # self.resolve_non-blocking_acks() 
         except KeyboardInterrupt:
             pass
 
@@ -82,6 +82,7 @@ class ThreadManager(threading.Thread):
         num_threads = len(self.running_threads)
         for i in range (0, num_threads):
             LOGGER.info("Shutting down consumer %s" % self.running_threads[i].name)
+            sleep(1)
             self.running_threads[i].join()
         LOGGER.info("Consumer threads are shut down.")
 

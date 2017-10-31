@@ -56,6 +56,7 @@ class Consumer(threading.Thread):
         self._url = amqp_url
         self._message_callback = callback
         #self._message_callback = None
+        self.name = name
         self.QUEUE = queue
         self.ROUTING_KEY = queue
         self.shutdown_event = shutdown_event
@@ -345,16 +346,7 @@ class Consumer(threading.Thread):
 
         """
         self._connection = self.connect()
-
-        while (1):
-            if self.shutdown_event.isSet():
-                break
-
-        LOGGER.info('Stopping Consumer %s' % )
-        self._closing = True
-        self.stop_consuming()
-            
-        #self._connection.ioloop.start()
+        self._connection.ioloop.start()
 
     def stop(self):
         """Cleanly shutdown the connection to RabbitMQ by stopping the consumer
