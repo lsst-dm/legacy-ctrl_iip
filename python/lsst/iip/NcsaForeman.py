@@ -17,6 +17,8 @@ from AckScoreboard import AckScoreboard
 from Consumer import Consumer
 from ThreadManager import ThreadManager
 from SimplePublisher import SimplePublisher
+from toolsmod import L1RabbitConnectionError
+from toolsmod import L1RedisError
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -32,6 +34,7 @@ class NcsaForeman:
     ACK_PUBLISH = "ack_publish"
     CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
+    ERROR_CODE_PREFIX = 5500
 
 
     def __init__(self, filename=None):
@@ -422,36 +425,59 @@ class NcsaForeman:
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
-        kws = {}
-        md = {}
-        md['amqp_url'] = ncsa_broker_url
-        md['name'] = 'Thread-ncsa_foreman_ack_publish'
-        md['queue'] = 'ncsa_foreman_ack_publish'
-        md['callback'] = self.on_ack_message
-        md['format'] = "YAML"
-        md['test_val'] = 'test_it'
-        kws[md['name']] = md
+        try: 
+            kws = {}
+            md = {}
+            md['amqp_url'] = ncsa_broker_url
+            md['name'] = 'Thread-ncsa_foreman_ack_publish'
+            md['queue'] = 'ncsa_foreman_ack_publish'
+            md['callback'] = self.on_ack_message
+            md['format'] = "YAML"
+            md['test_val'] = 'test_it'
+            kws[md['name']] = md
 
-        md = {}
-        md['amqp_url'] = base_broker_url
-        md['name'] = 'Thread-ncsa_consume'
-        md['queue'] = 'ncsa_consume'
-        md['callback'] = self.on_pp_message
-        md['format'] = "YAML"
-        md['test_val'] = 'test_it'
-        kws[md['name']] = md
+            md = {}
+            md['amqp_url'] = base_broker_url
+            md['name'] = 'Thread-ncsa_consume'
+            md['queue'] = 'ncsa_consume'
+            md['callback'] = self.on_pp_message
+            md['format'] = "YAML"
+            md['test_val'] = 'test_it'
+            kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', kws)
+            self.thread_manager = ThreadManager('thread-manager', kws)
+        except ThreadError as e: 
+            LOGGER.error("NCSA_FM unable to launch Consumers - Thread Error: %s" % e.arg)
+            print("NCSA_FM unable to launch Consumers - Thread Error: %s" % e.arg) 
+            raise L1ConsumerError("Thread problem preventing Consumer launch: %s" % e.arg) 
+        except Exception as e: 
+            LOGGER.error("NCSA_FM unable to launch Consumers: %s" % e.arg)
+            print("NCSA_FM unable to launch Consumers: %s" % e.arg) 
+            sys.exit(self.ERROR_CODE_PREFIX + 1) 
+        
         self.thread_manager.start()
 
 
     def setup_scoreboards(self):
         # Create Redis Distributor table with Distributor info
-        self.DIST_SCBD = DistributorScoreboard('NCSA_DIST_SCBD', \
-                                               self._scbd_dict['NCSA_DIST_SCBD'], \
-                                               self.distributor_dict)
-        self.JOB_SCBD = JobScoreboard('NCSA_JOB_SCBD', self._scbd_dict['NCSA_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
+        try: 
+            self.DIST_SCBD = DistributorScoreboard('NCSA_DIST_SCBD', \
+                                                   self._scbd_dict['NCSA_DIST_SCBD'], \
+                                                   self.distributor_dict)
+            self.JOB_SCBD = JobScoreboard('NCSA_JOB_SCBD', self._scbd_dict['NCSA_JOB_SCBD'])
+            self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
+        except L1RabbitConnectionError as e: 
+            LOGGER.error("NCSA_FM unable to complete setup_scoreboards - No rabbit Connection: %s" % e.arg) 
+            print("NCSA_FM unable to complete setup_scoreboards - No rabbit Connection: %s" % e.arg) 
+            sys.exit(self.ERROR_CODE_PREFIX + 11) 
+        except L1RedisError as e: 
+            LOGGER.error("NCSA_FM unable to complete setup_scoreboards - No redis Connection: %s" % e.arg) 
+            print("NCSA_FM unable to complete setup_scoreboards - No redis Connection: %s" % e.arg) 
+            sys.exit(self.ERROR_CODE_PREFIX + 11) 
+        except Exception as e: 
+            LOGGER.error("NCSA_FM unable to complete setup_scoreboards: %s" % e.arg) 
+            print("NCSA_FM unable to complete setup_scoreboards: %s" % e.arg) 
+            sys.exit(self.ERROR_CODE_PREFIX + 11) 
 
 
 

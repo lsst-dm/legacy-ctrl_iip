@@ -71,6 +71,7 @@ class TestNcsa:
         pp_pub_broker_url = "amqp://" + pp_pub_name + ":" + \
                                     pp_pub_passwd + "@" + \
                                     broker_addr
+        print("PP_PUB: %s" % pp_pub_broker_url) 
         self.pp_publisher = SimplePublisher(pp_pub_broker_url, "YAML")
     
         D1_name = 'D1'
@@ -83,6 +84,7 @@ class TestNcsa:
         D1_pub_broker_url = "amqp://" + D1_pub_name + ":" + \
                                     D1_pub_passwd + "@" + \
                                     broker_addr
+        print("D1_pub: %s" % D1_pub_broker_url) 
         self.d1_publisher = SimplePublisher(D1_pub_broker_url, "YAML")
    
         D2_name = 'D2'
@@ -95,6 +97,8 @@ class TestNcsa:
         D2_pub_broker_url = "amqp://" + D2_pub_name + ":" + \
                                     D2_pub_passwd + "@" + \
                                     broker_addr
+        print("D2_pub: %s" % D2_pub_broker_url) 
+        self.d1_publisher = SimplePublisher(D1_pub_broker_url, "YAML")
         self.d2_publisher = SimplePublisher(D2_pub_broker_url, "YAML")
    
  

@@ -110,6 +110,7 @@ class TestDMCS_AR:
         sleep(3)
         self.verify_ocs_messages()
         sleep(7)
+        print("AR_MSG: %s" % self.ar_consumer_msg_list)
         self.verify_ar_messages()
 
         sleep(2)
