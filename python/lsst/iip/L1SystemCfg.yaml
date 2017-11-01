@@ -141,14 +141,14 @@ ROOT:
         CONSUME_QUEUE: f2_consume
         PUBLISH_QUEUE: pp_foreman_ack_publish
 
-      FORWARDER_3:
-        NAME: F3
-        HOSTNAME: lsst-wf-base03.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.163
-        STATE: IDLE
-        CONSUME_QUEUE: f3_consume
-        PUBLISH_QUEUE: pp_foreman_ack_publish
-
+#      FORWARDER_3:
+#        NAME: F3
+#        HOSTNAME: lsst-wf-base03.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.238.163
+#        STATE: IDLE
+#        CONSUME_QUEUE: f3_consume
+#        PUBLISH_QUEUE: pp_foreman_ack_publish
+#
 #      FORWARDER_4:
 #        NAME: F4
 #        HOSTNAME: lsst-wf-base04.ncsa.illinois.edu  

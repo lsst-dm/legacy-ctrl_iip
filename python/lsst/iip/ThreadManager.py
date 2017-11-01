@@ -77,13 +77,12 @@ class ThreadManager(threading.Thread):
 
 
     def shutdown_consumers(self):
-        self.consumer_shutdown_event.set()
-        sleep(1.5)
         num_threads = len(self.running_threads)
         for i in range (0, num_threads):
+            LOGGER.info("Stopping rabbit connection in consumer %s" % self.running_threads[i].name)
+            self.running_threads[i].stop()
+        for i in range (0, num_threads):
             LOGGER.info("Shutting down consumer %s" % self.running_threads[i].name)
-            sleep(1)
             self.running_threads[i].join()
-        LOGGER.info("Consumer threads are shut down.")
 
 
