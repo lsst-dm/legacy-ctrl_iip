@@ -25,13 +25,16 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lin
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
-class TestDMCS_AR:
-##    LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) ' \
-#                  '-35s %(lineno) -5d: %(message)s')
-    LOGGER = logging.getLogger(__name__)
-#    logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
-
+@pytest.fixture(scope='session')
+def Dmcs(request):
+    #return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
     dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+    request.addfinalizer(dmcs.shutdown)
+    return dmcs
+
+class TestDMCS_AR:
+
+    #dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
     ocs_pub_broker_url = None
     ocs_publisher = None
@@ -48,10 +51,11 @@ class TestDMCS_AR:
 
     ccd_list = [14,17,21.86]
     prp = toolsmod.prp
-    DP = False  #Debug print
+    DP = toolsmod.DP  #Debug print
 
 
-    def test_dmcs(self):
+    def test_dmcs(self, Dmcs):
+        self.dmcs = Dmcs
         #logging.warning("Logging is Working!")
         LOGGER.critical("LOGGING is Working!")
         #self.LOGGER.info("self Logging is Working!")
@@ -109,12 +113,17 @@ class TestDMCS_AR:
         self.send_messages()
         sleep(3)
         self.verify_ocs_messages()
-        sleep(7)
+        sleep(3)
         self.verify_ar_messages()
 
         sleep(2)
+        self.ocs_consumer.stop()
+        self.ocs_consumer.join()
+        self.ar_consumer.stop()
+        self.ar_consumer.join()
         if self.DP:
             print("Finished with DMCS AR tests.")
+        
 
 
     def send_messages(self):
@@ -151,10 +160,11 @@ class TestDMCS_AR:
             print("Sending AR DISABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
 
-        sleep(4.0)
+        sleep(2.0)
         # Make sertain scoreboard values are being set
         if self.DP:
             print("Checking State Scoreboard entries.")
+        #assert self.dmcs.STATE_SCBD.get_archive_state() == 'DISABLE'
         assert self.dmcs.STATE_SCBD.get_archive_state() == 'DISABLE'
       
       
@@ -169,7 +179,8 @@ class TestDMCS_AR:
             print("Sending AR ENABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
-        sleep(4.0)
+        sleep(2.0)
+        #assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
         assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
 
         msg = {}

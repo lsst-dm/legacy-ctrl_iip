@@ -38,6 +38,7 @@ class ArchiveDevice:
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
     START_INTEGRATION_XFER_PARAMS = {}
     prp = toolsmod.prp
+    DP = toolsmod.DP
 
 
     def __init__(self, filename=None):

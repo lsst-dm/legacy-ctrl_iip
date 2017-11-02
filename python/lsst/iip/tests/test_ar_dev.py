@@ -55,6 +55,7 @@ class TestArDev:
 
     ccd_list = [14,17,21.86]
     prp = toolsmod.prp
+    DP = toolsmod.DP  # Debug Printing either True or False...override for this file only...
 
 
     def test_ardev(self):

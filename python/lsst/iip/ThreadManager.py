@@ -81,8 +81,8 @@ class ThreadManager(threading.Thread):
         for i in range (0, num_threads):
             LOGGER.info("Stopping rabbit connection in consumer %s" % self.running_threads[i].name)
             self.running_threads[i].stop()
-        for i in range (0, num_threads):
             LOGGER.info("Shutting down consumer %s" % self.running_threads[i].name)
             self.running_threads[i].join()
+            sleep(0.5)
 
 

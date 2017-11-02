@@ -10,7 +10,7 @@ from subprocess import call
 import time
 import datetime
 from time import sleep
-#import _thread
+from threading import ThreadError
 import threading
 from ThreadManager import ThreadManager
 from const import *
@@ -57,6 +57,7 @@ class DMCS:
     ACK_CONSUMER_THREAD = "ack_consumer_thread"
     ERROR_CODE_PREFIX = 5500
     prp = toolsmod.prp
+    DP = toolsmod.DP
 
 
     def __init__(self, filename=None):
@@ -1178,6 +1179,8 @@ class DMCS:
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
+        self.shutdown_event = threading.Event()
+        self.shutdown_event.clear()
 
         # Set up kwargs that describe consumers to be started
         # The DMCS needs two message consumers
@@ -1202,7 +1205,7 @@ class DMCS:
             md['test_val'] = None
             kws[md['name']] = md
 
-            self.thread_manager = ThreadManager('thread-manager', kws)
+            self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         except ThreadError as e:
             LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.arg)
             print("DMCS unable to launch Consumers - Thread Error: %s" % e.arg)
@@ -1281,6 +1284,13 @@ class DMCS:
         # Exit?
         pass
 
+    def shutdown(self):
+        LOGGER.info("Shutting down Consumer threads.")
+        self.shutdown_event.set()
+        LOGGER.debug("Thread Manager shutting down and app exiting...")
+        #sys.exit(0)
+        print("\n")
+        os._exit(0)
 
 
 def main():
