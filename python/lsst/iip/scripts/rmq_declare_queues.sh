@@ -4,8 +4,9 @@
 
 echo "Queue Declarations started ..." 
 
-rabbitmqadmin declare exchange name=message type=direct durable=true --vhost=/bunny -u DMCS -p DMCS
-rabbitmqadmin declare exchange name=message type=direct durable=true --vhost=/test -u DMCS -p DMCS
+#rabbitmqadmin declare exchange name=message type=direct durable=true --vhost=/bunny -u DMCS -p DMCS
+#rabbitmqadmin declare exchange name=message type=direct durable=true --vhost=/test -u DMCS -p DMCS
+rabbitmqadmin declare exchange name=message type=direct durable=true --vhost=/test_hk -u DMCS -p DMCS
 declare -a queues=( "ar_foreman_consume"
                     "pp_foreman_consume"
                     "cu_foreman_consume"
@@ -31,13 +32,14 @@ declare -a queues=( "ar_foreman_consume"
 
 for i in ${queues[@]}
 do
-    rabbitmqadmin declare queue name=$i durable=true --vhost=/bunny -u DMCS -p DMCS
-    rabbitmqadmin declare binding source=message destination_type=queue destination=$i routing_key=$i --vhost=/bunny -u DMCS -p DMCS
+    #rabbitmqadmin declare queue name=$i durable=true --vhost=/bunny -u DMCS -p DMCS
+    #rabbitmqadmin declare binding source=message destination_type=queue destination=$i routing_key=$i --vhost=/bunny -u DMCS -p DMCS
+
+    #rabbitmqadmin declare queue name=$i durable=true --vhost=/test -u DMCS -p DMCS
+    #rabbitmqadmin declare binding source=message destination_type=queue destination=$i routing_key=$i --vhost=/test -u DMCS -p DMCS
+
+    rabbitmqadmin declare queue name=$i durable=true --vhost=/test_hk -u DMCS -p DMCS
+    rabbitmqadmin declare binding source=message destination_type=queue destination=$i routing_key=$i --vhost=/test_hk -u DMCS -p DMCS
 done
 
-for i in ${queues[@]}
-do
-    rabbitmqadmin declare queue name=$i durable=true --vhost=/test -u DMCS -p DMCS
-    rabbitmqadmin declare binding source=message destination_type=queue destination=$i routing_key=$i --vhost=/test -u DMCS -p DMCS
-done
 echo "XXX DONE." 
