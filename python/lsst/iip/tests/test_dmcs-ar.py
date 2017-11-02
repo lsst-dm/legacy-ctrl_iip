@@ -32,6 +32,7 @@ class TestDMCS_AR:
 #    logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
     dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+    sleep(7)
 
     ocs_pub_broker_url = None
     ocs_publisher = None
@@ -48,7 +49,7 @@ class TestDMCS_AR:
 
     ccd_list = [14,17,21.86]
     prp = toolsmod.prp
-    DP = False  #Debug print
+    DP = toolsmod.DP  #Debug print
 
 
     def test_dmcs(self):
@@ -88,6 +89,8 @@ class TestDMCS_AR:
                                     ar_pub_passwd + "@" + \
                                     broker_addr
         self.ar_publisher = SimplePublisher(self.ar_pub_broker_url, "YAML")
+
+        sleep(4)
     
         # Must be done before consumer threads are started
         # This is used for verifying message structure
@@ -112,7 +115,6 @@ class TestDMCS_AR:
         sleep(7)
         print("AR_MSG: %s" % self.ar_consumer_msg_list)
         self.verify_ar_messages()
-
         sleep(2)
         if self.DP:
             print("Finished with DMCS AR tests.")
@@ -136,18 +138,18 @@ class TestDMCS_AR:
         msg['CFG_KEY'] = "2C16"
         msg['ACK_ID'] = 'AR_4'
         msg['ACK_DELAY'] = 2
-        time.sleep(2)
+        time.sleep(5)
         if self.DP:
             print("Sending AR STANDBY")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
+
         msg = {}
         msg['MSG_TYPE'] = "DISABLE"
         msg['DEVICE'] = 'AR'
         msg['CMD_ID'] = '17718411'
         msg['ACK_ID'] = 'AR_6'
         msg['ACK_DELAY'] = 2
-        time.sleep(2)
+        time.sleep(5)
         if self.DP:
             print("Sending AR DISABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
@@ -294,10 +296,18 @@ class TestDMCS_AR:
 
     def on_ocs_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("Incoming test ocs consumer:")
+            self.prp.pprint(body)
+            print("-----------------------\n\n")
         self.ocs_consumer_msg_list.append(body)
 
  
     def on_ar_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("Incoming test AR consumer:")
+            self.prp.pprint(body)
+            print("-----------------------\n\n")
         self.ar_consumer_msg_list.append(body)
 

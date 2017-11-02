@@ -15,6 +15,7 @@ def singleton(object, instantiated=[]):
 
 
 prp = pprint.PrettyPrinter(indent=4)
+DP = False  #Set to True for Debug Printing
 
 def intake_yaml_file(filename):
     try:

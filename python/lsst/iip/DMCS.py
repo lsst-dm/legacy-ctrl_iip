@@ -10,7 +10,7 @@ from subprocess import call
 import time
 import datetime
 from time import sleep
-#import _thread
+from threading import ThreadError
 import threading
 from ThreadManager import ThreadManager
 from const import *
@@ -57,6 +57,7 @@ class DMCS:
     ACK_CONSUMER_THREAD = "ack_consumer_thread"
     ERROR_CODE_PREFIX = 5500
     prp = toolsmod.prp
+    DP = True
 
 
     def __init__(self, filename=None):
@@ -78,6 +79,7 @@ class DMCS:
         if filename != None:
             self._config_file = filename
 
+        #self._next_timed_ack_id = 0
         LOGGER.info('Extracting values from Config dictionary')
         self.extract_config_values()
 
@@ -205,6 +207,10 @@ class DMCS:
 
             :return: None.
         """
+        if self.DP:
+            print("in on_ocs_message - receiving following message:")
+            self.prp.pprint(msg_dict)
+            print("\n\n") 
         try: 
             ch.basic_ack(method.delivery_tag)
             LOGGER.info('Processing message in OCS message callback')
@@ -406,10 +412,13 @@ class DMCS:
         print("NEXT VISIT IN") 
         # First, get dict of devices in Enable state with their consume queues
         visit_id = params['VISIT_ID']
+        print("Just before set_visit call")
         self.STATE_SCBD.set_visit_id(visit_id)
+        print("Just before get_devices_by_state call in process_next_visit_event")
         enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
         LOGGER.debug("Enabled device list is:")
         LOGGER.debug(enabled_devices)
+        print("Before get_current_session call")
         session_id = self.STATE_SCBD.get_current_session()
 
         print("ENABLED_DEV: %s" % enabled_devices)
@@ -1007,6 +1016,8 @@ class DMCS:
             print("DMCS unable to launch Consumers: %s" % e.arg)
             sys.exit(self.ERROR_CODE_PREFIX + 1) 
 
+        if self.DP:
+            print("Starting ThreadManager") 
         self.thread_manager.start()
          
 

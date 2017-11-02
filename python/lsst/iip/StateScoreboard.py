@@ -285,10 +285,10 @@ class StateScoreboard(Scoreboard):
     def set_visit_id(self, visit_id):
         if self.check_connection():
             self._redis.lpush(self.VISIT_ID_LIST, visit_id)
-            params = {}
-            params['SUB_TYPE'] = 'VISIT'
-            params['VISIT_ID'] = visit_id
-            self.persist(self.build_monitor_data(params))
+            #params = {}
+            #params['SUB_TYPE'] = 'VISIT'
+            #params['VISIT_ID'] = visit_id
+            #self.persist(self.build_monitor_data(params))
 
 
     def get_current_visit(self):

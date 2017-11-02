@@ -1,3 +1,4 @@
+import toolsmod
 import threading
 import logging
 from time import sleep
@@ -13,6 +14,7 @@ logging.basicConfig(filename='logs/ThreadManager.log', level=logging.DEBUG, form
 
 
 class ThreadManager(threading.Thread):
+    DP = toolsmod.DP
     def __init__(self, name, kwargs):
         threading.Thread.__init__(self, group=None, target=None, name=name) 
         self.running_threads = []
@@ -44,7 +46,7 @@ class ThreadManager(threading.Thread):
 
     def start_background_loop(self):
         # Time for threads to start and quiesce
-        sleep(2)
+        sleep(3)
         try:
             while 1:
                 # self.get_next_backlog_item() ???
@@ -57,10 +59,17 @@ class ThreadManager(threading.Thread):
 
     def check_thread_health(self):
         num_threads = len(self.running_threads)
+        if self.DP:
+            print("THREAD MANAGER: num_threads is %s" % num_threads)
         for i in range(0, num_threads):
+            sleep(1.5)
             if self.running_threads[i].is_alive():
+                if self.DP:
+                    print("Thread %s is alive right now" % self.running_threads[i].name)
                 continue
             else:
+                if self.DP:
+                    print("Thread with name %s has died. Attempting to restart..." % self.running_threads[i].name)
                 LOGGER.critical("Thread with name %s has died. Attempting to restart..." 
                                  % self.running_threads[i].name)
                 dead_thread_name = self.running_threads[i].name
