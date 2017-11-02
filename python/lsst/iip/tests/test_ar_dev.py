@@ -19,14 +19,17 @@ from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from MessageAuthority import MessageAuthority
 from const import *
-
 from ArchiveDevice import *
 
 logging.basicConfig(filename='logs/ARCHIVE_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
-class TestArDev:
+@pytest.fixture(scope='session')
+def Ardev(request):
     ardev = ArchiveDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ar.yaml')
-    shutdown_event = threading.Event()
+    request.addfinalizer(ardev.shutdown)
+    return ardev
+
+class TestArDev:
 
     dmcs_pub_broker_url = None
     dmcs_publisher = None
@@ -58,7 +61,8 @@ class TestArDev:
     DP = toolsmod.DP  # Debug Printing either True or False...override for this file only...
 
 
-    def test_ardev(self):
+    def test_ardev(self, Ardev):
+        self.ardev = Ardev
         try:
             cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ar.yaml')
         except IOError as e:
@@ -126,22 +130,22 @@ class TestArDev:
         self._msg_auth = MessageAuthority()
 
         self.dmcs_consumer = Consumer(dmcs_broker_url,'dmcs_ack_consume', 'thread-dmcs',
-                                     self.on_dmcs_message,'YAML', self.shutdown_event)
+                                     self.on_dmcs_message,'YAML')
         self.dmcs_consumer.start()
 
 
         self.ar_ctrl_consumer = Consumer(ar_ctrl_broker_url,'archive_ctrl_consume', 'thread-ar-ctrl', 
-                                    self.on_ar_ctrl_message,'YAML', self.shutdown_event)
+                                    self.on_ar_ctrl_message,'YAML')
         self.ar_ctrl_consumer.start()
 
 
         self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
-                                    self.on_f1_message,'YAML', self.shutdown_event)
+                                    self.on_f1_message,'YAML')
         self.F1_consumer.start()
 
 
         self.F2_consumer = Consumer(F2_broker_url,'f2_consume', 'thread-f2', 
-                                    self.on_f2_message,'YAML', self.shutdown_event)
+                                    self.on_f2_message,'YAML')
         self.F2_consumer.start()
 
         sleep(3)
@@ -153,15 +157,17 @@ class TestArDev:
         self.verify_ar_ctrl_messages()
         self.verify_F1_messages()
         self.verify_F2_messages()
-        sleep(6)
-        print("Finished with AR tests.")
-        """
-        try:
-            self.ardev.shutdown()
-        except SystemExit as e:
-            pass
-        #sys.exit(0)
-        """
+        sleep(3)
+        self.dmcs_consumer.stop()
+        self.dmcs_consumer.join()
+        self.ar_ctrl_consumer.stop()
+        self.ar_ctrl_consumer.join()
+        self.F1_consumer.stop()
+        self.F1_consumer.join()
+        self.F2_consumer.stop()
+        self.F2_consumer.join()
+        if self.DP:
+            print("Finished with AR tests.")
 
 
     def send_messages(self):

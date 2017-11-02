@@ -27,14 +27,11 @@ logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LO
 
 @pytest.fixture(scope='session')
 def Dmcs(request):
-    #return DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
     dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
     request.addfinalizer(dmcs.shutdown)
     return dmcs
 
 class TestDMCS_AR:
-
-    #dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
     ocs_pub_broker_url = None
     ocs_publisher = None
@@ -98,12 +95,12 @@ class TestDMCS_AR:
         self._msg_auth = MessageAuthority()
 
         self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'thread-ocs',
-                                     self.on_ocs_message,'YAML', None)
+                                     self.on_ocs_message,'YAML')
         self.ocs_consumer.start()
 
 
         self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'thread-ar', 
-                                    self.on_ar_message,'YAML', None)
+                                    self.on_ar_message,'YAML')
         self.ar_consumer.start()
 
         sleep(3)

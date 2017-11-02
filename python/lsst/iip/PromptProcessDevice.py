@@ -598,6 +598,7 @@ class PromptProcessDevice:
                                             str(self._ncsa_broker_addr)
 
         self.shutdown_event = threading.Event()
+        self.shutdown_event.clear()
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
@@ -683,7 +684,7 @@ class PromptProcessDevice:
         LOGGER.debug("PromptProcessDevice: Shutting down Consumer threads.")
         self.shutdown_event.set()
         LOGGER.debug("Thread Manager shutting down and app exiting...")
-        #sys.exit(0)
+        print("\n")
         os._exit(0)
 
 

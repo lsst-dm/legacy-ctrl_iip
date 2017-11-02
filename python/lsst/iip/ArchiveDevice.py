@@ -788,7 +788,7 @@ class ArchiveDevice:
         LOGGER.info("Shutting down Consumer threads.")
         self.shutdown_event.set()
         LOGGER.debug("Thread Manager shutting down and app exiting...")
-        #sys.exit(0)
+        print("\n")
         os._exit(0)
 
 

@@ -17,8 +17,6 @@ class ThreadManager(threading.Thread):
         threading.Thread.__init__(self, group=None, target=None, name=name) 
         self.running_threads = []
         self.shutdown_event = shutdown_event
-        self.consumer_shutdown_event = threading.Event()
-        self.consumer_shutdown_event.clear()
 
         #self.consumer_kwargs = deepcopy(kwargs)
         self.consumer_kwargs = kwargs
@@ -38,7 +36,7 @@ class ThreadManager(threading.Thread):
         callback = consumer_params['callback']
         format = consumer_params['format']
 
-        new_thread = Consumer(url, q, threadname, callback, format, self.consumer_shutdown_event)
+        new_thread = Consumer(url, q, threadname, callback, format)
         new_thread.start()
         sleep(1)
         return new_thread

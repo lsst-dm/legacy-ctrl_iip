@@ -65,9 +65,14 @@ from DMCS import *
 """
 logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
+@pytest.fixture(scope='session')
+def Dmcs(request):
+    dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+    request.addfinalizer(dmcs.shutdown)
+    return dmcs
+
 
 class TestDMCS_AR_PP:
-    dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
     ocs_pub_broker_url = None
     ocs_publisher = None
@@ -93,7 +98,8 @@ class TestDMCS_AR_PP:
 
 
     
-    def test_dmcs(self):
+    def test_dmcs(self, Dmcs):
+        self.dmcs = Dmcs
         try:
             cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
         except IOError as e:
@@ -147,17 +153,17 @@ class TestDMCS_AR_PP:
 
 
         self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'thread-ocs',
-                                     self.on_ocs_message,'YAML', None)
+                                     self.on_ocs_message,'YAML')
         self.ocs_consumer.start()
 
 
         self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'thread-ar',
-                                    self.on_ar_message,'YAML', None)
+                                    self.on_ar_message,'YAML')
         self.ar_consumer.start()
 
 
         self.pp_consumer = Consumer(pp_broker_url,'pp_foreman_consume', 'thread-pp',
-                                    self.on_pp_message,'YAML', None)
+                                    self.on_pp_message,'YAML')
         self.pp_consumer.start()
 
 
@@ -175,8 +181,13 @@ class TestDMCS_AR_PP:
         self.verify_pp_messages()
 
         sleep(2)
+        self.ocs_consumer.stop()
+        self.ocs_consumer.join()
+        self.ar_consumer.stop()
+        self.ar_consumer.join()
+        self.pp_consumer.stop()
+        self.pp_consumer.join()
         print("Finished with DMCS AR and PP tests.")
-        #sys.exit
 
 
     def send_messages(self):

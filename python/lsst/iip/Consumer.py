@@ -39,7 +39,7 @@ class Consumer(threading.Thread):
     QUEUE = 'text'
     ROUTING_KEY = 'example.text'
 
-    def __init__(self, amqp_url, queue, name, callback, formatOptions, shutdown_event):
+    def __init__(self, amqp_url, queue, name, callback, formatOptions):
         threading.Thread.__init__(self, group=None, target=None, name=name)
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
@@ -59,7 +59,6 @@ class Consumer(threading.Thread):
         self.name = name
         self.QUEUE = queue
         self.ROUTING_KEY = queue
-        self.shutdown_event = shutdown_event
         self._xml_handler = None 
         self._yaml_handler = None 
         self._format_options = formatOptions
