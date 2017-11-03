@@ -1,3 +1,7 @@
+###############################################
+# See README_PYTESTS for testing instructions #
+###############################################
+
 import pika
 import redis
 import yaml
@@ -27,7 +31,7 @@ logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LO
 
 @pytest.fixture(scope='session')
 def Dmcs(request):
-    dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+    dmcs = DMCS('tests/yaml/L1SystemCfg_Test.yaml')
     request.addfinalizer(dmcs.shutdown)
     return dmcs
 
@@ -57,7 +61,7 @@ class TestDMCS_AR:
         LOGGER.critical("LOGGING is Working!")
         #self.LOGGER.info("self Logging is Working!")
         try:
-            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+            cdm = toolsmod.intake_yaml_file('tests/yaml/L1SystemCfg_Test.yaml')
         except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
@@ -301,10 +305,18 @@ class TestDMCS_AR:
 
     def on_ocs_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_dmcs-ar - incoming on_ocs_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.ocs_consumer_msg_list.append(body)
 
  
     def on_ar_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_dmcs-ar - incoming on_ar_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.ar_consumer_msg_list.append(body)
 

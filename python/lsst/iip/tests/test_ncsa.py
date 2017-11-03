@@ -1,3 +1,7 @@
+###############################################
+# See README_PYTESTS for testing instructions #
+###############################################
+
 import pika
 import redis
 import yaml
@@ -48,6 +52,7 @@ class TestNcsa:
 
     ccd_list = [14,17,21,86]
     prp = toolsmod.prp
+    DP = toolsmod.DP
 
 
     def test_ncsa(self):

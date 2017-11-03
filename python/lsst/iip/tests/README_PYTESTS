@@ -1,0 +1,54 @@
+Tests in this directory may be run from one directory above this one (the 'iip' dir)
+using the following command:
+py.test -v -s tests/test_[specific test name here].py
+
+Example:  py.test -v -s tests/test_pp_dev.py
+
+0) This test file works by sending the component to be tested all of the messages
+   it will receive. These messages are stored for verification later.
+   Necessary responses are sent to emulate other components.
+   Some Redis database checks are made as well.
+
+1) The test requires two external servers:
+  A. An AMQP message broker
+      a. There is a script in this directory called TestSetupRabbit.py that sets up
+        the needed virtual hosts and the users, user permissions, and queues.
+      b. The ./yaml/L1SysCfg_Test.yaml file can be customized to set the Rabbit address
+        value and vhost to be used in the BASE_BROKER_ADDR key; plus many other config
+        elements such as component location lists. When the component to be tested
+        is created as a pytest fixture, the component init method accepts a config file
+        to be used. The default is L1SysCfg.yaml in the iip/ (../) directory
+
+   B. The Redis in-memory database. The database instances that are used for
+      each component are also found in L1SysCfg_Test.yaml or a variant
+
+2) These test files test the 'Big Four' components. The Big Four components are:
+   A. DMCS
+   B. ArchiveDevice
+   C. PromptProcessDevice
+   D. NcsaForeman  
+   As stated above, it is possible to include a specific Config file as the only argument 
+   when creating an object 
+
+3) A test file can be used as template for any new component tests. 
+   The component health is checked by verifying the messages and acks the test
+   component sends. To use this file as a template for testing another component,
+   simply create the Consumer objects using the appropriate queues, and then
+   each Consumer plays the role of a component with whom the component being
+   tested must communicate.
+
+4) Every time a consumer receives a message, it stores the message in a class
+   List structure and then responds with the appropriate message.
+
+   When a test file finishes sending messages, messages to each consumer are
+   checked for the correct number of messages received, and each message is verified
+   with the MessageAuthority object to confirm proper message contents. A pytest
+   exception is thrown if an error occurs; thus failing the test.
+
+5) The test allows each component to behave EXACTLY as it will at run time - it
+   is not aware that it is being tested. No special test artifacts exist within
+   component code.
+
+
+LSST Project
+jbparson@illinois.edu

@@ -1,3 +1,7 @@
+###############################################
+# See README_PYTESTS for testing instructions #
+###############################################
+
 import pika
 import redis
 import yaml
@@ -25,7 +29,7 @@ logging.basicConfig(filename='logs/ARCHIVE_TEST.log', level=logging.INFO, format
 
 @pytest.fixture(scope='session')
 def Ardev(request):
-    ardev = ArchiveDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ar.yaml')
+    ardev = ArchiveDevice('tests/yaml/L1SystemCfg_Test_ar.yaml')
     request.addfinalizer(ardev.shutdown)
     return ardev
 
@@ -64,7 +68,7 @@ class TestArDev:
     def test_ardev(self, Ardev):
         self.ardev = Ardev
         try:
-            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ar.yaml')
+            cdm = toolsmod.intake_yaml_file('tests/yaml/L1SystemCfg_Test_ar.yaml')
         except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file

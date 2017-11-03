@@ -1,3 +1,7 @@
+###############################################
+# See README_PYTESTS for testing instructions #
+###############################################
+
 import pika
 import redis
 import yaml
@@ -18,56 +22,13 @@ from SimplePublisher import SimplePublisher
 from MessageAuthority import MessageAuthority
 from const import *
 import toolsmod
-
 from DMCS import *
 
-"""
-0) This test file works be sending the component to be tested all of the messages
-   it will receive. These messages are stored for verification later.
-   Necessary responses are sent to emulate other components. 
-   Some Redis database checks are made as well.
-
-1) The test requires two external servers:
-  A. An AMQP message broker
-      a. There is a script in this directory called TestSetupRabbit.py that sets up
-        the needed virtual hosts and the users, user permissions, and queues.
-      b. The L1SysCfg_Test.yaml file should be edited to set the Rabbit address
-        value and vhost to be used in the BASE_BROKER_ADDR key.
-
-   B. The Redis in-memory database. The database instances that are used for 
-      each component are also found in L1SysCfg_Test.yaml
-
-2) This file tests the DMCS component. It is possible to include a specific
-   Config file as the only argument when creating a DMCS object - for that matter,
-   when creating ANY component object. Here we create the DMCS with the above
-   mentioned L1SysCfg_Test.yaml file. When no argument is supplied at creation,
-   the components use the default L1SysCfg.yaml file found in the iip/ dir.
-
-3) This test file can be used as template for any component tests. Right now,
-   it checks component health by verifying the messages and acks the test 
-   component sends. To use this file as a template for testing another component,
-   simply create the Consumer objects using the appropriate queues, and then
-   each Consumer plays the role of a component that the component being
-   tested communicates with. 
-
-4) Every time a consumer receives a message, it stores the message in a class
-   List structure and then responds with the appropriate message.
-
-   When this test file finishes sending messages, each consumers messages are 
-   are checked for the correct number received, and the messages are verified 
-   with the MessageAuthority obj to confirm proper message contents. An exception 
-   is thrown if an error occurs.
-
-5) This test allows the DMCS component to behave EXACTLY as it will at run time - it
-   is not aware that it is being tested. No special test artifacts exist within 
-   component code.
-
-"""
 logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
 @pytest.fixture(scope='session')
 def Dmcs(request):
-    dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+    dmcs = DMCS('tests/yaml/L1SystemCfg_Test.yaml')
     request.addfinalizer(dmcs.shutdown)
     return dmcs
 
@@ -95,13 +56,14 @@ class TestDMCS_AR_PP:
 
     ccd_list = [14,17,21.86]
     prp = toolsmod.prp
+    DP = toolsmod.DP  # Debug Print
 
 
     
     def test_dmcs(self, Dmcs):
         self.dmcs = Dmcs
         try:
-            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+            cdm = toolsmod.intake_yaml_file('tests/yaml/L1SystemCfg_Test.yaml')
         except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
