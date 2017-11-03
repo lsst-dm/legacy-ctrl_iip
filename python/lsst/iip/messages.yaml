@@ -21,6 +21,7 @@ ROOT:
         MSG_TYPE: START
         DEVICE: AR, PP, or CU
         CMD_ID:
+        ACK_ID: 
         CFG_KEY:
 
     START_ACK:
@@ -35,7 +36,6 @@ ROOT:
         MSG_TYPE: STANDBY
         DEVICE: AR, PP, or CU
         CMD_ID:
-        CFG_KEY:
         ACK_ID:
         
     STANDBY_ACK:
@@ -74,21 +74,6 @@ ROOT:
         ACK_BOOL:
         ACK_STATEMENT:
 
-    SET_VALUE:
-        MSG_TYPE: SET_VALUE
-        DEVICE: AR, PP, or CU
-        CMD_ID:
-        VALUE:
-        ACK_ID:
-
-    SET_VALUE_ACK:
-        MSG_TYPE: SET_VALUE_ACK
-        DEVICE: AR, PP, or CU
-        CMD_ID:
-        ACK_ID:
-        ACK_BOOL:
-        ACK_STATEMENT:
-
     EXIT_CONTROL:
         MSG_TYPE: EXIT_CONTROL
         DEVICE: AR, PP, or CU
@@ -107,10 +92,12 @@ ROOT:
         MSG_TYPE: ABORT
         DEVICE: AR, PP, or CU
         ACK_ID:
+        CMD_ID: 
 
     ABORT_ACK:
         MSG_TYPE: ABORT_ACK
         DEVICE: AR, PP, or CU
+        CMD_ID: 
         ACK_ID:
         ACK_BOOL:
         ACK_STATEMENT:
@@ -170,7 +157,7 @@ ROOT:
         DEVICE:
         CURRENT_STATE:
 
-    RECOMMENDED_SETTINGS_VERSION:
+    RECOMMENDED_SETTINGS_VERSION_EVENT:
         MSG_TYPE: RECOMMENDED_SETTINGS_VERSION_EVENT
         DEVICE:
         CFG_KEY: <device>-NORMAL
@@ -583,15 +570,49 @@ ROOT:
             RECEIPT_LIST:
 
 
-#Msg # AR1: Archive Health Check from Base Archive Foreman to Archive Controller 
-#MSG_TYPE: ARCHIVE_HEALTH_CHECK
-#SESSION_ID: num from OCS (if archive wants it...for dir name?
-#ACK_ID: seq. num
-#-------------------------------------------------
-#Msg # AR2: Archive Health Check ACK from Archive Controller to Base Archive Foreman
-#MSG_TYPE: ARCHIVE_HEALTH_CHECK_ACK
-#ACK_BOOL: True or False
-#ACK_ID: return seq. num
+    #Msg # AR1: Archive Health Check from Base Archive Foreman to Archive Controller 
+
+    AR_JOB_PARAMS_ACK: 
+        MSG_TYPE: AR_JOB_PARAMS_ACK
+        ACK_ID: 
+
+    AR_READOUT: 
+        MSG_TYPE: AR_READOUT
+        IMAGE_ID: 
+        ACK_ID:
+
+    AR_READOUT_ACK: 
+        MSG_TYPE: AR_READOUT_ACK
+        JOB_NUM: 
+        IMAGE_ID: 
+        REPLY_QUEUE:
+        ACK_ID:
+        RESULTS: 
+            CCD_LIST:
+                FILENAME:
+                CHECKSUM: 
+
+    AR_ITEMS_XFERD: 
+        MSG_TYPE: AR_ITEMS_XFERD
+        ACK_ID: 
+        IMAGE_ID: 
+        CCD_LIST:
+            FILENAME: 
+            CHECKSUM: 
+
+    AR_ITEMS_XFERD_ACK: 
+        MSG_TYPE: AR_ITEMS_XFERD_ACK
+        IMAGE_ID:
+        ACK_ID:
+        RESULTS_LIST: 
+                CCD: 
+    #SESSION_ID: num from OCS (if archive wants it...for dir name?
+    #ACK_ID: seq. num
+    #-------------------------------------------------
+    #Msg # AR2: Archive Health Check ACK from Archive Controller to Base Archive Foreman
+    #MSG_TYPE: ARCHIVE_HEALTH_CHECK_ACK
+    #ACK_BOOL: True or False
+    #ACK_ID: return seq. num
 
 
     AR_FWDR_HEALTH_CHECK:
@@ -620,6 +641,9 @@ ROOT:
         COMPONENT: ARCHIVE_CTRL
         ACK_ID: return seq. number
         TARGET_DIR: Path of intended location
+        ACK_BOOL: 
+        JOB_NUM: 
+        IMAGE_ID: 
 
 
     AR_FWDR_XFER_PARAMS:
@@ -685,9 +709,14 @@ ROOT:
         IMAGE_ID: 
         ACK_ID: return seq. number
         ACK_BOOL:
-        RESULT_LIST:
+        REPLY_QUEUE:
+        RESULTS:
             CCD_LIST: 
             RECEIPT_LIST: Alphanumeric receipt or 'none' for failure
+        RESULT_LIST: 
+            CCD_LIST:
+            CHECKSUM_LIST:
+            FILENAME_LIST:
 
 
 
@@ -697,14 +726,23 @@ ROOT:
         MSG_TYPE: CCS_START_INTEGRATION 
         IMAGE_NAME: 
 
-    CCS_READOUT: 
-        MSG_TYPE: CCS_READOUT
+    CCS_START_READOUT: 
+        MSG_TYPE: CCS_START_READOUT
 
-    CCS_SHUTTER_CLOSE: 
-        MSG_TYPE: CCS_SHUTTER_CLOSE
+    CCS_END_READOUT: 
+        MSG_TYPE: CCS_END_READOUT
 
-    CCS_SHUTTER_OPEN: 
-        MSG_TYPE: CCS_SHUTTER_OPEN
+    CCS_START_SHUTTER_CLOSE: 
+        MSG_TYPE: CCS_START_SHUTTER_CLOSE
+
+    CCS_START_SHUTTER_OPEN: 
+        MSG_TYPE: CCS_START_SHUTTER_OPEN
+
+    CCS_END_SHUTTER_CLOSE: 
+        MSG_TYPE: CCS_END_SHUTTER_CLOSE
+
+    CCS_END_SHUTTER_OPEN: 
+        MSG_TYPE: CCS_END_SHUTTER_OPEN
 
     CCS_TAKE_IMAGES: 
         MSG_TYPE: CCS_TAKE_IMAGES
@@ -716,25 +754,16 @@ ROOT:
         WFS: 
         IMAGE_SEQUENCE_NAME: 
 
-    SEQ_TARGET_VISIT:
-        MSG_TYPE: SEQ_TARGET_VISIT
+    TCS_TARGET:
+        MSG_TYPE: TCS_TARGET
         TARGET_ID: 
         FIELD_ID: 
         GROUP_ID:
         FILTER:
         REQUEST_TIME:
-        REQUEST_MJD: 
         RA: 
-        DECL: 
+        DEC: 
         ANGLE: 
         NUM_EXPOSURES: 
         EXPOSURE_TIMES: 
-
-    FAULT:
-        MSG_TYPE: FAULT
-        COMPONENT: 
-        JOB_NUM:
-        ERROR_CODE: (string)
-        DESCRIPTION: (string)
-
-
+        SLEW_TIME: 

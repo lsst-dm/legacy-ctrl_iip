@@ -2,16 +2,13 @@ INC	 = -I$(ARCHIVE) -I$(ARCHIVE)/src -I$(CARCHIVE) -I$(CARCHIVE)/src -I$(PCLUSTE
 -I/opt/sal/ts_sal/lsstsal/include\
 -I$(SALPATH)/include/dcps/C++/SACPP\
 -I$(CAMERA) -I$(CAMERA)/src\
--I$(SCHEDULER) -I$(SCHEDULER)/src\
--I$(SALPATH)/examples -I$(SALPATH)/examples/include\
--I/opt/sal/ts_sal/test/scheduler/cpp\
--I/opt/sal/ts_sal/test/scheduler/cpp/src
+-I$(TCS) -I$(TCS)/src\
+-I$(SALPATH)/examples -I$(SALPATH)/examples/include
 SALPATH	 = /opt/sal/ts_opensplice/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux
 LIBSAL	 = /opt/sal/ts_sal/lsstsal/lib
 CC	 = g++
-SOPATH   = /opt/sal/ts_sal/test/archiver/cpp/src/.obj
 LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config -L/usr/local/lib -L/opt/sal/test/dm/cpp
-LDLIBS   = -lsacpp_camera_types -lsacpp_scheduler_types -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
+LDLIBS   = -lsacpp_camera_types -lsacpp_scheduler_types -lsacpp_tcs_types -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
 -l"ddskernel" -l"ddsserialization" -l"ddsconfparser" -l"ddsconf" -l"ddsdatabase" \
 -l"ddsutil" -l"ddsos" -ldl $(subst lib,-l,$(sort $(basename $(notdir $(wildcard /usr/lib/librt.so /lib/librt.so))))) \
 -lpthread -lSimpleAmqpClient
@@ -19,31 +16,37 @@ ARCHIVE  = /opt/sal/ts_sal/test/archiver/cpp
 CARCHIVE = /opt/sal/ts_sal/test/catchuparchiver/cpp
 PCLUSTER = /opt/sal/ts_sal/test/processingcluster/cpp
 CAMERA   = /opt/sal/ts_sal/test/camera/cpp
-SCHEDULER= /opt/sal/ts_sal/test/scheduler_target/cpp
+TCS 	 = /opt/sal/ts_sal/test/tcs/cpp
 CFLAGS   = -g -Wall -c 
 
-all: takeImages startIntegration readout shutterOpen shutterClose schedulerTarget
+all: takeImages startIntegration startReadout endReadout startShutterOpen endShutterOpen startShutterClose endShutterClose tcsTarget
 
-takeImages: sacpp_camera_takeImages_controller.cpp SimplePublisher 
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o takeImages sacpp_camera_takeImages_controller.cpp $(LDLIBS) 
+takeImages: sacpp_camera_takeImages_commander.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o  -Wall -o takeImages sacpp_camera_takeImages_commander.cpp $(LDLIBS) 
 
-startIntegration: sacpp_camera_startIntegration_log.cpp SimplePublisher 
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o startIntegration sacpp_camera_startIntegration_log.cpp $(LDLIBS) 
+startIntegration: sacpp_camera_startIntegration_send.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o  -Wall -o startIntegration sacpp_camera_startIntegration_send.cpp $(LDLIBS) 
 
-readout: sacpp_camera_startReadout_log.cpp SimplePublisher 
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o readout sacpp_camera_startReadout_log.cpp $(LDLIBS) 
+startReadout: sacpp_camera_startReadout_send.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o  -Wall -o startReadout sacpp_camera_startReadout_send.cpp $(LDLIBS) 
 
-shutterOpen: sacpp_camera_startShutterOpen_log.cpp SimplePublisher 
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o shutterOpen sacpp_camera_startShutterOpen_log.cpp $(LDLIBS) 
+endReadout: sacpp_camera_endReadout_send.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o  -Wall -o endReadout sacpp_camera_endReadout_send.cpp $(LDLIBS) 
 
-shutterClose: sacpp_camera_startShutterClose_log.cpp SimplePublisher 
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o SimplePublisher.o -Wall -o shutterClose sacpp_camera_startShutterClose_log.cpp $(LDLIBS) 
+startShutterOpen: sacpp_camera_startShutterOpen_send.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o  -Wall -o startShutterOpen sacpp_camera_startShutterOpen_send.cpp $(LDLIBS) 
 
-schedulerTarget: scheduler_targetDataSubscriber.cpp SimplePublisher 
-	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(SCHEDULER)/standalone/.obj/SAL_scheduler.o $(SCHEDULER)/standalone/.obj/CheckStatus.o SimplePublisher.o -Wall -o schedulerTarget scheduler_targetDataSubscriber.cpp $(LDLIBS) 
+endShutterOpen: sacpp_camera_endShutterOpen_send.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o  -Wall -o endShutterOpen sacpp_camera_endShutterOpen_send.cpp $(LDLIBS) 
 
-SimplePublisher: SimplePublisher.cpp
-	$(CC) -L/usr/local/lib -lSimpleAmqpClient -c -o SimplePublisher.o SimplePublisher.cpp
+startShutterClose: sacpp_camera_startShutterClose_send.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o  -Wall -o startShutterClose sacpp_camera_startShutterClose_send.cpp $(LDLIBS) 
+
+endShutterClose: sacpp_camera_endShutterClose_send.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(CAMERA)/src/.obj/CheckStatus.o  -Wall -o endShutterClose sacpp_camera_endShutterClose_send.cpp $(LDLIBS) 
+
+tcsTarget: sacpp_tcs_target_commander.cpp
+	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(TCS)/src/.obj/SAL_tcs.o $(TCS)/src/.obj/CheckStatus.o  -Wall -o tcsTarget sacpp_tcs_target_commander.cpp $(LDLIBS) 
 
 clean:
 	rm -i *.o CommandListener EventListener AckSubscriber
