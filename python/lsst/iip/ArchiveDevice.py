@@ -37,6 +37,7 @@ class ArchiveDevice:
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
     START_INTEGRATION_XFER_PARAMS = {}
+    CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
     DP = toolsmod.DP
 
@@ -56,7 +57,7 @@ class ArchiveDevice:
         """
         toolsmod.singleton(self)
 
-        self._config_file = 'L1SystemCfg.yaml'
+        self._config_file = self.CFG_FILE
         if filename != None:
             self._config_file = filename
 

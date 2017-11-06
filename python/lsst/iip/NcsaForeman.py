@@ -443,7 +443,7 @@ class NcsaForeman:
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', kws)
+        self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
 
@@ -460,7 +460,8 @@ class NcsaForeman:
         LOGGER.debug("NCSA Foreman: Shutting down Consumer threads.")
         self.shutdown_event.set()
         LOGGER.debug("Thread Manager shutting down and app exiting...")
-        sys.exit(0)
+        print("\n")
+        os._exit(0)
 
 
 def main():
