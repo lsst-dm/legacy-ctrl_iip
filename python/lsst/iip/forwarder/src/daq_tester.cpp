@@ -16,7 +16,7 @@ class daq_tester {
 }; 
 
 daq_tester::daq_tester() { 
-    string broker_addr = "amqp://OCS:OCS@141.142.208.209:5672/%2fbunny"; 
+    string broker_addr = "amqp://OCS:OCS@141.142.238.16o:5672/%2ftest"; 
     string queue_name = "dmcs_ocs_consume"; 
     publisher = new SimplePublisher(broker_addr); 
     consumer = new Consumer(broker_addr, queue_name); 
