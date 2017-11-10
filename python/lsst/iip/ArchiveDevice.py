@@ -19,12 +19,13 @@ from AckScoreboard import AckScoreboard
 from Consumer import Consumer
 from ThreadManager import ThreadManager
 from SimplePublisher import SimplePublisher
+from BaseMgmt import BaseMgmt
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
 
-class ArchiveDevice:
+class ArchiveDevice(BaseMgmt):
     """ The Archive Device is a commandable device which coordinates the ingest of
         images from the telescope camera and then the transfer of those images to
         the base site archive storage.
@@ -635,15 +636,15 @@ class ArchiveDevice:
         return self.JOB_SCBD.get_current_visit()
         
 
-    def ack_timer(self, seconds):
+    #def ack_timer(self, seconds):
         """ Sleeps for user-defined seconds.
 
             :params seconds: Time to sleep in seconds.
 
             :return: True.
         """
-        sleep(seconds)
-        return True
+        #sleep(seconds)
+        #return True
 
 
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
