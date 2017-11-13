@@ -20,6 +20,8 @@ class Scoreboard:
     AUDIT_QUEUE = 'audit_consume'
 
     def __init__(self, file=None):
+        pass
+        """
         if file == None:
             file = 'L1SystemCfg.yaml'
         try:
@@ -45,10 +47,11 @@ class Scoreboard:
             LOGGER.error("Scoreboard Parent Class cannot create SimplePublisher:  ", e.arg)
             print("No Publisher for YOU")
             raise L1Error('Cant create SimplePublisher'. e.arg)
-
+        """
 
     def persist(self, data):
-        self.audit_publisher.publish_message(self.AUDIT_QUEUE, data)
+        pass
+        # self.audit_publisher.publish_message(self.AUDIT_QUEUE, data)
 
 
     def persist_snapshot(self, connection, filename):
