@@ -77,6 +77,9 @@ public:
                             << "-ccd." << ccd_name \ 
                             << "_segment." << c;
           amp_segments[a][b][c].open(fns.str().c_str(), std::ios::out | std::ios::app | std::ios::binary );
+        }
+      }
+    }
   } // End FileManifold constructor
 
 
@@ -88,6 +91,20 @@ public:
                const char* ccd) {
   }
 
+  void close_filehandles(void)
+  {
 
+    for (int a=0; a<3; a++) // REBs
+    {
+      for (int b = 0; b < 3; b++) // CCDs
+      {
+        for (int c = 0; c < 16; c++) // Segments
+        {
+          AMP_SEGMENTS[a][b][c].close();
+        }
+      }
+    }
+
+  }
 
 }

@@ -47,27 +47,30 @@ int main(int argc, char** argv)
 
   std::ofstream amp_segments[3][3][16];
 
-  setup_filehandles(amp_segments);
+  fm = FileManifold(amp_segments); 
 
-  IMS::Store store(PARTITION);
+  //setup_filehandles(amp_segments);
 
-  IMS::Image image(IMAGE, store);
+  //IMS::Store store(PARTITION);
 
-  if DEBUG {image.synopsis();}
+  //IMS::Image image(IMAGE, store);
 
-  DAQ::LocationSet sources = image.sources();
+  //if DEBUG {image.synopsis();}
 
-  DAQ::Location location;
+  //DAQ::LocationSet sources = image.sources();
+
+  //DAQ::Location location;
 
   int board = 0;
 
-  while(sources.remove(location))
-  {
-      reassemble_process(location, image, amp_segments, board);
-      board++;
-  }
+  //while(sources.remove(location))
+  //{
+  //    reassemble_process(location, image, amp_segments, board);
+  //    board++;
+  //}
 
-  close_filehandles(amp_segments);
+  fm.close_filehandles()
+  //close_filehandles(amp_segments);
 
   return EXIT_SUCCESS;
 
