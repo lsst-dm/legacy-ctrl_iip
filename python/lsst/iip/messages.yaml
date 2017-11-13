@@ -572,26 +572,26 @@ ROOT:
 
     #Msg # AR1: Archive Health Check from Base Archive Foreman to Archive Controller 
 
-    AR_JOB_PARAMS_ACK: 
-        MSG_TYPE: AR_JOB_PARAMS_ACK
-        ACK_ID: 
-
-    AR_READOUT: 
-        MSG_TYPE: AR_READOUT
-        IMAGE_ID: 
-        ACK_ID:
-
-    AR_READOUT_ACK: 
-        MSG_TYPE: AR_READOUT_ACK
-        JOB_NUM: 
-        IMAGE_ID: 
-        REPLY_QUEUE:
-        ACK_ID:
-        RESULTS: 
-            CCD_LIST:
-                FILENAME:
-                CHECKSUM: 
-
+#    AR_JOB_PARAMS_ACK: 
+#        MSG_TYPE: AR_JOB_PARAMS_ACK
+#        ACK_ID: 
+#
+#    AR_READOUT: 
+#        MSG_TYPE: AR_READOUT
+#        IMAGE_ID: 
+#        ACK_ID:
+#
+#    AR_READOUT_ACK: 
+#        MSG_TYPE: AR_READOUT_ACK
+#        JOB_NUM: 
+#        IMAGE_ID: 
+#        REPLY_QUEUE:
+#        ACK_ID:
+#        RESULTS: 
+#            CCD_LIST:
+#                FILENAME:
+#                CHECKSUM: 
+#
     AR_ITEMS_XFERD: 
         MSG_TYPE: AR_ITEMS_XFERD
         ACK_ID: 

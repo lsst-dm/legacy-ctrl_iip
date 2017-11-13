@@ -285,9 +285,11 @@ class TestDMCS_AR:
             print("Messages received by verify_ar_messages:")
             self.prp.pprint(self.ar_consumer_msg_list)
         len_list = len(self.ar_consumer_msg_list)
+        if self.DP:
+            print("The number of messages the AR received is %s" % len_list)
         if len_list != self.EXPECTED_AR_MESSAGES:
             if self.DP:
-                print("Messages received by verify_ar_messages:")
+                print("Incorrect msg count. Messages received by verify_ar_messages:")
                 self.prp.pprint(self.ar_consumer_msg_list)
             pytest.fail('AR simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_AR_MESSAGES, len_list))
@@ -297,8 +299,12 @@ class TestDMCS_AR:
             msg = self.ar_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
+                if self.DP:
+                    print("The following message to the AR failed when compared with \
+                                 the sovereign example: %s" % msg)
                 pytest.fail("The following message to the AR failed when compared with \
                              the sovereign example: %s" % msg)
+
         if self.DP:
             print("Messages to the AR pass verification.")
    
