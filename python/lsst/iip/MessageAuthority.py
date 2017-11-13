@@ -16,7 +16,7 @@ class MessageAuthority:
 
     def __init__(self, filename=None):
        self.prp = pprint.PrettyPrinter(indent=4) 
-       self._message_dictionary_file = '/home/FM/src/git/ctrl_iip/python/lsst/iip/messages.yaml'
+       self._message_dictionary_file = './messages.yaml'
        if filename != None:
            self._message_dictionary_file = filename
 
