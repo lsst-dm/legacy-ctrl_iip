@@ -15,17 +15,22 @@
 
 #include "../include/Fetch.h"
 #include "../include/FileManifold.h"
+#include "../include/DMCommon.h"
 
 
 
 Fetch::Fetch() {
 
+  int fd[2];
+  pid_t pid;
   // Establish named pipe connections
 
   // Fork
 
   // Child process begins seeking for files to move from pipe data reads
   // Parent process continues init
+
+
 
 Fetch::readout_image(readout_payload msg) {
   std::ofstream amp_segments[3][3][16];
