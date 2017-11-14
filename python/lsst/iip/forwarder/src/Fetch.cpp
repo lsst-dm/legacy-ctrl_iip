@@ -7,7 +7,6 @@
 
 #include "daq/Location.hh"
 #include "daq/LocationSet.hh"
-
 #include "ims/Store.hh"
 #include "ims/Image.hh"
 #include "ims/Source.hh"
@@ -28,6 +27,7 @@ Fetch::Fetch() {
   // Child process begins seeking for files to move from pipe data reads
   // Parent process continues init
 
+Fetch::readout_image(readout_payload msg) {
   std::ofstream amp_segments[3][3][16];
 
   fm = FileManifold(amp_segments); 

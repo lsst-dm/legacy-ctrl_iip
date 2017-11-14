@@ -27,7 +27,7 @@
 static const char ERROR[] = "A partition and image name are needed for command line argument\n";
 
 
-class Fetch : public Forwarder {
+class Fetch {
     public:
 
     /* Constructor */
@@ -42,6 +42,12 @@ class Fetch : public Forwarder {
     /* Reassemble slices and write to FileManifold */
     reassemble_process(const DAQ::Location&, const IMS::Image&, \
                        std::ofstream amp_segments[][3][16], int board_number);
+
+    /* Child will remain in loop generally... */
+    run_loop();
+
+    /* Where the readout work is done */
+    readout_payload readout_image(readout_payload msg);
 
     /* cleanup by closing all file handles (maybe not necessary with ofstreams) */
     close_filehandles(std::ofstream amp_segments[][3][16]);
