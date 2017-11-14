@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <yaml-cpp/yaml.h>
 
-#include "../include/FileManifold.hh"
+#include "FileManifold.h"
+
 
 //  Names of CCDs and Boards ( Sources) in a raft
 //    ________________
@@ -24,37 +25,15 @@ class FileManifold {
 
 public:
 
+  static const char* DIR_PREFIX;
   std::ofstream AMP_SEGMENTS[3][3][16];
 
   // Fetch entire designated raft
   FileManifold(const char* visit_name, const char* image_name, const char* raft) {
 
-    // Assign DIR_PREFIX to val in cfg file...
-    // do here...for now though, use this default:
-    Node config_file;
-    try {
-        config_file = LoadFile("../../L1SystemCfg.yaml");
-    }
-    catch (YAML::BadFile& e) {
-        cout << "ERROR: L1SystemCfg file not found." << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    Node root;
-    string base_name, base_passwd, base_addr;
-    try {
-        root = config_file["ROOT"];
-        static const char* DIR_PREFIX = root["XFER_COMPONENTS"]["FWDR_DIR_PREFIX"].as<string>();
-        //base_name = root["OCS"]["OCS_NAME"].as<string>();
-        //base_passwd = root["OCS"]["OCS_PASSWD"].as<string>();
-        //base_addr = root["BASE_BROKER_ADDR"].as<string>();
-    }
-    catch (YAML::TypedBadConversion<string>& e) {
-        cout << "ERROR: In L1SystemCfg, cant read ocs username, password or broker address from file." << endl;
-        exit(EXIT_FAILURE);
-    }
-
     //static const char* DIR_PREFIX = "/tmp/gunk/"
+    DIR_PREFIX = get_directory_prefix()
+
 
     char ccd[3][3] = { { "00","01","02"},
                        { "10","11","12"},
@@ -76,7 +55,9 @@ public:
                             << "--" << raft \
                             << "-ccd." << ccd_name \ 
                             << "_segment." << c;
-          amp_segments[a][b][c].open(fns.str().c_str(), std::ios::out | std::ios::app | std::ios::binary );
+
+          amp_segments[a][b][c].open(fns.str().c_str(), \
+                                     std::ios::out | std::ios::app | std::ios::binary );
         }
       }
     }
@@ -84,27 +65,53 @@ public:
 
 
   // Fetch only the designated CCD from the designated source board on the designated raft
-  FileManifold(const char* visit_name, 
+FileManifold::FileManifold(const char* visit_name, 
                const char* image_name, 
                const char* raft, 
                const char* board, 
                const char* ccd) {
+    return;
   }
 
-  void close_filehandles(void)
-  {
-
-    for (int a=0; a<3; a++) // REBs
-    {
-      for (int b = 0; b < 3; b++) // CCDs
-      {
-        for (int c = 0; c < 16; c++) // Segments
-        {
-          AMP_SEGMENTS[a][b][c].close();
+char* FileManifold::get_directory_prefix(void)
+{
+    // Assign DIR_PREFIX to val in cfg file...
+    char dir_prefix[40]; 
+    Node config_file;
+    try {
+         config_file = LoadFile(CFG_FILE);
         }
-      }
-    }
+    catch (YAML::BadFile& e) {
+         cout << "ERROR: Config file not found." << endl;
+         exit(EXIT_FAILURE);
+        }
 
+    Node root;
+    try {
+         root = config_file["ROOT"];
+         dir_prefix = root["XFER_COMPONENTS"]["FWDR_DIR_PREFIX"].as<string>();
+        }
+    catch (YAML::TypedBadConversion<string>& e) {
+        cout << "ERROR: In Config file, cant read FWDR_DIR_PREFIX." << endl;
+        exit(EXIT_FAILURE);
+       }
+
+    return dir_prefix;
+
+
+FileManifold::close_filehandles(void)
+{
+ for (int a=0; a<3; a++) // REBs
+ {
+  for (int b = 0; b < 3; b++) // CCDs
+  {
+   for (int c = 0; c < 16; c++) // Segments
+   {
+    AMP_SEGMENTS[a][b][c].close();
+   }
   }
+ }
+} /* End close_filehandles */
 
-}
+
+} 

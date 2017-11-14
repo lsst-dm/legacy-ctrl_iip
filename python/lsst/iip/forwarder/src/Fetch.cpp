@@ -13,36 +13,19 @@
 #include "ims/Source.hh"
 #include "ims/Slice.hh"
 #include "ims/Science.hh"
-#include "../include/Fetch.hh"
-#include "../include/FileManifold.hh"
 
-
-class FileManifold {
-
-public:
-  // Fetch entire designated raft
-  FileManifold(const char* visit_name, const char* raft)
-
-
-  // Fetch only the designated CCD from the designated source board on the designated raft
-  FileManifold(const char* visit_name, const char* raft, const char* board, const char* ccd)
-
-};
+#include "../include/Fetch.h"
+#include "../include/FileManifold.h"
 
 
 
-
-
-
-
-int main(int argc, char** argv)
-{
+Fetch::Fetch() {
 
   // Establish named pipe connections
 
   // Fork
 
-  // Child process begins seeking for files to move from pipe reads
+  // Child process begins seeking for files to move from pipe data reads
   // Parent process continues init
 
   std::ofstream amp_segments[3][3][16];
