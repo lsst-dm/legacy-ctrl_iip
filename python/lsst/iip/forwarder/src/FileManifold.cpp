@@ -1,3 +1,5 @@
+/* FileManifold.cpp - www.lsst.org */
+
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -21,18 +23,9 @@
 using namespace YAML;
 
 
-class FileManifold {
 
-public:
-
-  static const char* DIR_PREFIX;
-  std::ofstream AMP_SEGMENTS[3][3][16];
-
-  // Fetch entire designated raft
-  FileManifold(const char* visit_name, const char* image_name, const char* raft) {
-
-    //static const char* DIR_PREFIX = "/tmp/gunk/"
-    DIR_PREFIX = get_directory_prefix()
+// Fetch entire designated raft
+FileManiFold::FileManifold(const char* dir_prefix, const char* visit_name, const char* image_name, const char* raft) {
 
 
     char ccd[3][3] = { { "00","01","02"},
@@ -49,54 +42,68 @@ public:
         for (int c = 0; c < 16; c++)  // Segments
         {
           std::ostringstream fns;
-          fns << DIR_PREFIX << visit_name \
+          fns << dir_prefix << visit_name \
                             << "/" \
                             << image_name \
                             << "--" << raft \
                             << "-ccd." << ccd_name \ 
                             << "_segment." << c;
 
-          amp_segments[a][b][c].open(fns.str().c_str(), \
+          AMP_SEGMENTS[a][b][c].open(fns.str().c_str(), \
                                      std::ios::out | std::ios::app | std::ios::binary );
         }
       }
     }
-  } // End FileManifold constructor
+  } // End FileManifold constructor for rafts
 
 
-  // Fetch only the designated CCD from the designated source board on the designated raft
-FileManifold::FileManifold(const char* visit_name, 
+
+// Fetch only the designated CCD from the designated source board on the designated raft
+FileManifold::FileManifold(const char* dir_prefix, 
+               const char* visit_name, 
                const char* image_name, 
                const char* raft, 
-               const char* board, 
                const char* ccd) {
-    return;
+
+
+    // convert ccd into board so source is known
+    int board = (-1)
+    char ccds[3][3] = { { "00","01","02"},
+                       { "10","11","12"},
+                       { "20","21","22"}  };
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0;; j < 3; j++)
+        {
+            if (strcmp(ccd, ccds[i][j]) == 0)
+            {
+                board = i;
+                break;
+            }
+        }
+    }
+
+  if (board == (-1)) /* something went wrong */
+      return;
+
+  for (int c = 0; c < 16; c++)  // Segments
+  {
+    std::ostringstream fns;
+    fns << dir_prefix << visit_name \
+                      << "/" \
+                      << image_name \
+                      << "--" << raft \
+                      << "-ccd." << ccd \ 
+                      << "_segment." << c;
+
+    CCD_SEGMENTS[c].open(fns.str().c_str(), \
+                         std::ios::out | std::ios::app | std::ios::binary );
   }
 
-char* FileManifold::get_directory_prefix(void)
-{
-    // Assign DIR_PREFIX to val in cfg file...
-    char dir_prefix[40]; 
-    Node config_file;
-    try {
-         config_file = LoadFile(CFG_FILE);
-        }
-    catch (YAML::BadFile& e) {
-         cout << "ERROR: Config file not found." << endl;
-         exit(EXIT_FAILURE);
-        }
+    return;
 
-    Node root;
-    try {
-         root = config_file["ROOT"];
-         dir_prefix = root["XFER_COMPONENTS"]["FWDR_DIR_PREFIX"].as<string>();
-        }
-    catch (YAML::TypedBadConversion<string>& e) {
-        cout << "ERROR: In Config file, cant read FWDR_DIR_PREFIX." << endl;
-        exit(EXIT_FAILURE);
-       }
-
-    return dir_prefix;
+} // End FileManifold constructor for one ccd
+  
 
 
 FileManifold::close_filehandles(void)

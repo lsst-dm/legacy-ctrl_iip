@@ -25,25 +25,26 @@ using namespace YAML;
 class FileManifold {
     public:
 
+    std::ofstream AMP_SEGMENTS[3][3][16];
+    std::ofstream CCD_SEGMENTS[16];
+
     /* Beginning of directory path for files...read from config file */
     static const char* DIR_PREFIX;
 
     std::ofstream AMP_SEGMENTS[3][3][16];
 
     /* Constructor for typical raft fetch */
-    FileManifold(const char* visit_name, const char* image_name, const char* raft);
+    FileManifold(const char* dir_prefix, const char* visit_name, const char* image_name, const char* raft);
 
     /* Constructor for single CCD fetch */
-    FileManifold(const char* visit_name,
+    FileManifold(const char* dir_prefix, 
+                 const char* visit_name,
                  const char* image_name,
                  const char* raft,
-                 const char* board,
                  const char* ccd); 
 
     /* Destructor calls close_filehandles and maybe rm's files */
     ~FileManifold();
-
-    char* get_directory_prefix();
 
     close_filehandles(void);
 

@@ -23,6 +23,7 @@
 
 #define PARTITION argv[1]
 #define IMAGE     argv[2]
+#define CFG_FILE "L1SystemCfg.yaml"
 
 static const char ERROR[] = "A partition and image name are needed for command line argument\n";
 
@@ -36,18 +37,21 @@ class Fetch {
     /* Destructor */
     ~Fetch();
 
+    /* Open system config file and get FWDR_DIR_PREFIX value */
+    char* get_directory_prefix()
+
     /* create FileManifold object with proper file names */
      setup_filehandles(std::ofstream amp_segments[][3][16]);
 
+    /* Where the readout work is done */
+    readout_payload readout_image(readout_payload msg);
+
     /* Reassemble slices and write to FileManifold */
     reassemble_process(const DAQ::Location&, const IMS::Image&, \
-                       std::ofstream amp_segments[][3][16], int board_number);
+                       FileManifold&, int board_number);
 
     /* Child will remain in loop generally... */
     run_loop();
-
-    /* Where the readout work is done */
-    readout_payload readout_image(readout_payload msg);
 
     /* cleanup by closing all file handles (maybe not necessary with ofstreams) */
     close_filehandles(std::ofstream amp_segments[][3][16]);
