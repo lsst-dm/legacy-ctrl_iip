@@ -54,7 +54,7 @@ class ForwarderScoreboard(Scoreboard):
         except Exception as e:
             LOGGER.critical("Redis connection error: %s", e)
             LOGGER.critical("Exiting due to Redis connection failure.")
-            sys.exit(100)
+            SystemExit: 100
 
 
     def return_forwarders_list(self):
