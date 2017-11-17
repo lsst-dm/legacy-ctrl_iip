@@ -1,77 +1,118 @@
+/* Fetch.cpp - www.lsst.org                                         */
+/* Thanks to MH and JGT for assistance in the readout_image method. */
+/*                                                                  */
+/********************************************************************/
+
 #include <fstream>
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <yaml-cpp/yaml.h>
 
 #include "daq/Location.hh"
 #include "daq/LocationSet.hh"
-
 #include "ims/Store.hh"
 #include "ims/Image.hh"
 #include "ims/Source.hh"
 #include "ims/Slice.hh"
 #include "ims/Science.hh"
-#include "../include/Fetch.hh"
-#include "../include/FileManifold.hh"
+
+#include "../include/Fetch.h"
+#include "../include/FileManifold.h"
+#include "../include/DMCommon.h"
+
+using namespace YAML;
 
 
-class FileManifold {
+Fetch::Fetch() {
 
-public:
-  // Fetch entire designated raft
-  FileManifold(const char* visit_name, const char* raft)
-
-
-  // Fetch only the designated CCD from the designated source board on the designated raft
-  FileManifold(const char* visit_name, const char* raft, const char* board, const char* ccd)
-
-};
-
-
-
-
-
-
-
-int main(int argc, char** argv)
-{
-
-  // Establish named pipe connections
+  int n;
+  int fd[2];
+  pid_t pid;
+  // Establish pipe connections
 
   // Fork
 
-  // Child process begins seeking for files to move from pipe reads
+  // Child process begins seeking for files to move from pipe data reads
   // Parent process continues init
 
-  std::ofstream amp_segments[3][3][16];
+  // Parent creates consumer for msgs from foreman
 
-  setup_filehandles(amp_segments);
+  // consumer.run() is called to start as thread
 
-  IMS::Store store(PARTITION);
+  // Parent creates a publisher for writing back acks to consumer
 
-  IMS::Image image(IMAGE, store);
+  // Parent services messages and waits for shutdown call
 
-  if DEBUG {image.synopsis();}
+  
 
-  DAQ::LocationSet sources = image.sources();
 
-  DAQ::Location location;
+
+Fetch::readout_image(readout_payload msg) {
+
+  // Check pipe msg for raft fetch or ccd fetch
+
+  // Pull visit_name, image_name, and raft name...possibly ccd_name
+
+  // Create file manifold for this readout
+  FileManifold fm = FileManifold(dir_prefix, visit_name, image_name, raft); 
+  FileManifold* fmp = fm&
+
+  //IMS::Store store(raft);
+
+  //IMS::Image image(IMAGE, store);
+
+  //if DEBUG {image.synopsis();}
+
+  //DAQ::LocationSet sources = image.sources();
+
+  //DAQ::Location location;
 
   int board = 0;
 
-  while(sources.remove(location))
-  {
-      reassemble_process(location, image, amp_segments, board);
-      board++;
-  }
+  //while(sources.remove(location))
+  //{
+  //    reassemble_process(location, image, fmp, board);
+  //    board++;
+  //}
 
-  close_filehandles(amp_segments);
+  fm.close_filehandles()
+  //close_filehandles(amp_segments);
 
   return EXIT_SUCCESS;
 
 //======================================================================
+
+
+char* Fetch::get_directory_prefix(void)
+{
+    // Assign DIR_PREFIX to val in cfg file...
+    char dir_prefix[40];
+    Node config_file;
+    try {
+         config_file = LoadFile(CFG_FILE);
+        }
+    catch (YAML::BadFile& e) {
+         cout << "ERROR: Config file not found." << endl;
+         exit(EXIT_FAILURE);
+        }
+
+    Node root;
+    try {
+         root = config_file["ROOT"];
+         dir_prefix = root["XFER_COMPONENTS"]["FWDR_DIR_PREFIX"].as<string>();
+        }
+    catch (YAML::TypedBadConversion<string>& e) {
+        cout << "ERROR: In Config file, cant read FWDR_DIR_PREFIX." << endl;
+        exit(EXIT_FAILURE);
+       }
+
+    return dir_prefix;
+
+
+
 
 //Start in_visit_message consumer
 

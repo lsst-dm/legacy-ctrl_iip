@@ -1,5 +1,6 @@
 from Scoreboard import Scoreboard
 import redis
+import sys
 import logging
 from const import * 
 

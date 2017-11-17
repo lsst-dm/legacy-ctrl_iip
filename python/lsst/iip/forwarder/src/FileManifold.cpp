@@ -1,3 +1,5 @@
+/* FileManifold.cpp - www.lsst.org */
+
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -6,7 +8,8 @@
 #include <stdlib.h>
 #include <yaml-cpp/yaml.h>
 
-#include "../include/FileManifold.hh"
+#include "FileManifold.h"
+
 
 //  Names of CCDs and Boards ( Sources) in a raft
 //    ________________
@@ -20,41 +23,10 @@
 using namespace YAML;
 
 
-class FileManifold {
 
-public:
+// Fetch entire designated raft
+FileManiFold::FileManifold(const char* dir_prefix, const char* visit_name, const char* image_name, const char* raft) {
 
-  std::ofstream AMP_SEGMENTS[3][3][16];
-
-  // Fetch entire designated raft
-  FileManifold(const char* visit_name, const char* image_name, const char* raft) {
-
-    // Assign DIR_PREFIX to val in cfg file...
-    // do here...for now though, use this default:
-    Node config_file;
-    try {
-        config_file = LoadFile("../../L1SystemCfg.yaml");
-    }
-    catch (YAML::BadFile& e) {
-        cout << "ERROR: L1SystemCfg file not found." << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    Node root;
-    string base_name, base_passwd, base_addr;
-    try {
-        root = config_file["ROOT"];
-        static const char* DIR_PREFIX = root["XFER_COMPONENTS"]["FWDR_DIR_PREFIX"].as<string>();
-        //base_name = root["OCS"]["OCS_NAME"].as<string>();
-        //base_passwd = root["OCS"]["OCS_PASSWD"].as<string>();
-        //base_addr = root["BASE_BROKER_ADDR"].as<string>();
-    }
-    catch (YAML::TypedBadConversion<string>& e) {
-        cout << "ERROR: In L1SystemCfg, cant read ocs username, password or broker address from file." << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    //static const char* DIR_PREFIX = "/tmp/gunk/"
 
     char ccd[3][3] = { { "00","01","02"},
                        { "10","11","12"},
@@ -70,24 +42,83 @@ public:
         for (int c = 0; c < 16; c++)  // Segments
         {
           std::ostringstream fns;
-          fns << DIR_PREFIX << visit_name \
+          fns << dir_prefix << visit_name \
                             << "/" \
                             << image_name \
                             << "--" << raft \
                             << "-ccd." << ccd_name \ 
                             << "_segment." << c;
-          amp_segments[a][b][c].open(fns.str().c_str(), std::ios::out | std::ios::app | std::ios::binary );
-  } // End FileManifold constructor
+
+          AMP_SEGMENTS[a][b][c].open(fns.str().c_str(), \
+                                     std::ios::out | std::ios::app | std::ios::binary );
+        }
+      }
+    }
+  } // End FileManifold constructor for rafts
 
 
-  // Fetch only the designated CCD from the designated source board on the designated raft
-  FileManifold(const char* visit_name, 
+
+// Fetch only the designated CCD from the designated source board on the designated raft
+FileManifold::FileManifold(const char* dir_prefix, 
+               const char* visit_name, 
                const char* image_name, 
                const char* raft, 
-               const char* board, 
                const char* ccd) {
+
+
+    // convert ccd into board so source is known
+    int board = (-1)
+    char ccds[3][3] = { { "00","01","02"},
+                       { "10","11","12"},
+                       { "20","21","22"}  };
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0;; j < 3; j++)
+        {
+            if (strcmp(ccd, ccds[i][j]) == 0)
+            {
+                board = i;
+                break;
+            }
+        }
+    }
+
+  if (board == (-1)) /* something went wrong */
+      return;
+
+  for (int c = 0; c < 16; c++)  // Segments
+  {
+    std::ostringstream fns;
+    fns << dir_prefix << visit_name \
+                      << "/" \
+                      << image_name \
+                      << "--" << raft \
+                      << "-ccd." << ccd \ 
+                      << "_segment." << c;
+
+    CCD_SEGMENTS[c].open(fns.str().c_str(), \
+                         std::ios::out | std::ios::app | std::ios::binary );
   }
 
+    return;
+
+} // End FileManifold constructor for one ccd
+  
 
 
-}
+FileManifold::close_filehandles(void)
+{
+ for (int a=0; a<3; a++) // REBs
+ {
+  for (int b = 0; b < 3; b++) // CCDs
+  {
+   for (int c = 0; c < 16; c++) // Segments
+   {
+    AMP_SEGMENTS[a][b][c].close();
+   }
+  }
+ }
+} /* End close_filehandles */
+
+
+} 
