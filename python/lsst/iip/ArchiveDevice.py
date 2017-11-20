@@ -735,8 +735,8 @@ class ArchiveDevice(BaseMgmt):
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
-        self.shutdown_event = threading.Event()
-        self.shutdown_event.clear()
+        #self.shutdown_event = threading.Event()
+        #self.shutdown_event.clear()
 
 
         # Set up kwargs that describe consumers to be started
@@ -786,12 +786,12 @@ class ArchiveDevice(BaseMgmt):
         self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
 
-    def shutdown(self):
-        LOGGER.info("Shutting down Consumer threads.")
-        self.shutdown_event.set()
-        LOGGER.debug("Thread Manager shutting down and app exiting...")
-        print("\n")
-        os._exit(0)
+    #def shutdown(self):
+    #    LOGGER.info("Shutting down Consumer threads.")
+    #    self.shutdown_event.set()
+    #    LOGGER.debug("Thread Manager shutting down and app exiting...")
+    #    print("\n")
+    #    os._exit(0)
 
 
 def main():
