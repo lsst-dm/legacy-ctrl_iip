@@ -110,7 +110,7 @@ class Setup:
             q = 'f' + str(i) + '_consume'
             self.channel.queue_declare(queue=q,durable=True)
             self.channel.queue_bind(queue=q, exchange='message',routing_key=q)
-            r = 'f' + str(i) + '_consume_image'
+            r = 'f' + str(i) + '_consume_image_name'
             self.channel.queue_declare(queue=r,durable=True)
             self.channel.queue_bind(queue=r, exchange='message',routing_key=r)
 
