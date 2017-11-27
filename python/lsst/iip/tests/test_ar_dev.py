@@ -1,3 +1,7 @@
+###############################################
+# See README_PYTESTS for testing instructions #
+###############################################
+
 import pika
 import redis
 import yaml
@@ -13,18 +17,23 @@ import logging
 sys.path.insert(1, '../iip')
 sys.path.insert(1, '../')
 import DMCS
+import toolsmod
+from toolsmod import get_timestamp
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from MessageAuthority import MessageAuthority
 from const import *
-import toolsmod
-
 from ArchiveDevice import *
 
-logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
+logging.basicConfig(filename='logs/ARCHIVE_TEST.log', level=logging.INFO, format=LOG_FORMAT)
+
+@pytest.fixture(scope='session')
+def Ardev(request):
+    ardev = ArchiveDevice('tests/yaml/L1SystemCfg_Test_ar.yaml')
+    request.addfinalizer(ardev.shutdown)
+    return ardev
 
 class TestArDev:
-    ardev = ArchiveDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ar.yaml')
 
     dmcs_pub_broker_url = None
     dmcs_publisher = None
@@ -53,17 +62,18 @@ class TestArDev:
 
     ccd_list = [14,17,21.86]
     prp = toolsmod.prp
+    DP = toolsmod.DP  # Debug Printing either True or False...override for this file only...
 
 
-    def test_ardev(self):
+    def test_ardev(self, Ardev):
+        self.ardev = Ardev
         try:
-            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+            cdm = toolsmod.intake_yaml_file('tests/yaml/L1SystemCfg_Test_ar.yaml')
         except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
             print(emsg + trace)
-            sys.exit(101)
-    
+            raise  
         broker_addr = cdm[ROOT]['BASE_BROKER_ADDR']
     
         dmcs_name = cdm[ROOT]['DMCS_BROKER_NAME']
@@ -76,6 +86,7 @@ class TestArDev:
         dmcs_pub_broker_url = "amqp://" + dmcs_pub_name + ":" + \
                                  dmcs_pub_passwd + "@" + \
                                  broker_addr
+        print("Opening publisher with this URL string: %s" % dmcs_pub_broker_url)
         self.dmcs_publisher = SimplePublisher(dmcs_pub_broker_url, "YAML")
     
         ar_ctrl_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']
@@ -88,6 +99,7 @@ class TestArDev:
         ar_ctrl_pub_broker_url = "amqp://" + ar_ctrl_pub_name + ":" + \
                                     ar_ctrl_pub_passwd + "@" + \
                                     broker_addr
+        print("Opening publisher with this URL string: %s" % ar_ctrl_pub_broker_url)
         self.ar_ctrl_publisher = SimplePublisher(ar_ctrl_pub_broker_url, "YAML")
     
         F1_name = 'F1'
@@ -100,6 +112,7 @@ class TestArDev:
         F1_pub_broker_url = "amqp://" + F1_pub_name + ":" + \
                                     F1_pub_passwd + "@" + \
                                     broker_addr
+        print("Opening publisher with this URL string: %s" % F1_pub_broker_url)
         self.F1_publisher = SimplePublisher(F1_pub_broker_url, "YAML")
    
         F2_name = 'F2'
@@ -112,6 +125,7 @@ class TestArDev:
         F2_pub_broker_url = "amqp://" + F2_pub_name + ":" + \
                                     F2_pub_passwd + "@" + \
                                     broker_addr
+        print("Opening publisher with this URL string: %s" % F2_pub_broker_url)
         self.F2_publisher = SimplePublisher(F2_pub_broker_url, "YAML")
    
  
@@ -120,36 +134,44 @@ class TestArDev:
         self._msg_auth = MessageAuthority()
 
         self.dmcs_consumer = Consumer(dmcs_broker_url,'dmcs_ack_consume', 'thread-dmcs',
-                                     self.on_dmcs_message,'YAML', None)
+                                     self.on_dmcs_message,'YAML')
         self.dmcs_consumer.start()
 
 
         self.ar_ctrl_consumer = Consumer(ar_ctrl_broker_url,'archive_ctrl_consume', 'thread-ar-ctrl', 
-                                    self.on_ar_ctrl_message,'YAML', None)
+                                    self.on_ar_ctrl_message,'YAML')
         self.ar_ctrl_consumer.start()
 
 
         self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
-                                    self.on_f1_message,'YAML', None)
+                                    self.on_f1_message,'YAML')
         self.F1_consumer.start()
 
 
         self.F2_consumer = Consumer(F2_broker_url,'f2_consume', 'thread-f2', 
-                                    self.on_f2_message,'YAML', None)
+                                    self.on_f2_message,'YAML')
         self.F2_consumer.start()
 
         sleep(3)
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        sleep(3)
-        self.verify_F1_messages()
-        self.verify_F2_messages()
+        sleep(8)
         self.verify_dmcs_messages()
         self.verify_ar_ctrl_messages()
-
-        print("Finished with AR tests.")
-        #sys.exit(0)
+        self.verify_F1_messages()
+        self.verify_F2_messages()
+        sleep(3)
+        self.dmcs_consumer.stop()
+        self.dmcs_consumer.join()
+        self.ar_ctrl_consumer.stop()
+        self.ar_ctrl_consumer.join()
+        self.F1_consumer.stop()
+        self.F1_consumer.join()
+        self.F2_consumer.stop()
+        self.F2_consumer.join()
+        if self.DP:
+            print("Finished with AR tests.")
 
 
     def send_messages(self):
@@ -206,7 +228,7 @@ class TestArDev:
         print("AR Readout Message")
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
 
-        time.sleep(2)
+        time.sleep(9)
         print("Message Sender done")
 
 
@@ -424,6 +446,9 @@ class TestArDev:
             msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
             msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
             msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
+            print("----------------------\nAt end of  F2 Message AR_FWDR_READOUT...")
+            print("%s" % get_timestamp())
+            print("------------------------------------\n\n")
             self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:

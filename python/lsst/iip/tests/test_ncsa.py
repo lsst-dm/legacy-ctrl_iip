@@ -1,3 +1,7 @@
+###############################################
+# See README_PYTESTS for testing instructions #
+###############################################
+
 import pika
 import redis
 import yaml
@@ -19,13 +23,17 @@ from SimplePublisher import SimplePublisher
 from MessageAuthority import MessageAuthority
 from const import *
 import toolsmod
-
 from NcsaForeman import *
 
 logging.basicConfig(filename='logs/NCSA_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
+@pytest.fixture(scope='session')
+def Ncsa(request):
+    ncsa = NcsaForeman('./tests/yaml/L1SystemCfg_Test_ncsa.yaml')
+    request.addfinalizer(ncsa.shutdown)
+    return ncsa 
+
 class TestNcsa:
-    ncsa = NcsaForeman('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ncsa.yaml')
 
     pp_pub_broker_url = None
     pp_publisher = None
@@ -48,11 +56,13 @@ class TestNcsa:
 
     ccd_list = [14,17,21,86]
     prp = toolsmod.prp
+    DP = toolsmod.DP
 
 
-    def test_ncsa(self):
+    def test_ncsa(self, Ncsa):
+        self.ncsa = Ncsa
         try:
-            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+            cdm = toolsmod.intake_yaml_file('./tests/yaml/L1SystemCfg_Test_ncsa.yaml')
         except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
@@ -103,17 +113,17 @@ class TestNcsa:
         self._msg_auth = MessageAuthority()
 
         self.pp_consumer = Consumer(pp_broker_url,'pp_foreman_ack_publish', 'thread-pp',
-                                     self.on_pp_message,'YAML', None)
+                                     self.on_pp_message,'YAML')
         self.pp_consumer.start()
 
 
         self.D1_consumer = Consumer(D1_broker_url,'d1_consume', 'thread-d1', 
-                                    self.on_d1_message,'YAML', None)
+                                    self.on_d1_message,'YAML')
         self.D1_consumer.start()
 
 
         self.D2_consumer = Consumer(D2_broker_url,'d2_consume', 'thread-d2', 
-                                    self.on_d2_message,'YAML', None)
+                                    self.on_d2_message,'YAML')
         self.D2_consumer.start()
 
 
@@ -121,14 +131,20 @@ class TestNcsa:
         print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        sleep(14)
+        sleep(7)
         self.verify_pp_messages()
         self.verify_D2_messages()
         self.verify_D1_messages()
 
         sleep(2)
-        print("Finished with NCSA tests.")
-        #sys.exit(0)
+        self.pp_consumer.stop()
+        self.pp_consumer.join()
+        self.D1_consumer.stop()
+        self.D1_consumer.join()
+        self.D2_consumer.stop()
+        self.D2_consumer.join()
+        if self.DP:
+            print("Finished with NCSA tests.")
 
 
     def send_messages(self):
@@ -148,7 +164,8 @@ class TestNcsa:
         msg['ACK_ID'] = 'NCSA_NEW_SESSION_ACK_44221'
         msg['REPLY_QUEUE'] = 'pp_foreman_ack_publish'
         time.sleep(1)
-        print("New Session Message")
+        if self.DP:
+            print("New Session Message")
         self.pp_publisher.publish_message("ncsa_consume", msg)
 
         msg = {}
@@ -159,7 +176,8 @@ class TestNcsa:
         msg['ACK_ID'] = 'NCSA_NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
         time.sleep(1)
-        print("Next Visit Message")
+        if self.DP:
+            print("Next Visit Message")
         self.pp_publisher.publish_message("ncsa_consume", msg)
 
         msg = {}
@@ -177,6 +195,8 @@ class TestNcsa:
         ccd_list = [[17,18,111,126],[128,131,132]]
         msg['FORWARDERS']['FORWARDER_LIST'] = forwarder_list
         msg['FORWARDERS']['CCD_LIST'] = ccd_list
+        if self.DP:
+            print("NCSA START INTEGRATION Message")
         self.pp_publisher.publish_message("ncsa_consume", msg)
         time.sleep(7)
         msg = {}
@@ -188,6 +208,8 @@ class TestNcsa:
         msg['REPLY_QUEUE'] = 'pp_foreman_ack_publish'
         msg['ACK_ID'] = 'NCSA_READOUT_ACK_44221'
         time.sleep(2)
+        if self.DP:
+            print("NCSA READOUT Message")
         self.pp_publisher.publish_message("ncsa_consume", msg)
 
         time.sleep(2)
@@ -211,7 +233,8 @@ class TestNcsa:
 
             if result == False:
                 pytest.fail("The following message to the PP Foreman failed when compared with the sovereign example: %s" % msg)
-        print("Messages to the PP Foreman pass verification.")
+        if self.DP:
+            print("Messages to the PP Foreman pass verification.")
 
     def check_start_int_ack(self, msg):
         """the PAIRS param in the message is a list. Every item in the list is a dictionary.
@@ -243,8 +266,9 @@ class TestNcsa:
     def verify_D1_messages(self):
         len_list = len(self.d1_consumer_msg_list)
         if len_list != self.EXPECTED_D1_MESSAGES:
-            print("Messages received by verify_D1_messages:")
-            self.prp.pprint(self.f1_consumer_msg_list)
+            if self.DP:
+                print("Messages received by verify_D1_messages:")
+                self.prp.pprint(self.f1_consumer_msg_list)
             pytest.fail('F1 simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_D1_MESSAGES, len_list))
 
@@ -254,15 +278,16 @@ class TestNcsa:
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
                 pytest.fail("The following message to D1 failed when compared with the sovereign example: %s" % msg)
-            else:
-                print("Messages to D1 pass verification.")
+        if self.DP:
+            print("Messages to D1 pass verification.")
   
    
     def verify_D2_messages(self):
         len_list = len(self.d2_consumer_msg_list)
         if len_list != self.EXPECTED_D2_MESSAGES:
-            print("Messages received by verify_D2_messages:")
-            self.prp.pprint(self.d2_consumer_msg_list)
+            if self.DP:
+                print("Messages received by verify_D2_messages:")
+                self.prp.pprint(self.d2_consumer_msg_list)
             pytest.fail('D2 simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_D2_MESSAGES, len_list))
 
@@ -272,17 +297,25 @@ class TestNcsa:
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
                 pytest.fail("The following message to D2 failed when compared with the sovereign example: %s" % msg)
-            else:
-                print("Messages to D2 pass verification.")
+        if self.DP:
+            print("Messages to D2 pass verification.")
   
  
     def on_pp_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_ncsa - incoming on_pp_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.pp_consumer_msg_list.append(body)
 
 
     def on_d1_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_ncsa - incoming on_D1_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.d1_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'DISTRIBUTOR_HEALTH_CHECK':
             msg = {}
@@ -335,6 +368,10 @@ class TestNcsa:
 
     def on_d2_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_ncsa - incoming on_D2_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.d2_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'DISTRIBUTOR_HEALTH_CHECK':
             msg = {}

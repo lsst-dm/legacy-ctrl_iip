@@ -1,3 +1,7 @@
+###############################################
+# See README_PYTESTS for testing instructions #
+###############################################
+
 import pika
 import redis
 import yaml
@@ -19,13 +23,17 @@ from SimplePublisher import SimplePublisher
 from MessageAuthority import MessageAuthority
 from const import *
 import toolsmod
-
 from PromptProcessDevice import *
 
 logging.basicConfig(filename='logs/PP_AR_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
+@pytest.fixture(scope='session')
+def Ppdev(request):
+    ppdev = PromptProcessDevice('./tests/yaml/L1SystemCfg_Test_pp.yaml')
+    request.addfinalizer(ppdev.shutdown)
+    return ppdev
+
 class TestPpDev:
-    ppdev = PromptProcessDevice('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_pp.yaml')
 
     dmcs_pub_broker_url = None
     dmcs_publisher = None
@@ -53,12 +61,14 @@ class TestPpDev:
     EXPECTED_F2_MESSAGES = 1
 
     ccd_list = [14,17,21,86]
-    prp = toolsmod.prp
+    prp = toolsmod.prp # pretty printing
+    DP = toolsmod.DP  # Debug printing either True of False...set here to override this file only
 
 
-    def test_ppdev(self):
+    def test_ppdev(self, Ppdev):
+        self.ppdev = Ppdev
         try:
-            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+            cdm = toolsmod.intake_yaml_file('./tests/yaml/L1SystemCfg_Test.yaml')
         except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
@@ -121,42 +131,52 @@ class TestPpDev:
         self._msg_auth = MessageAuthority()
 
         self.dmcs_consumer = Consumer(dmcs_broker_url,'dmcs_ack_consume', 'thread-dmcs',
-                                     self.on_dmcs_message,'YAML', None)
+                                     self.on_dmcs_message,'YAML')
         self.dmcs_consumer.start()
 
 
         self.ncsa_consumer = Consumer(ncsa_broker_url,'ncsa_consume', 'thread-ncsa', 
-                                    self.on_ncsa_message,'YAML', None)
+                                    self.on_ncsa_message,'YAML')
         self.ncsa_consumer.start()
 
 
         self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
-                                    self.on_f1_message,'YAML', None)
+                                    self.on_f1_message,'YAML')
         self.F1_consumer.start()
 
 
         self.F2_consumer = Consumer(F2_broker_url,'f2_consume', 'thread-f2', 
-                                    self.on_f2_message,'YAML', None)
+                                    self.on_f2_message,'YAML')
         self.F2_consumer.start()
 
         sleep(3)
-        print("Test Setup Complete. Commencing Messages...")
+        if self.DP:
+            print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
-        sleep(14)
+        sleep(6)
         self.verify_ncsa_messages()
         self.verify_F2_messages()
         self.verify_F1_messages()
         self.verify_dmcs_messages()
 
         sleep(2)
-        print("Finished with PP tests.")
-        #sys.exit(0)
+        self.dmcs_consumer.stop()
+        self.dmcs_consumer.join()
+        self.ncsa_consumer.stop()
+        self.ncsa_consumer.join()
+        self.F1_consumer.stop()
+        self.F1_consumer.join()
+        self.F2_consumer.stop()
+        self.F2_consumer.join()
+        if self.DP:
+            print("Finished with PP tests.")
 
 
     def send_messages(self):
 
-        print("Starting send_messages")
+        if self.DP:
+            print("Starting send_messages")
         # Tests only an AR device
         
         # self.clear_message_lists()
@@ -172,7 +192,8 @@ class TestPpDev:
         msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         time.sleep(3)
-        print("New Session Message")
+        if self.DP:
+            print("New Session Message")
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
 
         msg = {}
@@ -182,7 +203,8 @@ class TestPpDev:
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
         time.sleep(2)
-        print("Next Visit Message")
+        if self.DP:
+            print("Next Visit Message")
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
           
         msg = {}
@@ -195,6 +217,8 @@ class TestPpDev:
         msg['ACK_ID'] = 'PP_ACK_94671'
         msg['CCD_LIST'] = [4,14,16,17,29,35,36]
         time.sleep(4)
+        if self.DP:
+            print("PP_START_INTEGRATION Message")
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
       
         msg = {}
@@ -206,16 +230,20 @@ class TestPpDev:
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'PP_READOUT_ACK_44221'
         time.sleep(4)
+        if self.DP:
+            print("PP_READOUT Message")
         self.dmcs_publisher.publish_message("pp_foreman_consume", msg)
 
         time.sleep(2)
 
-        print("Message Sender done")
+        if self.DP:
+            print("Message Sender done")
 
 
     def verify_dmcs_messages(self):
-        print("Messages received by verify_dmcs_messages:")
-        self.prp.pprint(self.dmcs_consumer_msg_list)
+        if self.DP:
+            print("Messages received by verify_dmcs_messages:")
+            self.prp.pprint(self.dmcs_consumer_msg_list)
         len_list = len(self.dmcs_consumer_msg_list)
         if len_list != self.EXPECTED_DMCS_MESSAGES:
             pytest.fail('DMCS simulator received incorrect number of messages.\nExpected %s but received %s'\
@@ -231,12 +259,11 @@ class TestPpDev:
    
 
     def verify_ncsa_messages(self):
-        print("Messages received by verify_ncsa_messages:")
-        self.prp.pprint(self.ncsa_consumer_msg_list)
-        len_list = len(self.ncsa_consumer_msg_list)
-        if len_list != self.EXPECTED_NCSA_MESSAGES:
+        if self.DP:
             print("Messages received by verify_ncsa_messages:")
             self.prp.pprint(self.ncsa_consumer_msg_list)
+        len_list = len(self.ncsa_consumer_msg_list)
+        if len_list != self.EXPECTED_NCSA_MESSAGES:
             pytest.fail('NCSA simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_NCSA_MESSAGES, len_list))
 
@@ -250,12 +277,11 @@ class TestPpDev:
    
 
     def verify_F1_messages(self):
-        print("Messages received by verify_F1_messages:")
-        self.prp.pprint(self.f1_consumer_msg_list)
-        len_list = len(self.f1_consumer_msg_list)
-        if len_list != self.EXPECTED_F1_MESSAGES:
+        if self.DP:
             print("Messages received by verify_F1_messages:")
             self.prp.pprint(self.f1_consumer_msg_list)
+        len_list = len(self.f1_consumer_msg_list)
+        if len_list != self.EXPECTED_F1_MESSAGES:
             pytest.fail('F1 simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_F1_MESSAGES, len_list))
 
@@ -270,12 +296,11 @@ class TestPpDev:
   
    
     def verify_F2_messages(self):
-        print("Messages received by verify_F2_messages:")
-        self.prp.pprint(self.f2_consumer_msg_list)
-        len_list = len(self.f2_consumer_msg_list)
-        if len_list != self.EXPECTED_F2_MESSAGES:
+        if self.DP:
             print("Messages received by verify_F2_messages:")
             self.prp.pprint(self.f2_consumer_msg_list)
+        len_list = len(self.f2_consumer_msg_list)
+        if len_list != self.EXPECTED_F2_MESSAGES:
             pytest.fail('F2 simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_F2_MESSAGES, len_list))
 
@@ -291,11 +316,18 @@ class TestPpDev:
  
     def on_dmcs_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_pp_dev - incoming on_dmcs_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.dmcs_consumer_msg_list.append(body)
 
     def on_ncsa_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
-        # on_ncsa_publish
+        if self.DP:
+            print("In test_pp_dev - incoming on_ncsa_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.ncsa_consumer_msg_list.append(body)
 
         if body['MSG_TYPE'] == 'NCSA_NEW_SESSION':
@@ -383,7 +415,12 @@ class TestPpDev:
 
     def on_f1_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_pp_dev - incoming on_f1_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.f1_consumer_msg_list.append(body)
+
         if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
             msg = {}
             msg['MSG_TYPE'] = 'PP_FWDR_HEALTH_CHECK_ACK'
@@ -435,7 +472,12 @@ class TestPpDev:
 
     def on_f2_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_pp_dev - incoming on_f2_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.f2_consumer_msg_list.append(body)
+
         if body['MSG_TYPE'] == 'PP_FWDR_HEALTH_CHECK':
             msg = {}
             msg['MSG_TYPE'] = 'PP_FWDR_HEALTH_CHECK_ACK'

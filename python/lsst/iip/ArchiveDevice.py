@@ -20,8 +20,7 @@ from Consumer import Consumer
 from ThreadManager import ThreadManager
 from SimplePublisher import SimplePublisher
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
+LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
 
@@ -38,7 +37,9 @@ class ArchiveDevice:
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
     START_INTEGRATION_XFER_PARAMS = {}
+    CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
+    DP = toolsmod.DP
 
 
     def __init__(self, filename=None):
@@ -56,7 +57,7 @@ class ArchiveDevice:
         """
         toolsmod.singleton(self)
 
-        self._config_file = 'L1SystemCfg.yaml'
+        self._config_file = self.CFG_FILE
         if filename != None:
             self._config_file = filename
 
@@ -204,7 +205,7 @@ class ArchiveDevice:
         self.JOB_SCBD.add_job(job_number, image_id, visit_id, ccds)
         self.JOB_SCBD.set_job_params(job_number, {'SESSION_ID': session_id, 
                                                   'VISIT_ID': visit_id})
-        self.ack_timer(1.5)
+        self.ack_timer(2.5)
 
         healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
         if healthy_fwdrs == None:
@@ -232,8 +233,10 @@ class ArchiveDevice:
 
         ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
 
-        # if ar_response == None:
-        #    raise L1 exception and bail out
+        if ar_response == None:
+           # FIXME raise L1 exception and bail out
+           print("B-B-BAD Trouble; no ar_response")
+           
        
         target_dir = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
         self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 'TARGET_DIR': dir})
@@ -245,7 +248,10 @@ class ArchiveDevice:
 
         # send image_id, target dir, and job, session,visit and work to do to healthy forwarders
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
-        self.JOB_SCBD.set_work_schedule_for_job(job_number, work_schedule)
+        set_sched_result = self.JOB_SCBD.set_work_schedule_for_job(job_number, work_schedule)
+        if set_sched_result == False:
+            # FIXME Raise L1 exception and bail
+            print("BIG PROBLEM - CANNOT SET WORK SCHED IN SCBD")
        
         xfer_params_ack_id = self.get_next_timed_ack_id("AR_FWDR_PARAMS_ACK") 
 
@@ -397,6 +403,7 @@ class ArchiveDevice:
             :params dmcs_message: A dictionary that stores info of a job.
 
             :return: None.
+        """
         self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
 
 
@@ -435,6 +442,7 @@ class ArchiveDevice:
 
             :return: None.
         """
+
         readout_ack_id = params[ACK_ID]
         job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
@@ -654,15 +662,19 @@ class ArchiveDevice:
         """
         counter = 0.0
         while (counter < seconds):
+            counter = counter + 0.5
             sleep(0.5)
             response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if response == None:
+                continue
             if len(list(response.keys())) == expected_replies:
                 return response
-            counter = counter + 0.5
 
         ## Try one final time
         response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-        if len(list(response.keys())) == expected_replies:
+        if response == None:
+            return None
+        elif len(list(response.keys())) == expected_replies:
             return response
         else:
             return None
@@ -722,6 +734,9 @@ class ArchiveDevice:
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
+        self.shutdown_event = threading.Event()
+        self.shutdown_event.clear()
+
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
@@ -753,7 +768,7 @@ class ArchiveDevice:
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', kws)
+        self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
     def setup_scoreboards(self):
@@ -770,6 +785,14 @@ class ArchiveDevice:
         self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
 
+    def shutdown(self):
+        LOGGER.info("Shutting down Consumer threads.")
+        self.shutdown_event.set()
+        LOGGER.debug("Thread Manager shutting down and app exiting...")
+        print("\n")
+        os._exit(0)
+
+
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     a_fm = ArchiveDevice()
@@ -778,6 +801,7 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        a_fm.shutdown()
         pass
 
     print("")

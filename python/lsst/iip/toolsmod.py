@@ -2,25 +2,44 @@ import subprocess
 import yaml
 import pprint
 
-#def get_timestamp():
-#    return subprocess.check_output('date +"%Y-%m-%dT%H:%M:%S.%5N"', shell=True)
-
 def get_timestamp():
-    return subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)
-
-#def get_epoch_timestamp():
-#    return (int(subprocess.check_output('date +"%s%N"', shell=True)) / 86400)
+    return (subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)).decode('ascii')
 
 def get_epoch_timestamp():
-    return subprocess.check_output('date +"%s%N"', shell=True)
+    return (subprocess.check_output('date +"%s%N"', shell=True)).decode('ascii')
 
 def singleton(object, instantiated=[]):
     assert object.__class__ not in instantiated, \
         "%s is a Singleton class but is already instantiated" % object.__class__
     instantiated.append(object.__class__)
 
-prp = pprint.PrettyPrinter(indent=4)
 
+prp = pprint.PrettyPrinter(indent=4)
+#DP = False  #Set to true for Debug Printing
+DP = True  #Set to true for Debug Printing
+
+def intake_yaml_file(filename):
+    try:
+        f = open(filename)
+    except IOError:
+        raise L1Error("Cant open %s" % filename)
+
+    #cfg data map...
+    cdm = yaml.safe_load(f)
+    f.close()
+    return cdm
+
+def export_yaml_file(filename, params):
+    try:
+        f = open(filename, "w")
+    except IOError:
+        raise L1Error("Cant open %s" % filename)
+
+    #cfg data map...
+    f.write(yaml.dump(params))
+    f.close()
+
+########
 # Dictionary showing the state a transition ends in
 next_state = {}
 next_state["ENTER_CONTROL"] = "STANDBY"
@@ -98,11 +117,42 @@ state_matrix[6][6] = True
 class L1Exception(Exception): 
     pass 
 
+# Error codes are 4 digit numbers
+# Most Significant digit is 5 for DM Errors
+# Next digit (the 'hundreds' position) is:
+# 1 OCS BRidge
+# 2 DMCS
+# 3 ArchiveDevice
+# 4 Archive Controller
+# 5 PromptProcess Device
+# 6 Forwarder
+# 7 NCSA Foreman
+# 8 Distributor
+#
+# The two least significant digits are specific errors
+# So, Error Code 5371 is a DM Error originating in the Archive Device. Error is #71
+#
+# Error Codes
+# Suffixes (Two least significant digits)
+# 01 - Threading error
+# 05 - No Response error
+# 10 - General Scoreboard init error
+# 11 - Rabbit Connection error
+# 12 - Redis Connection Error
+#
+# 20 - Component Configuration Setup
+#
+# 30 - General Message error
+# 31 - Publisher error
+# 32 - Consumer error
+# 35 - Message Handler error
+#
+#
+
 class L1Error(L1Exception): 
     """ Raise as general exception from main execution layer """
     def __init__(self, arg): 
         self.errormsg = arg
-        raise
 
 class L1MessageError(L1Exception): 
     """ Raise when asserting check_message in XML returns exception """
@@ -119,25 +169,49 @@ class L1RabbitConnectionError(L1Exception):
     def __init__(self, arg): 
         self.errormsg = arg
 
-def intake_yaml_file(filename):
-    try:
-        f = open(filename)
-    except IOError:
-        raise L1Error("Cant open %s" % filename)
+class L1NcsaForemanError(L1Error):
+    """ Raise for general Archive Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
 
-    #cfg data map...
-    cdm = yaml.safe_load(f)
-    f.close()
-    return cdm
+class L1ArchiveDeviceError(L1Error):
+    """ Raise for general Archive Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
 
-def export_yaml_file(filename, params):
-    try:
-        f = open(filename, "w")
-    except IOError:
-        raise L1Error("Cant open %s" % filename)
+class L1PromptProcessError(L1Error):
+    """ Raise for general Prompt Process Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
 
-    #cfg data map...
-    f.write(yaml.dump(params))
-    f.close()
+class L1DMCSError(L1Error):
+    """ Raise for general DMCS error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1ConsumerError(L1Error):
+    """ Raise for general Archive Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1PublisherError(L1Error):
+    """ Raise for general Archive Foreman error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1ForwarderError(L1Error):
+    """ Raise for general Forwarder error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1ConfigIOError(L1Error):
+    """ Raise for general Forwarder error """
+    def __init__(self, arg): 
+        self.errormsg = arg
+
+class L1ConfigKeyError(L1Error):
+    """ Raise for general Forwarder error """
+    def __init__(self, arg): 
+        self.errormsg = arg
 
 

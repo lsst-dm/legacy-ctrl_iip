@@ -13,9 +13,10 @@ logging.basicConfig(filename='logs/ThreadManager.log', level=logging.DEBUG, form
 
 
 class ThreadManager(threading.Thread):
-    def __init__(self, name, kwargs):
+    def __init__(self, name, kwargs, shutdown_event):
         threading.Thread.__init__(self, group=None, target=None, name=name) 
         self.running_threads = []
+        self.shutdown_event = shutdown_event
 
         #self.consumer_kwargs = deepcopy(kwargs)
         self.consumer_kwargs = kwargs
@@ -34,9 +35,8 @@ class ThreadManager(threading.Thread):
         threadname = consumer_params['name']
         callback = consumer_params['callback']
         format = consumer_params['format']
-        test_val = consumer_params['test_val']
 
-        new_thread = Consumer(url, q, threadname, callback, format, test_val)
+        new_thread = Consumer(url, q, threadname, callback, format)
         new_thread.start()
         sleep(1)
         return new_thread
@@ -47,10 +47,13 @@ class ThreadManager(threading.Thread):
         sleep(2)
         try:
             while 1:
-                # self.get_next_backlog_item() ???
+                # self.get_next_backlog_item() 
+                if self.shutdown_event.isSet():
+                    self.shutdown_consumers()
+                    break
                 sleep(1)
                 self.check_thread_health()
-                # self.resolve_non-blocking_acks() ???
+                # self.resolve_non-blocking_acks() 
         except KeyboardInterrupt:
             pass
 
@@ -69,4 +72,15 @@ class ThreadManager(threading.Thread):
                 new_consumer = self.setup_consumer_thread(self.consumer_kwargs[dead_thread_name])
 
                 self.running_threads.append(new_consumer)
+
+
+    def shutdown_consumers(self):
+        num_threads = len(self.running_threads)
+        for i in range (0, num_threads):
+            LOGGER.info("Stopping rabbit connection in consumer %s" % self.running_threads[i].name)
+            self.running_threads[i].stop()
+            LOGGER.info("Shutting down consumer %s" % self.running_threads[i].name)
+            self.running_threads[i].join()
+            sleep(0.5)
+
 

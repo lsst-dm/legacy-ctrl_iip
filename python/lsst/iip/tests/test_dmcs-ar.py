@@ -1,3 +1,7 @@
+###############################################
+# See README_PYTESTS for testing instructions #
+###############################################
+
 import pika
 import redis
 import yaml
@@ -21,10 +25,17 @@ import toolsmod
 
 from DMCS import *
 
+LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
+LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename='logs/DMCS_TEST.log', level=logging.INFO, format=LOG_FORMAT)
 
+@pytest.fixture(scope='session')
+def Dmcs(request):
+    dmcs = DMCS('tests/yaml/L1SystemCfg_Test.yaml')
+    request.addfinalizer(dmcs.shutdown)
+    return dmcs
+
 class TestDMCS_AR:
-    dmcs = DMCS('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
 
     ocs_pub_broker_url = None
     ocs_publisher = None
@@ -41,11 +52,16 @@ class TestDMCS_AR:
 
     ccd_list = [14,17,21.86]
     prp = toolsmod.prp
+    DP = toolsmod.DP  #Debug print
 
 
-    def test_dmcs(self):
+    def test_dmcs(self, Dmcs):
+        self.dmcs = Dmcs
+        #logging.warning("Logging is Working!")
+        LOGGER.critical("LOGGING is Working!")
+        #self.LOGGER.info("self Logging is Working!")
         try:
-            cdm = toolsmod.intake_yaml_file('/home/FM/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test.yaml')
+            cdm = toolsmod.intake_yaml_file('tests/yaml/L1SystemCfg_Test.yaml')
         except IOError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
@@ -83,49 +99,45 @@ class TestDMCS_AR:
         self._msg_auth = MessageAuthority()
 
         self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'thread-ocs',
-                                     self.on_ocs_message,'YAML', None)
+                                     self.on_ocs_message,'YAML')
         self.ocs_consumer.start()
 
 
         self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'thread-ar', 
-                                    self.on_ar_message,'YAML', None)
+                                    self.on_ar_message,'YAML')
         self.ar_consumer.start()
 
         sleep(3)
-        print("Test Setup Complete. Commencing Messages...")
+        if self.DP:
+            print("Test Setup Complete. Commencing Messages...")
 
         self.send_messages()
         sleep(3)
         self.verify_ocs_messages()
-        sleep(7)
+        sleep(3)
         self.verify_ar_messages()
 
         sleep(2)
-        print("Finished with DMCS AR tests.")
-        #sys.exit(0)
+        self.ocs_consumer.stop()
+        self.ocs_consumer.join()
+        self.ar_consumer.stop()
+        self.ar_consumer.join()
+        if self.DP:
+            print("Finished with DMCS AR tests.")
+        
 
 
     def send_messages(self):
 
-        print("Starting send_messages")
+        if self.DP:
+            print("Starting send_messages")
         # Tests only an AR device
         
         self.clear_message_lists()
 
         self.EXPECTED_OCS_MESSAGES = 6
-        self.EXPECTED_AR_MESSAGES = 5
+        self.EXPECTED_AR_MESSAGES = 6
 
-        #msg = {}
-        #msg['MSG_TYPE'] = "ENTER_CONTROL"
-        #msg['DEVICE'] = 'AR'
-        #msg['CMD_ID'] = '17718411'
-        #msg['CFG_KEY'] = "2C16"
-        #msg['ACK_ID'] = 'AR_4'
-        #msg['ACK_DELAY'] = 2
-        #time.sleep(2)
-        #print("AR ENTER CONTROL")
-        #self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
         msg = {}
         msg['MSG_TYPE'] = "STANDBY"
         msg['DEVICE'] = 'AR'
@@ -134,7 +146,8 @@ class TestDMCS_AR:
         msg['ACK_ID'] = 'AR_4'
         msg['ACK_DELAY'] = 2
         time.sleep(2)
-        print("AR STANDBY")
+        if self.DP:
+            print("Sending AR STANDBY")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         msg = {}
@@ -144,10 +157,15 @@ class TestDMCS_AR:
         msg['ACK_ID'] = 'AR_6'
         msg['ACK_DELAY'] = 2
         time.sleep(2)
-        print("AR DISABLE")
+        if self.DP:
+            print("Sending AR DISABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
 
-        sleep(4.5)
+        sleep(2.0)
+        # Make sertain scoreboard values are being set
+        if self.DP:
+            print("Checking State Scoreboard entries.")
+        #assert self.dmcs.STATE_SCBD.get_archive_state() == 'DISABLE'
         assert self.dmcs.STATE_SCBD.get_archive_state() == 'DISABLE'
       
       
@@ -158,10 +176,12 @@ class TestDMCS_AR:
         msg['ACK_ID'] = 'AR_11'
         msg['ACK_DELAY'] = 2
         time.sleep(4)
-        print("AR ENABLE")
+        if self.DP:
+            print("Sending AR ENABLE")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
-        sleep(4.5)
+        sleep(2.0)
+        #assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
         assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
 
         msg = {}
@@ -171,10 +191,11 @@ class TestDMCS_AR:
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
         time.sleep(4)
-        print("Next Visit Message")
+        if self.DP:
+            print("Sending Next Visit Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
 
-        sleep(0.5)
+        sleep(2.0)
         assert self.dmcs.STATE_SCBD.get_current_visit() == 'V_1443'
       
         msg = {}
@@ -186,7 +207,8 @@ class TestDMCS_AR:
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['CCD_LIST'] = self.ccd_list
         time.sleep(4)
-        print("Start Integration Message")
+        if self.DP:
+            print("Sending Start Integration Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         msg = {}
@@ -197,7 +219,8 @@ class TestDMCS_AR:
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['ACK_ID'] = 'READOUT_ACK_77'
         time.sleep(5)
-        print("READOUT Message")
+        if self.DP:
+            print("Sending READOUT Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         msg = {}
@@ -209,7 +232,8 @@ class TestDMCS_AR:
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['CCD_LIST'] = self.ccd_list
         time.sleep(5)
-        print("Start Integration Message")
+        if self.DP:
+            print("Sending Start Integration Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         msg = {}
@@ -220,43 +244,53 @@ class TestDMCS_AR:
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['ACK_ID'] = 'READOUT_ACK_79'
         time.sleep(5)
-        print("READOUT Message")
+        if self.DP: 
+            print("Sending READOUT Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         time.sleep(5)
 
-        print("Message Sender done")
+        if self.DP:
+            print("Message Sender done")
 
     def clear_message_lists(self):
         self.ocs_consumer_msg_list = []
         self.ar_consumer_msg_list = []
 
     def verify_ocs_messages(self):
-        print("Messages received by verify_ocs_messages:")
-        self.prp.pprint(self.ocs_consumer_msg_list)
-        len_list = len(self.ocs_consumer_msg_list)
-        if len_list != self.EXPECTED_OCS_MESSAGES:
+        if self.DP:
             print("Messages received by verify_ocs_messages:")
             self.prp.pprint(self.ocs_consumer_msg_list)
+        len_list = len(self.ocs_consumer_msg_list)
+        if len_list != self.EXPECTED_OCS_MESSAGES:
+            if self.DP:
+                print("Incorrect number of messages received by OCS ACK Consumer.")
+                print("Messages received by verify_ocs_messages:")
+                self.prp.pprint(self.ocs_consumer_msg_list)
             pytest.fail('OCS simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_OCS_MESSAGES, len_list))
 
-        # Now check num keys in each message first, then check for key errors
+        # Now check num keys in each message and check for key errors
         for i in range(0, len_list):
             msg = self.ocs_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
                 pytest.fail("The following OCS Bridge response message failed when compared with the sovereign example: %s" % msg)
-        print("Responses to OCS Bridge pass verification.")
+        if self.DP:
+            print("Responses to OCS Bridge pass verification.")
    
 
     def verify_ar_messages(self):
-        print("Messages received by verify_ar_messages:")
-        self.prp.pprint(self.ar_consumer_msg_list)
-        len_list = len(self.ar_consumer_msg_list)
-        if len_list != self.EXPECTED_AR_MESSAGES:
+        if self.DP:
             print("Messages received by verify_ar_messages:")
             self.prp.pprint(self.ar_consumer_msg_list)
+        len_list = len(self.ar_consumer_msg_list)
+        if self.DP:
+            print("The number of messages the AR received is %s" % len_list)
+        if len_list != self.EXPECTED_AR_MESSAGES:
+            if self.DP:
+                print("Messages received by verify_ar_messages:")
+                self.prp.pprint(self.ar_consumer_msg_list)
             pytest.fail('AR simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_AR_MESSAGES, len_list))
 
@@ -265,16 +299,30 @@ class TestDMCS_AR:
             msg = self.ar_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
-                pytest.fail("The following message to the AR failed when compared with the sovereign example: %s" % msg)
-        print("Messages to the AR pass verification.")
+                if self.DP:
+                    print("The following message to the AR failed when compared with " \ 
+                          "the sovereign example: %s" % msg)
+                pytest.fail("The following message to the AR failed when compared with " \ 
+                            "the sovereign example: %s" % msg)
+
+        if self.DP:
+            print("Messages to the AR pass verification.")
    
 
     def on_ocs_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_dmcs-ar - incoming on_ocs_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.ocs_consumer_msg_list.append(body)
 
  
     def on_ar_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print("In test_dmcs-ar - incoming on_ar_message")
+            self.prp.pprint(body)
+            print("\n----------------------\n\n")
         self.ar_consumer_msg_list.append(body)
 

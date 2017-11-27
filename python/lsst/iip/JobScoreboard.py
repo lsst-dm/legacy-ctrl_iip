@@ -77,17 +77,17 @@ class JobScoreboard(Scoreboard):
         self._session_id = str(1)
         try:
             Scoreboard.__init__(self)
-        except L1RabbitConnectionError as e:
-            LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print("No Monitoring for YOU")
-            raise L1Error('Calling super.init in JobScoreboard init caused: ', e.arg)
+        except Exception as e:
+            LOGGER.error('Job SCBD Auditor Failed to make connection to Message Broker:  ', e.arg)
+            print("No Auditing for YOU")
+            raise L1RabbitConnectionError('Calling super.init() in JobScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()
-        except L1RedisError as e:
-            LOGGER.error("Cannot make connection to Redis:  " , e)  
-            print("No Redis for YOU")
-            raise L1Error('Calling redis connect in JobScoreboard init caused:  ', e.arg)
+        except Exception as e:
+            LOGGER.error("Cannot make connection to Redis: %s." % e.arg)  
+            print("Job SCBD: No Redis for YOU:")
+            raise L1RedisError('Calling redis connect in JobScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
 
@@ -170,12 +170,12 @@ class JobScoreboard(Scoreboard):
             for kee in list(in_params.keys()):
                 self._redis.hset(job_number, kee, in_params[kee])
 
-            params = {}
-            params[JOB_NUM] = job_number
-            params['SUB_TYPE'] = self.JOB_STATE
-            params['STATE'] = self.get_job_state(job_number)
-            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+            #params = {}
+            #params[JOB_NUM] = job_number
+            #params['SUB_TYPE'] = self.JOB_STATE
+            #params['STATE'] = self.get_job_state(job_number)
+            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            #self.persist(self.build_monitor_data(params))
         else:
             LOGGER.error('Unable to set job params; Redis connection unavailable')
             return False
@@ -183,12 +183,12 @@ class JobScoreboard(Scoreboard):
     def set_job_state(self, job_number, state):
         if self.check_connection():
             self._redis.hset(job_number, STATE, state)
-            params = {}
-            params[JOB_NUM] = job_number
-            params['SUB_TYPE'] = self.JOB_STATE
-            params['STATE'] = state
-            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+            #params = {}
+            #params[JOB_NUM] = job_number
+            #params['SUB_TYPE'] = self.JOB_STATE
+            #params['STATE'] = state
+            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            #self.persist(self.build_monitor_data(params))
 
 
     def get_job_state(self, job_number):
@@ -200,12 +200,12 @@ class JobScoreboard(Scoreboard):
         if self.check_connection():
             job = str(job_number)
             result = self._redis.hset(job, self.STATUS, status)
-            params = {}
-            params[JOB_NUM] = job
-            params['SUB_TYPE'] = self.JOB_STATUS
-            params[self.STATUS] = status
-            params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            self.persist(self.build_monitor_data(params))
+            #params = {}
+            #params[JOB_NUM] = job
+            #params['SUB_TYPE'] = self.JOB_STATUS
+            #params[self.STATUS] = status
+            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            #self.persist(self.build_monitor_data(params))
             return result
 
 
@@ -306,6 +306,7 @@ class JobScoreboard(Scoreboard):
                                   index in 'FORWARDER_LIST' matches an index position in
                                   'CCD_LIST' which contains a list of CCDs.
         """
+        print("Setting work schedule...")
         if self.check_connection():
             self._redis.hset(str(job_number), 'WORK_SCHEDULE', yaml.dump(schedule))
             return True
@@ -355,13 +356,14 @@ class JobScoreboard(Scoreboard):
 
     def set_visit_id(self, visit_id, bore_sight):
         if self.check_connection():
+            print("In job scbd, setting visit ID")
             self._redis.lpush(self.VISIT_ID_LIST, visit_id)
             self._redis.hset(visit_id, 'BORE_SIGHT', bore_sight)
-            params = {}
-            params['SUB_TYPE'] = 'VISIT'
-            params['VISIT_ID'] = visit_id
-            params['BORE_SIGHT'] = bore_sight
-            self.persist(self.build_monitor_data(params))
+            #params = {}
+            #params['SUB_TYPE'] = 'VISIT'
+            #params['VISIT_ID'] = visit_id
+            #params['BORE_SIGHT'] = bore_sight
+            #self.persist(self.build_monitor_data(params))
 
 
     def get_current_visit(self):

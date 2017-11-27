@@ -35,8 +35,11 @@ class PromptProcessDevice:
     PP_START_INTEGRATION_ACK = "PP_START_INTEGRATION_ACK"
     NCSA_PUBLISH = "ncsa_publish"
     NCSA_CONSUME = "ncsa_consume"
+    NCSA_NO_RESPONSE = 5705
+    FORWARDER_NO_RESPONSE = 5605 
     FORWARDER_PUBLISH = "forwarder_publish"
     CFG_FILE = 'L1SystemCfg.yaml'
+    ERROR_CODE_PREFIX = 5500
     prp = toolsmod.prp
 
 
@@ -48,7 +51,12 @@ class PromptProcessDevice:
             self._config_file = filename
 
         LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values()
+        try:
+            self.extract_config_values()
+        except Exception as e:
+            LOGGER.error("PP_Device problem configuring with file %s: %s" % (self._config_file, e.arg))
+            print("PP_Device unable to read Config file %s: %s" % (self._config_file, e.arg))
+            sys.exit(self.ErrorCodePrefix + 20)
 
 
         #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
@@ -71,13 +79,23 @@ class PromptProcessDevice:
 
         self._next_timed_ack_id = 0
 
-        self.setup_publishers()
+        try:
+            self.setup_publishers()
+        except L1PublisherError as e:
+            LOGGER.error("PP_Device unable to start Publishers: %s" % e.arg)
+            print("PP_Device unable to start Publishers: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 31)
 
         self.setup_scoreboards()
 
         LOGGER.info('pp foreman consumer setup')
         self.thread_manager = None
-        self.setup_consumer_threads()
+        try:
+            self.setup_consumer_threads()
+        except L1Exception as e:
+            LOGGER.error("PP_Device unable to launch ThreadManager: %s" % e.arg)
+            print("PP_Device unable to launch ThreadManager: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 1)
 
         LOGGER.info('Prompt Process Foreman Init complete')
 
@@ -91,13 +109,18 @@ class PromptProcessDevice:
                                                 self._pub_ncsa_passwd + "@" + \
                                                 str(self._ncsa_broker_addr)
 
-        LOGGER.info('Setting up Base publisher on %s using %s', \
-                     self._pub_base_broker_url, self._base_msg_format)
-        self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
+        try:
+            LOGGER.info('Setting up Base publisher on %s using %s', \
+                         self._pub_base_broker_url, self._base_msg_format)
+            self._base_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
 
-        LOGGER.info('Setting up NCSA publisher on %s using %s', \
-                     self._pub_ncsa_broker_url, self._ncsa_msg_format)
-        self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
+            LOGGER.info('Setting up NCSA publisher on %s using %s', \
+                         self._pub_ncsa_broker_url, self._ncsa_msg_format)
+            self._ncsa_publisher = SimplePublisher(self._pub_ncsa_broker_url, self._ncsa_msg_format)
+        except Exception as e:
+            LOGGER.error("PP_Device unable to start Publishers: %s" % e.arg)
+            print("PP_Device unable to start Publishers: %s" % e.arg)
+            raise L1PublisherError("Critical Error: Unable to create Publishers: %s" % e.arg)
 
 
     def on_dmcs_message(self, ch, method, properties, body):
@@ -215,8 +238,9 @@ class PromptProcessDevice:
         if healthy_forwarders == None:
             self.JOB_SCBD.set_job_state(job_number, 'SCRUBBED')
             self.JOB_SCBD.set_job_status(job_number, 'INACTIVE')
-            result = self.insufficient_base_resources(input_params, None)
-            return result
+            self.send_fault("No Response From Forwarders", 
+                            self.FORWARDER_NO_RESPONSE, job_num, self.COMPONENT_NAME)
+            raise L1ForwarderError("No response from any Forwarder when sending job params")
             
         healthy_forwarders_list = list(healthy_forwarders.keys())
         for forwarder in healthy_forwarders_list:
@@ -252,6 +276,11 @@ class PromptProcessDevice:
                 # Tell DMCS we are ready
                 result = self.accept_job(input_params['ACK_ID'],job_num)
             else:
+                idle_params = {'STATE': 'IDLE'}
+                self.FWD_SCBD.set_forwarder_params(needed_forwarders, idle_params)
+                self.send_fault("No RESPONSE FROM NCSA FOREMAN", 
+                                 self.NCSA_NO_RESPONSE, job_num, self.COMPONENT_NAME)
+                raise L1NcsaForemanError("No Response From NCSA Foreman")
 
         else:
             result = self.ncsa_no_response(input_params)
@@ -279,44 +308,6 @@ class PromptProcessDevice:
             self._base_publisher.publish_message(self.FWD_SCBD.get_routing_key(forwarder), msg_params)
 
         return timed_ack
-
-
-    def insufficient_base_resources(self, params, healthy_forwarders):
-        # send response msg to dmcs refusing job
-        job_num = str(params[JOB_NUM])
-        raft_list = params[RAFTS]
-        ack_id = params['ACK_ID']
-        needed_workers = len(raft_list)
-        LOGGER.info('Reporting to DMCS that there are insufficient healthy forwarders for job #%s', job_num)
-        dmcs_params = {}
-        fail_dict = {}
-        dmcs_params[MSG_TYPE] = NEW_JOB_ACK
-        dmcs_params['COMPONENT'] = self.COMPONENT_NAME
-        dmcs_params[JOB_NUM] = job_num
-        dmcs_params[ACK_BOOL] = False
-        dmcs_params[ACK_ID] = ack_id
-
-        ### NOTE FOR DMCS ACK PROCESSING:
-        ### if ACK_BOOL == True, there will NOT be a FAIL_DETAILS section
-        ### If ACK_BOOL == False, there will always be a FAIL_DICT to examine AND there will always be a 
-        ###   BASE_RESOURCES inside the FAIL_DICT
-        ### If ACK_BOOL == False, and the BASE_RESOURCES inside FAIL_DETAILS == 0,
-        ###   there will be only NEEDED and AVAILABLE Forwarder params - nothing more
-        ### If ACK_BOOL == False and BASE_RESOURCES inside FAIL_DETAILS == 1, there will always be a 
-        ###   NCSA_RESOURCES inside FAIL_DETAILS set to either 0 or 'NO_RESPONSE'
-        ### if NCSA_RESPONSE == 0, there will be NEEDED and AVAILABLE Distributor params
-        ### if NCSA_RESOURCES == 'NO_RESPONSE' there will be nothing else 
-        fail_dict['BASE_RESOURCES'] = '0'
-        fail_dict[NEEDED_FORWARDERS] = str(needed_workers)
-        fail_dict[AVAILABLE_FORWARDERS] = str(len(healthy_forwarders))
-        dmcs_params['FAIL_DETAILS'] = fail_dict
-        self._base_publisher.publish_message("dmcs_ack_consume", dmcs_params)
-        # mark job refused, and leave Forwarders in Idle state
-        self.JOB_SCBD.set_value_for_job(job_num, "STATE", "JOB_ABORTED")
-        self.JOB_SCBD.set_value_for_job(job_num, "TIME_JOB_ABORTED_BASE_RESOURCES", get_timestamp())
-        idle_state = {"STATE": "IDLE"}
-        self.FWD_SCBD.set_forwarder_params(healthy_forwarders, idle_state)
-        return False
 
 
     def divide_work(self, fwdrs_list, ccd_list):
@@ -431,22 +422,6 @@ class PromptProcessDevice:
         return True
 
 
-    def ncsa_no_response(self,params):
-        #No answer from NCSA...
-        job_num = str(params[JOB_NUM])
-        ccd_list = params['CCD_LIST']
-        needed_workers = len(ccd_list)
-        dmcs_params = {}
-        dmcs_params[MSG_TYPE] = self.PP_START_INTEGRATION_ACK
-        dmcs_params['COMPONENT'] = self.COMPONENT_NAME
-        dmcs_params[JOB_NUM] = job_num 
-        dmcs_params[ACK_BOOL] = False
-        dmcs_params[BASE_RESOURCES] = '1'
-        dmcs_params[NCSA_RESOURCES] = 'NO_RESPONSE'
-        self._base_publisher.publish_message("dmcs_ack_consume", dmcs_params )
-
-
-
     def process_dmcs_readout(self, params):
         job_number = params[JOB_NUM]
         pairs = self.JOB_SCBD.get_pairs_for_job(job_number)
@@ -531,15 +506,19 @@ class PromptProcessDevice:
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
         counter = 0.0
         while (counter < seconds):
+            counter = counter + 0.5
             sleep(0.5)
             response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
+            if response == None:
+                continue
             if len(list(response.keys())) == expected_replies:
                 return response
-            counter = counter + 0.5
 
         ## Try one final time 
         response = self.ACK_SCBD.get_components_for_timed_ack(ack_id)
-        if len(list(response.keys())) == expected_replies:
+        if response == None:
+            return None
+        elif len(list(response.keys())) == expected_replies:
             return response
         else:
             return None
@@ -573,7 +552,8 @@ class PromptProcessDevice:
             cdm = toolsmod.intake_yaml_file(self._config_file)
         except IOError as e:
             LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
-            sys.exit(101)
+            print("Unable to find CFG Yaml file %s\n" % self._config_file)
+            raise L1ConfigIOError("Trouble opening CFG Yaml file %s: %s" % (self._config_file, e.arg))
 
         try:
             self._sub_name = cdm[ROOT][PFM_BROKER_NAME]      # Message broker user & passwd
@@ -588,14 +568,15 @@ class PromptProcessDevice:
             self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['PP_FORWARDERS']
             self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
+            self.DMCS_FAULT_QUEUE = cdm[ROOT]['DMCS_FAULT_QUEUE']
             self._policy_max_ccds_per_fwdr = int(cdm[ROOT]['POLICY']['MAX_CCDS_PER_FWDR'])
         except KeyError as e:
             LOGGER.critical("CDM Dictionary Key error")
             LOGGER.critical("Offending Key is %s", str(e)) 
             LOGGER.critical("Bailing out...")
             print("KeyError when reading CFG file. Check logs...exiting...")
-            sys.exit(99)
-
+            raise L1ConfigKeyError("Key Error when reading config file: %s" % e.arg)
+ 
         self._base_msg_format = 'YAML'
         self._ncsa_msg_format = 'YAML'
 
@@ -604,6 +585,7 @@ class PromptProcessDevice:
 
         if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
             self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
+
 
     def setup_consumer_threads(self):
         LOGGER.info('Building _base_broker_url')
@@ -614,6 +596,9 @@ class PromptProcessDevice:
         ncsa_broker_url = "amqp://" + self._sub_ncsa_name + ":" + \
                                             self._sub_ncsa_passwd + "@" + \
                                             str(self._ncsa_broker_addr)
+
+        self.shutdown_event = threading.Event()
+        self.shutdown_event.clear()
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
@@ -626,7 +611,7 @@ class PromptProcessDevice:
         md['format'] = "YAML"
         md['test_val'] = None
         kws[md['name']] = md
-
+    
         md = {}
         md['amqp_url'] = base_broker_url
         md['name'] = 'Thread-pp_foreman_ack_publish'
@@ -635,7 +620,7 @@ class PromptProcessDevice:
         md['format'] = "YAML"
         md['test_val'] = 'test_it'
         kws[md['name']] = md
-
+    
         md = {}
         md['amqp_url'] = ncsa_broker_url
         md['name'] = 'Thread-ncsa_publish'
@@ -645,15 +630,48 @@ class PromptProcessDevice:
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', kws)
-        self.thread_manager.start()
+        try:
+            self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
+            self.thread_manager.start()
+        except ThreadError as e:
+            LOGGER.error("PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
+            print("PP_Device unable to launch Consumers - Thread Error: %s" % e.arg)
+            raise L1ConsumerError("Thread problem preventing Consumer launch: %s" % e.arg)
+        except Exception as e:
+            LOGGER.error("PP_Device unable to launch Consumers: %s" % e.arg)
+            print("PP_Device unable to launch Consumers: %s" % e.arg)
+            raise L1Error("PP_Device unable to launch Consumers - Rabbit Problem?: %s" % e.arg)
 
 
     def setup_scoreboards(self):
-        # Create Redis Forwarder table with Forwarder info
-        self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', self._scbd_dict['PP_FWD_SCBD'], self._forwarder_dict)
-        self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
+        try:
+            # Create Redis Forwarder table with Forwarder info
+            self.FWD_SCBD = ForwarderScoreboard('PP_FWD_SCBD', 
+                                                self._scbd_dict['PP_FWD_SCBD'], 
+                                                self._forwarder_dict)
+            self.JOB_SCBD = JobScoreboard('PP_JOB_SCBD', self._scbd_dict['PP_JOB_SCBD'])
+            self.ACK_SCBD = AckScoreboard('PP_ACK_SCBD', self._scbd_dict['PP_ACK_SCBD'])
+        except L1RabbitConnectionError as e:
+            LOGGER.error("PP_Device unable to complete setup_scoreboards-No Rabbit Connect: %s" % e.arg)
+            print("PP_Device unable to complete setup_scoreboards - No Rabbit Connection: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 11)
+        except L1RedisError as e:
+            LOGGER.error("PP_Device unable to complete setup_scoreboards - no Redis connect: %s" % e.arg)
+            print("PP_Device unable to complete setup_scoreboards - no Redis connection: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 12)
+        except Exception as e:
+            LOGGER.error("PP_Device init unable to complete setup_scoreboards: %s" % e.arg)
+            print("PP_Device unable to complete setup_scoreboards: %s" % e.arg)
+            sys.exit(self.ErrorCodePrefix + 10)
+
+    def send_fault(error_string, error_code, job_num, component_name):
+        msg = {}
+        msg['MSG_TYPE'] = 'FAULT'
+        msg['COMPONENT'] = component_name
+        msg['JOB_NUM'] = job_num
+        msg['ERROR_CODE'] = str(error_code)
+        msg["DESCRIPTION"] = error_string
+        self._base_publisher.publish_message(self.DMCS_FAULT_QUEUE, msg)
 
 
     def purge_broker(self, queues):
@@ -662,14 +680,23 @@ class PromptProcessDevice:
             os.system(cmd)
 
 
+    def shutdown(self):
+        LOGGER.debug("PromptProcessDevice: Shutting down Consumer threads.")
+        self.shutdown_event.set()
+        LOGGER.debug("Thread Manager shutting down and app exiting...")
+        print("\n")
+        os._exit(0)
+
+
 def main():
     logging.basicConfig(filename='logs/PromptProcess.log', level=logging.DEBUG, format=LOG_FORMAT)
-    b_fm = PromptProcessDevice()
+    pp_fm = PromptProcessDevice()
     print("Beginning PromptProcessDevice event loop...")
     try:
         while 1:
             pass
     except KeyboardInterrupt:
+        pp_fm.shutdown()
         pass
 
     print("")

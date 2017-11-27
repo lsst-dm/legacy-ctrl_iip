@@ -67,8 +67,11 @@ ROOT:
   NCSA_BROKER_CLSTR_PUB_PASSWD: NCSA_CLSTR_PUB
   #BASE_BROKER_ADDR: 141.142.208.191:5672/%2ftester
   #BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
-  BASE_BROKER_ADDR: 141.142.208.209:5672/%2ftest
-  NCSA_BROKER_ADDR: 141.142.238.160:5672/%2fbunny?heartbeat=30
+  #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny?heartbeat=30
+  #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
+  #NCSA_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
+  BASE_BROKER_ADDR: 141.142.238.160:5672/%2ftest
+  NCSA_BROKER_ADDR: 141.142.238.160:5672/%2ftest
   INFLUX_DB: L1_Test
   SESSION_ID_FILE: "/var/session_id"
   DMCS_ACK_ID_FILE: "/var/dmcs_ack_id"
@@ -81,6 +84,7 @@ ROOT:
   PP_CFG_KEYS: Normal
   CU_CFG_KEYS: Normal
   #CU_CFG_KEYS: catchuparchiver-Normal
+  DMCS_FAULT_QUEUE: dmcs_fault_queue
   RAFT_LIST:  ['4','6','18','2','1','20','15','16','3','12','5','10','9','14','19','7','13','8','21','17','11']
   CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115']
   #CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115','136','3','12','50','101','79','144','19','7','139','8','21','172','11','121','122','123','124','125','126','127','128','129','130','131','132','133','134','135','137','138','143']  #43
@@ -120,6 +124,7 @@ ROOT:
   POLICY:
     MAX_CCDS_PER_FWDR: 10
   XFER_COMPONENTS:
+    FWDR_DIR_PREFIX: /tmp/gunk/
     PP_FORWARDERS:
       FORWARDER_1:
         NAME: F1
@@ -137,14 +142,14 @@ ROOT:
         CONSUME_QUEUE: f2_consume
         PUBLISH_QUEUE: pp_foreman_ack_publish
 
-      FORWARDER_3:
-        NAME: F3
-        HOSTNAME: lsst-wf-base03.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.163
-        STATE: IDLE
-        CONSUME_QUEUE: f3_consume
-        PUBLISH_QUEUE: pp_foreman_ack_publish
-
+#      FORWARDER_3:
+#        NAME: F3
+#        HOSTNAME: lsst-wf-base03.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.238.163
+#        STATE: IDLE
+#        CONSUME_QUEUE: f3_consume
+#        PUBLISH_QUEUE: pp_foreman_ack_publish
+#
 #      FORWARDER_4:
 #        NAME: F4
 #        HOSTNAME: lsst-wf-base04.ncsa.illinois.edu  
