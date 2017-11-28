@@ -7,7 +7,7 @@ INC	 = -I$(ARCHIVE) -I$(ARCHIVE)/src -I$(CARCHIVE) -I$(CARCHIVE)/src -I$(PCLUSTE
 SALPATH	 = /opt/sal/ts_opensplice/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux
 LIBSAL	 = /opt/sal/ts_sal/lsstsal/lib
 CC	 = g++
-LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config -L/usr/local/lib -L/opt/sal/test/dm/cpp
+LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config -L../core/lib -L../core/lib64 -L/opt/sal/test/dm/cpp -Wl,-rpath,../core/lib -Wl,-rpath,../core/lib64
 LDLIBS   = -lsacpp_camera_types -lsacpp_scheduler_types -lsacpp_tcs_types -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
 -l"ddskernel" -l"ddsserialization" -l"ddsconfparser" -l"ddsconf" -l"ddsdatabase" \
 -l"ddsutil" -l"ddsos" -ldl $(subst lib,-l,$(sort $(basename $(notdir $(wildcard /usr/lib/librt.so /lib/librt.so))))) \
@@ -49,4 +49,4 @@ tcsTarget: sacpp_tcs_target_commander.cpp
 	$(CC) -std=c++11 $(INC) $(LDFLAGS) $(TCS)/src/.obj/SAL_tcs.o $(TCS)/src/.obj/CheckStatus.o  -Wall -o tcsTarget sacpp_tcs_target_commander.cpp $(LDLIBS) 
 
 clean:
-	rm -i *.o CommandListener EventListener AckSubscriber
+	rm -i takeImages startIntegration startReadout endReadout startShutterOpen endShutterOpen startShutterClose endShutterClose tcsTarget
