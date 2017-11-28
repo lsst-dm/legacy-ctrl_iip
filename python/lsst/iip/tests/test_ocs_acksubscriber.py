@@ -58,7 +58,7 @@ class TestOCS_AckSubscriber:
                                       broker_addr 
 
         self.dmcs_consumer = Consumer(dmcs_broker_url, "ocs_dmcs_consume", "thread-dmcs-consume", 
-                                      self.on_ocs_message, "YAML", None) 
+                                      self.on_ocs_message, "YAML") 
         self.dmcs_consumer.start()
 
         # ocs consumer from DMCS
@@ -70,7 +70,7 @@ class TestOCS_AckSubscriber:
                                      "AFM" + "@" +\
                                      broker_addr 
         self.ocs_consumer = Consumer(ocs_broker_url, "test_dmcs_ocs_publish", "thread-ocs-consume",
-                                     self.on_dmcs_message, "YAML", None) 
+                                     self.on_dmcs_message, "YAML") 
         self.ocs_consumer.start() 
         print("Test setup Complete. Commencing Messages...")
 

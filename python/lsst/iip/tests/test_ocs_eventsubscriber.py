@@ -42,7 +42,7 @@ class TestOCS_EventSubscriber:
                                       broker_addr 
 
         self.dmcs_consumer = Consumer(dmcs_broker_url, "ocs_dmcs_consume", "thread-dmcs-consume", 
-                                      self.on_ocs_message, "YAML", None) 
+                                      self.on_ocs_message, "YAML") 
         self.dmcs_consumer.start()
         print("Test setup Complete. Commencing Messages...")
 
@@ -56,7 +56,7 @@ class TestOCS_EventSubscriber:
         print("Finished with EventSubscriber tests.") 
 
     def send_messages(self): 
-        os.chdir("../sal_events/")
+        os.chdir("../events/")
 
         startIntegration = subprocess.Popen("./startIntegration testImage 0", shell=True, preexec_fn=os.setsid)
         print("=== START_INTEGRATION Message")

@@ -62,7 +62,7 @@ int test_processingcluster_SummaryState_Log()
 
     cout << "    SummaryStateValue : " << SALInstance.SummaryStateValue << endl;
     cout << "    priority : " << SALInstance.priority << endl;
-     publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: SUMMARY_STATE_EVENT, DEVICE: None, CURRENT_STATE: None }");  
+     publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: SUMMARY_STATE_EVENT, DEVICE: PP, CURRENT_STATE: None }");  
 
     }
     os_nanoSleep(delay_10ms);

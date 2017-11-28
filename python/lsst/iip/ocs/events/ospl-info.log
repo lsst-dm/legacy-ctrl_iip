@@ -1,0 +1,1498 @@
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:32 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <28233>
+Thread      : spliced 7fc6a61c0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840072.203109531
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:32 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <28233>
+Thread      : spliced 7fc6a61c0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840072.207200808
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:32 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <28233>
+Thread      : spliced 7fc6a61c0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840072.207690408
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:32 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <28233>
+Thread      : ddsi2 7fc69e782700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840072.210695187
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:33 UTC 2017
+Description : The durability service can by identified by ID: 668071434
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <28233>
+Thread      : durability 7fc69eaf4700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840073.122764290
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:41 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <28315>
+Thread      : spliced 7f773b1a0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840081.589888669
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:41 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <28315>
+Thread      : spliced 7f773b1a0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840081.594136915
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:41 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <28315>
+Thread      : spliced 7f773b1a0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840081.594663190
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:41 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <28315>
+Thread      : ddsi2 7f7733762700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840081.598228621
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:42 UTC 2017
+Description : The durability service can by identified by ID: 1158338160
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <28315>
+Thread      : durability 7f7733ad4700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840082.515168113
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:51 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <28397>
+Thread      : spliced 7fccbf578700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840091.587809512
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:51 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <28397>
+Thread      : spliced 7fccbf578700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840091.591982080
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:51 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <28397>
+Thread      : spliced 7fccbf578700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840091.592514033
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:51 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <28397>
+Thread      : ddsi2 7fcc9bb30700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840091.595642203
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:34:52 UTC 2017
+Description : The durability service can by identified by ID: 627028641
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <28397>
+Thread      : durability 7fccb810a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840092.509433518
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:01 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <28479>
+Thread      : spliced 7f51ef8fa700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840101.607331254
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:01 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <28479>
+Thread      : spliced 7f51ef8fa700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840101.611339842
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:01 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <28479>
+Thread      : spliced 7f51ef8fa700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840101.611847376
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:01 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <28479>
+Thread      : ddsi2 7f51e812d700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840101.618382417
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:02 UTC 2017
+Description : The durability service can by identified by ID: 1423253438
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <28479>
+Thread      : durability 7f51e822e700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840102.521341544
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:11 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <28561>
+Thread      : spliced 7f3b957a0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840111.614810213
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:11 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <28561>
+Thread      : spliced 7f3b957a0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840111.619022660
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:11 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <28561>
+Thread      : spliced 7f3b957a0700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840111.619550950
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:11 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <28561>
+Thread      : ddsi2 7f3b8dd62700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840111.622660101
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:12 UTC 2017
+Description : The durability service can by identified by ID: 1667096783
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <28561>
+Thread      : durability 7f3b8e0d4700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840112.529599974
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:21 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <28643>
+Thread      : spliced 7fbb30106700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840121.630163993
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:21 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <28643>
+Thread      : spliced 7fbb30106700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840121.634370925
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:21 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <28643>
+Thread      : spliced 7fbb30106700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840121.634879747
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:21 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <28643>
+Thread      : ddsi2 7fbb286c8700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840121.637988088
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:22 UTC 2017
+Description : The durability service can by identified by ID: 1179277451
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <28643>
+Thread      : durability 7fbb28a3a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840122.547066310
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:31 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <28728>
+Thread      : spliced 7f434d07a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840131.638685044
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:31 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <28728>
+Thread      : spliced 7f434d07a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840131.642686023
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:31 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <28728>
+Thread      : spliced 7f434d07a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840131.643271216
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:31 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <28728>
+Thread      : ddsi2 7f434563c700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840131.646234788
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:32 UTC 2017
+Description : The durability service can by identified by ID: 1225757742
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <28728>
+Thread      : durability 7f43459ae700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840132.556603522
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:41 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <28810>
+Thread      : spliced 7fe224e36700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840141.645936000
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:41 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <28810>
+Thread      : spliced 7fe224e36700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840141.650167135
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:41 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <28810>
+Thread      : spliced 7fe224e36700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840141.650694768
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:41 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <28810>
+Thread      : ddsi2 7fe21d3f8700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840141.657348849
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:42 UTC 2017
+Description : The durability service can by identified by ID: 202086468
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <28810>
+Thread      : durability 7fe21d76a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840142.558043334
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:51 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <28892>
+Thread      : spliced 7ff76f556700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511840151.660036128
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:51 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <28892>
+Thread      : spliced 7ff76f556700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511840151.664283607
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:51 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <28892>
+Thread      : spliced 7ff76f556700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840151.664801546
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:51 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <28892>
+Thread      : ddsi2 7ff753a2f700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511840151.667901761
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:35:52 UTC 2017
+Description : The durability service can by identified by ID: 2034630787
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <28892>
+Thread      : durability 7ff753da1700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511840152.574964514
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:36:01 UTC 2017
+Description : Termination request (signal 15) received from PID 28112, UID 1000
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <28892>
+Thread      : signalHandler 7ff768776700
+Internals   : V6.4.140320OSS/24b1387/24b1387/signalHandlerThread/os_signalHandler.c/503/0/1511840161.644618201
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:34 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <3481>
+Thread      : spliced 7f12b07ab700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841094.488375717
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:34 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <3481>
+Thread      : spliced 7f12b07ab700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841094.492471766
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:34 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <3481>
+Thread      : spliced 7f12b07ab700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841094.494344893
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:34 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <3481>
+Thread      : ddsi2 7f12a8d6d700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841094.497547614
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:35 UTC 2017
+Description : The durability service can by identified by ID: 2094040423
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <3481>
+Thread      : durability 7f12a90df700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841095.404671992
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:44 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <3563>
+Thread      : spliced 7f68be34b700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841104.496764422
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:44 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <3563>
+Thread      : spliced 7f68be34b700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841104.500780191
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:44 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <3563>
+Thread      : spliced 7f68be34b700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841104.501227722
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:44 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <3563>
+Thread      : ddsi2 7f68b690d700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841104.504258688
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:45 UTC 2017
+Description : The durability service can by identified by ID: 674240532
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <3563>
+Thread      : durability 7f68b6c7f700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841105.411430033
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:54 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <3728>
+Thread      : spliced 7f1cc29d4700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841114.510511605
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:54 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <3728>
+Thread      : spliced 7f1cc29d4700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841114.514820747
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:54 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <3728>
+Thread      : spliced 7f1cc29d4700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841114.515310370
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:54 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <3728>
+Thread      : ddsi2 7f1cbaf96700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841114.518362040
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:51:55 UTC 2017
+Description : The durability service can by identified by ID: 734199690
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <3728>
+Thread      : durability 7f1cbb308700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841115.425408613
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:04 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <3812>
+Thread      : spliced 7efee1954700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841124.519136421
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:04 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <3812>
+Thread      : spliced 7efee1954700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841124.523459024
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:04 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <3812>
+Thread      : spliced 7efee1954700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841124.524028315
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:04 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <3812>
+Thread      : ddsi2 7efed9f16700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841124.530876892
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:05 UTC 2017
+Description : The durability service can by identified by ID: 1703290635
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <3812>
+Thread      : durability 7efeda288700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841125.431171191
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:14 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <3894>
+Thread      : spliced 7fc374925700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841134.532133437
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:14 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <3894>
+Thread      : spliced 7fc374925700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841134.536447489
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:14 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <3894>
+Thread      : spliced 7fc374925700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841134.536955418
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:14 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <3894>
+Thread      : ddsi2 7fc36cee7700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841134.543805045
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:15 UTC 2017
+Description : The durability service can by identified by ID: 100892316
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <3894>
+Thread      : durability 7fc36d259700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841135.444453074
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:24 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <3976>
+Thread      : spliced 7fddda4cf700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841144.546298072
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:24 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <3976>
+Thread      : spliced 7fddda4cf700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841144.550449548
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:24 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <3976>
+Thread      : spliced 7fddda4cf700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841144.550947976
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:24 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <3976>
+Thread      : ddsi2 7fddd2a91700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841144.553909846
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:25 UTC 2017
+Description : The durability service can by identified by ID: 1342859851
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <3976>
+Thread      : durability 7fddd2e03700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841145.460752007
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:34 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <4058>
+Thread      : spliced 7f6f4449e700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841154.569474628
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:34 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <4058>
+Thread      : spliced 7f6f4449e700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841154.573856133
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:34 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <4058>
+Thread      : spliced 7f6f4449e700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841154.574389357
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:34 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <4058>
+Thread      : ddsi2 7f6f3ca60700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841154.581440034
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:35 UTC 2017
+Description : The durability service can by identified by ID: 1393465639
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <4058>
+Thread      : durability 7f6f3cdd2700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841155.481905920
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:44 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <4140>
+Thread      : spliced 7f454da3a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841164.582337860
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:44 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <4140>
+Thread      : spliced 7f454da3a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841164.586291896
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:44 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <4140>
+Thread      : spliced 7f454da3a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841164.586804447
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:44 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <4140>
+Thread      : ddsi2 7f4545ffc700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841164.593498004
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:45 UTC 2017
+Description : The durability service can by identified by ID: 270009293
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <4140>
+Thread      : durability 7f454636e700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841165.196905858
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:54 UTC 2017
+Description : Termination request (signal 15) received from PID 3360, UID 1000
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <4140>
+Thread      : signalHandler 7f4546c5a700
+Internals   : V6.4.140320OSS/24b1387/24b1387/signalHandlerThread/os_signalHandler.c/503/0/1511841174.577677306
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:54 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <4222>
+Thread      : spliced 7ffbaa105700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511841174.608793129
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:54 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <4222>
+Thread      : spliced 7ffbaa105700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511841174.612986878
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:54 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <4222>
+Thread      : spliced 7ffbaa105700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841174.613480552
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:54 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <4222>
+Thread      : ddsi2 7ffba26c7700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511841174.622781188
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:52:55 UTC 2017
+Description : The durability service can by identified by ID: 1366327187
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <4222>
+Thread      : durability 7ffba2a39700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511841175.520868554
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 03:53:04 UTC 2017
+Description : Termination request (signal 15) received from PID 3360, UID 1000
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <4222>
+Thread      : signalHandler 7ffba3325700
+Internals   : V6.4.140320OSS/24b1387/24b1387/signalHandlerThread/os_signalHandler.c/503/0/1511841184.593326366
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:26 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <16387>
+Thread      : spliced 7fe211605700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850086.231493057
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:26 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <16387>
+Thread      : spliced 7fe211605700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850086.235670158
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:26 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <16387>
+Thread      : spliced 7fe211605700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850086.236166772
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:26 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <16387>
+Thread      : ddsi2 7fe209bc6700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850086.243107708
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:27 UTC 2017
+Description : The durability service can by identified by ID: 609758760
+Node        : hk-run.os.ncsa.edu
+Process     : startIntegration <16387>
+Thread      : durability 7fe209f38700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850087.145365872
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:36 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <16469>
+Thread      : spliced 7fecd3b61700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850096.240728607
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:36 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <16469>
+Thread      : spliced 7fecd3b61700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850096.244872453
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:36 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <16469>
+Thread      : spliced 7fecd3b61700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850096.245380101
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:36 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <16469>
+Thread      : ddsi2 7feccc122700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850096.252147894
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:37 UTC 2017
+Description : The durability service can by identified by ID: 355327624
+Node        : hk-run.os.ncsa.edu
+Process     : startReadout <16469>
+Thread      : durability 7feccc494700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850097.153562740
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:46 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <16551>
+Thread      : spliced 7f39899b6700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850106.255160092
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:46 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <16551>
+Thread      : spliced 7f39899b6700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850106.259319757
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:46 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <16551>
+Thread      : spliced 7f39899b6700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850106.259843300
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:46 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <16551>
+Thread      : ddsi2 7f3981f77700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850106.266670115
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:47 UTC 2017
+Description : The durability service can by identified by ID: 1625207947
+Node        : hk-run.os.ncsa.edu
+Process     : endReadout <16551>
+Thread      : durability 7f39822e9700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850107.166941886
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:56 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <16633>
+Thread      : spliced 7f3465013700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850116.262910065
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:56 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <16633>
+Thread      : spliced 7f3465013700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850116.266852060
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:56 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <16633>
+Thread      : spliced 7f3465013700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850116.267333665
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:56 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <16633>
+Thread      : ddsi2 7f345d5d4700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850116.270219118
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:21:57 UTC 2017
+Description : The durability service can by identified by ID: 1511940284
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterOpen <16633>
+Thread      : durability 7f345d946700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850117.178235715
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:06 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <16715>
+Thread      : spliced 7fdab8844700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850126.271584953
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:06 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <16715>
+Thread      : spliced 7fdab8844700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850126.275748509
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:06 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <16715>
+Thread      : spliced 7fdab8844700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850126.276265424
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:06 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <16715>
+Thread      : ddsi2 7fdab0e05700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850126.283121731
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:07 UTC 2017
+Description : The durability service can by identified by ID: 148394416
+Node        : hk-run.os.ncsa.edu
+Process     : startShutterClose <16715>
+Thread      : durability 7fdab1177700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850127.183447656
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:16 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <16797>
+Thread      : spliced 7fb5692f6700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850136.284969766
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:16 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <16797>
+Thread      : spliced 7fb5692f6700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850136.289247822
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:16 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <16797>
+Thread      : spliced 7fb5692f6700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850136.289793406
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:16 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <16797>
+Thread      : ddsi2 7fb5618b7700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850136.296879102
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:17 UTC 2017
+Description : The durability service can by identified by ID: 860314392
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterOpen <16797>
+Thread      : durability 7fb561c29700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850137.196973170
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:26 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <16879>
+Thread      : spliced 7f8b40105700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850146.295890528
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:26 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <16879>
+Thread      : spliced 7f8b40105700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850146.300041930
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:26 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <16879>
+Thread      : spliced 7f8b40105700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850146.300562755
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:26 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <16879>
+Thread      : ddsi2 7f8b386c6700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850146.303659558
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:27 UTC 2017
+Description : The durability service can by identified by ID: 272900258
+Node        : hk-run.os.ncsa.edu
+Process     : endShutterClose <16879>
+Thread      : durability 7f8b38a38700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850147.211688468
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:36 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <16961>
+Thread      : spliced 7ff90044f700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850156.304947001
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:36 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <16961>
+Thread      : spliced 7ff90044f700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850156.309188642
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:36 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <16961>
+Thread      : spliced 7ff90044f700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850156.309807285
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:36 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <16961>
+Thread      : ddsi2 7ff8f8a10700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850156.316711439
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:37 UTC 2017
+Description : The durability service can by identified by ID: 1189041892
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <16961>
+Thread      : durability 7ff8f8d82700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850157.217031225
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:46 UTC 2017
+Description : Termination request (signal 15) received from PID 16268, UID 1000
+Node        : hk-run.os.ncsa.edu
+Process     : takeImages <16961>
+Thread      : signalHandler 7ff8f966e700
+Internals   : V6.4.140320OSS/24b1387/24b1387/signalHandlerThread/os_signalHandler.c/503/0/1511850166.298618534
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:46 UTC 2017
+Description : u_domainNew:Database allocated on heap
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <17043>
+Thread      : spliced 7fad5e329700
+Internals   : V6.4.140320OSS/24b1387/24b1387/user::u_domain::u_domainNew/u_domain.c/706/0/1511850166.317497319
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:46 UTC 2017
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 10240 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <17043>
+Thread      : spliced 7fad5e329700
+Internals   : V6.4.140320OSS/24b1387/24b1387/The OpenSplice domain service/u_domain.c/827/0/1511850166.321924119
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:46 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <17043>
+Thread      : spliced 7fad5e329700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850166.323034391
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:46 UTC 2017
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <17043>
+Thread      : ddsi2 7fad568ea700
+Internals   : V6.4.140320OSS/24b1387/24b1387/v_serviceChangeState/v_service.c/329/0/1511850166.326534717
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:47 UTC 2017
+Description : The durability service can by identified by ID: 1259874309
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <17043>
+Thread      : durability 7fad56c5c700
+Internals   : V6.4.140320OSS/24b1387/24b1387/DurabilityService/d_durability.c/476/0/1511850167.233541908
+========================================================================================
+Report      : INFO
+Date        : Tue Nov 28 06:22:56 UTC 2017
+Description : Termination request (signal 15) received from PID 16268, UID 1000
+Node        : hk-run.os.ncsa.edu
+Process     : tcsTarget <17043>
+Thread      : signalHandler 7fad57548700
+Internals   : V6.4.140320OSS/24b1387/24b1387/signalHandlerThread/os_signalHandler.c/503/0/1511850176.307992833
