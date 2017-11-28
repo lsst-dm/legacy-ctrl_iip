@@ -1,4 +1,5 @@
-#rabbitmqctl add_vhost /bunny
+rabbitmqctl add_vhost /bunny
+rabbitmqctl add_vhost /test
 
 rabbitmqctl add_user F1 F1
 rabbitmqctl add_user F2 F2

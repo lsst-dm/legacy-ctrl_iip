@@ -11,7 +11,8 @@ class Setup:
 
         #Choose a connection...
 #        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2fbunny'))
-        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
+        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
+        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
         #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
         #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2ftester'))
 
@@ -20,7 +21,7 @@ class Setup:
         ## queue_bind(callback, queue, exchange, routing_key=None, nowait=False, arguments=None)
         
         ### Exchange Declares - message' is primary exchange for lsst 
-        self.channel.exchange_declare(exchange='message', type='direct', durable=True)
+        self.channel.exchange_declare(exchange='message', exchange_type='direct', durable=True)
         #self.channel.exchange_delete(exchange='message')
         time.sleep(2)
                  

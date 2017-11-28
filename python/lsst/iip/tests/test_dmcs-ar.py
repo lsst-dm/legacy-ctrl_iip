@@ -300,9 +300,9 @@ class TestDMCS_AR:
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
                 if self.DP:
-                    print("The following message to the AR failed when compared with " \ 
+                    print("The following message to the AR failed when compared with " \
                           "the sovereign example: %s" % msg)
-                pytest.fail("The following message to the AR failed when compared with " \ 
+                pytest.fail("The following message to the AR failed when compared with " \
                             "the sovereign example: %s" % msg)
 
         if self.DP:
