@@ -27,7 +27,8 @@ declare -a queues=( "ar_foreman_consume"
                     "archive_ctrl_publish"
                     "ncsa_consume"
                     "ncsa_publish"
-                    "ncsa_foreman_ack_publish") 
+                    "ncsa_foreman_ack_publish"
+                    "test_dmcs_ocs_publish") # optional test queue for dmcs_ocs test 
 
 for i in ${queues[@]}
 do

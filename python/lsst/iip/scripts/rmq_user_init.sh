@@ -216,24 +216,25 @@ rabbitmqctl add_user AUDIT AUDIT
 rabbitmqctl set_permissions -p /bunny AUDIT '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test AUDIT '.*' '.*' '.*'
 
+rabbitmqctl add_user OCS OCS 
+rabbitmqctl set_permissions -p /bunny OCS '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test OCS '.*' '.*' '.*'
+
+rabbitmqctl add_user OCS_PUB OCS_PUB 
+rabbitmqctl set_permissions -p /bunny OCS_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test OCS_PUB '.*' '.*' '.*'
 
 for i in {1..25}; do 
    x="CL_"$i; 
    rabbitmqctl add_user $x $x;
-   rabbitmqctl set_permissions -p /test $x \'.\*\' \'.\*\' \'.\*\'
-   rabbitmqctl set_permissions -p /bunny $x \'.\*\' \'.\*\' \'.\*\'
+   rabbitmqctl set_permissions -p /test $x '.*' '.*' '.*'
+   rabbitmqctl set_permissions -p /bunny $x '.*' '.*' '.*'
    done
-
 
 for i in {1..25}; do 
    x="EVN_"$i; 
    rabbitmqctl add_user $x $x;
-   rabbitmqctl set_permissions -p /test $x \'.\*\' \'.\*\' \'.\*\'
-   rabbitmqctl set_permissions -p /bunny $x \'.\*\' \'.\*\' \'.\*\'
+   rabbitmqctl set_permissions -p /test $x '.*' '.*' '.*'
+   rabbitmqctl set_permissions -p /bunny $x '.*' '.*' '.*'
    done
-
-
-
-
-
 

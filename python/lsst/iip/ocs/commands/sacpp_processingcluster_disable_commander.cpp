@@ -12,6 +12,9 @@
 #include "ccpp_sal_processingcluster.h"
 #include "os.h"
 #include <stdlib.h>
+#include "SimplePublisher.h" 
+#include <yaml-cpp/yaml.h> 
+using namespace YAML; 
 using namespace DDS;
 using namespace processingcluster;
 
@@ -29,6 +32,14 @@ int main (int argc, char *argv[])
   }
   SAL_processingcluster mgr = SAL_processingcluster();
 
+  Node n = LoadFile("../../tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml");
+  string broker = n["ROOT"]["BASE_BROKER_ADDR"].as<string>(); 
+  ostringstream url; 
+  url << "amqp://CL_20:CL_20@" << broker; 
+  cout << url.str() << endl; 
+  SimplePublisher *publisher = new SimplePublisher(url.str()); 
+
+
   mgr.salCommand("processingcluster_command_disable");
 
   myData.device   = "controller";
@@ -41,10 +52,16 @@ int main (int argc, char *argv[])
   cout << "=== command disable issued = " << endl;
   status = mgr.waitForCompletion_disable(cmdId, timeout);
 
+
+  if (status == 303) { // completed_ok
+     publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: DISABLE_ACK, DEVICE: PP, CMD_ID: None, ACK_ID: None, ACK_BOOL: None, ACK_STATEMENT }");  
+  } 
   /* Remove the DataWriters etc */
   mgr.salShutdown();
-
-  return status;
+  if (status != SAL__CMD_COMPLETE) {
+     exit(1);
+  }
+  exit(0);
 }
 
 

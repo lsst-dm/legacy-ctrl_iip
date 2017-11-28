@@ -4,6 +4,7 @@ import hashlib
 import yaml
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
+from ThreadManager import ThreadManager 
 from const import *
 import toolsmod  # here so reader knows where intake yaml method resides
 from toolsmod import *
@@ -71,16 +72,18 @@ class ArchiveController:
         LOGGER.info('Setting up archive consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread for archive consumer')
 
-        self._archive_consumer = Consumer(self._base_broker_url, self.ARCHIVE_CTRL_CONSUME, self._base_msg_format)
-        try:
-            _thread.start_new_thread( self.run_archive_consumer, ("thread-archive-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start Archive consumer thread, exiting...')
-            raise L1Error
+        kws = {}
+        md = {}
+        md['amqp_url'] = self._base_broker_url
+        md['name'] = 'Thread-ar_ctrl_consume'
+        md['queue'] = self.ARCHIVE_CTRL_CONSUME
+        md['callback'] = self.on_archive_message
+        md['format'] = "YAML"
+        md['test_val'] = None
+        kws[md['name']] = md
 
-    def run_archive_consumer(self, threadname, delay):
-        self._archive_consumer.run(self.on_archive_message)
-
+        self.thread_manager = ThreadManager('thread-manager', kws)
+        self.thread_manager.start()
 
 
     def setup_publisher(self):
@@ -107,7 +110,7 @@ class ArchiveController:
            :param str 'SESSION_ID' Might be useful for the controller to 
                generate a target location for new items to be archived?
         """
-        self.send_audit_message("received_")
+        self.send_audit_message("received_", params)
         self.send_health_ack_response("ARCHIVE_HEALTH_CHECK_ACK", params)
         
 
@@ -121,7 +124,7 @@ class ArchiveController:
         transfer_results = {}
         ccds = params['RESULT_LIST']['CCD_LIST']
         fnames = params['RESULT_LIST']['FILENAME_LIST']
-        csums = params['RESULT_SET']['CHECKSUM_LIST']
+        csums = params['RESULT_LIST']['CHECKSUM_LIST']
         num_ccds = len(ccds)
         transfer_results = {}
         RECEIPT_LIST = [] 
@@ -133,7 +136,7 @@ class ArchiveController:
             if transfer_result == None:
                 RECEIPT_LIST.append('0')
             else:
-                RECEIPT_LIST.append(transfer_result
+                RECEIPT_LIST.append(transfer_result) 
         transfer_results['CCD_LIST'] = ccds
         transfer_results['RECEIPT_LIST'] = RECEIPT_LIST
         self.send_transfer_complete_ack(transfer_results, params)
@@ -180,7 +183,7 @@ class ArchiveController:
         msg_params[COMPONENT] = self._name
         msg_params[ACK_BOOL] = "TRUE"
         msg_params['ACK_ID'] = ack_id
-        LOGGER.info('%s sent for ACK ID: %s', type, timed_ack)
+        LOGGER.info('%s sent for ACK ID: %s', type, ack_id)
         self._archive_publisher.publish_message(self.ACK_PUBLISH, msg_params)
 
 
