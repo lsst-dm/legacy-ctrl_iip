@@ -62,7 +62,7 @@ int test_archiver_ErrorCode_Log()
 
     cout << "    errorCode : " << SALInstance.errorCode << endl;
     cout << "    priority : " << SALInstance.priority << endl;
-     publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: ERROR_CODE_EVENT, DEVICE: None, ERROR_CODE: None }");  
+     publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: ERROR_CODE_EVENT, DEVICE: AR, ERROR_CODE: None }");  
 
     }
     os_nanoSleep(delay_10ms);

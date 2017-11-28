@@ -63,7 +63,7 @@ int test_archiver_AppliedSettingsMatchStart_Log()
     cout << "    appliedSettingsMatchStartIsTrue : " << SALInstance.appliedSettingsMatchStartIsTrue << endl;
     cout << "    priority : " << SALInstance.priority << endl;
 
-     publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: APPLIED_SETTINGS_MATCH_START_EVENT, DEVICE: None, SETTING: None, APPLIED: None }");  
+     publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: APPLIED_SETTINGS_MATCH_START_EVENT, DEVICE: AR, SETTING: None, APPLIED: None }");  
     }
     os_nanoSleep(delay_10ms);
   }

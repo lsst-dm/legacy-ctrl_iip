@@ -1,4 +1,4 @@
-#include "Consumer.h"
+#include "Consumer_impl.h"
 #include <boost/variant.hpp> 
 #include "SAL_archiver.h" 
 #include "SAL_catchuparchiver.h" 
@@ -8,10 +8,11 @@
 class AckSubscriber : public OCS_Bridge { 
     public: 
 
-        typedef boost::variant<SAL_archiver, SAL_catchuparchiver, SAL_processingcluster> sal_obj; 
-
         /** Consumer object to listen to messages from rabbitmq */ 
         Consumer* ack_consumer; 
+        SAL_archiver ar; 
+        SAL_catchuparchiver cu; 
+        SAL_processingcluster pp; 
 
         /** constructor for Rabbitmq ack subscriber to OCS system */ 
 	AckSubscriber(); 
@@ -28,15 +29,15 @@ class AckSubscriber : public OCS_Bridge {
         /** Rabbitmq callback function to parse into Consumer object to listen to messages
           * @param string message body
           */ 
-        static void on_message(std::string, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
+        void on_message(std::string); 
 
-	static void process_ack(YAML::Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster);  
-        static void process_summary_state(YAML::Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
-        static void process_recommended_settings_version(YAML::Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
-        static void process_settings_applied(YAML::Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
-        static void process_applied_settings_match_start(YAML::Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
-        static void process_error_code(YAML::Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
-	static void process_book_keeping(YAML::Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
-	static void process_resolve_ack(YAML::Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
+	void process_ack(YAML::Node);  
+        void process_summary_state(YAML::Node); 
+        void process_recommended_settings_version(YAML::Node); 
+        void process_settings_applied(YAML::Node); 
+        void process_applied_settings_match_start(YAML::Node); 
+        void process_error_code(YAML::Node); 
+	void process_book_keeping(YAML::Node); 
+	void process_resolve_ack(YAML::Node); 
 }; 
 

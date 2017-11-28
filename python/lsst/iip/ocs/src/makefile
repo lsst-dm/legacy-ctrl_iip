@@ -50,7 +50,7 @@ SimplePublisher: SimplePublisher.cpp
 	$(CC) -L/usr/local/lib -lSimpleAmqpClient -c -o SimplePublisher.o SimplePublisher.cpp
 
 Consumer: Consumer.cpp 
-	$(CC) $(INC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(ARCHIVE)/src/.obj/CheckStatus.o -c -o Consumer.o Consumer.cpp -lSimpleAmqpClient 
+	$(CC) -std=c++11 -c -o Consumer.o Consumer.cpp -lSimpleAmqpClient 
 
 Toolsmod: Toolsmod.cpp
 	$(CC) -std=c++11 -c -o Toolsmod.o Toolsmod.cpp

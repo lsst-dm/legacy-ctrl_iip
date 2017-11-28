@@ -1,7 +1,6 @@
 #include <string.h>
 #include <iostream> 
 #include <yaml-cpp/yaml.h>
-#include <boost/variant.hpp> 
 #include "SAL_archiver.h"
 #include "SAL_catchuparchiver.h" 
 #include "SAL_processingcluster.h"
@@ -13,11 +12,11 @@
 using namespace std; 
 using namespace YAML; 
 
-typedef void (*funcptr)(Node, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
+using ack_funcptr = void (AckSubscriber::*)(Node); 
 
 map<string, map<string, string>> ack_book_keeper; 
 
-map<string, funcptr> action_handler = { 
+map<string, ack_funcptr> action_handler = { 
     {"START_ACK", &AckSubscriber::process_ack}, 
     {"STOP_ACK", &AckSubscriber::process_ack}, 
     {"ENABLE_ACK", &AckSubscriber::process_ack}, 
@@ -61,11 +60,12 @@ AckSubscriber::~AckSubscriber() {
 
 void AckSubscriber::setup_consumer() { 
     ack_consumer = new Consumer(base_broker_addr, OCS_CONSUME); 
+    ar = SAL_archiver(); 
+    cu = SAL_catchuparchiver(); 
+    pp = SAL_processingcluster(); 
 }
 
 void AckSubscriber::run() { 
-
-    SAL_archiver ar = SAL_archiver(); 
     ar.salProcessor(const_cast<char *>("archiver_command_enable")); 
     ar.salProcessor(const_cast<char *>("archiver_command_disable")); 
     ar.salProcessor(const_cast<char *>("archiver_command_standby")); 
@@ -81,7 +81,6 @@ void AckSubscriber::run() {
     ar.salEvent(const_cast<char *>("archiver_logevent_ErrorCode")); 
     // Settings applied topic actually doesn't exist. 
 
-    SAL_catchuparchiver cu = SAL_catchuparchiver(); 
     cu.salProcessor(const_cast<char *>("catchuparchiver_command_enable")); 
     cu.salProcessor(const_cast<char *>("catchuparchiver_command_disable")); 
     cu.salProcessor(const_cast<char *>("catchuparchiver_command_standby")); 
@@ -96,7 +95,6 @@ void AckSubscriber::run() {
     cu.salEvent(const_cast<char *>("catchuparchiver_logevent_SettingVersions")); 
     cu.salEvent(const_cast<char *>("catchuparchiver_logevent_ErrorCode")); 
     
-    SAL_processingcluster pp = SAL_processingcluster(); 
     pp.salProcessor(const_cast<char *>("processingcluster_command_enable")); 
     pp.salProcessor(const_cast<char *>("processingcluster_command_disable")); 
     pp.salProcessor(const_cast<char *>("processingcluster_command_standby")); 
@@ -112,10 +110,11 @@ void AckSubscriber::run() {
     pp.salEvent(const_cast<char *>("processingcluster_logevent_ErrorCode")); 
 
     cout << "============> running CONSUMER <=============" << endl; 
-    ack_consumer->run(on_message, ar, cu, pp); 
+    callback<AckSubscriber> on_msg = &AckSubscriber::on_message; 
+    ack_consumer->run<AckSubscriber>(this, on_msg); 
 } 
 
-void AckSubscriber::on_message(string message, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
+void AckSubscriber::on_message(string message) { 
     Node node = Load(message); 
     string message_value; 
     try { 
@@ -124,15 +123,15 @@ void AckSubscriber::on_message(string message, SAL_archiver ar, SAL_catchuparchi
 	    cout << "=== MSG: " << message << endl;
 	    cout << "[" << message_value << "] ..." << endl; 
 	}   
-	funcptr action = action_handler[message_value]; 
-	(*action)(node, ar, cu, pp); 
+	ack_funcptr action = action_handler[message_value]; 
+	(this->*action)(node); 
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In AckSubscriber -- on_message, cannot read fields from message." << endl; 
     } 
 } 
 
-void AckSubscriber::process_ack(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) {
+void AckSubscriber::process_ack(Node n) {
     try { 
 	string message_value = n["MSG_TYPE"].as<string>(); 
 	long cmdId = stol(n["CMD_ID"].as<string>()); 
@@ -169,7 +168,7 @@ void AckSubscriber::process_ack(Node n, SAL_archiver ar, SAL_catchuparchiver cu,
     }  
 }
 
-void AckSubscriber::process_summary_state(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
+void AckSubscriber::process_summary_state(Node n) { 
     try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
         string device = n["DEVICE"].as<string>(); 
@@ -202,7 +201,7 @@ void AckSubscriber::process_summary_state(Node n, SAL_archiver ar, SAL_catchupar
     }  
 } 
 
-void AckSubscriber::process_recommended_settings_version(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
+void AckSubscriber::process_recommended_settings_version(Node n) { 
     try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
         string device = n["DEVICE"].as<string>(); 
@@ -234,7 +233,7 @@ void AckSubscriber::process_recommended_settings_version(Node n, SAL_archiver ar
     }  
 }
 
-void AckSubscriber::process_settings_applied(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) {
+void AckSubscriber::process_settings_applied(Node n) {
     try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
         string device = n["DEVICE"].as<string>(); 
@@ -266,7 +265,7 @@ void AckSubscriber::process_settings_applied(Node n, SAL_archiver ar, SAL_catchu
     }  
 }
 
-void AckSubscriber::process_applied_settings_match_start(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) {
+void AckSubscriber::process_applied_settings_match_start(Node n) {
     try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
         string device = n["DEVICE"].as<string>(); 
@@ -298,7 +297,7 @@ void AckSubscriber::process_applied_settings_match_start(Node n, SAL_archiver ar
     }  
 }
 
-void AckSubscriber::process_error_code(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) {
+void AckSubscriber::process_error_code(Node n) {
     try {
         string message_value = n["MSG_TYPE"].as<string>(); 
         string device = n["DEVICE"].as<string>(); 
@@ -330,7 +329,7 @@ void AckSubscriber::process_error_code(Node n, SAL_archiver ar, SAL_catchuparchi
     }  
 } 
 
-void AckSubscriber::process_book_keeping(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
+void AckSubscriber::process_book_keeping(Node n) { 
     cout << "=== BOOK_KEEPING received" << endl;
     try { 
 	string ack_id = n["ACK_ID"].as<string>(); 
@@ -354,7 +353,7 @@ void AckSubscriber::process_book_keeping(Node n, SAL_archiver ar, SAL_catchuparc
     } 
 } 
 
-void AckSubscriber::process_resolve_ack(Node n, SAL_archiver ar, SAL_catchuparchiver cu, SAL_processingcluster pp) { 
+void AckSubscriber::process_resolve_ack(Node n) { 
     for (auto &ack_dict : ack_book_keeper) { 
 	string check_box = ack_dict.second.find("CHECKBOX")->second; 
 	string device = ack_dict.second.find("DEVICE")->second; 
@@ -362,7 +361,7 @@ void AckSubscriber::process_resolve_ack(Node n, SAL_archiver ar, SAL_catchuparch
 
 	if (check_box == "false") { 
 	    string dict_time = ack_dict.second.find("TIME")->second; 
-	    int ack_delay = 10; 
+	    int ack_delay = 2; 
 
 	    int time_delta = get_time_delta(dict_time); 
 	    bool timeout_result = time_delta > ack_delay ? true : false; 
@@ -383,7 +382,7 @@ void AckSubscriber::process_resolve_ack(Node n, SAL_archiver ar, SAL_catchuparch
                 new_msg["ACK_STATEMENT"] = "nack"; 
                 
 		ack_book_keeper[ack_id]["CHECKBOX"] = "true";
-                process_ack(new_msg, ar, cu, pp); 
+                process_ack(new_msg); 
 
 	    }  	
 	}  
