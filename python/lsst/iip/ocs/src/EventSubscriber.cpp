@@ -10,7 +10,6 @@
 #include <yaml-cpp/yaml.h>
 #include <stdlib.h>
 
-// #include "example_main.h"
 #include "SimplePublisher.h"
 #include "EventSubscriber.h"
 
