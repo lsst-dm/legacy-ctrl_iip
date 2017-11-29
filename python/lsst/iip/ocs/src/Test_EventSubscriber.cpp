@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <pthread.h>
+#include "SAL_archiver.h" // for fake guys
 #include "SAL_camera.h"
 #include "SAL_tcs.h"
 #include "ccpp_sal_camera.h"
@@ -34,7 +35,7 @@ EventSubscriber::~EventSubscriber() {
 } 
 
 void EventSubscriber::setup_events_listeners() { 
-    int thread_counts = 9; 
+    int thread_counts = 12; 
     funcptr thread_funcs[] {  &EventSubscriber::run_ccs_takeImages, 
                                &EventSubscriber::run_ccs_startIntegration, 
                                &EventSubscriber::run_ccs_startReadout, 
@@ -43,7 +44,10 @@ void EventSubscriber::setup_events_listeners() {
                                &EventSubscriber::run_ccs_startShutterClose, 
                                &EventSubscriber::run_ccs_endShutterOpen, 
                                &EventSubscriber::run_ccs_endShutterClose, 
-                               &EventSubscriber::run_tcs_target }; 
+                               &EventSubscriber::run_tcs_target, 
+                               &EventSubscriber::run_targetVisitAccept, 
+                               &EventSubscriber::run_targetVisitDone, 
+                               &EventSubscriber::run_takeImageDone  };
     
     for (int i = 0; i < thread_counts; i++) { 
         ostringstream rmq_url; 
@@ -329,6 +333,91 @@ void *EventSubscriber::run_tcs_target(void *args) {
         os_nanoSleep(delay_10ms);
     }
     mgr.salShutdown();
+    return 0;
+} 
+
+// FAKE GUYS 
+void *EventSubscriber::run_targetVisitAccept(void *args) { 
+    event_args *params = ((event_args *)args); 
+    string queue = params->publish_queue; 
+    string broker_addr = params->broker_addr; 
+ 
+    os_time delay_10ms = { 0, 10000000 };
+    int status = -1; 
+    SAL_archiver mgr = SAL_archiver(); 
+    archiver_logevent_targetVisitAcceptC SALInstance; 
+
+    mgr.salEvent("archiver_logevent_targetVisitAccept"); 
+    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
+
+    while(1) { 
+        status = mgr.getEvent_targetVisitAccept(&SALInstance); 
+
+        if (status == SAL__OK) { 
+            cout << "=== Event targetVisitAccept received = " << endl;
+            ostringstream msg; 
+            msg << "{ MSG_TYPE: TARGET_VISIT_ACCEPT }"; 
+            publisher->publish_message(queue, msg.str()); 
+        } 
+        os_nanoSleep(delay_10ms);
+    }  
+    mgr.salShutdown(); 
+    return 0;
+} 
+
+void *EventSubscriber::run_targetVisitDone(void *args) { 
+    event_args *params = ((event_args *)args); 
+    string queue = params->publish_queue; 
+    string broker_addr = params->broker_addr; 
+ 
+    os_time delay_10ms = { 0, 10000000 };
+    int status = -1; 
+    SAL_archiver mgr = SAL_archiver(); 
+    archiver_logevent_targetVisitDoneC SALInstance; 
+
+    mgr.salEvent("archiver_logevent_targetVisitDone"); 
+    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
+
+    while(1) { 
+        status = mgr.getEvent_targetVisitDone(&SALInstance); 
+
+        if (status == SAL__OK) { 
+            cout << "=== Event targetVisitDone received = " << endl;
+            ostringstream msg; 
+            msg << "{ MSG_TYPE: TARGET_VISIT_DONE }"; 
+            publisher->publish_message(queue, msg.str()); 
+        } 
+        os_nanoSleep(delay_10ms);
+    }  
+    mgr.salShutdown(); 
+    return 0;
+} 
+
+void *EventSubscriber::run_takeImageDone(void *args) { 
+    event_args *params = ((event_args *)args); 
+    string queue = params->publish_queue; 
+    string broker_addr = params->broker_addr; 
+ 
+    os_time delay_10ms = { 0, 10000000 };
+    int status = -1; 
+    SAL_archiver mgr = SAL_archiver(); 
+    archiver_logevent_takeImageDoneC SALInstance; 
+
+    mgr.salEvent("archiver_logevent_takeImageDone"); 
+    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
+
+    while(1) { 
+        status = mgr.getEvent_takeImageDone(&SALInstance); 
+
+        if (status == SAL__OK) { 
+            cout << "=== Event takeImageDone received = " << endl;
+            ostringstream msg; 
+            msg << "{ MSG_TYPE: TAKE_IMAGE_DONE }"; 
+            publisher->publish_message(queue, msg.str()); 
+        } 
+        os_nanoSleep(delay_10ms);
+    }  
+    mgr.salShutdown(); 
     return 0;
 } 
 

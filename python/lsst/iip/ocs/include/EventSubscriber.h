@@ -1,4 +1,3 @@
-
 class EventSubscriber { 
     public: 
         struct event_args { 
@@ -25,4 +24,7 @@ class EventSubscriber {
         static void *run_ccs_endShutterOpen(void*); 
         static void *run_ccs_endShutterClose(void*); 
         static void *run_tcs_target(void*); 
+        static void *run_targetVisitAccept(void*);
+        static void *run_targetVisitDone(void*);
+        static void *run_takeImageDone  (void*);
 }; 
