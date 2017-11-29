@@ -29,12 +29,13 @@ the included `makefiles`.
 ## Running Tests 
 In the iip directory, run 
 
-* AckSubscriber
-pytest -s -v tests/test_ocs_acksubscriber.py
-AckSubscriber test takes a while to start up since it simulates CommandListener, which takes about 2 minutes to be ready. 
+* AckSubscriber  
+`pytest -s -v tests/test_ocs_acksubscriber.py`  
+AckSubscriber test takes a while to start up since it simulates CommandListener, which takes about 2 minutes to be ready.   
 
-* CommandListener 
-pytest -s -v tests/test_ocs_commandlistener.py 
+* CommandListener  
+`pytest -s -v tests/test_ocs_commandlistener.py` 
 
-* EventSubscriber
-pytest -s -v tests/test_ocs_eventsubscriber.py
+* EventSubscriber  
+`pytest -s -v tests/test_ocs_eventsubscriber.py`
+
