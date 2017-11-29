@@ -156,6 +156,7 @@ void *EventSubscriber::run_ccs_startReadout(void *args) {
     return 0;
 } 
 
+/**
 void *EventSubscriber::run_ccs_endReadout(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -176,6 +177,36 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
             cout << "=== Event endReadout received = " << endl;
             ostringstream msg; 
             msg << "{ MSG_TYPE: CCS_END_READOUT }"; 
+            publisher->publish_message(queue, msg.str());
+        } 
+        os_nanoSleep(delay_10ms); 
+    }  
+    mgr.salShutdown(); 
+    return 0;
+} 
+*/ 
+
+void *EventSubscriber::run_ccs_endReadout(void *args) { 
+    event_args *params = ((event_args *)args); 
+    string queue = params->publish_queue; 
+    string broker_addr = params->broker_addr; 
+ 
+    os_time delay_10ms = { 0, 10000000 };
+    int status = -1; 
+    SAL_archiver mgr = SAL_archiver(); 
+    archiver_logevent_endReadoutC SALInstance; 
+
+    mgr.salEvent("archiver_logevent_endReadout"); 
+    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
+
+    while(1) { 
+        status = mgr.getEvent_endReadout(&SALInstance); 
+
+        if (status == SAL__OK) { 
+            cout << "=== Event endReadout received = " << endl;
+            ostringstream msg; 
+            msg << "{ MSG_TYPE: END_READOUT" 
+                << ", PARAM: " << SALInstance.ImageName << "}"; 
             publisher->publish_message(queue, msg.str());
         } 
         os_nanoSleep(delay_10ms); 

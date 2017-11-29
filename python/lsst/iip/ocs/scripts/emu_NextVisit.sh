@@ -37,6 +37,7 @@ do
         sleep 2
         
         # endReadout
+        IMG_NAME="IMG"$j
         ../events/endReadout 0
         echo "[x] END_READOUT sent."
     done 
