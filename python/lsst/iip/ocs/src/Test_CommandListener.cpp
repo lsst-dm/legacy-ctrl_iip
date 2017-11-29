@@ -8,8 +8,6 @@
 #include "SAL_processingcluster.h" 
 #include "OCS_Bridge.h" 
 #include "CommandListener.h"
-#include <unistd.h> 
-#include <algorithm> 
 
 using namespace std;
 
