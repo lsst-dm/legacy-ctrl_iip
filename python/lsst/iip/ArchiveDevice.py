@@ -769,6 +769,7 @@ class ArchiveDevice(BaseMgmt):
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
+        super(ArchiveDevice, self).__init__()
         self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
@@ -792,7 +793,6 @@ class ArchiveDevice(BaseMgmt):
     #    LOGGER.debug("Thread Manager shutting down and app exiting...")
     #    print("\n")
     #    os._exit(0)
-
 
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)

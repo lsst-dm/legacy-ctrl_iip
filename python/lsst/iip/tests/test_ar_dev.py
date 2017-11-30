@@ -88,6 +88,7 @@ class TestArDev:
                                  broker_addr
         print("Opening publisher with this URL string: %s" % dmcs_pub_broker_url)
         self.dmcs_publisher = SimplePublisher(dmcs_pub_broker_url, "YAML")
+        print("Opened publisher with this URL string: %s" % dmcs_pub_broker_url)
     
         ar_ctrl_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']
         ar_ctrl_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
@@ -101,6 +102,7 @@ class TestArDev:
                                     broker_addr
         print("Opening publisher with this URL string: %s" % ar_ctrl_pub_broker_url)
         self.ar_ctrl_publisher = SimplePublisher(ar_ctrl_pub_broker_url, "YAML")
+        print("Opened publisher with this URL string: %s" % ar_ctrl_pub_broker_url)
     
         F1_name = 'F1'
         F1_passwd = 'F1'
@@ -114,6 +116,7 @@ class TestArDev:
                                     broker_addr
         print("Opening publisher with this URL string: %s" % F1_pub_broker_url)
         self.F1_publisher = SimplePublisher(F1_pub_broker_url, "YAML")
+        print("Opened publisher with this URL string: %s" % F1_pub_broker_url)
    
         F2_name = 'F2'
         F2_passwd = 'F2'
@@ -127,30 +130,55 @@ class TestArDev:
                                     broker_addr
         print("Opening publisher with this URL string: %s" % F2_pub_broker_url)
         self.F2_publisher = SimplePublisher(F2_pub_broker_url, "YAML")
+        print("Opened publisher with this URL string: %s" % F2_pub_broker_url)
    
  
         # Must be done before consumer threads are started
         # This is used for verifying message structure
         self._msg_auth = MessageAuthority()
 
+        if self.DP:
+            print("Starting dmcs_consumer...")
         self.dmcs_consumer = Consumer(dmcs_broker_url,'dmcs_ack_consume', 'thread-dmcs',
                                      self.on_dmcs_message,'YAML')
+        if self.DP:
+            print("DMCS_Consumer instance built - about to call thread start")
         self.dmcs_consumer.start()
+        if self.DP:
+            print("Started dmcs_consumer...")
 
 
+        if self.DP:
+            print("Starting ar_ctrl_consumer...")
         self.ar_ctrl_consumer = Consumer(ar_ctrl_broker_url,'archive_ctrl_consume', 'thread-ar-ctrl', 
                                     self.on_ar_ctrl_message,'YAML')
+        if self.DP:
+            print("AR_CTRL_Consumer instance built - about to call thread start")
         self.ar_ctrl_consumer.start()
+        if self.DP:
+            print("Started ar_ctrl_consumer...")
 
 
+        if self.DP:
+            print("Starting F1_consumer...")
         self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
                                     self.on_f1_message,'YAML')
+        if self.DP:
+            print("F1_Consumer instance built - about to call thread start")
         self.F1_consumer.start()
+        if self.DP:
+            print("Started F1_consumer...")
 
 
+        if self.DP:
+            print("Starting F2_consumer...")
         self.F2_consumer = Consumer(F2_broker_url,'f2_consume', 'thread-f2', 
                                     self.on_f2_message,'YAML')
+        if self.DP:
+            print("F2_Consumer instance built - about to call thread start")
         self.F2_consumer.start()
+        if self.DP:
+            print("Started F2_consumer...")
 
         sleep(3)
         print("Test Setup Complete. Commencing Messages...")
