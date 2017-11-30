@@ -1,4 +1,5 @@
 #include <iostream> 
+#include <pthread.h>
 #include <yaml-cpp/yaml.h>
 #include "Consumer_impl.h" 
 
@@ -16,10 +17,16 @@ class Subscriber {
     void on_message(string body); 
     void do_something(Node n); 
     void run();
+    static void *run_thread(void *);
 }; 
 
 // implementation starts here
 using funcptr = void (Subscriber::*)(Node); 
+
+struct arg_struct { 
+    Consumer *consumer;
+    Subscriber *subscriber; 
+};
 
 map<string, funcptr> action_handler = { 
     { "DO_SOMETHING", &Subscriber::do_something}, 
@@ -50,12 +57,28 @@ void Subscriber::do_something(Node n) {
 
 void Subscriber::run() { 
     cout << "Consumer running ..." << endl;
+
+    arg_struct *args = new arg_struct; 
+    args->consumer = consumer; 
+    args->subscriber = this; 
+
+    pthread_t t;
+    pthread_create(&t, NULL, &Subscriber::run_thread, args); 
+} 
+
+void *Subscriber::run_thread(void *pargs) {
+    arg_struct *params = ((arg_struct *) pargs); 
+    Consumer *consumer = params->consumer;
+    Subscriber *subscriber = params->subscriber;
+
     callback<Subscriber> on_msg = &Subscriber::on_message;
-    consumer->run<Subscriber>(this, on_msg); 
+    consumer->run<Subscriber>(subscriber, on_msg); 
 } 
 
 int main() { 
     Subscriber *sub = new Subscriber(); 
     sub->run(); 
+    
+    pthread_exit(NULL); 
     return 0;
 } 

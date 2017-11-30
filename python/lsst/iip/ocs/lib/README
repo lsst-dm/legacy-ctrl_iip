@@ -1,0 +1,12 @@
+# C++ Libraries for L1 Development 
+
+### [Rabbitmq-c v.0.5.3](https://github.com/alanxz/rabbitmq-c)
+L1 system uses Rabbitmq Messaging server to transfer messages between various components.
+Rabbitmq-c is the API for our components to use messaging. 
+
+### [SimpleAmqpClient v2.4.0](https://github.com/alanxz/SimpleAmqpClient)
+SimpleAmqpClient is the wrapper around Rabbitmq-c.
+
+### [Yaml-cpp v0.8.0](https://github.com/jbeder/yaml-cpp)
+To make the communication among components easier, we use yaml messages to send over the line. 
+Yaml-cpp converts our message strings into key, value pairs, which then we uses in L1. 
