@@ -28,7 +28,7 @@ LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FORMAT)
 
 
-class DMCS:
+class DMCS(BaseMgmt):
     """ The DMCS is the principle coordinator component for Level One System code.
 
         It sends and receives messages and events.
@@ -1179,8 +1179,8 @@ class DMCS:
                                             str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
-        self.shutdown_event = threading.Event()
-        self.shutdown_event.clear()
+        #self.shutdown_event = threading.Event()
+        #self.shutdown_event.clear()
 
         # Set up kwargs that describe consumers to be started
         # The DMCS needs two message consumers
@@ -1205,6 +1205,7 @@ class DMCS:
             md['test_val'] = None
             kws[md['name']] = md
 
+            super(DMCS, self).__init__()
             self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         except ThreadError as e:
             LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.arg)
@@ -1284,13 +1285,13 @@ class DMCS:
         # Exit?
         pass
 
-    def shutdown(self):
-        LOGGER.info("Shutting down Consumer threads.")
-        self.shutdown_event.set()
-        LOGGER.debug("Thread Manager shutting down and app exiting...")
+   # def shutdown(self):
+   #     LOGGER.info("Shutting down Consumer threads.")
+   #     self.shutdown_event.set()
+   #     LOGGER.debug("Thread Manager shutting down and app exiting...")
         #sys.exit(0)
-        print("\n")
-        os._exit(0)
+   #     print("\n")
+   #     os._exit(0)
 
 
 def main():

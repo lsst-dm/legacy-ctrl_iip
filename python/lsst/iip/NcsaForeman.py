@@ -24,7 +24,7 @@ logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=
 LOGGER = logging.getLogger(__name__)
 
 
-class NcsaForeman:
+class NcsaForeman(BaseMgmt):
     NCSA_CONSUME = "ncsa_consume"
     NCSA_PUBLISH = "ncsa_publish"
     COMPONENT_NAME = 'NCSA_FOREMAN'
@@ -420,7 +420,7 @@ class NcsaForeman:
                                             self._sub_ncsa_passwd + "@" + \
                                             str(self._ncsa_broker_addr)
 
-        self.shutdown_event = threading.Event()
+        #self.shutdown_event = threading.Event()
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
@@ -443,6 +443,7 @@ class NcsaForeman:
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
+	super(NcsaForeman, self).__init__()
         self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
@@ -456,12 +457,12 @@ class NcsaForeman:
         self.ACK_SCBD = AckScoreboard('NCSA_ACK_SCBD', self._scbd_dict['NCSA_ACK_SCBD'])
 
 
-    def shutdown(self):
-        LOGGER.debug("NCSA Foreman: Shutting down Consumer threads.")
-        self.shutdown_event.set()
-        LOGGER.debug("Thread Manager shutting down and app exiting...")
-        print("\n")
-        os._exit(0)
+   # def shutdown(self):
+   #     LOGGER.debug("NCSA Foreman: Shutting down Consumer threads.")
+   #     self.shutdown_event.set()
+   #     LOGGER.debug("Thread Manager shutting down and app exiting...")
+   #     print("\n")
+   #     os._exit(0)
 
 
 def main():

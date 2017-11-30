@@ -16,7 +16,7 @@ class BaseMgmt:
     def shutdown(self):
         self.shutdown_event.set()
         os.exit(0)
-
+    '''
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
         counter = 0.0
         while (counter < seconds):
@@ -35,4 +35,4 @@ class BaseMgmt:
             return response
         else:
             return None
-
+    '''

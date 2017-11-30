@@ -25,7 +25,7 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
 LOGGER = logging.getLogger(__name__)
 
 
-class PromptProcessDevice:
+class PromptProcessDevice(BaseMgmt):
     PP_JOB_SCBD = None
     PP_FWD_SCBD = None
     PP_ACK_SCBD = None
@@ -597,8 +597,8 @@ class PromptProcessDevice:
                                             self._sub_ncsa_passwd + "@" + \
                                             str(self._ncsa_broker_addr)
 
-        self.shutdown_event = threading.Event()
-        self.shutdown_event.clear()
+        #self.shutdown_event = threading.Event()
+        #self.shutdown_event.clear()
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers
@@ -631,6 +631,7 @@ class PromptProcessDevice:
         kws[md['name']] = md
 
         try:
+            super(PromptProcessDevice, self).__init__()
             self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
             self.thread_manager.start()
         except ThreadError as e:
@@ -680,12 +681,12 @@ class PromptProcessDevice:
             os.system(cmd)
 
 
-    def shutdown(self):
-        LOGGER.debug("PromptProcessDevice: Shutting down Consumer threads.")
-        self.shutdown_event.set()
-        LOGGER.debug("Thread Manager shutting down and app exiting...")
-        print("\n")
-        os._exit(0)
+   # def shutdown(self):
+   #     LOGGER.debug("PromptProcessDevice: Shutting down Consumer threads.")
+   #     self.shutdown_event.set()
+   #     LOGGER.debug("Thread Manager shutting down and app exiting...")
+   #     print("\n")
+   #     os._exit(0)
 
 
 def main():
