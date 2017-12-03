@@ -40,6 +40,11 @@ class Forwarder {
     void on_forwarder_to_format_message(string body);
     void on_forwarder_to_forward_message(string body);
 
+    void process_new_visit(Node n);
+    void process_health_check(Node n);
+    void process_take_image(Node n);
+    void process_end_readout(Node n);
+
     void run();
     statis void *run_thread(void *);
 };
@@ -48,9 +53,17 @@ using funcptr = void(Forwarder::*)(Node);
 
 //Primary Forwarder message actions
 map<string, funcptr> on_foreman_message_actions = {
-
+    { "AR_NEW_VISIT", &Forwarder::process_new_visit},
+    { "PP_NEW_VISIT", &Forwarder::process_new_visit},
+    { "AR_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
+    { "PP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
+    { "AR_TAKE_IMAGE", &Forwarder::process_take_image},
+    { "PP_TAKE_IMAGE", &Forwarder::process_take_image},
+    { "AR_END_READOUT", &Forwarder::process_end_readout},
+    { "PP_END_READOUT", &process_end_readout}
 };
 
+//The next three handlers are essentially acks...
 map<string, funcptr> on_fetch_message_actions = {
 
 };
@@ -65,14 +78,17 @@ map<string, funcptr> on_forward_message_actions = {
 
 
 //Forwarder Component message actions
+//This handler is for messages from Primary Forwarder to fetch thread
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
 
 };
 
+//This handler is for messages from Primary Forwarder to format thread
 map<string, funcptr> on_forwarder_to_format_message_actions = {
 
 };
 
+//This handler is for messages from Primary Forwarder to forward thread
 map<string, funcptr> on_forwarder_to_forward_message_actions = {
 
 };
