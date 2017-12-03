@@ -711,7 +711,7 @@ ROOT:
         ACK_BOOL:
         REPLY_QUEUE:
         RESULTS:
-            CCD_LIST: 
+          CCD_LIST: 
             RECEIPT_LIST: Alphanumeric receipt or 'none' for failure
         RESULT_LIST: 
             CCD_LIST:
