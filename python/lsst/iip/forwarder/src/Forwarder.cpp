@@ -27,10 +27,11 @@ class Forwarder {
     SimplePublisher *fmt_pub;
     SimplePublisher *fwd_pub;
     
+    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE;
 
     Forwarder();
     ~Forwarder();
-    void setup_consumers();
+    void setup_consumers(string);
     void on_foreman_message(string body);
     void on_fetch_message(string body);
     void on_format_message(string body);
@@ -80,18 +81,70 @@ map<string, funcptr> on_forward_message_actions = {
 //Forwarder Component message actions
 //This handler is for messages from Primary Forwarder to fetch thread
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
-
+    { "AR_FETCH", &Forwarder::process_fetch},
+    { "PP_FETCH", &Forwarder::process_fetch]
 };
 
 //This handler is for messages from Primary Forwarder to format thread
 map<string, funcptr> on_forwarder_to_format_message_actions = {
-
+    { "AR_FORMAT", &Forwarder::process_format},
+    { "PP_FORMAT", &Forwarder::process_format]
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
 map<string, funcptr> on_forwarder_to_forward_message_actions = {
+    { "AR_FORWARD", &Forwarder::process_forward},
+    { "PP_FORWARD", &Forwarder::process_forward]
 
 };
+
+Forwarder::Forwarder() {
+    // Read config file
+    Node config_file;
+    try {
+        config_file = LoadFile("../yaml/ForwarderCfg.yaml");
+    }
+    catch (YAML::BadFile& e) {
+        // FIX better catch clause...at LEAST a log message
+        cout << "Error reading ForwarderCfg.yaml file." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    Node root;
+    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE;
+    try {
+        root = config_file["ROOT"];
+        USER = root["NAME"].as<string>();
+        PASSWD = root["PASSWD"].as<string>();
+        BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
+        FQN = root["FQN"].as<string>();
+        HOSTNAME = root["HOSTNAME"].as<string>();
+        IP_ADDR = root["IP_ADDR"].as<string>();
+        CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
+    }
+    catch (YAML::TypedBadConversion<string>& e) {
+        cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
+    }
+
+    //ostringstream full_broker_url;
+    //full_broker_url << "amqp://" << user_name << ":" << passwd << basePbroker_addr from above...
+
+
+
+    // Set up publishers
+    // Set up Consumers
+    setup_consumers(BASE_BROKER_ADDR);
+    
+}
+
+void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
+    ostringstream full_broker_url;
+    full_broker_url = 
+    from_foreman_consumer = new Consumer(
+
+}
+
+
 
 //Messages received by Primary Forwarder from Foreman
 void Forwarder::on_foreman_message(string body) {

@@ -746,12 +746,12 @@ ROOT:
 
     CCS_TAKE_IMAGES: 
         MSG_TYPE: CCS_TAKE_IMAGES
-        NUM_IMAGES: 
+        NUM_IMAGES:  Integer
         EXP_TIME: exposure time
         SHUTTER: 
-        SCIENCE: 
-        GUIDE: 
-        WFS: 
+        SCIENCE: Bool
+        GUIDE: Bool
+        WFS: Bool
         IMAGE_SEQUENCE_NAME: 
 
     TCS_TARGET:
@@ -767,3 +767,90 @@ ROOT:
         NUM_EXPOSURES: 
         EXPOSURE_TIMES: 
         SLEW_TIME: 
+
+    #----------------------------------------------------------------------------
+    # Each Forwarder component consists of s primary component 
+    # which communicates with the Foreman (device).
+    # The Primary Forwarwder component is made up three sub-components.
+    # These sub-components communicate with the Primary Forwarder Component.
+    # The sub-componets are:
+    #  a. The fetch sub-component fetches image data from DAQ.
+    #  b. The format sub-component joins EFD data and image data into Fits files.
+    #  c. The forward sub-component moves the Fits file to its final destination.
+
+    AR_NEW_VISIT:
+        MSG_TYPE: AR_NEW_VISIT
+        REPLY_QUEUE:
+        ACK_ID:
+
+    PP_NEW_VISIT:
+        MSG_TYPE: PP_NEW_VISIT
+        REPLY_QUEUE:
+        ACK_ID:
+
+    AR_FWDR_HEALTH_CHECK:
+        MSG_TYPE: AR_FWDR_HEALTH_CHECK:
+        RAFT:
+        REPLY_QUEUE:
+        ACK_ID
+
+    PP_FWDR_HEALTH_CHECK:
+        MSG_TYPE: PP_FWDR_HEALTH_CHECK
+        RAFT:
+        REPLY_QUEUE:
+        ACK_ID:
+
+    AR_TAKE_IMAGE:
+        MSG_TYPE: AR_TAKE_IMAGE:
+        REPLY_QUEUE:
+        ACK_ID:
+
+    PP_TAKE_IMAGE:
+        MSG_TYPE: PP_TAKE_IMAGE
+        REPLY_QUEUE:
+        ACK_ID:
+
+    AR_END_READOUT:
+        MSG_TYPE: AR_END_READOUT
+        REPLY_QUEUE:
+        ACK_ID:
+
+    PP_END_READOUT:
+        MSG_TYPE: PP_END_READOUT
+        REPLY_QUEUE:
+        ACK_ID:
+
+
+    #----------------------------------------------------------
+
+
+    AR_FETCH:
+        MSG_TYPE: AR_FETCH
+        REPLY_QUEUE:
+
+    PP_FETCH:
+        MSG_TYPE: PP_FETCH
+        CROSSTALK_KEY:
+        REPLY_QUEUE:
+
+    AR_FORMAT:
+        MSG_TYPE: AR_FORMAT
+        HEADER_LOCATION:
+        REPLY_QUEUE:
+
+    PP_FORMAT:
+        MSG_TYPE: PP_FORMAT
+        HEADER_LOCATION:
+        REPLY_QUEUE:
+
+    AR_FORWARD:
+        MSG_TYPE: AR_FOWARDR
+        DESTINATION:
+        REPLY_QUEUE:
+
+    PP_FORWARD:
+        MSG_TYPE: PP_FORWARD
+        DESTINATION:
+        REPLY_QUEUE:
+
+
