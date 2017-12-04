@@ -139,8 +139,22 @@ Forwarder::Forwarder() {
 
 void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     ostringstream full_broker_url;
-    full_broker_url = 
-    from_foreman_consumer = new Consumer(
+    full_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
+    from_foreman_consumer = new Consumer(full_broker_url, CONSUME_QUEUE);
+
+    ostringstream consume_queue;
+    consume_queue << CONSUME_QUEUE << "_from_fetch";
+    from_fetch_consumer = new Consumer(full_broker_url, consume_queue);
+
+    ostringstream consume_queue;
+    consume_queue << CONSUME_QUEUE << "_from_format";
+    from_format_consumer = new Consumer(full_broker_url, consume_queue);
+
+    ostringstream consume_queue;
+    consume_queue << CONSUME_QUEUE << "_from_forward";
+    from_forward_consumer = new Consumer(full_broker_url, consume_queue);
+
+    
 
 }
 
