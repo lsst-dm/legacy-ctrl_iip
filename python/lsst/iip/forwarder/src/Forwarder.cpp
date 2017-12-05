@@ -27,7 +27,11 @@ class Forwarder {
     SimplePublisher *fmt_pub;
     SimplePublisher *fwd_pub;
     
-    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE;
+    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE, USER_FORWARD_PUB, PASSWD_FORWARD_PUB;;
+    string USER_PUB, PASSWD_PUB, USER_FETCH_PUB, PASSWD_FETCH_PUB, USER_FORMAT_PUB, PASSWD_FORMAT_PUB;
+    string FETCH_USER, FETCH_USER_PASSWD, FORMAT_USER, FORMAT_USER_PASSWD,  FORWARD_USER, FORWARD_USER_PASSWD;
+    string FETCH_USER_PUB, FETCH_USER_PUB_PASSWD, FORMAT_USER_PUB, FORMAT_USER_PUB_PASSWD; 
+    string FORWARD_USER_PUB, FORMAT_USER_PUB_PASSWD;
 
     Forwarder();
     ~Forwarder();
@@ -121,6 +125,20 @@ Forwarder::Forwarder() {
         HOSTNAME = root["HOSTNAME"].as<string>();
         IP_ADDR = root["IP_ADDR"].as<string>();
         CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
+        FETCH_USER = root["FETCH_USER"].as<string>();
+        FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
+        FETCH_USER_PUB = root["FETCH_USER_PUB"].as<string>();
+        FETCH_USER_PUB_PASSWD = root["FETCH_USER_PUB_PASSWD"].as<string>();
+
+        FORMAT_USER = root["FORMAT_USER"].as<string>();
+        FORMAT_USER_PASSWD = root["FORMAT_USER_PASSWD"].as<string>();
+        FORMAT_USER_PUB = root["FORMAT_USER_PUB"].as<string>();
+        FORMAT_USER_PUB_PASSWD = root["FORMAT_USER_PUB_PASSWD"].as<string>();
+
+        FORWARD_USER = root["FORWARD_USER"].as<string>();
+        FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
+        FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
+        FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
     }
     catch (YAML::TypedBadConversion<string>& e) {
         cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
@@ -138,6 +156,7 @@ Forwarder::Forwarder() {
 }
 
 void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
+    //Consumers for Primary Forwarder
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
     from_foreman_consumer = new Consumer(full_broker_url, CONSUME_QUEUE);
@@ -153,6 +172,9 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     ostringstream consume_queue;
     consume_queue << CONSUME_QUEUE << "_from_forward";
     from_forward_consumer = new Consumer(full_broker_url, consume_queue);
+
+    //Consumers for sub-components
+    ostringstream consume_queue;
 
     
 
