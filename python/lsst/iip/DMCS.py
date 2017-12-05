@@ -100,12 +100,17 @@ class DMCS:
                               'START_INTEGRATION': self.process_start_integration_event,
                               'READOUT': self.process_readout_event,
                               'TELEMETRY': self.process_telemetry, 
+			      ###########################################################
                               'CCS_START_INTEGRATION': self.process_ccs_start_int_event,
-                              'CCS_READOUT': self.process_ccs_readout_event,
+                              'CCS_START_READOUT': self.process_ccs_readout_event,
                               'CCS_SHUTTER_CLOSE': self.process_ccs_shutter_close_event,
                               'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
                               'CCS_TAKE_IMAGES': self.process_ccs_take_images_event,
-                              'SEQ_TARGET_VISIT': self.process_seq_target_visit_event }
+                              'TCS_TARGET': self.process_seq_target_visit_event, 
+			      'TAKE_IMAGE_DONE': self.process_take_image_done, 
+			      'TARGET_VISIT_DONE': self.process_target_visit_done, 
+			      'TARGET_VISIT_ACCEPT': self.process_target_visit_accept, 
+			      'END_READOUT': self.process_end_readout} 
 
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
@@ -132,7 +137,8 @@ class DMCS:
         self.thread_manager = None
         self.setup_consumer_threads()
 
-        self.init_ack_id()
+        #self.init_ack_id()
+        self._next_timed_ack_id = 1
 
         LOGGER.info('DMCS init complete')
 
@@ -166,9 +172,10 @@ class DMCS:
                 toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
                 self._next_timed_ack_id =  current_id
         except Exception as e: 
-            LOGGER.error("DMCS unable to get init_ack_id: %s" % e.arg) 
-            print("DMCS unable to get init_ack_id: %s" % e.arg) 
-            raise L1Error("DMCS unable to get init_ack_id: %s" % e.arg) 
+            pass
+            #LOGGER.error("DMCS unable to get init_ack_id: %s" % e.arg) 
+            #print("DMCS unable to get init_ack_id: %s" % e.arg) 
+            #raise L1Error("DMCS unable to get init_ack_id: %s" % e.arg) 
 
 
 
@@ -647,14 +654,17 @@ class DMCS:
         print("------------------------------\n\n")
 
     def process_ccs_take_images_event(self, params):
-        print("Incoming message to process_ccs_take_images_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
+        print("[x] CCS_TAKE_IMAGES")
+        print("xxxxxxxxxxxxxxxxxxxxxxxxx")
+        #print("Incoming message to process_ccs_take_images_event: ")
+        #self.prp.pprint(params) 
+        ##print("------------------------------\n\n")
 
     def process_seq_target_visit_event(self, params):
-        print("Incoming message to process_seq_target_visit_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
+        print("[x] TCS_TARGET")
+        #print("Incoming message to process_seq_target_visit_event: ")
+        #self.prp.pprint(params) 
+        #print("------------------------------\n\n")
 
 
 
@@ -1177,6 +1187,7 @@ class DMCS:
         base_broker_url = "amqp://" + self._msg_name + ":" + \
                                             self._msg_passwd + "@" + \
                                             str(self._base_broker_addr)
+        print("CONSUMER THREADS: %s" % base_broker_url)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
         self.shutdown_event = threading.Event()
@@ -1291,6 +1302,20 @@ class DMCS:
         #sys.exit(0)
         print("\n")
         os._exit(0)
+
+    def process_take_image_done(self, params):
+        print("xxxxxxxxxxxxxxxxxxxxx")
+        print("[x] TAKE_IMAGE_DONE") 
+        print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+
+    def process_target_visit_done(self, params): 
+        print("[x] TARGET_VISIT_DONE")
+
+    def process_target_visit_accept(self, params):
+        print("[x] TARGET_VISIT_ACCEPT")
+
+    def process_end_readout(self, params):
+        print("[x] END_READOUT; IMG_NAME: %s" % params["PARAM"]) 
 
 
 def main():
