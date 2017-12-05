@@ -768,6 +768,19 @@ ROOT:
         EXPOSURE_TIMES: 
         SLEW_TIME: 
 
+    TAKE_IMAGE_DONE:
+        MSG_TYPE: TAKE_IMAGE_DONE
+
+    TARGET_VISIT_DONE: 
+        MSG_TYPE: TARGET_VISIT_DONE
+
+    TARGET_VISIT_ACCEPT:
+        MSG_TYPE: TARGET_VISIT_ACCEPT
+
+    END_READOUT:
+        MSG_TYPE: END_READOUT
+        PARAM: IMG_NAME
+
     #----------------------------------------------------------------------------
     # Each Forwarder component consists of s primary component 
     # which communicates with the Foreman (device).
@@ -789,10 +802,10 @@ ROOT:
         ACK_ID:
 
     AR_FWDR_HEALTH_CHECK:
-        MSG_TYPE: AR_FWDR_HEALTH_CHECK:
+        MSG_TYPE: AR_FWDR_HEALTH_CHECK
         RAFT:
         REPLY_QUEUE:
-        ACK_ID
+        ACK_ID:
 
     PP_FWDR_HEALTH_CHECK:
         MSG_TYPE: PP_FWDR_HEALTH_CHECK
@@ -801,7 +814,7 @@ ROOT:
         ACK_ID:
 
     AR_TAKE_IMAGE:
-        MSG_TYPE: AR_TAKE_IMAGE:
+        MSG_TYPE: AR_TAKE_IMAGE
         REPLY_QUEUE:
         ACK_ID:
 

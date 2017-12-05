@@ -66,7 +66,7 @@ class TestOCS_EventSubscriber:
         print("=== START_READOUT Message")
         sleep(10)
         
-        endReadout = subprocess.Popen("./endReadout 0", shell=True, preexec_fn=os.setsid)
+        endReadout = subprocess.Popen("./sacpp_archiver_endReadout_send IMG1 0", shell=True, preexec_fn=os.setsid)
         print("=== END_READOUT Message")
         sleep(10)
         
