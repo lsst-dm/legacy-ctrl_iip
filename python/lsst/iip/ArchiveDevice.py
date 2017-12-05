@@ -646,7 +646,7 @@ class ArchiveDevice(BaseMgmt):
         #sleep(seconds)
         #return True
 
-
+    '''
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
         """ Sleeps for user-defined seconds, or less if everyone has reported back in.
 
@@ -679,7 +679,7 @@ class ArchiveDevice(BaseMgmt):
             return response
         else:
             return None
-
+    '''
 
     def extract_config_values(self):
         """ Parse system config yaml file.
@@ -769,7 +769,6 @@ class ArchiveDevice(BaseMgmt):
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
-        super(ArchiveDevice, self).__init__()
         self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 

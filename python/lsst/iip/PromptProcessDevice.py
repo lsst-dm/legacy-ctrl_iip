@@ -19,6 +19,7 @@ from AckScoreboard import AckScoreboard
 from Consumer import Consumer
 from ThreadManager import ThreadManager
 from SimplePublisher import SimplePublisher
+from BaseMgmt import BaseMgmt
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -497,12 +498,12 @@ class PromptProcessDevice(BaseMgmt):
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
 
-
+    '''
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
-
-
+    '''
+    '''
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
         counter = 0.0
         while (counter < seconds):
@@ -522,7 +523,7 @@ class PromptProcessDevice(BaseMgmt):
             return response
         else:
             return None
-
+    '''
 
     def set_pending_nonblock_acks(self, acks, wait_time):
         start_time = datetime.datetime.now().time()
@@ -631,7 +632,6 @@ class PromptProcessDevice(BaseMgmt):
         kws[md['name']] = md
 
         try:
-            super(PromptProcessDevice, self).__init__()
             self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
             self.thread_manager.start()
         except ThreadError as e:

@@ -21,6 +21,7 @@ from StateScoreboard import StateScoreboard
 from BacklogScoreboard import BacklogScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
+from BaseMgmt import BaseMgmt
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -1092,7 +1093,7 @@ class DMCS(BaseMgmt):
 
         return retval 
 
-
+    '''
     def ack_timer(self, seconds):
         """ Sleeps for user-defined seconds.
 
@@ -1102,8 +1103,9 @@ class DMCS(BaseMgmt):
         """
         sleep(seconds)
         return True
+    '''
 
-
+    '''
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
         """ Sleeps for user-defined seconds, or less if everyone has reported back in.
 
@@ -1136,7 +1138,7 @@ class DMCS(BaseMgmt):
             return response
         else:
             return None
-
+    '''
 
     def extract_config_values(self):
         LOGGER.info('Reading YAML Config file %s' % self._config_file)
@@ -1205,7 +1207,6 @@ class DMCS(BaseMgmt):
             md['test_val'] = None
             kws[md['name']] = md
 
-            super(DMCS, self).__init__()
             self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         except ThreadError as e:
             LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.arg)

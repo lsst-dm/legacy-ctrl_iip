@@ -17,6 +17,7 @@ from AckScoreboard import AckScoreboard
 from Consumer import Consumer
 from ThreadManager import ThreadManager
 from SimplePublisher import SimplePublisher
+from BaseMgmt import BaseMgmt
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -344,11 +345,13 @@ class NcsaForeman(BaseMgmt):
         retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         return retval 
 
-
+    '''
     def ack_timer(self, seconds):
         sleep(seconds)
         return True
+    '''
 
+    '''
     def progressive_ack_timer(self, ack_id, expected_replies, seconds):
         counter = 0.0
         while (counter < seconds):
@@ -368,6 +371,7 @@ class NcsaForeman(BaseMgmt):
             return response
         else:
             return None
+    '''
 
 
     def extract_config_values(self):
@@ -443,7 +447,6 @@ class NcsaForeman(BaseMgmt):
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
-	super(NcsaForeman, self).__init__()
         self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
