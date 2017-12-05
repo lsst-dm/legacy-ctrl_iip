@@ -32,7 +32,7 @@ class TestOCS_AckSubscriber:
 
     def test_ocs_acksubscriber(self): 
         try: 
-            cdm = toolsmod.intake_yaml_file("/home/centos/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml")
+            cdm = toolsmod.intake_yaml_file("/home/hwin16/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml")
         except IOError as e: 
             trace = traceback.print_exc() 
             emsg = "Unable to fine CFG Yaml file %s\n" % self._config_file 
@@ -74,7 +74,7 @@ class TestOCS_AckSubscriber:
         self.ocs_consumer.start() 
         print("Test setup Complete. Commencing Messages...")
 
-        self._msg_auth = MessageAuthority("/home/centos/src/git/ctrl_iip/python/lsst/iip/messages.yaml")
+        self._msg_auth = MessageAuthority("/home/hwin16/src/git/ctrl_iip/python/lsst/iip/messages.yaml")
 
         self.send_messages() 
         sleep(10)
