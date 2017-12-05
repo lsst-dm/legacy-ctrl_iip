@@ -38,7 +38,7 @@ do
         
         # endReadout
         IMG_NAME="IMG"$j
-        ../events/endReadout 0
+        ../events/sacpp_archiver_endReadout_send $IMG_NAME 0
         echo "[x] END_READOUT sent."
     done 
     
