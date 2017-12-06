@@ -140,8 +140,7 @@ class DMCS:
         self.thread_manager = None
         self.setup_consumer_threads()
 
-        #self.init_ack_id()
-        self._next_timed_ack_id = 1
+        self.init_ack_id()
 
         LOGGER.info('DMCS init complete')
 
