@@ -30,15 +30,17 @@ class Forwarder {
     SimplePublisher *fmt_pub;
     SimplePublisher *fwd_pub;
     
-    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE, USER_FORWARD_PUB, PASSWD_FORWARD_PUB;;
+    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE, USER_FORWARD_PUB, PASSWD_FORWARD_PUB;
     string USER_PUB, PASSWD_PUB, USER_FETCH_PUB, PASSWD_FETCH_PUB, USER_FORMAT_PUB, PASSWD_FORMAT_PUB;
     string FETCH_USER, FETCH_USER_PASSWD, FORMAT_USER, FORMAT_USER_PASSWD,  FORWARD_USER, FORWARD_USER_PASSWD;
     string FETCH_USER_PUB, FETCH_USER_PUB_PASSWD, FORMAT_USER_PUB, FORMAT_USER_PUB_PASSWD; 
-    string FORWARD_USER_PUB, FORMAT_USER_PUB_PASSWD;
+    string FORWARD_USER_PUB, FORWARD_USER_PUB_PASSWD;
+    string LOWER_NAME; 
 
     Forwarder();
     ~Forwarder();
     void setup_consumers(string);
+    void setup_publishers(string); 
     void on_foreman_message(string body);
     void on_fetch_message(string body);
     void on_format_message(string body);
@@ -56,16 +58,18 @@ class Forwarder {
     void process_fetch(Node n);
     void process_fetch_ack(Node n);
     void process_fetch_health_check(Node n);
-    void process_format_health_check_ack(Node n);
+    void process_fetch_health_check_ack(Node n);
     void process_format(Node n);
     void process_format_ack(Node n);
     void process_format_health_check(Node n);
-    void process_format_health_chech_ack(Node n);
+    void process_format_health_check_ack(Node n);
     void process_forward(Node n);
     void process_forward_ack(Node n);
+    void process_forward_health_check(Node n);
+    void process_forward_health_check_ack(Node n);
 
     void run();
-    statis void *run_thread(void *);
+    static void *run_thread(void *);
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -82,32 +86,32 @@ map<string, funcptr> on_foreman_message_actions = {
     { "PP_TAKE_IMAGE", &Forwarder::process_take_image},
     { "SP_TAKE_IMAGE", &Forwarder::process_take_image},
     { "AR_END_READOUT", &Forwarder::process_end_readout},
-    { "PP_END_READOUT", &process_end_readout},
-    { "SP_END_READOUT", &process_end_readout}
+    { "PP_END_READOUT", &Forwarder::process_end_readout},
+    { "SP_END_READOUT", &Forwarder::process_end_readout}
 };
 
 //The next three handlers are essentially acks...
 map<string, funcptr> on_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK_ACK", &Forwarder::process_fetch_health_check_ack},
     { "AR_FETCH_ACK", &Forwarder::process_fetch_ack},
-    { "PP_FETCH_ACK", &Forwarder::process_fetch_ack],
-    { "SP_FETCH_ACK", &Forwarder::process_fetch_ack]
+    { "PP_FETCH_ACK", &Forwarder::process_fetch_ack},
+    { "SP_FETCH_ACK", &Forwarder::process_fetch_ack}
 
 };
 
 map<string, funcptr> on_format_message_actions = {
     { "FORMAT_HEALTH_CHECK_ACK", &Forwarder::process_format_health_check_ack},
     { "AR_FORMAT_ACK", &Forwarder::process_format_ack},
-    { "PP_FORMAT_ACK", &Forwarder::process_format_ack],
-    { "SP_FORMAT_ACK", &Forwarder::process_format_ack]
+    { "PP_FORMAT_ACK", &Forwarder::process_format_ack},
+    { "SP_FORMAT_ACK", &Forwarder::process_format_ack}
 
 };
 
 map<string, funcptr> on_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
     { "AR_FORMAT_ACK", &Forwarder::process_forward_ack},
-    { "PP_FORMAT_ACK", &Forwarder::process_forward_ack],
-    { "SP_FORMAT_ACK", &Forwarder::process_forward_ack]
+    { "PP_FORMAT_ACK", &Forwarder::process_forward_ack},
+    { "SP_FORMAT_ACK", &Forwarder::process_forward_ack}
 
 };
 
@@ -117,24 +121,24 @@ map<string, funcptr> on_forward_message_actions = {
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK", &Forwarder::process_fetch_health_check},
     { "AR_FETCH", &Forwarder::process_fetch},
-    { "PP_FETCH", &Forwarder::process_fetch],
-    { "SP_FETCH", &Forwarder::process_fetch]
+    { "PP_FETCH", &Forwarder::process_fetch},
+    { "SP_FETCH", &Forwarder::process_fetch}
 };
 
 //This handler is for messages from Primary Forwarder to format thread
 map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
-    { "PP_FORMAT", &Forwarder::process_format],
-    { "SP_FORMAT", &Forwarder::process_format]
+    { "PP_FORMAT", &Forwarder::process_format},
+    { "SP_FORMAT", &Forwarder::process_format}
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
 map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK", &Forwarder::process_forward_health_check},
     { "AR_FORWARD", &Forwarder::process_forward},
-    { "PP_FORWARD", &Forwarder::process_forward],
-    { "SP_FORWARD", &Forwarder::process_forward]
+    { "PP_FORWARD", &Forwarder::process_forward},
+    { "SP_FORWARD", &Forwarder::process_forward}
 
 };
 
@@ -151,21 +155,21 @@ Forwarder::Forwarder() {
     }
 
     Node root;
-    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE;
+    string NAME, USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE;
     try {
         root = config_file["ROOT"];
         NAME = root["NAME"].as<string>();
-        LOWER_NAME = root["LOWER_NAME"].as<string>();
+        this->LOWER_NAME = root["LOWER_NAME"].as<string>();
         USER = root["USER"].as<string>();
         PASSWD = root["PASSWD"].as<string>();
         USER_PUB = root["USER_PUB"].as<string>();
         PASSWD_PUB = root["PASSWD_PUB"].as<string>();
-        USER_FETCH_PUB = ["USER_FETCH_PUB"].as<string>();
-        PASSWD_FETCH_PUB = ["PASSWD_FETCH_PUB"].as<string>();
-        USER_FORMAT_PUB = ["USER_FORMAT_PUB"].as<string>();
-        PASSWD_FORMAT_PUB = ["PASSWD_FORMAT_PUB"].as<string>();
-        USER_FORWARD_PUB = ["USER_FORWARD_PUB"].as<string>();
-        PASSWD_FORWARD_PUB = ["PASSWD_FORWARD_PUB"].as<string>();
+        USER_FETCH_PUB = root["USER_FETCH_PUB"].as<string>();
+        PASSWD_FETCH_PUB = root["PASSWD_FETCH_PUB"].as<string>();
+        USER_FORMAT_PUB = root["USER_FORMAT_PUB"].as<string>();
+        PASSWD_FORMAT_PUB = root["PASSWD_FORMAT_PUB"].as<string>();
+        USER_FORWARD_PUB = root["USER_FORWARD_PUB"].as<string>();
+        PASSWD_FORWARD_PUB = root["PASSWD_FORWARD_PUB"].as<string>();
         BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
         FQN = root["FQN"].as<string>();
         HOSTNAME = root["HOSTNAME"].as<string>();
@@ -202,40 +206,40 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //Consumers for Primary Forwarder
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
-    from_foreman_consumer = new Consumer(full_broker_url, CONSUME_QUEUE);
+    from_foreman_consumer = new Consumer(full_broker_url.str(), CONSUME_QUEUE);
 
-    ostringstream consume_queue;
-    consume_queue << CONSUME_QUEUE << "_from_fetch";
-    from_fetch_consumer = new Consumer(full_broker_url, consume_queue);
+    ostringstream consume_queue1;
+    consume_queue1 << CONSUME_QUEUE << "_from_fetch";
+    from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
 
-    ostringstream consume_queue;
-    consume_queue << CONSUME_QUEUE << "_from_format";
-    from_format_consumer = new Consumer(full_broker_url, consume_queue);
+    ostringstream consume_queue2;
+    consume_queue2 << CONSUME_QUEUE << "_from_format";
+    from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
 
-    ostringstream consume_queue;
-    consume_queue << CONSUME_QUEUE << "_from_forward";
-    from_forward_consumer = new Consumer(full_broker_url, consume_queue);
+    ostringstream consume_queue3;
+    consume_queue3 << CONSUME_QUEUE << "_from_forward";
+    from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
 
     //Consumers for sub-components
     ostringstream consume_queue;
 
-    ostringstream full_broker_url;
-    ostringstream consume_queue;
-    full_broker_url << "amqp://" << FETCH_USER << ":" << FETCH_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue << "fetch_consume_from_" << LOWER_NAME;
-    from_forwarder_to_fetch = new Consumer(full_broker_url, consume_queue);
+    ostringstream full_broker_url2;
+    ostringstream consume_queue4;
+    full_broker_url2 << "amqp://" << FETCH_USER << ":" << FETCH_USER_PASSWD << BASE_BROKER_ADDR ;
+    consume_queue4 << "fetch_consume_from_" << LOWER_NAME;
+    from_forwarder_to_fetch = new Consumer(full_broker_url.str(), consume_queue4.str());
 
-    ostringstream full_broker_url;
-    ostringstream consume_queue;
-    full_broker_url << "amqp://" << FORMAT_USER << ":" << FORMAT_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue << "format_consume_from_" << LOWER_NAME;
-    from_forwarder_to_format = new Consumer(full_broker_url, consume_queue);
+    ostringstream full_broker_url3;
+    ostringstream consume_queue5;
+    full_broker_url3 << "amqp://" << FORMAT_USER << ":" << FORMAT_USER_PASSWD << BASE_BROKER_ADDR ;
+    consume_queue5 << "format_consume_from_" << LOWER_NAME;
+    from_forwarder_to_format = new Consumer(full_broker_url.str(), consume_queue5.str());
 
-    ostringstream full_broker_url;
-    ostringstream consume_queue;
-    full_broker_url << "amqp://" << FORWARD_USER << ":" << FORWARD_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue << "forward_consume_from_" << LOWER_NAME;
-    from_forwarder_to_forward = new Consumer(full_broker_url, consume_queue);
+    ostringstream full_broker_url4;
+    ostringstream consume_queue6;
+    full_broker_url4 << "amqp://" << FORWARD_USER << ":" << FORWARD_USER_PASSWD << BASE_BROKER_ADDR ;
+    consume_queue6 << "forward_consume_from_" << LOWER_NAME;
+    from_forwarder_to_forward = new Consumer(full_broker_url.str(), consume_queue6.str());
 
 }
 
@@ -243,31 +247,31 @@ void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
     //Publishers
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << USER_PUB << ":" << PASSWD_PUB << BASE_BROKER_ADDR;
-    FWDR_pub = new SimplePublisher(full_broker_url);
+    FWDR_pub = new SimplePublisher(full_broker_url.str());
 
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << USER_FETCH_PUB << ":" << PASSWD_FETCH_PUB << BASE_BROKER_ADDR;
-    FWDR_to_fetch_pub - new SimplePublisher(full_broker_url);
+    ostringstream full_broker_url1;
+    full_broker_url1 << "amqp://" << USER_FETCH_PUB << ":" << PASSWD_FETCH_PUB << BASE_BROKER_ADDR;
+    FWDR_to_fetch_pub = new SimplePublisher(full_broker_url1.str());
 
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << USER_FORMAT_PUB << ":" << PASSWD_FORMAT_PUB << BASE_BROKER_ADDR;
-    FWDR_to_format_pub = new SimplePublisher(full_broker_url);
+    ostringstream full_broker_url2;
+    full_broker_url2 << "amqp://" << USER_FORMAT_PUB << ":" << PASSWD_FORMAT_PUB << BASE_BROKER_ADDR;
+    FWDR_to_format_pub = new SimplePublisher(full_broker_url2.str());
 
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << USER_FORWARD_PUB << ":" << PASSWD_FORWARD_PUB << BASE_BROKER_ADDR;
-    FWDR_to_forward_pub = new SimplePublisher(full_broker_url);
+    ostringstream full_broker_url3;
+    full_broker_url3 << "amqp://" << USER_FORWARD_PUB << ":" << PASSWD_FORWARD_PUB << BASE_BROKER_ADDR;
+    FWDR_to_forward_pub = new SimplePublisher(full_broker_url3.str());
 
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << FETCH_USER_PUB << ":" << FETCH_USER_PUB_PASSWD << BASE_BROKER_ADDR;
-    fetch_pub = new SimplePublisher(full_broker_url);
+    ostringstream full_broker_url4;
+    full_broker_url4 << "amqp://" << FETCH_USER_PUB << ":" << FETCH_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    fetch_pub = new SimplePublisher(full_broker_url4.str());
 
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << FORMAT_USER_PUB << ":" << FORMAT_USER_PUB_PASSWD << BASE_BROKER_ADDR;
-    fmt_pub = new SimplePublisher(full_broker_url);
+    ostringstream full_broker_url5;
+    full_broker_url5 << "amqp://" << FORMAT_USER_PUB << ":" << FORMAT_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    fmt_pub = new SimplePublisher(full_broker_url5.str());
 
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << FORWARD_USER_PUB << ":" << FORWARD_USER_PUB_PASSWD << BASE_BROKER_ADDR;
-    fwd_pub = new SimplePublisher(full_broker_url);
+    ostringstream full_broker_url6;
+    full_broker_url6 << "amqp://" << FORWARD_USER_PUB << ":" << FORWARD_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    fwd_pub = new SimplePublisher(full_broker_url6.str());
 
 }
 
@@ -311,14 +315,14 @@ void Forwarder::on_forward_message(string body) {
 void Forwarder::on_forwarder_to_fetch_message(string body) {
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
-    funcptr action = on_forward_to_fetch_message_actions[message_type];
+    funcptr action = on_forwarder_to_fetch_message_actions[message_type];
     (this->*action)(node);
 }
 
 void Forwarder::on_forwarder_to_format_message(string body) {
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
-    funcptr action = on_forwarder_to format_message_actions[message_type];
+    funcptr action = on_forwarder_to_format_message_actions[message_type];
     (this->*action)(node);
 }
 
@@ -396,6 +400,9 @@ void Forwarder::process_forward_health_check_ack(Node n) {
 }
 
 
+int main() { 
+    return 0;
+} 
 
 
 
