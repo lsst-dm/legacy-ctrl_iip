@@ -789,10 +789,10 @@ ROOT:
         ACK_ID:
 
     AR_FWDR_HEALTH_CHECK:
-        MSG_TYPE: AR_FWDR_HEALTH_CHECK:
+        MSG_TYPE: AR_FWDR_HEALTH_CHECK
         RAFT:
         REPLY_QUEUE:
-        ACK_ID
+        ACK_ID:
 
     PP_FWDR_HEALTH_CHECK:
         MSG_TYPE: PP_FWDR_HEALTH_CHECK
@@ -801,7 +801,7 @@ ROOT:
         ACK_ID:
 
     AR_TAKE_IMAGE:
-        MSG_TYPE: AR_TAKE_IMAGE:
+        MSG_TYPE: AR_TAKE_IMAGE
         REPLY_QUEUE:
         ACK_ID:
 
