@@ -53,6 +53,17 @@ class Forwarder {
     void process_take_image(Node n);
     void process_end_readout(Node n);
 
+    void process_fetch(Node n);
+    void process_fetch_ack(Node n);
+    void process_fetch_health_check(Node n);
+    void process_format_health_check_ack(Node n);
+    void process_format(Node n);
+    void process_format_ack(Node n);
+    void process_format_health_check(Node n);
+    void process_format_health_chech_ack(Node n);
+    void process_forward(Node n);
+    void process_forward_ack(Node n);
+
     void run();
     statis void *run_thread(void *);
 };
@@ -63,24 +74,40 @@ using funcptr = void(Forwarder::*)(Node);
 map<string, funcptr> on_foreman_message_actions = {
     { "AR_NEW_VISIT", &Forwarder::process_new_visit},
     { "PP_NEW_VISIT", &Forwarder::process_new_visit},
+    { "SP_NEW_VISIT", &Forwarder::process_new_visit},
     { "AR_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "PP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
+    { "SP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "AR_TAKE_IMAGE", &Forwarder::process_take_image},
     { "PP_TAKE_IMAGE", &Forwarder::process_take_image},
+    { "SP_TAKE_IMAGE", &Forwarder::process_take_image},
     { "AR_END_READOUT", &Forwarder::process_end_readout},
-    { "PP_END_READOUT", &process_end_readout}
+    { "PP_END_READOUT", &process_end_readout},
+    { "SP_END_READOUT", &process_end_readout}
 };
 
 //The next three handlers are essentially acks...
 map<string, funcptr> on_fetch_message_actions = {
+    { "FETCH_HEALTH_CHECK_ACK", &Forwarder::process_fetch_health_check_ack},
+    { "AR_FETCH_ACK", &Forwarder::process_fetch_ack},
+    { "PP_FETCH_ACK", &Forwarder::process_fetch_ack],
+    { "SP_FETCH_ACK", &Forwarder::process_fetch_ack]
 
 };
 
 map<string, funcptr> on_format_message_actions = {
+    { "FORMAT_HEALTH_CHECK_ACK", &Forwarder::process_format_health_check_ack},
+    { "AR_FORMAT_ACK", &Forwarder::process_format_ack},
+    { "PP_FORMAT_ACK", &Forwarder::process_format_ack],
+    { "SP_FORMAT_ACK", &Forwarder::process_format_ack]
 
 };
 
 map<string, funcptr> on_forward_message_actions = {
+    { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
+    { "AR_FORMAT_ACK", &Forwarder::process_forward_ack},
+    { "PP_FORMAT_ACK", &Forwarder::process_forward_ack],
+    { "SP_FORMAT_ACK", &Forwarder::process_forward_ack]
 
 };
 
@@ -88,20 +115,26 @@ map<string, funcptr> on_forward_message_actions = {
 //Forwarder Component message actions
 //This handler is for messages from Primary Forwarder to fetch thread
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
+    { "FETCH_HEALTH_CHECK", &Forwarder::process_fetch_health_check},
     { "AR_FETCH", &Forwarder::process_fetch},
-    { "PP_FETCH", &Forwarder::process_fetch]
+    { "PP_FETCH", &Forwarder::process_fetch],
+    { "SP_FETCH", &Forwarder::process_fetch]
 };
 
 //This handler is for messages from Primary Forwarder to format thread
 map<string, funcptr> on_forwarder_to_format_message_actions = {
+    { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
-    { "PP_FORMAT", &Forwarder::process_format]
+    { "PP_FORMAT", &Forwarder::process_format],
+    { "SP_FORMAT", &Forwarder::process_format]
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
 map<string, funcptr> on_forwarder_to_forward_message_actions = {
+    { "FORWARD_HEALTH_CHECK", &Forwarder::process_forward_health_check},
     { "AR_FORWARD", &Forwarder::process_forward},
-    { "PP_FORWARD", &Forwarder::process_forward]
+    { "PP_FORWARD", &Forwarder::process_forward],
+    { "SP_FORWARD", &Forwarder::process_forward]
 
 };
 
@@ -297,7 +330,70 @@ void Forwarder::on_forwarder_to_forward_message(string body) {
 }
 
 
+//Message action handler methods...
+void Forwarder::process_new_visit(Node n) {
+    return;
+}
 
+void Forwarder::process_health_check(Node n) {
+    return;
+}
+
+void Forwarder::process_take_image(Node n) {
+    return;
+}
+
+void Forwarder::process_end_readout(Node n) {
+    return;
+}
+
+void Forwarder::process_fetch(Node n) {
+    return;
+}
+
+void Forwarder::process_fetch_ack(Node n) {
+    return;
+}
+
+void Forwarder::process_fetch_health_check(Node n) {
+    return;
+}
+
+void Forwarder::process_fetch_health_check_ack(Node n) {
+    return;
+}
+
+void Forwarder::process_format(Node n) {
+    return;
+}
+
+void Forwarder::process_format_ack(Node n) {
+    return;
+}
+
+void Forwarder::process_format_health_check(Node n) {
+    return;
+}
+
+void Forwarder::process_format_health_check_ack(Node n) {
+    return;
+}
+
+void Forwarder::process_forward(Node n) {
+    return;
+}
+
+void Forwarder::process_forward_ack(Node n) {
+    return;
+}
+
+void Forwarder::process_forward_health_check(Node n) {
+    return;
+}
+
+void Forwarder::process_forward_health_check_ack(Node n) {
+    return;
+}
 
 
 
