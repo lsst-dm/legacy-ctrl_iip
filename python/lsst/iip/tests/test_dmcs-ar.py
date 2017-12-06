@@ -67,7 +67,7 @@ class TestDMCS_AR:
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
             print(emsg + trace)
             sys.exit(101)
-    
+
         broker_addr = cdm[ROOT]['BASE_BROKER_ADDR']
     
         ocs_name = cdm[ROOT]['OCS_BROKER_NAME']
@@ -101,7 +101,6 @@ class TestDMCS_AR:
         self.ocs_consumer = Consumer(ocs_broker_url,'dmcs_ocs_publish', 'thread-ocs',
                                      self.on_ocs_message,'YAML')
         self.ocs_consumer.start()
-
 
         self.ar_consumer = Consumer(ar_broker_url,'ar_foreman_consume', 'thread-ar', 
                                     self.on_ar_message,'YAML')

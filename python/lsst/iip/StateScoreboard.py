@@ -288,7 +288,7 @@ class StateScoreboard(Scoreboard):
             params = {}
             params['SUB_TYPE'] = 'VISIT'
             params['VISIT_ID'] = visit_id
-            self.persist(self.build_monitor_data(params))
+            #self.persist(self.build_monitor_data(params))
 
 
     def get_current_visit(self):
