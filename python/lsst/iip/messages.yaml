@@ -768,6 +768,19 @@ ROOT:
         EXPOSURE_TIMES: 
         SLEW_TIME: 
 
+    TAKE_IMAGE_DONE:
+        MSG_TYPE: TAKE_IMAGE_DONE
+
+    TARGET_VISIT_DONE: 
+        MSG_TYPE: TARGET_VISIT_DONE
+
+    TARGET_VISIT_ACCEPT:
+        MSG_TYPE: TARGET_VISIT_ACCEPT
+
+    END_READOUT:
+        MSG_TYPE: END_READOUT
+        PARAM: IMG_NAME
+
     #----------------------------------------------------------------------------
     # Each Forwarder component consists of s primary component 
     # which communicates with the Foreman (device).
