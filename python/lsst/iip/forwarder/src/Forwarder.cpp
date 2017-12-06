@@ -23,6 +23,9 @@ class Forwarder {
 
     //Publishers
     SimplePublisher *FWDR_pub;
+    SimplePublisher *FWDR_to_fetch_pub;
+    SimplePublisher *FWDR_to_format_pub;
+    SimplePublisher *FWDR_to_forward_pub;
     SimplePublisher *fetch_pub;
     SimplePublisher *fmt_pub;
     SimplePublisher *fwd_pub;
@@ -118,8 +121,18 @@ Forwarder::Forwarder() {
     string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE;
     try {
         root = config_file["ROOT"];
-        USER = root["NAME"].as<string>();
+        NAME = root["NAME"].as<string>();
+        LOWER_NAME = root["LOWER_NAME"].as<string>();
+        USER = root["USER"].as<string>();
         PASSWD = root["PASSWD"].as<string>();
+        USER_PUB = root["USER_PUB"].as<string>();
+        PASSWD_PUB = root["PASSWD_PUB"].as<string>();
+        USER_FETCH_PUB = ["USER_FETCH_PUB"].as<string>();
+        PASSWD_FETCH_PUB = ["PASSWD_FETCH_PUB"].as<string>();
+        USER_FORMAT_PUB = ["USER_FORMAT_PUB"].as<string>();
+        PASSWD_FORMAT_PUB = ["PASSWD_FORMAT_PUB"].as<string>();
+        USER_FORWARD_PUB = ["USER_FORWARD_PUB"].as<string>();
+        PASSWD_FORWARD_PUB = ["PASSWD_FORWARD_PUB"].as<string>();
         BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
         FQN = root["FQN"].as<string>();
         HOSTNAME = root["HOSTNAME"].as<string>();
@@ -147,11 +160,8 @@ Forwarder::Forwarder() {
     //ostringstream full_broker_url;
     //full_broker_url << "amqp://" << user_name << ":" << passwd << basePbroker_addr from above...
 
-
-
-    // Set up publishers
-    // Set up Consumers
     setup_consumers(BASE_BROKER_ADDR);
+    setup_publishers(BASE_BROKER_ADDR);
     
 }
 
@@ -176,7 +186,55 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //Consumers for sub-components
     ostringstream consume_queue;
 
-    
+    ostringstream full_broker_url;
+    ostringstream consume_queue;
+    full_broker_url << "amqp://" << FETCH_USER << ":" << FETCH_USER_PASSWD << BASE_BROKER_ADDR ;
+    consume_queue << "fetch_consume_from_" << LOWER_NAME;
+    from_forwarder_to_fetch = new Consumer(full_broker_url, consume_queue);
+
+    ostringstream full_broker_url;
+    ostringstream consume_queue;
+    full_broker_url << "amqp://" << FORMAT_USER << ":" << FORMAT_USER_PASSWD << BASE_BROKER_ADDR ;
+    consume_queue << "format_consume_from_" << LOWER_NAME;
+    from_forwarder_to_format = new Consumer(full_broker_url, consume_queue);
+
+    ostringstream full_broker_url;
+    ostringstream consume_queue;
+    full_broker_url << "amqp://" << FORWARD_USER << ":" << FORWARD_USER_PASSWD << BASE_BROKER_ADDR ;
+    consume_queue << "forward_consume_from_" << LOWER_NAME;
+    from_forwarder_to_forward = new Consumer(full_broker_url, consume_queue);
+
+}
+
+void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
+    //Publishers
+    ostringstream full_broker_url;
+    full_broker_url << "amqp://" << USER_PUB << ":" << PASSWD_PUB << BASE_BROKER_ADDR;
+    FWDR_pub = new SimplePublisher(full_broker_url);
+
+    ostringstream full_broker_url;
+    full_broker_url << "amqp://" << USER_FETCH_PUB << ":" << PASSWD_FETCH_PUB << BASE_BROKER_ADDR;
+    FWDR_to_fetch_pub - new SimplePublisher(full_broker_url);
+
+    ostringstream full_broker_url;
+    full_broker_url << "amqp://" << USER_FORMAT_PUB << ":" << PASSWD_FORMAT_PUB << BASE_BROKER_ADDR;
+    FWDR_to_format_pub = new SimplePublisher(full_broker_url);
+
+    ostringstream full_broker_url;
+    full_broker_url << "amqp://" << USER_FORWARD_PUB << ":" << PASSWD_FORWARD_PUB << BASE_BROKER_ADDR;
+    FWDR_to_forward_pub = new SimplePublisher(full_broker_url);
+
+    ostringstream full_broker_url;
+    full_broker_url << "amqp://" << FETCH_USER_PUB << ":" << FETCH_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    fetch_pub = new SimplePublisher(full_broker_url);
+
+    ostringstream full_broker_url;
+    full_broker_url << "amqp://" << FORMAT_USER_PUB << ":" << FORMAT_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    fmt_pub = new SimplePublisher(full_broker_url);
+
+    ostringstream full_broker_url;
+    full_broker_url << "amqp://" << FORWARD_USER_PUB << ":" << FORWARD_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    fwd_pub = new SimplePublisher(full_broker_url);
 
 }
 
