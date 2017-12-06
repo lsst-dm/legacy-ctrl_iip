@@ -21,6 +21,9 @@ from StateScoreboard import StateScoreboard
 from BacklogScoreboard import BacklogScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
+from toolsmod import L1Error
+from toolsmod import L1RedisError
+from toolsmod import L1RabbitConnectionError
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -166,9 +169,9 @@ class DMCS:
                 toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
                 self._next_timed_ack_id =  current_id
         except Exception as e: 
-            LOGGER.error("DMCS unable to get init_ack_id: %s" % e.arg) 
-            print("DMCS unable to get init_ack_id: %s" % e.arg) 
-            raise L1Error("DMCS unable to get init_ack_id: %s" % e.arg) 
+            LOGGER.error("DMCS unable to get init_ack_id: %s" % e.args) 
+            print("DMCS unable to get init_ack_id: %s" % e.args) 
+            raise L1Error("DMCS unable to get init_ack_id: %s" % e.args) 
 
 
 
@@ -189,13 +192,13 @@ class DMCS:
         LOGGER.info('Setting up Base publisher ')
         try: 
             self._publisher = SimplePublisher(self.pub_base_broker_url, YAML)
-        except L1RabbitException as e: 
-            LOGGER.error("DMCS unable to setup_publishers: %s" % e.arg) 
-            print("DMCS unable to setup_publishers: %s" % e.arg) 
+        except L1RabbitConnectionError as e: 
+            LOGGER.error("DMCS unable to setup_publishers: %s" % e.args) 
+            print("DMCS unable to setup_publishers: %s" % e.args) 
             sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
-            LOGGER.error("DMCS unable to setup_publishers: %s" % e.arg) 
-            print("DMCS unable to setup_publishers: %s" % e.arg) 
+            LOGGER.error("DMCS unable to setup_publishers: %s" % e.args) 
+            print("DMCS unable to setup_publishers: %s" % e.args) 
             sys.exit(self.ERROR_CODE_PREFIX + 11)
         
 
@@ -220,9 +223,9 @@ class DMCS:
             handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
             result = handler(msg_dict)
         except Exception as e: 
-            LOGGER.error("DMCS unable to on_ocs_message: %s" % e.arg) 
-            print("DMCS unable to on_ocs_message: %s" % e.arg) 
-            raise L1Error("DMCS unable to on_ocs_message: %s" % e.arg) 
+            LOGGER.error("DMCS unable to on_ocs_message: %s" % e.args) 
+            print("DMCS unable to on_ocs_message: %s" % e.args) 
+            raise L1Error("DMCS unable to on_ocs_message: %s" % e.args) 
     
 
 
@@ -245,9 +248,9 @@ class DMCS:
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
             result = handler(msg_dict)
         except Exception as e: 
-            LOGGER.error("DMCS unable to on_ack_message: %s" % e.arg) 
-            print("DMCS unable to on_ack_message: %s" % e.arg) 
-            raise L1Error("DMCS unable to on_ack_message: %s" % e.arg) 
+            LOGGER.error("DMCS unable to on_ack_message: %s" % e.args) 
+            print("DMCS unable to on_ack_message: %s" % e.args) 
+            raise L1Error("DMCS unable to on_ack_message: %s" % e.args) 
 
 
 
@@ -265,9 +268,9 @@ class DMCS:
             new_state = toolsmod.next_state[msg['MSG_TYPE']]
             transition_check = self.validate_transition(new_state, msg)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_enter_control_command: %s" % e.arg) 
-            print("DMCS unable to process_enter_control_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_enter_control_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_enter_control_command: %s" % e.args) 
+            print("DMCS unable to process_enter_control_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_enter_control_command: %s" % e.args) 
 
 
     def process_start_command(self, msg):
@@ -282,9 +285,9 @@ class DMCS:
             new_state = toolsmod.next_state[msg['MSG_TYPE']]
             transition_check = self.validate_transition(new_state, msg)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_start_command: %s" % e.arg) 
-            print("DMCS unable to process_start_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_start_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_start_command: %s" % e.args) 
+            print("DMCS unable to process_start_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_start_command: %s" % e.args) 
 
 
     def process_standby_command(self, msg):
@@ -304,14 +307,14 @@ class DMCS:
                 # send new session id to all
                 session_id = self.STATE_SCBD.get_next_session_id()
                 self.send_new_session_msg(session_id)
-        except L1RedisException as e: 
-            LOGGER.error("DMCS unable to process_standby_command - No redis connection: %s" % e.arg) 
-            print("DMCS unable to process_standby_command - No redis connection: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_standby_command - No redis connection: %s" % e.arg) 
+        except L1RedisError as e: 
+            LOGGER.error("DMCS unable to process_standby_command - No redis connection: %s" % e.args) 
+            print("DMCS unable to process_standby_command - No redis connection: %s" % e.args) 
+            raise L1Error("DMCS unable to process_standby_command - No redis connection: %s" % e.args) 
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_standby_command: %s" % e.arg) 
-            print("DMCS unable to process_standby_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_standby_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_standby_command: %s" % e.args) 
+            print("DMCS unable to process_standby_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_standby_command: %s" % e.args) 
 
     def process_disable_command(self, msg):
         """ Pass the next state of the message transition (retrived from toolsmod.py)
@@ -325,9 +328,9 @@ class DMCS:
             new_state = toolsmod.next_state[msg['MSG_TYPE']]
             transition_check = self.validate_transition(new_state, msg)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_disable_command: %s" % e.arg) 
-            print("DMCS unable to process_disable_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_disable_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_disable_command: %s" % e.args) 
+            print("DMCS unable to process_disable_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_disable_command: %s" % e.args) 
 
 
     def process_enable_command(self, msg):
@@ -342,9 +345,9 @@ class DMCS:
             new_state = toolsmod.next_state[msg['MSG_TYPE']]
             transition_check = self.validate_transition(new_state, msg)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_disable_command: %s" % e.arg) 
-            print("DMCS unable to process_disable_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_disable_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_disable_command: %s" % e.args) 
+            print("DMCS unable to process_disable_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_disable_command: %s" % e.args) 
 
 
     def process_set_value_command(self, msg):
@@ -379,18 +382,18 @@ class DMCS:
                                            state must be in ENABLE state for SET_VALUE command."
 
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, ack_msg)
-        except L1RedisException as e: 
-            LOGGER.error("DMCS unable to process_set_value_command - No redis connection: %s" % e.arg) 
-            print("DMCS unable to process_set_value_command - No redis connection: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_set_value_command - No redis connection: %s" % e.arg) 
-        except L1RabbitException as e: 
-            LOGGER.error("DMCS unable to process_set_value_command - No rabbit connection: %s" % e.arg) 
-            print("DMCS unable to process_set_value_command - No rabbit connection: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_set_value_command - No rabbit connection: %s" % e.arg) 
+        except L1RedisError as e: 
+            LOGGER.error("DMCS unable to process_set_value_command - No redis connection: %s" % e.args) 
+            print("DMCS unable to process_set_value_command - No redis connection: %s" % e.args) 
+            raise L1Error("DMCS unable to process_set_value_command - No redis connection: %s" % e.args) 
+        except L1RabbitConnectionError as e: 
+            LOGGER.error("DMCS unable to process_set_value_command - No rabbit connection: %s" % e.args) 
+            print("DMCS unable to process_set_value_command - No rabbit connection: %s" % e.args) 
+            raise L1Error("DMCS unable to process_set_value_command - No rabbit connection: %s" % e.args) 
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_set_value_command: %s" % e.arg) 
-            print("DMCS unable to process_set_value_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_set_value_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_set_value_command: %s" % e.args) 
+            print("DMCS unable to process_set_value_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_set_value_command: %s" % e.args) 
 
 
 
@@ -416,9 +419,9 @@ class DMCS:
             new_state = toolsmod.next_state[msg['MSG_TYPE']]
             transition_check = self.validate_transition(new_state, msg)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_exit_control_command: %s" % e.arg) 
-            print("DMCS unable to process_exit_control_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_exit_control_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_exit_control_command: %s" % e.args) 
+            print("DMCS unable to process_exit_control_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_exit_control_command: %s" % e.args) 
 
 
     def process_abort_command(self, msg):
@@ -434,9 +437,9 @@ class DMCS:
             # Send out ABORT messages!!!
             transition_check = self.validate_transition(new_state, msg)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_abort_command: %s" % e.arg) 
-            print("DMCS unable to process_abort_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_abort_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_abort_command: %s" % e.args) 
+            print("DMCS unable to process_abort_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_abort_command: %s" % e.args) 
 
 
     def process_stop_command(self, msg):
@@ -451,9 +454,9 @@ class DMCS:
             new_state = toolsmod.next_state[msg['MSG_TYPE']]
             transition_check = self.validate_transition(new_state, msg)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_stop_command: %s" % e.arg) 
-            print("DMCS unable to process_stop_command: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_stop_command: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_stop_command: %s" % e.args) 
+            print("DMCS unable to process_stop_command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_stop_command: %s" % e.args) 
             
 
 
@@ -505,18 +508,18 @@ class DMCS:
                 else:
                     #Enter a fault state, as no devices are responding
                     pass
-        except L1RedisException as e: 
-            LOGGER.error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.arg)
-            print("DMCS unable to process_next_visit_event - No redis connection: %s" % e.arg)
-            raise L1Error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.arg)
-        except L1RabbitException as e: 
-            LOGGER.error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.arg)
-            print("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.arg)
-            raise L1Error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.arg)
+        except L1RedisError as e: 
+            LOGGER.error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
+            print("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
+        except L1RabbitConnectionError as e: 
+            LOGGER.error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_next_visit_event: %s" % e.arg)
-            print("DMCS unable to process_next_visit_event: %s" % e.arg)
-            raise L1Error("DMCS unable to process_next_visit_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to process_next_visit_event: %s" % e.args)
+            print("DMCS unable to process_next_visit_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_next_visit_event: %s" % e.args)
             
             
 
@@ -564,18 +567,18 @@ class DMCS:
 
             wait_time = 5  # seconds...
             self.set_pending_nonblock_acks(acks, wait_time)
-        except L1RedisException as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.arg)
-            print("DMCS unable to process_start_integration_event - No redis connection: %s" % e.arg)
-            raise L1Error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.arg)
-        except L1RabbitException as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.arg)
-            print("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.arg)
-            raise L1Error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.arg)
+        except L1RedisError as e: 
+            LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+            print("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+        except L1RabbitConnectionError as e: 
+            LOGGER.error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event: %s" % e.arg)
-            print("DMCS unable to process_start_integration_event: %s" % e.arg)
-            raise L1Error("DMCS unable to process_start_integration_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to process_start_integration_event: %s" % e.args)
+            print("DMCS unable to process_start_integration_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event: %s" % e.args)
 
  
     def process_readout_event(self, params):
@@ -614,14 +617,14 @@ class DMCS:
 
             wait_time = 5  # seconds...
             self.set_pending_nonblock_acks(acks, wait_time)
-        except L1RabbitException as e: 
-            LOGGER.error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.arg)
-            print("DMCS unable to process_readout_event - No rabbit connection: %s" % e.arg)
-            raise L1Error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.arg)
+        except L1RabbitConnectionError as e: 
+            LOGGER.error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_readout_event: %s" % e.arg)
-            print("DMCS unable to process_readout_event: %s" % e.arg)
-            raise L1Error("DMCS unable to process_readout_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to process_readout_event: %s" % e.args)
+            print("DMCS unable to process_readout_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
         # add in two additional acks for format and transfer complete
 
 
@@ -680,9 +683,9 @@ class DMCS:
         try: 
             self.ACK_SCBD.add_timed_ack(params)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_ack: %s" % e.arg)
-            print("DMCS unable to process_ack: %s" % e.arg)
-            raise L1Error("DMCS unable to process_ack: %s" % e.arg)
+            LOGGER.error("DMCS unable to process_ack: %s" % e.args)
+            print("DMCS unable to process_ack: %s" % e.args)
+            raise L1Error("DMCS unable to process_ack: %s" % e.args)
             
 
 
@@ -696,9 +699,9 @@ class DMCS:
         try: 
             self.ACK_SCBD.add_pending_nonblock_ack(params)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_pending_ack: %s" % e.arg)
-            print("DMCS unable to process_pending_ack: %s" % e.arg)
-            raise L1Error("DMCS unable to process_pending_ack: %s" % e.arg)
+            LOGGER.error("DMCS unable to process_pending_ack: %s" % e.args)
+            print("DMCS unable to process_pending_ack: %s" % e.args)
+            raise L1Error("DMCS unable to process_pending_ack: %s" % e.args)
             
 
 
@@ -731,9 +734,9 @@ class DMCS:
             if failed_list:
                 self.BACKLOG_SCBD.add_ccds_by_job(job_num, failed_list, params)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_readout_results_ack: %s" % e.arg) 
-            print("DMCS unable to process_readout_results_ack: %s" % e.arg) 
-            raise L1Error("DMCS unable to process_readout_results_ack: %s" % e.arg) 
+            LOGGER.error("DMCS unable to process_readout_results_ack: %s" % e.args) 
+            print("DMCS unable to process_readout_results_ack: %s" % e.args) 
+            raise L1Error("DMCS unable to process_readout_results_ack: %s" % e.args) 
 
 
     def get_backlog_stats(self):
@@ -793,9 +796,9 @@ class DMCS:
             wait_time = 3  # seconds...
             self.set_pending_nonblock_acks(ack_ids, wait_time)
         except Exception as e: 
-            LOGGER.error("DMCS unable to send_new_seesion_msg: %s" % e.arg) 
-            print("DMCS unable to send_new_seesion_msg: %s" % e.arg) 
-            raise L1Error("DMCS unable to send_new_seesion_msg: %s" % e.arg) 
+            LOGGER.error("DMCS unable to send_new_seesion_msg: %s" % e.args) 
+            print("DMCS unable to send_new_seesion_msg: %s" % e.args) 
+            raise L1Error("DMCS unable to send_new_seesion_msg: %s" % e.args) 
 
 
     def validate_transition(self, new_state, msg_in):
@@ -832,8 +835,8 @@ class DMCS:
                         self.send_ocs_ack(False, cfg_response, msg_in)
                         return False
         except Exception as e: 
-            LOGGER.error("DMCS unable to validate_transaction - can't use cfgkey: %s" % e.arg) 
-            print("DMCS unable to validate_transaction - can't use cfgkey: %s" % e.arg) 
+            LOGGER.error("DMCS unable to validate_transaction - can't use cfgkey: %s" % e.args) 
+            print("DMCS unable to validate_transaction - can't use cfgkey: %s" % e.args) 
             raise L1Error("DMCS unable to validate_transaction - can't use cfgkey") 
         
 
@@ -850,9 +853,9 @@ class DMCS:
                 #response = response + ". Device remaining in " + current_state + " state."
                 self.send_ocs_ack(transition_is_valid, response, msg_in)
         except Exception as e: 
-            LOGGER.error("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.arg) 
-            print("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.arg) 
-            raise L1Error("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.arg) 
+            LOGGER.error("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.args) 
+            print("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.args) 
+            raise L1Error("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.args) 
             
 
         return transition_is_valid
@@ -877,13 +880,13 @@ class DMCS:
                 ack_msg[ACK_ID] = ack
                 self._publisher.publish_message("dmcs_ack_consume", ack_msg)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to send_pending_nonblock_acks: %s" % e.arg)
-            print("DMCS unable to send_pending_nonblock_acks: %s" % e.arg)
-            raise L1Error("DMCS unable to send_pending_nonblock_acks: %s" % e.arg) 
+            LOGGER.error("DMCS unable to send_pending_nonblock_acks: %s" % e.args)
+            print("DMCS unable to send_pending_nonblock_acks: %s" % e.args)
+            raise L1Error("DMCS unable to send_pending_nonblock_acks: %s" % e.args) 
         except Exception as e: 
-            LOGGER.error("DMCS unable to send_pending_nonblock_acks: %s" % e.arg)
-            print("DMCS unable to send_pending_nonblock_acks: %s" % e.arg) 
-            raise L1Error("DMCS unable to send_pending_nonblock_acks: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_pending_nonblock_acks: %s" % e.args)
+            print("DMCS unable to send_pending_nonblock_acks: %s" % e.args) 
+            raise L1Error("DMCS unable to send_pending_nonblock_acks: %s" % e.args)
         
 
 
@@ -909,13 +912,13 @@ class DMCS:
             message['ACK_STATEMENT'] = response
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
         except L1RabbitConnnectionError as e: 
-            LOGGER.error("DMCS unable to send_ocs_ack: %s" % e.arg) 
-            print("DMCS unable to send_ocs_ack: %s" % e.arg) 
-            raise L1Error("DMCS unable to send_ocs_ack: %s" % e.arg) 
+            LOGGER.error("DMCS unable to send_ocs_ack: %s" % e.args) 
+            print("DMCS unable to send_ocs_ack: %s" % e.args) 
+            raise L1Error("DMCS unable to send_ocs_ack: %s" % e.args) 
         except Exception as e: 
-            LOGGER.error("DMCS unable to send_ocs_ack: %s" % e.arg) 
-            print("DMCS unable to send_ocs_ack: %s" % e.arg)
-            raise L1Error("DMCS unable to send_ocs_ack - Rabbit Problem?: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_ocs_ack: %s" % e.args) 
+            print("DMCS unable to send_ocs_ack: %s" % e.args)
+            raise L1Error("DMCS unable to send_ocs_ack - Rabbit Problem?: %s" % e.args)
 
         if transition_check:
             self.send_appropriate_events_by_state(msg_in['DEVICE'], msg_in['MSG_TYPE'])
@@ -964,12 +967,12 @@ class DMCS:
             message['CURRENT_STATE'] = toolsmod.summary_state_enum[self.STATE_SCBD.get_device_state(device)]
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.arg)
-            print("DMCS unable to send_summary_state_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.args)
+            print("DMCS unable to send_summary_state_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
-            LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.arg)
-            print("DMCS unable to send_summary_state_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.args)
+            print("DMCS unable to send_summary_state_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 10)
 
 
@@ -988,12 +991,12 @@ class DMCS:
             message['CFG_KEY'] = self.STATE_SCBD.get_device_cfg_key(device)
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to send_recommended_settings_version_event: %s" % e.arg)
-            print("DMCS unable to send_recommended_settings_version_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_recommended_settings_version_event: %s" % e.args)
+            print("DMCS unable to send_recommended_settings_version_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
-            LOGGER.error("DMCS unable to send_recommended_settings_version_event: %s" % e.arg)
-            print("DMCS unable to send_recommended_settings_version_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_recommended_settings_version_event: %s" % e.args)
+            print("DMCS unable to send_recommended_settings_version_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 10)
 
 
@@ -1011,12 +1014,12 @@ class DMCS:
             message['APPLIED'] = True
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.arg)
-            print("DMCS unable to send_setting_applied_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.args)
+            print("DMCS unable to send_setting_applied_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
-            LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.arg)
-            print("DMCS unable to send_setting_applied_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.args)
+            print("DMCS unable to send_setting_applied_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 10)
         
 
@@ -1035,12 +1038,12 @@ class DMCS:
             message['APPLIED'] = True
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to send_applied_setting_match_start_event: %s" % e.arg)
-            print("DMCS unable to send_applied_setting_match_start_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_applied_setting_match_start_event: %s" % e.args)
+            print("DMCS unable to send_applied_setting_match_start_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
-            LOGGER.error("DMCS unable to send_applied_setting_match_start_event: %s" % e.arg)
-            print("DMCS unable to send_applied_setting_match_start_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_applied_setting_match_start_event: %s" % e.args)
+            print("DMCS unable to send_applied_setting_match_start_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 10)
 
 
@@ -1058,12 +1061,12 @@ class DMCS:
             message['ERROR_CODE'] = 102
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to send_error_code_event: %s" % e.arg)
-            print("DMCS unable to send_error_code_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_error_code_event: %s" % e.args)
+            print("DMCS unable to send_error_code_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 11)
         except Exception as e: 
-            LOGGER.error("DMCS unable to send_error_code_event: %s" % e.arg)
-            print("DMCS unable to send_error_code_event: %s" % e.arg)
+            LOGGER.error("DMCS unable to send_error_code_event: %s" % e.args)
+            print("DMCS unable to send_error_code_event: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 10)
         
 
@@ -1082,12 +1085,12 @@ class DMCS:
             toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
             retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
         except KeyError as e: 
-            LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.arg)
-            print("DMCS unable to get_next_timed_ack_id: %s" % e.arg)
+            LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.args)
+            print("DMCS unable to get_next_timed_ack_id: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 2); 
         except Exception as e: 
-            LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.arg)
-            print("DMCS unable to get_next_timed_ack_id: %s" % e.arg)
+            LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.args)
+            print("DMCS unable to get_next_timed_ack_id: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 3); 
 
         return retval 
@@ -1207,12 +1210,12 @@ class DMCS:
 
             self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         except ThreadError as e:
-            LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.arg)
-            print("DMCS unable to launch Consumers - Thread Error: %s" % e.arg)
-            raise L1ConsumerError("Thread problem preventing Consumer launch: %s" % e.arg)
+            LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
+            print("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
+            raise L1ConsumerError("Thread problem preventing Consumer launch: %s" % e.args)
         except Exception as e: 
-            LOGGER.error("DMCS unable to launch Consumers: %s" % e.arg)
-            print("DMCS unable to launch Consumers: %s" % e.arg)
+            LOGGER.error("DMCS unable to launch Consumers: %s" % e.args)
+            print("DMCS unable to launch Consumers: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 1) 
 
         self.thread_manager.start()
@@ -1225,14 +1228,14 @@ class DMCS:
             self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance)
             self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to complete setup_scoreboards - No Rabbit Connect: %s" % e.arg)
+            LOGGER.error("DMCS unable to complete setup_scoreboards - No Rabbit Connect: %s" % e.args)
         except L1RedisError as e: 
-            LOGGER.error("DMCS unable to complete setup_scoreboards - No Redis connect: %s" % e.arg)
-            print("DMCS unable to complete setup_scoreboards - No Redis connection: %s" % e.arg)
+            LOGGER.error("DMCS unable to complete setup_scoreboards - No Redis connect: %s" % e.args)
+            print("DMCS unable to complete setup_scoreboards - No Redis connection: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 12)
         except Exception as e: 
-            LOGGER.error("DMCS init unable to complete setup_scoreboards: %s" % e.arg)
-            print("DMCS unable to complete setup_scoreboards: %s" % e.arg)
+            LOGGER.error("DMCS init unable to complete setup_scoreboards: %s" % e.args)
+            print("DMCS unable to complete setup_scoreboards: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 10)
 
         try: 
@@ -1256,8 +1259,8 @@ class DMCS:
             self.send_appropriate_events_by_state('PP', 'OFFLINE')
             self.send_appropriate_events_by_state('CU', 'OFFLINE')
         except Exception as e: 
-            LOGGER.error("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.arg)
-            print("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.arg) 
+            LOGGER.error("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args)
+            print("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args) 
             sys.exit(self.ERROR_CODE_PREFIX + 10) 
         LOGGER.info('DMCS Scoreboard Init complete')
 

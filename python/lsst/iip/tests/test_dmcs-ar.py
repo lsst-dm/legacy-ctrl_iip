@@ -77,7 +77,7 @@ class TestDMCS_AR:
         ocs_broker_url = "amqp://" + ocs_name + ":" + \
                                  ocs_passwd + "@" + \
                                  broker_addr
-        self. ocs_pub_broker_url = "amqp://" + ocs_pub_name + ":" + \
+        self.ocs_pub_broker_url = "amqp://" + ocs_pub_name + ":" + \
                                  ocs_pub_passwd + "@" + \
                                  broker_addr
         self.ocs_publisher = SimplePublisher(self.ocs_pub_broker_url, "YAML")
