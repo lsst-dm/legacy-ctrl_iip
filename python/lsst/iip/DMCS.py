@@ -1314,7 +1314,7 @@ class DMCS:
         print("[x] TARGET_VISIT_ACCEPT")
 
     def process_end_readout(self, params):
-        print("[x] END_READOUT; IMG_NAME: %s" % params["PARAM"]) 
+        print("[x] END_READOUT; IMG_NAME: %s" % params["IMAGE_NAME"]) 
 
 
 def main():

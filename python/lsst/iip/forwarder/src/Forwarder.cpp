@@ -74,6 +74,12 @@ class Forwarder {
 
 using funcptr = void(Forwarder::*)(Node);
 
+struct arg_struct {
+    Consumer *consumer;
+    Forwarder *forwarder;
+    callback<Forwarder> funcptr;
+};
+
 //Primary Forwarder message actions
 map<string, funcptr> on_foreman_message_actions = {
     { "AR_NEW_VISIT", &Forwarder::process_new_visit},
@@ -146,7 +152,7 @@ Forwarder::Forwarder() {
     // Read config file
     Node config_file;
     try {
-        config_file = LoadFile("../yaml/ForwarderCfg.yaml");
+        config_file = LoadFile("./ForwarderCfg.yaml");
     }
     catch (YAML::BadFile& e) {
         // FIX better catch clause...at LEAST a log message
@@ -243,30 +249,110 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
 
 }
 
+void Forwarder::run() {
+    //Set up argument structs for all seven consumer threads
+    //Primary Forwarder consumer threads
+    arg_struct *args1 = new arg_struct;
+    args1->consumer = from_foreman_consumer;
+    args1->forwarder = this;
+    args1->funcptr = &Forwarder::on_foreman_message;
+
+    arg_struct *args2 = new arg_struct;
+    args2->consumer = from_fetch_consumer;
+    args2->forwarder = this;
+    args2->funcptr = &Forwarder::on_fetch_message;
+
+    arg_struct *args3 = new arg_struct;
+    args3->consumer = from_format_consumer;
+    args3->forwarder = this;
+    args3->funcptr = &Forwarder::on_format_message;
+
+    arg_struct *args4 = new arg_struct;
+    args4->consumer = from_forward_consumer;
+    args4->forwarder = this;
+    args4->funcptr = &Forwarder::on_forward_message;
+
+    //Subcomponent consumer threads
+    arg_struct *args5 = new arg_struct;
+    args5->consumer = from_forwarder_to_fetch;
+    args5->forwarder = this;
+    args5->funcptr = &Forwarder::on_forwarder_to_fetch_message;
+
+    arg_struct *args6 = new arg_struct;
+    args6->consumer = from_forwarder_to_format;
+    args6->forwarder = this;
+    args6->funcptr = &Forwarder::on_forwarder_to_format_message;
+
+    arg_struct *args7 = new arg_struct;
+    args7->consumer = from_forwarder_to_forward;
+    args7->forwarder = this;
+    args7->funcptr = &Forwarder::on_forwarder_to_forward_message;
+
+    //Create then run threads
+    pthread_t t1;
+    pthread_create(&t1, NULL, &Forwarder::run_thread, args1);
+
+    pthread_t t2;
+    pthread_create(&t2, NULL, &Forwarder::run_thread, args2);
+
+    pthread_t t3;
+    pthread_create(&t3, NULL, &Forwarder::run_thread, args3);
+
+    pthread_t t4;
+    pthread_create(&t4, NULL, &Forwarder::run_thread, args4);
+
+    pthread_t t5;
+    pthread_create(&t5, NULL, &Forwarder::run_thread, args5);
+
+    pthread_t t6;
+    pthread_create(&t6, NULL, &Forwarder::run_thread, args6);
+
+    pthread_t t7;
+    pthread_create(&t7, NULL, &Forwarder::run_thread, args7);
+
+}
+
+void *Forwarder::run_thread(void *pargs) {
+
+    arg_struct *params = ((arg_struct *) pargs);
+    Consumer *consumer = params->consumer;
+    Forwarder *forwarder = params->forwarder;
+    callback<Forwarder> on_msg = params->funcptr;
+
+    consumer->run<Forwarder>(forwarder, on_msg);
+}
+
+
 void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
     //Publishers
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << USER_PUB << ":" << PASSWD_PUB << BASE_BROKER_ADDR;
+    cout << "Broker url is: " << full_broker_url.str();
     FWDR_pub = new SimplePublisher(full_broker_url.str());
 
     ostringstream full_broker_url1;
     full_broker_url1 << "amqp://" << USER_FETCH_PUB << ":" << PASSWD_FETCH_PUB << BASE_BROKER_ADDR;
+    cout << "Broker url is: " << full_broker_url1.str();
     FWDR_to_fetch_pub = new SimplePublisher(full_broker_url1.str());
 
     ostringstream full_broker_url2;
     full_broker_url2 << "amqp://" << USER_FORMAT_PUB << ":" << PASSWD_FORMAT_PUB << BASE_BROKER_ADDR;
+    cout << "Broker url is: " << full_broker_url2.str();
     FWDR_to_format_pub = new SimplePublisher(full_broker_url2.str());
 
     ostringstream full_broker_url3;
     full_broker_url3 << "amqp://" << USER_FORWARD_PUB << ":" << PASSWD_FORWARD_PUB << BASE_BROKER_ADDR;
+    cout << "Broker url is: " << full_broker_url3.str();
     FWDR_to_forward_pub = new SimplePublisher(full_broker_url3.str());
 
     ostringstream full_broker_url4;
     full_broker_url4 << "amqp://" << FETCH_USER_PUB << ":" << FETCH_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    cout << "Broker url is: " << full_broker_url4.str();
     fetch_pub = new SimplePublisher(full_broker_url4.str());
 
     ostringstream full_broker_url5;
     full_broker_url5 << "amqp://" << FORMAT_USER_PUB << ":" << FORMAT_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    cout << "Broker url is: " << full_broker_url5.str();
     fmt_pub = new SimplePublisher(full_broker_url5.str());
 
     ostringstream full_broker_url6;
@@ -336,74 +422,90 @@ void Forwarder::on_forwarder_to_forward_message(string body) {
 
 //Message action handler methods...
 void Forwarder::process_new_visit(Node n) {
+    cout << "New Visit Message" << endl;
     return;
 }
 
 void Forwarder::process_health_check(Node n) {
+    cout << "Health Check request Message" << endl;
     return;
 }
 
 void Forwarder::process_take_image(Node n) {
+    cout << "Take Image Message...should be some tasty params here" << endl;
     return;
 }
 
 void Forwarder::process_end_readout(Node n) {
+    cout << "This EndReadout Message should include an image name" << endl;
     return;
 }
 
 void Forwarder::process_fetch(Node n) {
+    cout << "process_fetch" << endl;
     return;
 }
 
 void Forwarder::process_fetch_ack(Node n) {
+    cout << "fetch ack being processed" << endl;
     return;
 }
 
 void Forwarder::process_fetch_health_check(Node n) {
+    cout << "Send helth check to just fetch queue" << endl;
     return;
 }
 
 void Forwarder::process_fetch_health_check_ack(Node n) {
+    cout << "Health check ack for fetch" << endl;
     return;
 }
 
 void Forwarder::process_format(Node n) {
+    cout << "processing format message" << endl;
     return;
 }
 
 void Forwarder::process_format_ack(Node n) {
+    cout << "processing format ack message" << endl;
     return;
 }
 
 void Forwarder::process_format_health_check(Node n) {
+    cout << " Health check sent to Format only" << endl;
     return;
 }
 
 void Forwarder::process_format_health_check_ack(Node n) {
+    cout << "Processing format health check ack message" << endl;
     return;
 }
 
 void Forwarder::process_forward(Node n) {
+    cout << "Processing forward message" << endl;
     return;
 }
 
 void Forwarder::process_forward_ack(Node n) {
+    cout << "Processing forward ack message" << endl;
     return;
 }
 
 void Forwarder::process_forward_health_check(Node n) {
+    cout << "Processing forward health check message" << endl;
     return;
 }
 
 void Forwarder::process_forward_health_check_ack(Node n) {
+    cout << "Processing forward health check ack message" << endl;
     return;
 }
 
 
-int main() { 
-    return 0;
-} 
-
-
-
+int main() {
+    Forwarder *fwdr = new Forwarder();
+    fwdr->run();
+    while(1) {
+    }
+}
 

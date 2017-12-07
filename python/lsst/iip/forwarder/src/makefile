@@ -1,6 +1,6 @@
 INCLUDE       = -I../../ocs/include
 LIBPATH       = -L../../ocs/lib -Wl,-rpath,../../ocs/lib
-LIB           = -lSimpleAmqpClient -lyaml-cpp
+LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread
 OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
 
 all: Forwarder
