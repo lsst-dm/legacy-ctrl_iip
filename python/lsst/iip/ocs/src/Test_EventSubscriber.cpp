@@ -206,7 +206,7 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
             cout << "=== Event endReadout received = " << endl;
             ostringstream msg; 
             msg << "{ MSG_TYPE: END_READOUT" 
-                << ", PARAM: " << SALInstance.ImageName << "}"; 
+                << ", IMAGE_NAME: " << SALInstance.ImageName << "}"; 
             publisher->publish_message(queue, msg.str());
         } 
         os_nanoSleep(delay_10ms); 

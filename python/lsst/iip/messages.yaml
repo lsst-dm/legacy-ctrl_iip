@@ -752,7 +752,7 @@ ROOT:
         SCIENCE: Bool
         GUIDE: Bool
         WFS: Bool
-        IMAGE_SEQUENCE_NAME: 
+        IMAGE_SEQUENCE_NAME: (or visitName) string
 
     TCS_TARGET:
         MSG_TYPE: TCS_TARGET
@@ -779,7 +779,7 @@ ROOT:
 
     END_READOUT:
         MSG_TYPE: END_READOUT
-        PARAM: IMG_NAME
+        IMAGE_NAME: IMG_NAME
 
     #----------------------------------------------------------------------------
     # Each Forwarder component consists of s primary component 
