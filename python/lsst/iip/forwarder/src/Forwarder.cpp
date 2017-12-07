@@ -161,7 +161,7 @@ Forwarder::Forwarder() {
     }
 
     Node root;
-    string NAME, USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE;
+    string NAME, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR;
     try {
         root = config_file["ROOT"];
         NAME = root["NAME"].as<string>();
