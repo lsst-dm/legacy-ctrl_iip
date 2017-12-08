@@ -115,9 +115,9 @@ map<string, funcptr> on_format_message_actions = {
 
 map<string, funcptr> on_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
-    { "AR_FORMAT_ACK", &Forwarder::process_forward_ack},
-    { "PP_FORMAT_ACK", &Forwarder::process_forward_ack},
-    { "SP_FORMAT_ACK", &Forwarder::process_forward_ack}
+    { "AR_FORWARD_ACK", &Forwarder::process_forward_ack},
+    { "PP_FORWARD_ACK", &Forwarder::process_forward_ack},
+    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack}
 
 };
 

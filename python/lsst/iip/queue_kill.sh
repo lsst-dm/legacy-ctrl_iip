@@ -43,5 +43,19 @@ rabbitmqctl -p /test purge_queue audit_consume
 rabbitmqctl -p /test purge_queue dmcs_consume
 rabbitmqctl -p /test purge_queue event_dmcs_consume
 
-rm ./logs/*.log
+rabbitmqctl -p /test purge_queue fetch_consume_from_f1
+rabbitmqctl -p /test purge_queue format_consume_from_f1
+rabbitmqctl -p /test purge_queue forward_consume_from_f1
+rabbitmqctl -p /test purge_queue f1_consume_from_format
+rabbitmqctl -p /test purge_queue f1_consume_from_fetch
+rabbitmqctl -p /test purge_queue f1_consume_from_forward
+
+rabbitmqctl -p /bunny purge_queue fetch_consume_from_f1
+rabbitmqctl -p /bunny purge_queue format_consume_from_f1
+rabbitmqctl -p /bunny purge_queue forward_consume_from_f1
+rabbitmqctl -p /bunny purge_queue f1_consume_from_format
+rabbitmqctl -p /bunny purge_queue f1_consume_from_fetch
+rabbitmqctl -p /bunny purge_queue f1_consume_from_forward
+
+#rm ./logs/*.log
 
