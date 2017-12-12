@@ -92,6 +92,7 @@ ROOT:
     AR: ar_foreman_consume
     PP: pp_foreman_consume
     CU: cu_foreman_consume
+    SP: sp_foreman_consume
   ARCHIVE:
     ARCHIVE_NAME: archive
     ARCHIVE_LOGIN: archive

@@ -483,7 +483,9 @@ class DMCS:
 
             acks = []
             for k in list(enabled_devices.keys()):
-                consume_queue = enabled_devices[k]
+                consume_queue = self.STATE_SCBD.get_device_consume_queue(enabled_devices[k])
+                if self.DP:
+                  print("Consume queue for device %s is %s" % (enabled_devices[k], consume_queue)) 
                 ## FIXME - Must each enabled device use its own ack_id? Or
                 ## can we use the same method for broadcasting Forwarder messages?  
                 ack = self.get_next_timed_ack_id(k + "_NEXT_VISIT_ACK")

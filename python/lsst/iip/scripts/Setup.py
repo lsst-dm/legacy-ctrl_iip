@@ -11,8 +11,8 @@ class Setup:
 
         #Choose a connection...
 #        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2fbunny'))
-        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
-#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
+#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
+        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
         #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
         #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2ftester'))
 
@@ -30,7 +30,7 @@ class Setup:
         #self.delete_forwarder_queues(30)
         #self.delete_distributor_queues(24)
         """
-        self.setup_forwarders(30)        
+        #self.setup_forwarders(30)        
         #self.setup_distributors(24)        
         """ 
         ### Queue Declares and Bindings
@@ -49,7 +49,10 @@ class Setup:
         
         self.channel.queue_declare(queue='cu_foreman_consume',durable=True)
         self.channel.queue_bind(queue='cu_foreman_consume', exchange='message', routing_key='cu_foreman_consume' )
-        
+        """        
+        self.channel.queue_declare(queue='sp_foreman_consume',durable=True)
+        self.channel.queue_bind(queue='sp_foreman_consume', exchange='message', routing_key='sp_foreman_consume' )
+        """
         ## DMCS queues
         self.channel.queue_declare(queue='dmcs_fault_queue',durable=True)
         self.channel.queue_bind(queue='dmcs_fault_queue', exchange='message', routing_key='dmcs_fault_queue' )
