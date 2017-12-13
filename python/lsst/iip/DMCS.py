@@ -224,7 +224,14 @@ class DMCS:
                         (str(msg_dict),properties))
 
             handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
+            if handler == None:
+                raise KeyError("In on_ocs_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
             result = handler(msg_dict)
+        except KeyError as e:
+            LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
+            if self.DP: 
+                print("DMCS received unrecognized message type: %s" % e.args)
+            raise L1Error("DMCS ecountering Error Code %s. %s" % (str(self.ERROR_CODE_PREFIX + 35), e.args))
         except Exception as e: 
             LOGGER.error("DMCS unable to on_ocs_message: %s" % e.args) 
             print("DMCS unable to on_ocs_message: %s" % e.args) 
@@ -249,7 +256,14 @@ class DMCS:
                          (str(msg_dict),properties))
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
+            if handler == None:
+                raise KeyError("In on_ack_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
             result = handler(msg_dict)
+        except KeyError as e:
+            LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
+            if self.DP: 
+                print("DMCS received unrecognized message type: %s" % e.args)
+            raise L1Error("DMCS ecountering Error Code %s. %s" % (str(self.ERROR_CODE_PREFIX + 35), e.args))
         except Exception as e: 
             LOGGER.error("DMCS unable to on_ack_message: %s" % e.args) 
             print("DMCS unable to on_ack_message: %s" % e.args) 

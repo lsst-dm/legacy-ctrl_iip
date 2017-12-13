@@ -3,4 +3,9 @@ tests/.cache
 .cache
 gunk
 logs
+*.o
+forwarder/src/*.o
+ocs/obj/*.o
+
+
 
