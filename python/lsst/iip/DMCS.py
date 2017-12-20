@@ -1185,6 +1185,7 @@ class DMCS:
             self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
             self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
             self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
+            self.sp_cfg_keys = cdm[ROOT]['SP_CFG_KEYS']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
@@ -1269,6 +1270,8 @@ class DMCS:
 
             self.STATE_SCBD.set_device_state("CU","OFFLINE")
 
+            self.STATE_SCBD.set_device_state("SP","OFFLINE")
+
             self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
             self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
 
@@ -1278,9 +1281,13 @@ class DMCS:
             self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
             self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
 
+            self.STATE_SCBD.add_device_cfg_keys('SP', self.sp_cfg_keys)
+            self.STATE_SCBD.set_device_cfg_key('SP',self.STATE_SCBD.get_cfg_from_cfgs('SP', 0))
+
             self.send_appropriate_events_by_state('AR', 'OFFLINE')
             self.send_appropriate_events_by_state('PP', 'OFFLINE')
             self.send_appropriate_events_by_state('CU', 'OFFLINE')
+            self.send_appropriate_events_by_state('SP', 'OFFLINE')
         except Exception as e: 
             LOGGER.error("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args)
             print("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args) 
