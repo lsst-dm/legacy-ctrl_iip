@@ -677,6 +677,62 @@ class DMCS:
 
     def process_seq_target_visit_event(self, params):
         print("[x] TCS_TARGET")
+        try:
+            # First, get dict of devices in Enable state with their consume queues
+            target_id = params['TARGET_ID']
+            self.STATE_SCBD.set_visit_id(target_id)
+            enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
+            LOGGER.debug("Enabled device list for %s is:" % visit_id)
+            LOGGER.debug(enabled_devices)
+            session_id = self.STATE_SCBD.get_current_session()
+
+            acks = []
+            for k in list(enabled_devices.keys()):
+                consume_queue = self.STATE_SCBD.get_device_consume_queue(enabled_devices[k])
+                if self.DP:
+                  print("Consume queue for device %s is %s" % (enabled_devices[k], consume_queue))
+                ack = self.get_next_timed_ack_id(k + "_NEXT_VISIT_ACK")
+                acks.append(ack)
+                msg = {}
+                msg[MSG_TYPE] = k + '_NEXT_VISIT'
+                msg[ACK_ID] = ack
+                msg['SESSION_ID'] = session_id
+                msg[VISIT_ID] = target_id
+                msg[RA] = params['RA']
+                msg[DEC] = params['DEC']
+                msg[ANGLE] = params['ANGLE']
+                msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+                LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
+                self._publisher.publish_message(consume_queue, msg)
+
+            ## FIX - Use different type of ack here...
+            self.ack_timer(3)
+            for a in acks:
+                ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
+
+                if ack_responses != None:
+                    responses = list(ack_responses.keys())
+                    for response in responses:
+                        if ack_responses[response]['ACK_BOOL'] == False:
+                            # Mark this device as messed up...maybe enter fault.
+                            pass
+                else:
+                    #Enter a fault state, as no devices are responding
+                    pass
+        except L1RedisError as e:
+            LOGGER.error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
+            print("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
+        except L1RabbitConnectionError as e:
+            LOGGER.error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
+        except Exception as e:
+            LOGGER.error("DMCS unable to process_next_visit_event: %s" % e.args)
+            print("DMCS unable to process_next_visit_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_next_visit_event: %s" % e.args)
+
+
         #print("Incoming message to process_seq_target_visit_event: ")
         #self.prp.pprint(params) 
         #print("------------------------------\n\n")

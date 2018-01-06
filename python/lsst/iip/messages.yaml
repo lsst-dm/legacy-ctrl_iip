@@ -504,6 +504,8 @@ ROOT:
 #        MSG_TYPE: RESOLVE_ACK
 ####        --------------------------------------------------------------------------
 
+#### FIX Use new values sent from DMCS is process_target_visit_event
+#### FIX Do same for PP
     AR_NEW_SESSION:
         MSG_TYPE: AR_NEW_SESSION    
         SESSION_ID:   Unique alphanumeric sequence value
