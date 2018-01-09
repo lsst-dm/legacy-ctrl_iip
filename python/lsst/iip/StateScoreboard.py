@@ -7,6 +7,7 @@ import yaml
 import logging
 import time
 import subprocess
+from copy import deepcopy
 from Scoreboard import Scoreboard
 from const import *
 
@@ -32,6 +33,9 @@ class StateScoreboard(Scoreboard):
     JOB_STATUS = 'JOB_STATUS'
     VISIT_ID_LIST = 'VISIT_ID_LIST'
     STATUS = 'STATUS'
+    CURRENT_RAFT_CONFIGURATION = 'CURRENT_RAFT_CONFIGURATION'
+    DEFAULT_RAFT_CONFIGURATION = 'DEFAULT_RAFT_CONFIGURATION'
+    RAFTS = 'RAFTS'
     SUB_TYPE = 'SUB_TYPE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM'
@@ -44,7 +48,7 @@ class StateScoreboard(Scoreboard):
     SP = "SP"
   
 
-    def __init__(self, db_type, db_instance, ddict):
+    def __init__(self, db_type, db_instance, ddict, rdict):
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
@@ -72,6 +76,8 @@ class StateScoreboard(Scoreboard):
         self._redis.set(self.SESSION_SEQUENCE_NUM, 70000)
 
         self.init_redis(ddict)
+
+        self.set_current_raft_configuration(rdict)
     
 
     def connect(self):
@@ -298,6 +304,7 @@ class StateScoreboard(Scoreboard):
             #    self._redis.hset(self.CU, 'SESSION_ID', session_id)
             id = "Session_" + str(session_id)
             self._redis.set(self.CURRENT_SESSION_ID, id)
+            self.set_rafts_for_current_session(id)
             return id
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
@@ -310,6 +317,65 @@ class StateScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
+
+
+    def set_rafts_for_current_session(self, session_id):
+        session_raft_keyname = str(session_id) + "_RAFTS"
+        if self.check_connection():
+            rafts = deepcopy(self.get_current_configured_rafts())
+            self._redis.hset(session_raft_keyname,self.RAFTS,rafts)
+        else:
+            LOGGER.error('Unable to set rafts for current session ID due to lack of redis connection')
+            #RAISE exception to catch in DMCS.py
+
+
+    def get_rafts_for_current_session(self):
+        if self.check_connection():
+            current_session = self._redis.get(self.CURRENT_SESSION_ID)
+            current_session_rafts = str(current_session) + "_RAFTS"
+            return self._redis.hgetall(current_session_rafts)
+        else:
+            LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
+            #RAISE exception to catch in DMCS.py
+
+
+    def get_rafts_for_current_session_as_lists(self):
+        if self.check_connection():
+            current_session = self._redis.get(self.CURRENT_SESSION_ID)
+            current_session_rafts = str(current_session) + "_RAFTS"
+            return self.raft_dict_to_lists(self._redis.hget(current_session_rafts, self.RAFTS))
+        else:
+            LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
+            #RAISE exception to catch in DMCS.py
+
+
+    def set_current_configured_rafts(self, rafts):
+        if self.check_connection():
+            self._redis.hset(self.CURRENT_RAFT_CONFIGURATION, self.RAFTS, yaml.dump(rafts))
+        else:
+            LOGGER.error('Unable to set current configured rafts due to lack of redis connection')
+            
+
+    def get_current_configured_rafts(self):
+        if self.check_connection():
+            return yaml.load(self._redis.hget(self.CURRENT_RAFT_CONFIGURATION, self.RAFTS)
+        else:
+            LOGGER.error('Unable to retrieve current configured rafts due to lack of redis connection')
+
+
+    def raft_dict_to_lists(self, raft_dict):
+        raft_list = []
+        ccd_list = []
+        keez = list(raft_dict.keys())
+        for kee in keez:
+            raft_list.append(str(kee))
+            tmp_list = []
+            items = raft_dict[kee]
+            for item in items:
+                tmp_list.append(item)
+            ccd_list.append(tmp_list)
+
+        return (raft_list, ccd_list)
 
 
     def set_visit_id(self, visit_id):
@@ -335,15 +401,14 @@ class StateScoreboard(Scoreboard):
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
 
-    def add_job(self, job_number, image_id, visit_id, ccds):
+    def add_job(self, job_number, visit_id, raft_list, raft_ccd_list):
         """All job rows created in the scoreboard begin with this method
            where initial attributes are inserted.
         """
         if self.check_connection():
-            self._redis.hset(job_number, 'IMAGE_ID', image_id)
             self._redis.hset(job_number, 'VISIT_ID', visit_id)
             self._redis.lpush(self.JOBS, job_number)
-            self.set_ccds_for_job(job_number, ccds)
+            # self.set_ccds_for_job(job_number, ccds)
             self.set_job_state(job_number, 'NEW')
             self.set_value_for_job(job_number, STATUS, 'ACTIVE')
         else:
@@ -410,7 +475,7 @@ class StateScoreboard(Scoreboard):
             if device == self.SP:
                 return self._redis.lindex('SP_JOBS', 0)
 
-
+    """
     def set_ccds_for_job(self, job_number, ccds):
         """Pairs is a temporary relationship between Forwarders
            and Distributors that lasts for one job. Note the use of yaml...
@@ -438,7 +503,7 @@ class StateScoreboard(Scoreboard):
             return yaml.load(ccds)
         else:
             return None
-
+    """
 
     def set_results_for_job(self, job_number, results):
         if self.check_connection():
@@ -446,6 +511,8 @@ class StateScoreboard(Scoreboard):
             return True
         else:
             return False
+
+
 
 
 

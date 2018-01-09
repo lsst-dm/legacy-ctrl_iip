@@ -658,6 +658,9 @@ class DMCS:
         self.prp.pprint(params) 
         print("------------------------------\n\n")
 
+       
+
+
     def process_ccs_shutter_close_event(self, params):
         print("Incoming message to process_ccs_shutter_close_event: ")
         self.prp.pprint(params) 
@@ -667,13 +670,6 @@ class DMCS:
         print("Incoming message to process_ccs_shutter_open_event: ")
         self.prp.pprint(params) 
         print("------------------------------\n\n")
-
-    def process_ccs_take_images_event(self, params):
-        print("[x] CCS_TAKE_IMAGES")
-        print("xxxxxxxxxxxxxxxxxxxxxxxxx")
-        #print("Incoming message to process_ccs_take_images_event: ")
-        #self.prp.pprint(params) 
-        ##print("------------------------------\n\n")
 
     def process_seq_target_visit_event(self, params):
         print("[x] TCS_TARGET")
@@ -733,10 +729,58 @@ class DMCS:
             raise L1Error("DMCS unable to process_next_visit_event: %s" % e.args)
 
 
-        #print("Incoming message to process_seq_target_visit_event: ")
-        #self.prp.pprint(params) 
-        #print("------------------------------\n\n")
+    def process_ccs_take_images_event(self, params):  ### NEW Start Integration
+        print("[x] CCS_TAKE_IMAGES")
+        print("xxxxxxxxxxxxxxxxxxxxxxxxx")
 
+        try:
+            msg_params = {}
+            visit_id = self.STATE_SCBD.get_current_visit()
+            msg_params[VISIT_ID] = visit_id
+            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
+            raft_list, raft_ccd_list = self.STATE_SCBD.get_rafts_for_current_session_as_lists()
+            msg_params['RAFT_LIST'] = raft_list
+            msg_params['RAFT_CCD_LIST'] = raft_ccd_list
+            session_id = self.STATE_SCBD.get_current_session()
+            msg_params['SESSION_ID'] = session_id
+
+
+            enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+            acks = []
+            for k in list(enabled_devices.keys()):
+                ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
+                acks.append(ack_id)
+                job_num = self.STATE_SCBD.get_next_job_num( session_id)
+                self.STATE_SCBD.add_job(job_num, visit_id, raft_list, raft_ccd_list)
+                self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
+                self.STATE_SCBD.set_current_device_job(job_num, str(k))
+                self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+                msg_params[MSG_TYPE] = k + '_TAKE_IMAGES'
+                msg_params[JOB_NUM] = job_num
+                msg_params[ACK_ID] = ack_id
+                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+
+
+            wait_time = 5  # seconds...
+            self.set_pending_nonblock_acks(acks, wait_time)
+        except L1RedisError as e:
+            LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+            print("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+        except L1RabbitConnectionError as e:
+            LOGGER.error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
+        except Exception as e:
+            LOGGER.error("DMCS unable to process_start_integration_event: %s" % e.args)
+            print("DMCS unable to process_start_integration_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event: %s" % e.args)
+
+
+
+
+    def process_end_readout(self, params):
+        print("[x] END_READOUT; IMG_NAME: %s" % params["IMAGE_NAME"]) 
 
 
 
@@ -1234,6 +1278,7 @@ class DMCS:
             self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self.ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
+            self.rdict = cdm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
             self.state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
             self.ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
             self.backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
@@ -1306,7 +1351,7 @@ class DMCS:
             LOGGER.info('Setting up DMCS Scoreboards')
             self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', self.backlog_db_instance)
             self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance)
-            self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict)
+            self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict, self.rdict)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to complete setup_scoreboards - No Rabbit Connect: %s" % e.args)
         except L1RedisError as e: 
@@ -1391,9 +1436,6 @@ class DMCS:
 
     def process_target_visit_accept(self, params):
         print("[x] TARGET_VISIT_ACCEPT")
-
-    def process_end_readout(self, params):
-        print("[x] END_READOUT; IMG_NAME: %s" % params["IMAGE_NAME"]) 
 
 
 def main():
