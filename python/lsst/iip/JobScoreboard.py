@@ -141,7 +141,7 @@ class JobScoreboard(Scoreboard):
 
 
 
-    def add_job(self, job_number, image_id, visit_id, ccds):
+    def add_job(self, job_number, visit_id, raft_list, raft_ccd_list):
         """All job rows created in the scoreboard begin with this method
            where initial attributes are inserted.
 
@@ -150,10 +150,9 @@ class JobScoreboard(Scoreboard):
         """
         # XXX Needs try, catch block
         if self.check_connection():
-            self._redis.hset(job_number, 'IMAGE_ID', image_id)
             self._redis.hset(job_number, 'VISIT_ID', visit_id)
             self._redis.lpush(self.JOBS, job_number)
-            self.set_ccds_for_job(job_number, ccds)
+            self.set_rafts_for_job(job_number, raft_list, raft_ccd_list)
             self.set_job_state(job_number, 'NEW')
             self.set_job_status(job_number, 'ACTIVE')
         else:
@@ -274,20 +273,23 @@ class JobScoreboard(Scoreboard):
             LOGGER.critical("ERROR: No pairs associated with JOB %s" % job_number)
             return None
 
-    def set_ccds_for_job(self, job_number, ccds):
+    def set_rafts_for_job(self, job_number, raft_list, raft_ccd_list):
+        rafts = {}
+        rafts['RAFT_LIST'] = raft_list
+        rafts['RAFT_CCD_LIST'] = raft_ccd_list
         if self.check_connection():
-            self._redis.hset(str(job_number), 'CCDS', yaml.dump(ccds))
+            self._redis.hset(str(job_number), 'RAFTS', yaml.dump(rafts))
             return True
         else:
             return False
 
 
-    def get_ccds_for_job(self, job_number):
+    def get_rafts_for_job(self, job_number):
         if self.check_connection():
-            ccds =  self._redis.hget(str(job_number), 'CCDS')
+            rafts =  self._redis.hget(str(job_number), 'RAFTS')
         ### XXX FIX - Check for existence of pairs...
-        if ccds:
-            return yaml.load(ccds)
+        if rafts:
+            return yaml.load(rafts)
         else:
             return None
 

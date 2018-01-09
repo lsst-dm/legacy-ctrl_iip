@@ -779,9 +779,40 @@ class DMCS:
 
 
 
+    ### This method receives the all important image name message parameter in params.
     def process_end_readout(self, params):
-        print("[x] END_READOUT; IMG_NAME: %s" % params["IMAGE_NAME"]) 
+        try:
+            msg_params = {}
+            msg_params[VISIT_ID] = self.STATE_SCBD.get_current_visit()
+            msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
+            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
+            session_id = self.STATE_SCBD.get_current_session()
+            msg_params['SESSION_ID'] = session_id
 
+            enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+            acks = []
+            for k in list(enabled_devices.keys()):
+                ack_id = self.get_next_timed_ack_id( str(k) + "_END_READOUT_ACK")
+                acks.append(ack_id)
+                job_num = self.STATE_SCBD.get_current_device_job(str(k))
+                msg_params[MSG_TYPE] = k + '_END_READOUT'
+                msg_params[ACK_ID] = ack_id
+                msg_params[JOB_NUM] = job_num
+                self.STATE_SCBD.set_job_state(job_num, "READOUT")
+                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+
+
+            wait_time = 5  # seconds...
+            self.set_pending_nonblock_acks(acks, wait_time)
+        except L1RabbitConnectionError as e:
+            LOGGER.error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+        except Exception as e:
+            LOGGER.error("DMCS unable to process_readout_event: %s" % e.args)
+            print("DMCS unable to process_readout_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
+        # add in two additional acks for format and transfer complete
 
 
 

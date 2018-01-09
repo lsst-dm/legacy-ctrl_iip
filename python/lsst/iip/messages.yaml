@@ -238,7 +238,16 @@ ROOT:
         COMPONENT: PROMPT_PROCESS_FOREMAN
         ACK_BOOL:
         ACK_ID:
-       
+      
+    ## This message uses two list structures to describe which Rafts/CCDs to fetch.
+    ## Note: All list items are strings.
+    ## This RAFT_LIST is a list with each index value having a different raft name.
+    ## The RAFT_CCD_LIST indexes match to the RAFT_LIST in that the Raft name at 
+    ## say, index value 2 in the list, refers to index value 2 in the RAFT_CCD_LIST.
+    ## Each item in the RAFT_CCD_LIST is a list of CCDs within the associated raft
+    ## that should be fetched. The list items in the RAFT_CCD_LIST may contain a
+    ## list with one item - the string 'ALL' at index 0. This is to indicate that
+    ## all 9 of the CCDs for the raft are to be fetched.
     PP_TAKE_IMAGES:
         MSG_TYPE: PP_TAKE_IMAGES
         JOB_NUM: 6    Sequence assigned by DMCS
@@ -578,6 +587,15 @@ ROOT:
         ACK_ID:
 
     ### NEW Version of Start integration
+    ## This message uses two list structures to describe which Rafts/CCDs to fetch.
+    ## Note: All list items are strings.
+    ## This RAFT_LIST is a list with each index value having a different raft name.
+    ## The RAFT_CCD_LIST indexes match to the RAFT_LIST in that the Raft name at 
+    ## say, index value 2 in the list, refers to index value 2 in the RAFT_CCD_LIST.
+    ## Each item in the RAFT_CCD_LIST is a list of CCDs within the associated raft
+    ## that should be fetched. The list items in the RAFT_CCD_LIST may contain a
+    ## list with one item - the string 'ALL' at index 0. This is to indicate that
+    ## all 9 of the CCDs for the raft are to be fetched.
     AR_TAKE_IMAGES:
         MSG_TYPE: AR_TAKE_IMAGES
         JOB_NUM: 6    Sequence assigned by DMCS
@@ -890,11 +908,13 @@ ROOT:
 
     AR_END_READOUT:
         MSG_TYPE: AR_END_READOUT
+        IMAGE_ID:
         REPLY_QUEUE:
         ACK_ID:
 
     PP_END_READOUT:
         MSG_TYPE: PP_END_READOUT
+        IMAGE_ID:
         REPLY_QUEUE:
         ACK_ID:
 

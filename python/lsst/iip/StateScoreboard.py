@@ -401,6 +401,7 @@ class StateScoreboard(Scoreboard):
             LOGGER.error('Unable to increment job number due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
 
+
     def add_job(self, job_number, visit_id, raft_list, raft_ccd_list):
         """All job rows created in the scoreboard begin with this method
            where initial attributes are inserted.
@@ -476,7 +477,7 @@ class StateScoreboard(Scoreboard):
                 return self._redis.lindex('SP_JOBS', 0)
 
     """
-    def set_ccds_for_job(self, job_number, ccds):
+    def set_rafts_for_job(self, job_number, raft_list, raft_ccd_list):
         """Pairs is a temporary relationship between Forwarders
            and Distributors that lasts for one job. Note the use of yaml...
            Unlike python dicts, Redis is not a nested level database. For a
@@ -488,8 +489,11 @@ class StateScoreboard(Scoreboard):
            :param  dict pairs: Forwarders and Distributors arranged in a
            dictionary.
         """
+        rafts = {}
+        rafts['RAFT_LIST'] = raft_list
+        rafts['RAFT_CCD_LIST'] = raft_ccd_list
         if self.check_connection():
-            self._redis.hset(str(job_number), 'CCDS', yaml.dump(ccds))
+            self._redis.hset(str(job_number), 'RAFTS', yaml.dump(rafts))
             return True
         else:
             return False

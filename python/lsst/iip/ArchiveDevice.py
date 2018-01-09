@@ -1,3 +1,6 @@
+### MOVE NEW_ARCHIVE_ITEM message publish to NEW_VISIT/NEW_TARGET and remove unneeded params from message body.
+### JOB SCOREBOARD should store te ARCHIVE file destination/path and resend to each forwarder for readout.
+
 import toolsmod
 from toolsmod import get_timestamp
 import logging
@@ -71,13 +74,14 @@ class ArchiveDevice:
 
         self._msg_actions = { 'AR_START_INTEGRATION': self.process_start_integration,
                               'AR_NEW_SESSION': self.set_session,
-                              'AR_NEXT_VISIT': self.set_visit,
+                              'AR_NEXT_VISIT': self.process_target_event,
                               'AR_READOUT': self.process_dmcs_readout,
                               'AR_FWDR_HEALTH_CHECK_ACK': self.process_ack,
                               'AR_FWDR_XFER_PARAMS_ACK': self.process_ack,
                               'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
-                              'NEW_ARCHIVE_ITEM_ACK': self.process_ack }
+                              'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'AR_END_READOUT': self.process_end_readout }
 
 
         self._next_timed_ack_id = 0
@@ -167,33 +171,17 @@ class ArchiveDevice:
     
 
 
-    def process_start_integration(self, params):
-        """ Receives new job/job_number, image_id, work details, ack_id from params, then
-            retrieves the current session_id and visit_id, and those those params with
-            the new job entry in the scoreboard.
-
-            Does health checks on available forwarders, and prepares a worker list. If
-            workers are not available, the job is refused and job state is set 
-            to  SCRUBBED.
-
-            Send NEW_ARCHIVE_ITEM message to archive controller, which responds with
-            a new target directory.
-
-            Divide image fetch across forwarders. Send image_id, target dir, and job,
-            session, visit and work to do to healthy forwarders. Update Forwarder 
-            state to AWAITING_READOUT.
-
-            :params params: A dictionary that stores job_num, image_id, ccd_list, and
-                            ack_id.
-
-            :return: None.
-        """
+    def process_target_event(self, params):
+        ra = params['RA']
+        dec = params['DEC']
+        angle = params['ANGLE']
+        visit_id = params['VISIT_ID']
+        self.JOB_SCBD.set_visit_id(params['VISIT_ID'], ra, dec, angle)
         # receive new job_number and image_id; session and visit are current
         # and deep copy it with some additions such as aseesion and visit
         session_id = self.get_current_session()
         visit_id = self.get_current_visit()
         job_number = params[JOB_NUM]
-        image_id = params[IMAGE_ID]
         ccds = params['CCD_LIST']
         start_int_ack_id = params[ACK_ID]
 
@@ -432,6 +420,7 @@ class ArchiveDevice:
         self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
 
 
+    ### NOTE: Deprecated...
     def process_dmcs_readout(self, params):
         """ Set job state as PREPARE_READOUT in JobScoreboard.
             Send readout to forwarders.
@@ -442,7 +431,7 @@ class ArchiveDevice:
 
             :return: None.
         """
-
+        reply_queue = params['REPLY_QUEUE']
         readout_ack_id = params[ACK_ID]
         job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
@@ -460,9 +449,41 @@ class ArchiveDevice:
         # if readout_responses == None:
         #    raise L1 exception 
 
-        self.process_readout_responses(readout_ack_id, image_id, readout_responses)
+        self.process_readout_responses(readout_ack_id, reply_queue, image_id, readout_responses)
 
-    def process_readout_responses(self, readout_ack_id, image_id, readout_responses):
+
+    def process_end_readout(self, params):
+        """ Set job state as PREPARE_READOUT in JobScoreboard.
+            Send readout to forwarders.
+            Set job state as READOUT_STARTED in JobScoreboard.
+            Wait to retrieve and process readout responses.
+
+            :params parmas: A dictionary that stores info of a job.
+
+            :return: None.
+        """
+        reply_queue = params['REPLY_QUEUE']
+        readout_ack_id = params[ACK_ID]
+        job_number = params[JOB_NUM]
+        image_id = params[IMAGE_ID]
+        # send readout to forwarders
+        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'PREPARE_READOUT')
+        fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
+        work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
+        fwdrs = work_schedule['FORWARDER_LIST']
+
+        self.send_readout(params, fwdrs, fwdr_readout_ack)
+        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT_STARTED')
+
+        readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len(fwdrs), 4.0)
+
+        # if readout_responses == None:
+        #    raise L1 exception 
+
+        self.process_readout_responses(readout_ack_id, reply_queue, image_id, readout_responses)
+
+
+    def process_readout_responses(self, readout_ack_id, reply_queue, image_id, readout_responses):
         """ From readout_responses param, retrieve image_id and job_number, and create list of
             ccd, filename, and checksum from all forwarders. Store into xfer_list_msg and
             send to archive to confirm each file made it intact.
@@ -520,7 +541,7 @@ class ArchiveDevice:
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['ACK_BOOL'] = True
         ack_msg['RESULT_LIST'] = results
-        self._publisher.publish_message("dmcs_ack_consume", ack_msg)
+        self._publisher.publish_message(reply_queue), ack_msg)
 
         ### FIXME Set state as complete for Job
 
