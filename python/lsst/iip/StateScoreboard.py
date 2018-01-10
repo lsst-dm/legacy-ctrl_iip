@@ -41,6 +41,7 @@ class StateScoreboard(Scoreboard):
     AR = "AR"
     PP = "PP"
     CU = "CU"
+    SP = "SP"
   
 
     def __init__(self, db_type, db_instance, ddict):
@@ -179,6 +180,8 @@ class StateScoreboard(Scoreboard):
                 return self._redis.hget(self.PP, "CONSUME_QUEUE")
             if device == self.CU:
                 return self._redis.hget(self.CU, "CONSUME_QUEUE")
+            if device == self.SP:
+                return self._redis.hget(self.SP, "CONSUME_QUEUE")
 
 
     def get_devices_by_state(self, state):
@@ -288,7 +291,7 @@ class StateScoreboard(Scoreboard):
             params = {}
             params['SUB_TYPE'] = 'VISIT'
             params['VISIT_ID'] = visit_id
-            self.persist(self.build_monitor_data(params))
+            #self.persist(self.build_monitor_data(params))
 
 
     def get_current_visit(self):

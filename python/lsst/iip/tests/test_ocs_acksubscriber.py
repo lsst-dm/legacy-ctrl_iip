@@ -32,7 +32,7 @@ class TestOCS_AckSubscriber:
 
     def test_ocs_acksubscriber(self): 
         try: 
-            cdm = toolsmod.intake_yaml_file("/home/centos/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml")
+            cdm = toolsmod.intake_yaml_file("/home/hwin16/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml")
         except IOError as e: 
             trace = traceback.print_exc() 
             emsg = "Unable to fine CFG Yaml file %s\n" % self._config_file 
@@ -58,7 +58,7 @@ class TestOCS_AckSubscriber:
                                       broker_addr 
 
         self.dmcs_consumer = Consumer(dmcs_broker_url, "ocs_dmcs_consume", "thread-dmcs-consume", 
-                                      self.on_ocs_message, "YAML", None) 
+                                      self.on_ocs_message, "YAML") 
         self.dmcs_consumer.start()
 
         # ocs consumer from DMCS
@@ -70,11 +70,11 @@ class TestOCS_AckSubscriber:
                                      "AFM" + "@" +\
                                      broker_addr 
         self.ocs_consumer = Consumer(ocs_broker_url, "test_dmcs_ocs_publish", "thread-ocs-consume",
-                                     self.on_dmcs_message, "YAML", None) 
+                                     self.on_dmcs_message, "YAML") 
         self.ocs_consumer.start() 
         print("Test setup Complete. Commencing Messages...")
 
-        self._msg_auth = MessageAuthority("/home/centos/src/git/ctrl_iip/python/lsst/iip/messages.yaml")
+        self._msg_auth = MessageAuthority("/home/hwin16/src/git/ctrl_iip/python/lsst/iip/messages.yaml")
 
         self.send_messages() 
         sleep(10)

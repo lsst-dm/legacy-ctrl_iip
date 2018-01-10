@@ -8,22 +8,40 @@
 #
 # Everything up until the '@' sign is handled by the Forwarder class, leaving
 # the hostname or IP, plus the vhost like this:
+ROOT:
 
-NAME: F1
-DAQ_PATH: /home/F1/xfer_dir/
-BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
-CONSUME_QUEUE: f1_consume
-PUBLISH_QUEUE: ar_forwarder_publish
+    NAME: F1
+    LOWER_NAME: f1
+    USER: F1
+    PASSWD: F1
+    USER_PUB: F1_PUB
+    PASSWD_PUB: F1_PUB
+    USER_FETCH_PUB: F1_FETCH_PUB
+    PASSWD_FETCH_PUB: F1_FETCH_PUB
+    USER_FORMAT_PUB: F1_FORMAT_PUB
+    PASSWD_FORMAT_PUB: F1_FORMAT_PUB
+    USER_FORWARD_PUB: F1_FORWARD_PUB
+    PASSWD_FORWARD_PUB: F1_FORWARD_PUB
+    FQN: FORWARDER_1
+    IP_ADDR: 141.142.238.161
+    HOSTNAME: lsst-wf-base01.ncsa.illinois.edu
+    BASE_BROKER_ADDR: "@141.142.238.10:5672/%2fbunny"
 
-# valid apps - rsync, ftp, gridftp, scp -- should have a default value set...
-XFER_APP: scp
+    CONSUME_QUEUE: f1_consume
 
-XFER_FILE: 16.7meg
+    FETCH_USER: FETCH_F1
+    FETCH_USER_PASSWD: FETCH_F1
+    FETCH_USER_PUB: FETCH_F1_PUB
+    FETCH_USER_PUB_PASSWD: FETCH_F1_PUB
 
-# Unique identifiers
-#NAME: F1
-PASSWD: F1
-FQN: FORWARDER_1
-HOSTNAME: lsst-wf-base01.ncsa.illinois.edu
-IP_ADDR: 141.142.238.161
+    FORMAT_USER: FORMAT_F1
+    FORMAT_USER_PASSWD: FORMAT_F1
+    FORMAT_USER_PUB: FORMAT_F1_PUB
+    FORMAT_USER_PUB_PASSWD: FORMAT_F1_PUB 
+
+    FORWARD_USER: FORWARD_F1
+    FORWARD_USER_PASSWD: FORWARD_F1
+    FORWARD_USER_PUB: FORWARD_F1_PUB
+    FORWARD_USER_PUB_PASSWD: FORWARD_F1_PUB 
+
 

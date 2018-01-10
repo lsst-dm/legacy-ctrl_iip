@@ -1,24 +1,41 @@
-# OCS_Bridge System descriptions
-OCS Bridge takes DDS messages from OpenSplice, converts them to RabbitMq messages and sends them to L1 System. 
- 
-## How to Run
-In OCS machine, 
-* Run CommandListener executable in one terminal. CommandListener takes about 3-4 seconds to start. 
-* Run EventListener executable in another terminal window. 
-* Run AckSubscriber executable in another terminal window. 
+# How to run OCS components
 
-### CommandListener.cpp 
-  CommandListener listens to command messages(enable, disable, standby...) from OCS system. 
+## Prerequisites
+* SAL environment is installed and configured.  
+* [Yaml-CPP v0.5.3](https://github.com/jbeder/yaml-cpp)
+* [SimpleAmqpClient v2.4.0](https://github.com/alanxz/SimpleAmqpClient) 
+* [Rabbitmq-C v0.8.0](https://github.com/alanxz/rabbitmq-c) for version 2.0+ of RabbitMQ Broker 
 
-### EventListener.cpp 
-  EventListener listens to dm events messages(START_INTEGRATION, NEXT_VISIT, READOUT) from OCS system.
+## RUN
+1. run `./AckSubscriber`, `./CommandListener`, `./EventSubscriber` in 3 different terminals. 
 
-### AckSubscriber.cpp 
-  AckSubscriber listens to messages from DMCS and acks back to OCS System.
+## Descriptions
+* AckSubscriber listens to acks from DMCS and ack them back to OCS. 
+* CommandListener listens to commands from OCS to DMCS relating to archiver, catchuparchiver and processingcluster. 
+* EventSubscriber listens to events from OCS and forwards them to DMCS. 
 
-### OCS_Bridge.cpp 
-  OCS_Bridge is the parent of CommandListener and EventListener. It reads the configuration file and sets up the rabbitmq publisher. 
+## Simulation
+* To simulate OCS commands for DM devices(AR, CU, PP), the commands are in iip/ocs/commands directory. 
+* To simulate OCS commands for Events from TCS, CCS, event commands are in iip/ocs/events directory. 
 
-If there are not any executables, run `make` in the directory where `makefile` resides.
-`make <component-name>` will generate each individual executable. 
-where component-name = CommandListener/EventListener/AckSubscriber    
+## Explanation 
+Prerequisite softwares(yaml-cpp, rabbitmq-c, SimpleAmqpClient) are built and installed in the `ocs/core` directory. 
+The main OCS_Bridge files are located in the `ocs/src` directory. Header files are configured in `ocs/include` directory 
+while object files are located in `ocs/obj` directory. `src`, `commands` and `events` directory have their own `makefile`. 
+Each makefile can be run independently of the others to generate the executables. Since core softwares are included, all 
+makefiles do not depend on /usr/local/lib or /usr/loca/include directories and can be built automatically by using 
+the included `makefiles`.
+
+## Running Tests 
+In the iip directory, run 
+
+* AckSubscriber  
+`pytest -s -v tests/test_ocs_acksubscriber.py`  
+AckSubscriber test takes a while to start up since it simulates CommandListener, which takes about 2 minutes to be ready.   
+
+* CommandListener  
+`pytest -s -v tests/test_ocs_commandlistener.py` 
+
+* EventSubscriber  
+`pytest -s -v tests/test_ocs_eventsubscriber.py`
+
