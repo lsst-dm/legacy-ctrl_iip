@@ -1174,6 +1174,7 @@ class DMCS:
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
+            self.start_in_enable = cdm[ROOT]['DMCS_START_IN_ENABLE']
         except KeyError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find key in CDM representation of %s\n" % filename
@@ -1248,25 +1249,39 @@ class DMCS:
             sys.exit(self.ERROR_CODE_PREFIX + 10)
 
         try: 
-            # All devices wake up in OFFLINE state
-            self.STATE_SCBD.set_device_state("AR","OFFLINE")
+            if self.start_in_enable == 1:
+                self.STATE_SCBD.set_device_state("AR", "ENABLE")
 
-            self.STATE_SCBD.set_device_state("PP","OFFLINE")
+                self.STATE_SCBD.set_device_state("PP", "ENABLE")
 
-            self.STATE_SCBD.set_device_state("CU","OFFLINE")
+                self.STATE_SCBD.set_device_state("CU", "ENABLE")
 
-            self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
-            self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
+            else:
+                # All devices wake up in OFFLINE state
+                self.STATE_SCBD.set_device_state("AR","OFFLINE")
 
-            self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
-            self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
+                self.STATE_SCBD.set_device_state("PP","OFFLINE")
 
-            self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
-            self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
+                self.STATE_SCBD.set_device_state("CU","OFFLINE")
 
-            self.send_appropriate_events_by_state('AR', 'OFFLINE')
-            self.send_appropriate_events_by_state('PP', 'OFFLINE')
-            self.send_appropriate_events_by_state('CU', 'OFFLINE')
+                self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
+                self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
+
+                self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
+                self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
+
+                self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
+                self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
+
+            if self.start_in_enable == 1:
+                self.send_appropriate_events_by_state('AR', 'ENABLE')
+                self.send_appropriate_events_by_state('PP', 'ENABLE')
+                self.send_appropriate_events_by_state('CU', 'ENABLE')
+            else:
+                self.send_appropriate_events_by_state('AR', 'OFFLINE')
+                self.send_appropriate_events_by_state('PP', 'OFFLINE')
+                self.send_appropriate_events_by_state('CU', 'OFFLINE')
+                
         except Exception as e: 
             LOGGER.error("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args)
             print("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args) 
