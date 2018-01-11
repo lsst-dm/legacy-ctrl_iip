@@ -748,6 +748,9 @@ class DMCS:
                 num_images = params['NUM_IMAGES']
                 self.STATE_SCBD.set_value_for_job(job_num, self.EXPECTED_NUM_IMAGES, num_images)
                 self.STATE_SCBD.set_job_state(job_num, "TAKE_IMAGES")
+                msg = {}
+                msg[MSG_TYPE] = 'AR_TAKE_IMAGES'
+
 
         except L1RedisError as e:
             LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)

@@ -245,32 +245,39 @@ class ArchiveDevice:
         if set_sched_result == False:
             # FIXME Raise L1 exception and bail
             print("BIG PROBLEM - CANNOT SET WORK SCHED IN SCBD")
-       
+      
+
         xfer_params_ack_id = self.get_next_timed_ack_id("AR_FWDR_PARAMS_ACK") 
 
-        start_int_params = {}
-        minidict = {}
-        minidict['IP_ADDR'] = self.archive_ip
-        minidict['NAME'] = self.archive_name
-        minidict['FQN'] = self.archive_fqn
-        minidict['CCD_LIST'] = []
-        start_int_params[MSG_TYPE] = 'AR_FWDR_XFER_PARAMS'
-        start_int_params['XFER_PARAMS'] = minidict
-        start_int_params['TARGET_DIR'] = target_dir
-        start_int_params[ACK_ID] = xfer_params_ack_id
-        start_int_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
-        start_int_params[JOB_NUM] = job_number
-        start_int_params['IMAGE_ID'] = image_id
-        start_int_params['SESSION_ID'] = session_id
-        start_int_params['VISIT_ID'] = visit_id
-        self.send_xfer_params(start_int_params, work_schedule)
+        fwdr_new_target_params = {} 
+        fwdr_new_target_params['XFER_PARAMS'] = {}
+        fwdr_new_target_params[MSG_TYPE] = 'AR_FWDR_XFER_PARAMS'
+        fwdr_new_target_params[SESSION_ID] = session_id
+        fwdr_new_target_params[VISIT_ID] = visit_id
+        fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
+        fwdr_new_target_params[REPLY_QUEUE] = self.AR_FOREMAN_ACK_PUBLISH
+        target_location = self.archve_name + "@" + self.archive_ip + ":" + target_dir
+        fwdr_new_target_params['TARGET_LOCATION'] = target_location
 
+        len_fwdrs_list = len(work_schedule['FORWARDERS_LIST'])
+        for i in range (0, len_fwdrs_list):
+            fwdr = work_schedule['FORWARDERS_LIST'][i]
+            xfer_params_dict = {}
+            xfer_params_dict['AR_FWDR'] = fwdr
+            xfer_params_dict['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
+            xfer_params_dict['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
+            fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
+            self._publisher.publish_message(route_key, fwdr_new_target_params)
+       
 
+        
 
         # receive ack back from forwarders that they have job params
-        params_acks = self.progressive_ack_timer(xfer_params_ack_id, len(list_of_fwdrs), 2.0)
+        params_acks = self.progressive_ack_timer(xfer_params_ack_id, len_fwdrs_list, 3.0)
 
-        # if params_acks == None:
+        ### FIX
+        #   if params_acks == None:
         #     raise L1Exception and bail
 
         self.JOB_SCBD.set_value_for_job(job_number,'STATE','XFER_PARAMS_SENT')
@@ -384,22 +391,6 @@ class ArchiveDevice:
             schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST
 
         return schedule
-
-
-    def send_xfer_params(self, params, work_schedule):
-        """ For each forwarder, send the needed details for the work they are asked to do.
-
-            :params params: Info about the job.
-            :params work_schedule: The list of ccds each forwarder work on.
-
-            :return: None.
-        """
-        fwdrs = work_schedule['FORWARDER_LIST']
-        CCD_LIST = work_schedule['CCD_LIST']
-        for i in range(0, len(fwdrs)):
-            params['XFER_PARAMS']['CCD_LIST'] = CCD_LIST[i] 
-            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdrs[i], "CONSUME_QUEUE")
-            self._publisher.publish_message(route_key, params)
 
 
     def accept_job(self, dmcs_message):

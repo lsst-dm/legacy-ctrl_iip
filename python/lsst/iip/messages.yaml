@@ -662,6 +662,8 @@ ROOT:
 #                FILENAME:
 #                CHECKSUM: 
 
+
+
     AR_ITEMS_XFERD: 
         MSG_TYPE: AR_ITEMS_XFERD
         ACK_ID: 
@@ -719,18 +721,16 @@ ROOT:
     AR_FWDR_XFER_PARAMS:
         MSG_TYPE: AR_FWDR_XFER_PARAMS
         JOB_NUM:
-        IMAGE_ID: num from OCS
-        TARGET_DIR: Where to put file in archive
+        TARGET_LOCATION: Where to put file in archive
         SESSION_ID:
         VISIT_ID:
         IMAGE_ID:
         ACK_ID: seq. num
         REPLY_QUEUE:
         XFER_PARAMS:
-            CCD_LIST: List of ccds to transfer
-            FQN: ARCHIVE
-            NAME: Login name of receiving entity
-            IP_ADDR:
+            AR_FWDR:
+            RAFT_LIST: List of rafts fwdr must transfer
+            RAFT_CCD_LIST: List of ccd lists, each sub-list showin which CCDs within each raft, or ALL
 
 
     AR_FWDR_XFER_PARAMS_ACK:
