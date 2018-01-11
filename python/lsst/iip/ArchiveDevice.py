@@ -9,7 +9,7 @@ import redis
 import yaml
 import sys
 import os
-import copy
+from copy import deepcopy
 import pprint
 import time
 from time import sleep
@@ -172,17 +172,22 @@ class ArchiveDevice:
 
 
     def process_target_event(self, params):
+        # When this method is invoked, the following must happen:
+        #    1) Health check all forwarders
+        #    2) Divide work and generate dict of forwarders and which rafts/ccds they are fetching
+        #    3) Inform each forwarder which rafts they are responsible for
         ra = params['RA']
         dec = params['DEC']
         angle = params['ANGLE']
         visit_id = params['VISIT_ID']
         self.JOB_SCBD.set_visit_id(params['VISIT_ID'], ra, dec, angle)
         # receive new job_number and image_id; session and visit are current
-        # and deep copy it with some additions such as aseesion and visit
+        # and deep copy it with some additions such as session and visit
         session_id = self.get_current_session()
         visit_id = self.get_current_visit()
         job_number = params[JOB_NUM]
-        ccds = params['CCD_LIST']
+        raft_list = params['RAFT_LIST']
+        raft_ccd_list = params['RAFT_CCD_LIST']
         start_int_ack_id = params[ACK_ID]
 
         # next, run health check
@@ -190,9 +195,8 @@ class ArchiveDevice:
         num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
 
         # Add job scbd entry
-        self.JOB_SCBD.add_job(job_number, image_id, visit_id, ccds)
-        self.JOB_SCBD.set_job_params(job_number, {'SESSION_ID': session_id, 
-                                                  'VISIT_ID': visit_id})
+        self.JOB_SCBD.add_job(job_number, visit_id, raft_list, raft_ccd_list)
+        self.JOB_SCBD.set_job_value(job_number, 'VISIT_ID', visit_id)
         self.ack_timer(2.5)
 
         healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
@@ -200,6 +204,7 @@ class ArchiveDevice:
             self.refuse_job(params, "No forwarders available")
             self.JOB_SCBD.set_job_state(job_number, 'SCRUBBED')
             self.JOB_SCBD.set_job_status(job_number, 'INACTIVE')
+            ### FIX send error code for this...
             return
 
         for forwarder in healthy_fwdrs:
@@ -232,9 +237,9 @@ class ArchiveDevice:
 
         # divide image fetch across forwarders
         list_of_fwdrs = list(healthy_fwdrs.keys())
-        work_schedule = self.divide_work(list_of_fwdrs, ccds)
+        work_schedule = self.divide_work(list_of_fwdrs, raft_list, raft_ccd_list)
 
-        # send image_id, target dir, and job, session,visit and work to do to healthy forwarders
+        # send target dir, and job, session,visit and work to do to healthy forwarders
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
         set_sched_result = self.JOB_SCBD.set_work_schedule_for_job(job_number, work_schedule)
         if set_sched_result == False:
@@ -309,7 +314,7 @@ class ArchiveDevice:
         return len(forwarders)
 
 
-    def divide_work(self, fwdrs_list, ccd_list):
+    def divide_work(self, fwdrs_list, raft_list, raft_ccd_list):
         """ Divide work (ccds) among forwarders.
 
             If only one forwarder available, give it all the work.
@@ -324,46 +329,59 @@ class ArchiveDevice:
             :return schedule: Distribution of ccds among forwarders.
         """
         num_fwdrs = len(fwdrs_list)
-        num_ccds = len(ccd_list)
+        num_rafts = len(raft_list)
 
         schedule = {}
         schedule['FORWARDER_LIST'] = []
         schedule['CCD_LIST'] = []  # A list of ccd lists; index of main list matches same forwarder list index
         FORWARDER_LIST = []
-        CCD_LIST = [] # This is a 'list of lists'
+        RAFT_LIST = [] # This is a 'list of lists'
+        RAFT_CCD_LIST = [] # This is a 'list of lists'
         if num_fwdrs == 1:
             FORWARDER_LIST.append(fwdrs_list[0])
-            CCD_LIST.append(ccd_list)
+            RAFT_LIST = deepcopy(raft_list)
+            RAFT_CCD_LIST = deepcopy(raft_ccd_list)
             schedule['FORWARDER_LIST'] = FORWARDER_LIST
-            schedule['CCD_LIST'] = CCD_LIST
+            schedule['RAFT_LIST'] = RAFT_LIST
+            schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST
             return schedule
 
-        if num_ccds <= num_fwdrs:
-            for k in range (0, num_ccds):
+        if num_rafts <= num_fwdrs:
+            for k in range (0, num_rafts):
                 FORWARDER_LIST.append(fwdrs_list[k])
-                little_list.append(ccd_list[k])
-                CCD_LIST.append(list(little_list))  # Need a copy here...
+                #little_list.append(ccd_list[k])
+                RAFT_LIST.append(raft_list[k))  # Need a copy here...
+                RAFT_CCD_LIST.append = deepcopy(raft_ccd_list[k]) 
                 schedule['FORWARDER_LIST'] = FORWARDER_LIST
-                schedule['CCD_LIST'] = CCD_LIST
+                schedule['RAFT_LIST'] = RAFT_LIST
+                schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST
+
         else:
-            ccds_per_fwdr = len(ccd_list) // num_fwdrs 
-            remainder_ccds = len(ccd_list) % num_fwdrs
+            rafts_per_fwdr = len(raft_list) // num_fwdrs 
+            remainder_rafts = len(raft_list) % num_fwdrs
             offset = 0
             for i in range(0, num_fwdrs):
                 tmp_list = []
-                for j in range (offset, (ccds_per_fwdr + offset)):
-                    if (j) >= num_ccds:
+                tmp_raft_list = []
+                for j in range (offset, (rafts_per_fwdr + offset)):
+                    if (j) >= num_rafts:
                         break
-                    tmp_list.append(ccd_list[j])
-                offset = offset + ccds_per_fwdr
-                if remainder_ccds != 0 and i == 0:
-                    for k in range(offset, offset + remainder_ccds):
-                        tmp_list.append(ccd_list[k])
-                    offset = offset + remainder_ccds
+                    tmp_list.append(raft_list[j])
+                    tmp_raft_list.append(deepcopy(raft_ccd_list[j]))
+                offset = offset + rafts_per_fwdr
+
+                # If num_fwdrs divided into num_rafts equally, we are done...else, deal with remainder
+                if remainder_rafts != 0 and i == 0:
+                    for k in range(offset, offset + remainder_rafts):
+                        tmp_list.append(raft_list[k])
+                        tmp_raft_list.append(deepcopy(raft_ccd_list[k]))
+                    offset = offset + remainder_rafts
                 FORWARDER_LIST.append(fwdrs_list[i])
-                CCD_LIST.append(list(tmp_list))
+                RAFT_LIST.append(list(tmp_list))
+                RAFT_CCD_LIST.append(list(tmp_raft_list))
             schedule['FORWARDER_LIST'] = FORWARDER_LIST
-            schedule['CCD_LIST'] = CCD_LIST
+            schedule['RAFT_LIST'] = RAFT_LIST
+            schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST
 
         return schedule
 

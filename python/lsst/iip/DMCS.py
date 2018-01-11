@@ -55,7 +55,7 @@ class DMCS:
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
-    CCD_LIST = [] 
+    EXPECTED_NUM_IMAGES = 'EXPECTED_NUM_IMAGES'
     OCS_CONSUMER_THREAD = "ocs_consumer_thread"
     ACK_CONSUMER_THREAD = "ack_consumer_thread"
     ERROR_CODE_PREFIX = 5500
@@ -672,34 +672,43 @@ class DMCS:
         print("------------------------------\n\n")
 
     def process_seq_target_visit_event(self, params):
-        print("[x] TCS_TARGET")
         try:
+            msg = {}
+            acks = []
             # First, get dict of devices in Enable state with their consume queues
+            session_id = self.STATE_SCBD.get_current_session()
+            msg['SESSION_ID'] = session_id
             target_id = params['TARGET_ID']
             self.STATE_SCBD.set_visit_id(target_id)
+            msg['VISIT_ID'] = target_id
+            msg[RA] = params['RA']
+            msg[DEC] = params['DEC']
+            msg[ANGLE] = params['ANGLE']
+            raft_list, raft_ccd_list = self.STATE_SCBD.get_rafts_for_current_session_as_lists()
+            msg['RAFT_LIST'] = raft_list
+            msg['RAFT_CCD_LIST'] = raft_ccd_list
+            filter = params['FILTER']
+            msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+
+
             enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
             LOGGER.debug("Enabled device list for %s is:" % visit_id)
             LOGGER.debug(enabled_devices)
-            session_id = self.STATE_SCBD.get_current_session()
 
-            acks = []
             for k in list(enabled_devices.keys()):
-                consume_queue = self.STATE_SCBD.get_device_consume_queue(enabled_devices[k])
-                if self.DP:
-                  print("Consume queue for device %s is %s" % (enabled_devices[k], consume_queue))
-                ack = self.get_next_timed_ack_id(k + "_NEXT_VISIT_ACK")
-                acks.append(ack)
-                msg = {}
                 msg[MSG_TYPE] = k + '_NEXT_VISIT'
-                msg[ACK_ID] = ack
-                msg['SESSION_ID'] = session_id
-                msg[VISIT_ID] = target_id
-                msg[RA] = params['RA']
-                msg[DEC] = params['DEC']
-                msg[ANGLE] = params['ANGLE']
-                msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+                ack_id = self.get_next_timed_ack_id( str(k) + "_NEXT_VISIT_ACK")
+                acks.append(ack_id)
+                msg[ACK_ID] = ack_id
+                job_num = self.STATE_SCBD.get_next_job_num( session_id)
+                self.STATE_SCBD.add_job(job_num, visit_id, raft_list, raft_ccd_list)
+                self.STATE_SCBD.set_value_for_job(job_num, 'FILTER', filter)
+                self.STATE_SCBD.set_current_device_job(job_num, str(k))
+                self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+                msg[JOB_NUM] = job_num
+
                 LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
-                self._publisher.publish_message(consume_queue, msg)
+                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg)
 
             ## FIX - Use different type of ack here...
             self.ack_timer(3)
@@ -729,53 +738,25 @@ class DMCS:
             raise L1Error("DMCS unable to process_next_visit_event: %s" % e.args)
 
 
-    def process_ccs_take_images_event(self, params):  ### NEW Start Integration
-        print("[x] CCS_TAKE_IMAGES")
-        print("xxxxxxxxxxxxxxxxxxxxxxxxx")
 
+    def process_ccs_take_images_event(self, params):  ### NEW Start Integration
         try:
             msg_params = {}
-            visit_id = self.STATE_SCBD.get_current_visit()
-            msg_params[VISIT_ID] = visit_id
-            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
-            raft_list, raft_ccd_list = self.STATE_SCBD.get_rafts_for_current_session_as_lists()
-            msg_params['RAFT_LIST'] = raft_list
-            msg_params['RAFT_CCD_LIST'] = raft_ccd_list
-            session_id = self.STATE_SCBD.get_current_session()
-            msg_params['SESSION_ID'] = session_id
-
-
             enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
-            acks = []
             for k in list(enabled_devices.keys()):
-                ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
-                acks.append(ack_id)
-                job_num = self.STATE_SCBD.get_next_job_num( session_id)
-                self.STATE_SCBD.add_job(job_num, visit_id, raft_list, raft_ccd_list)
-                self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
-                self.STATE_SCBD.set_current_device_job(job_num, str(k))
-                self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
-                msg_params[MSG_TYPE] = k + '_TAKE_IMAGES'
-                msg_params[JOB_NUM] = job_num
-                msg_params[ACK_ID] = ack_id
-                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+                job_num = self.STATE_SCBD.get_current_device_job(k)
+                num_images = params['NUM_IMAGES']
+                self.STATE_SCBD.set_value_for_job(job_num, self.EXPECTED_NUM_IMAGES, num_images)
+                self.STATE_SCBD.set_job_state(job_num, "TAKE_IMAGES")
 
-
-            wait_time = 5  # seconds...
-            self.set_pending_nonblock_acks(acks, wait_time)
         except L1RedisError as e:
             LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
             print("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
             raise L1Error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-        except L1RabbitConnectionError as e:
-            LOGGER.error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
-            print("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
         except Exception as e:
             LOGGER.error("DMCS unable to process_start_integration_event: %s" % e.args)
             print("DMCS unable to process_start_integration_event: %s" % e.args)
             raise L1Error("DMCS unable to process_start_integration_event: %s" % e.args)
-
 
 
 

@@ -552,9 +552,12 @@ ROOT:
         MSG_TYPE: AR_NEXT_VISIT
         VISIT_ID:  Issued by a TCS event
         SESSION_ID:    Current Session ID
+        JOB_NUM:
         RA:
         DEC:
-        ANGLE: 
+        ANGLE:
+        RAFT_LIST:
+        RAFT_CCD_LIST:
         REPLY_QUEUE:    Queue name to use for ACK
         ACK_ID: Unique tag + number from DMCS returned in response
 
