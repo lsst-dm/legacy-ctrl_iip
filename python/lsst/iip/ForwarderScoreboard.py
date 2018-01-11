@@ -123,6 +123,15 @@ class ForwarderScoreboard(Scoreboard):
         return self._redis.hget(forwarder,'CONSUME_QUEUE')
 
 
+    def set_work_by_job(self, forwarder, job_num, work_schedule):
+        self._redis.hset(forwarder, job_num, yaml.dump(work_schedule))
+
+
+    def get_work_by_job(self, forwarder, job_num):
+        work_schedule = self._redis.hget(forwarder, job_num)
+        return yaml.load(work_schedule)
+
+
     def print_all(self):
         all_forwarders = self.return_forwarders_list()
         for forwarder in all_forwarders:
