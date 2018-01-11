@@ -81,7 +81,9 @@ class ArchiveDevice:
                               'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
-                              'AR_END_READOUT': self.process_end_readout }
+                              'AR_TAKE_IMAGES': self.take_images,
+                              'AR_END_READOUT': self.process_end_readout, 
+                              'AR_TAKE_IMAGES_DONE': self.take_images_done}
 
 
         self._next_timed_ack_id = 0
@@ -254,6 +256,7 @@ class ArchiveDevice:
         fwdr_new_target_params[MSG_TYPE] = 'AR_FWDR_XFER_PARAMS'
         fwdr_new_target_params[SESSION_ID] = session_id
         fwdr_new_target_params[VISIT_ID] = visit_id
+        fwdr_new_target_params[JOB_NUM] = job_number
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
         fwdr_new_target_params[REPLY_QUEUE] = self.AR_FOREMAN_ACK_PUBLISH
         target_location = self.archve_name + "@" + self.archive_ip + ":" + target_dir
@@ -263,9 +266,11 @@ class ArchiveDevice:
         for i in range (0, len_fwdrs_list):
             fwdr = work_schedule['FORWARDERS_LIST'][i]
             xfer_params_dict = {}
-            xfer_params_dict['AR_FWDR'] = fwdr
             xfer_params_dict['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
             xfer_params_dict['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
+            # record work order in scoreboard
+            self.FWDR_SCBD.set_work_by_job(fwdr, job_number, xfer_params_dict)
+            xfer_params_dict['AR_FWDR'] = fwdr
             fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
             self._publisher.publish_message(route_key, fwdr_new_target_params)
@@ -429,6 +434,18 @@ class ArchiveDevice:
         self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
 
 
+    def take_images(self, params):
+        num_images = params['NUM_IMAGES']
+        job_num = params[JOB_NUM]
+        self.JOB_SCBD.set_value_for_job(job_num, 'NUM_IMAGES', num_images)
+        work_sched = self.JOB_SCBD.get_work_schedule_for_job(job_num)
+        fwdrs = work_sched['FORWARDERS_LIST']
+        for fwdr in fwdrs:
+            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
+            self._publisher.publish_message(route_key, {'MSG_TYPE': 'AR_FWDR_TAKE_IMAGES'})
+        
+
+
     ### NOTE: Deprecated...
     def process_dmcs_readout(self, params):
         """ Set job state as PREPARE_READOUT in JobScoreboard.
@@ -476,20 +493,26 @@ class ArchiveDevice:
         job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
         # send readout to forwarders
-        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'PREPARE_READOUT')
+        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT')
         fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
         work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
         fwdrs = work_schedule['FORWARDER_LIST']
+        len_fwdrs = len(fwdrs)
+        msg = {}
+        msg[MSG_TYPE] = 'AR_FWDR_READOUT'
+        msg[JOB_NUM] = job_number
+        msg[IMAGE_ID] = image_id
+        for i in range (0, len_fwdrs):
+            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
+            self._publisher.publish_message(route_key, msg)
 
-        self.send_readout(params, fwdrs, fwdr_readout_ack)
-        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT_STARTED')
 
-        readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len(fwdrs), 4.0)
+        #readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len(fwdrs), 4.0)
 
         # if readout_responses == None:
         #    raise L1 exception 
 
-        self.process_readout_responses(readout_ack_id, reply_queue, image_id, readout_responses)
+        #self.process_readout_responses(readout_ack_id, reply_queue, image_id, readout_responses)
 
 
     def process_readout_responses(self, readout_ack_id, reply_queue, image_id, readout_responses):
@@ -579,7 +602,24 @@ class ArchiveDevice:
             self._publisher.publish_message(route_key, ro_params)
 
 
+    def take_images_done(self, params):
+        reply_queue = params['REPLY_QUEUE']
+        readout_ack_id = params[ACK_ID]
+        job_number = params[JOB_NUM]
+        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'TAKE_IMAGES_DONE')
+        fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_TAKE_IMAGES_DONE_ACK")
+        work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
+        fwdrs = work_schedule['FORWARDER_LIST']
+        len_fwdrs = len(fwdrs)
+        msg = {}
+        msg[MSG_TYPE] = 'AR_FWDR_TAKE_IMAGES_DONE'
+        msg[JOB_NUM] = job_number
+        msg[ACK_ID] = fwdr_readout_ack
+        for i in range (0, len_fwdrs):
+            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
+            self._publisher.publish_message(route_key, msg)
 
+        ### FIX Add Final Response to DMCS
 
  
     def process_ack(self, params):

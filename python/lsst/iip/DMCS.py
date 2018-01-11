@@ -110,7 +110,7 @@ class DMCS:
                               'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
                               'CCS_TAKE_IMAGES': self.process_ccs_take_images_event,
                               'TCS_TARGET': self.process_seq_target_visit_event, 
-			      'TAKE_IMAGE_DONE': self.process_take_image_done, 
+			      'TAKE_IMAGES_DONE': self.process_take_images_done, 
 			      'TARGET_VISIT_DONE': self.process_target_visit_done, 
 			      'TARGET_VISIT_ACCEPT': self.process_target_visit_accept, 
 			      'END_READOUT': self.process_end_readout} 
@@ -739,18 +739,17 @@ class DMCS:
 
 
 
-    def process_ccs_take_images_event(self, params):  ### NEW Start Integration
+    def process_ccs_take_images_event(self, params):  
         try:
-            msg_params = {}
+            msg = {}
+            msg['NUM_IMAGES'] = params['NUM_IMAGES']
+            self.STATE_SCBD.set_value_for_job(job_num, self.EXPECTED_NUM_IMAGES, num_images)
+            self.STATE_SCBD.set_job_state(job_num, "TAKE_IMAGES")
             enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
             for k in list(enabled_devices.keys()):
-                job_num = self.STATE_SCBD.get_current_device_job(k)
-                num_images = params['NUM_IMAGES']
-                self.STATE_SCBD.set_value_for_job(job_num, self.EXPECTED_NUM_IMAGES, num_images)
-                self.STATE_SCBD.set_job_state(job_num, "TAKE_IMAGES")
-                msg = {}
-                msg[MSG_TYPE] = 'AR_TAKE_IMAGES'
-
+                msg[MSG_TYPE] = str(k) + '_TAKE_IMAGES'
+                msg[JOB_NUM] = self.STATE_SCBD.get_current_device_job(k)
+                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg)
 
         except L1RedisError as e:
             LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
@@ -799,6 +798,24 @@ class DMCS:
         # add in two additional acks for format and transfer complete
 
 
+    def process_take_images_done(self, params):
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'AR_TAKE_IMAGES_DONE'
+        enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+        acks = []
+        for k in list(enabled_devices.keys()):
+            ack_id = self.get_next_timed_ack_id( str(k) + "_TAKE_IMAGES_DONE_ACK")
+            acks.append(ack_id)
+            job_num = self.STATE_SCBD.get_current_device_job(str(k))
+            msg_params[MSG_TYPE] = k + '_TAKE_IMAGES_DONE'
+            msg_params[ACK_ID] = ack_id
+            msg_params[JOB_NUM] = job_num
+            self.STATE_SCBD.set_job_state(job_num, "READOUT")
+            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+
+        ### FIX Progressive timer, then collect acks and process what was done, then return to DMCS with results
+
+        
 
     def process_telemetry(self, msg):
         """ None.
