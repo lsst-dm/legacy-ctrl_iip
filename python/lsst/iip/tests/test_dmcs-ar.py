@@ -184,11 +184,13 @@ class TestDMCS_AR:
         assert self.dmcs.STATE_SCBD.get_archive_state() == 'ENABLE'
 
         msg = {}
-        msg['MSG_TYPE'] = "NEXT_VISIT"
+        msg['MSG_TYPE'] = "DMCS_TCS_TARGET"
         msg['VISIT_ID'] = 'V_1443'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
-        msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
+        msg['RA'] = "231,123786456342"
+        msg['DEC'] = "152,188723196342"
+        msg['ANGLE'] = "15"
         time.sleep(4)
         if self.DP:
             print("Sending Next Visit Message")
@@ -196,57 +198,84 @@ class TestDMCS_AR:
 
         sleep(2.0)
         assert self.dmcs.STATE_SCBD.get_current_visit() == 'V_1443'
-      
+
+        
         msg = {}
-        msg['MSG_TYPE'] = "START_INTEGRATION"
-        msg['IMAGE_ID'] = 'IMG_4276'
-        msg['IMAGE_SRC'] = 'MAIN'
+        msg['MSG_TYPE'] = "DMCS_TAKE_IMAGES"
+        msg['NUM_IMAGES'] = '5'
         msg['VISIT_ID'] = 'V_1443'
-        msg['ACK_ID'] = 'START_INT_ACK_76'
+        msg['ACK_ID'] = 'DMCS_TAKE_IMAGES_ACK_76'
         msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['CCD_LIST'] = self.ccd_list
         time.sleep(4)
         if self.DP:
             print("Sending Start Integration Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
       
         msg = {}
-        msg['MSG_TYPE'] = "READOUT"
+        msg['MSG_TYPE'] = "DMCS_END_READOUT"
         msg['VISIT_ID'] = 'V_1443'
         msg['IMAGE_ID'] = 'IMG_4276'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['ACK_ID'] = 'READOUT_ACK_77'
+        msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'DMCS_END_READOUT_ACK_81'
         time.sleep(5)
         if self.DP:
             print("Sending READOUT Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
+     
         msg = {}
-        msg['MSG_TYPE'] = "START_INTEGRATION"
-        msg['IMAGE_ID'] = 'IMG_4277'
-        msg['IMAGE_SRC'] = 'MAIN'
+        msg['MSG_TYPE'] = "DMCS_END_READOUT"
         msg['VISIT_ID'] = 'V_1443'
-        msg['ACK_ID'] = 'START_INT_ACK_78'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['CCD_LIST'] = self.ccd_list
+        msg['IMAGE_ID'] = 'IMG_4277'
+        msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'DMCS_END_READOUT_ACK_82'
         time.sleep(5)
+        if self.DP:
+            print("Sending READOUT Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+     
+        msg = {}
+        msg['MSG_TYPE'] = "DMCS_END_READOUT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['IMAGE_ID'] = 'IMG_4278'
+        msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'DMCS_END_READOUT_ACK_85'
+        time.sleep(5)
+        if self.DP:
+            print("Sending READOUT Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+     
+        msg = {}
+        msg['MSG_TYPE'] = "DMCS_END_READOUT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['IMAGE_ID'] = 'IMG_4279'
+        msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'DMCS_END_READOUT_ACK_86'
+        time.sleep(5)
+        if self.DP:
+            print("Sending READOUT Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+     
+        msg = {}
+        msg['MSG_TYPE'] = "DMCS_END_READOUT"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['IMAGE_ID'] = 'IMG_4280'
+        msg['REPLY_QUEUE'] = "dmcs_ack_consume"
+        msg['ACK_ID'] = 'DMCS_END_READOUT_ACK_88'
+        time.sleep(5)
+        if self.DP:
+            print("Sending READOUT Message")
+        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
+     
+        msg = {}
+        msg['MSG_TYPE'] = "DMCS_TAKE_IMAGES_DONE"
+        msg['VISIT_ID'] = 'V_1443'
+        msg['ACK_ID'] = 'DMCS_TAKE_IMAGES_ACK_76'
+        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
+        time.sleep(4)
         if self.DP:
             print("Sending Start Integration Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "READOUT"
-        msg['VISIT_ID'] = 'V_1443'
-        msg['IMAGE_ID'] = 'IMG_4277'
-        msg['IMAGE_SRC'] = 'MAIN'
-        msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-        msg['ACK_ID'] = 'READOUT_ACK_79'
-        time.sleep(5)
-        if self.DP: 
-            print("Sending READOUT Message")
-        self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
-      
+ 
         time.sleep(5)
 
         if self.DP:

@@ -1,4 +1,4 @@
-### MOVE NEW_ARCHIVE_ITEM message publish to NEW_VISIT/NEW_TARGET and remove unneeded params from message body.
+### FIX MOVE NEW_ARCHIVE_ITEM message publish to NEW_VISIT/NEW_TARGET and remove unneeded params from message body.
 ### JOB SCOREBOARD should store te ARCHIVE file destination/path and resend to each forwarder for readout.
 
 import toolsmod

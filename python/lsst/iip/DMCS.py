@@ -108,12 +108,12 @@ class DMCS:
                               'CCS_START_READOUT': self.process_ccs_readout_event,
                               'CCS_SHUTTER_CLOSE': self.process_ccs_shutter_close_event,
                               'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
-                              'CCS_TAKE_IMAGES': self.process_ccs_take_images_event,
-                              'TCS_TARGET': self.process_seq_target_visit_event, 
-			      'TAKE_IMAGES_DONE': self.process_take_images_done, 
+                              'DMCS_TCS_TARGET': self.process_seq_target_visit_event, 
+                              'DMCS_TAKE_IMAGES': self.process_ccs_take_images_event,
+			      'DMCS_TAKE_IMAGES_DONE': self.process_take_images_done, 
 			      'TARGET_VISIT_DONE': self.process_target_visit_done, 
 			      'TARGET_VISIT_ACCEPT': self.process_target_visit_accept, 
-			      'END_READOUT': self.process_end_readout} 
+			      'DMCS_END_READOUT': self.process_end_readout} 
 
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
