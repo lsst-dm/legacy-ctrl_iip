@@ -41,6 +41,8 @@ class Forwarder {
     ~Forwarder();
     void setup_consumers(string);
     void setup_publishers(string); 
+
+    //Declarations for message callbacks
     void on_foreman_message(string body);
     void on_fetch_message(string body);
     void on_format_message(string body);
@@ -50,6 +52,7 @@ class Forwarder {
     void on_forwarder_to_format_message(string body);
     void on_forwarder_to_forward_message(string body);
 
+    //Declarations message handlers within callbacks
     void process_new_visit(Node n);
     void process_health_check(Node n);
     void process_take_image(Node n);
@@ -427,6 +430,20 @@ void Forwarder::process_new_visit(Node n) {
 }
 
 void Forwarder::process_health_check(Node n) {
+    string ack_id = n["ACK_ID"].as<string>();
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+
+    string message_type = "AR_FWDR_HEALTH_CHECK_ACK";
+    //string component = "AR";
+    string ack_bool = "false";
+
+    ostringstream message;
+    message << "{ MSG_TYPE: " << message_type
+            << ", COMPONENT: " << this.name
+            << ", ACK_ID: " << ack_id
+            << ", ACK_BOOL: " << ack_bool << "}";
+
+    FWDR_pub->publish_message(reply_queue, message.str());
     cout << "Health Check request Message" << endl;
     return;
 }

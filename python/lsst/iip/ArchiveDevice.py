@@ -74,7 +74,7 @@ class ArchiveDevice:
 
         self._msg_actions = { 'AR_START_INTEGRATION': self.process_start_integration,
                               'AR_NEW_SESSION': self.set_session,
-                              'AR_NEXT_VISIT': self.process_target_event,
+                              'AR_NEXT_VISIT': self.process_next_visit,
                               'AR_READOUT': self.process_dmcs_readout,
                               'AR_FWDR_HEALTH_CHECK_ACK': self.process_ack,
                               'AR_FWDR_XFER_PARAMS_ACK': self.process_ack,
@@ -173,11 +173,13 @@ class ArchiveDevice:
     
 
 
-    def process_target_event(self, params):
+    def process_next_visit(self, params):
         # When this method is invoked, the following must happen:
+        #    0) Store new VISIT_ID in Scoreboard
         #    1) Health check all forwarders
         #    2) Divide work and generate dict of forwarders and which rafts/ccds they are fetching
-        #    3) Inform each forwarder which rafts they are responsible for
+        #    3) Get Archive info from ArchiveController
+        #    4) Inform each forwarder which rafts they are responsible for
         ra = params['RA']
         dec = params['DEC']
         angle = params['ANGLE']
