@@ -448,6 +448,33 @@ void Forwarder::process_health_check(Node n) {
     return;
 }
 
+void Forwarder::process_xfer_params(Node n) {
+    //How to turn list from message
+    //into class variable list?
+    //replace this->raft_list with n.raft_list
+    //replace this->raft_ccd_list with n.raft_ccd_list
+    //assign n.visit_id to this->visit_id
+    //assign n.job_num to this->job_num
+    //assign n.target_location to this->target_location
+    //DAQ_ADDR is either file path or 'API'
+    string ack_id = n["ACK_ID"].as<string>();
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+
+    string message_type = "AR_FWDR_XFER_PARAMS_ACK";
+    //string component = "AR";
+    string ack_bool = "false";
+
+    ostringstream message;
+    message << "{ MSG_TYPE: " << message_type
+            << ", COMPONENT: " << this.name
+            << ", ACK_ID: " << ack_id
+            << ", ACK_BOOL: " << ack_bool << "}";
+
+    FWDR_pub->publish_message(reply_queue, message.str());
+    cout << "Health Check request Message" << endl;
+    return;
+}
+
 void Forwarder::process_take_image(Node n) {
     cout << "Take Image Message...should be some tasty params here" << endl;
     return;

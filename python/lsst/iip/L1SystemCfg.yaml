@@ -156,6 +156,16 @@ ROOT:
     MAX_CCDS_PER_FWDR: 10
   XFER_COMPONENTS:
     FWDR_DIR_PREFIX: /tmp/gunk/
+    AUX_FORWARDERS:
+      FORWARDER_10:
+        NAME: F10
+        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
+        IP_ADDR: 141.142.238.190
+        STATE: IDLE
+        CONSUME_QUEUE: f10_consume
+        PUBLISH_QUEUE: sp_foreman_ack_publish
+        DAQ: API
+
     PP_FORWARDERS:
       FORWARDER_1:
         NAME: F1
