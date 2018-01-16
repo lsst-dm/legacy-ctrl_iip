@@ -65,12 +65,30 @@ void Subscriber::do_something(Node n) {
     //}
     //
     //METHOD #3
-    std::vector<string> rafts;
+    //std::vector<string> rafts;
+    //unsigned short num_rafts = n["RAFT_LIST"].size();
+    //for (unsigned short f = 0; f < num_rafts; f++) {
+    //    //rafts.push_back(n["RAFT_LIST"][f].as<string>()); 
+    //    rafts.push_back(n["RAFT_LIST"][f].as(basic_string<char>)()); 
+    //    cout << "RAFT_LIST member: " << n["RAFT_LIST"][f] << endl; 
+    //}
+    //
+    //METHOD #4
+    std::vector<basic_string<char>> rafts;
     unsigned short num_rafts = n["RAFT_LIST"].size();
     for (unsigned short f = 0; f < num_rafts; f++) {
-        rafts.push_back(n["RAFT_LIST"][f].as<string>()); 
-        cout << "RAFT_LIST member: " << n["RAFT_LIST"][f] << endl; 
+        rafts.push_back(n["RAFT_LIST"][f].as<basic_string<char>>()); 
+        cout << "RAFT_LIST member: " << rafts[f] << endl; 
     }
+    //
+    //METHOD #5
+    //unsigned short num_rafts = n["RAFT_LIST"].size();
+    //string rafts[num_rafts];
+    //for (unsigned short f = 0; f < num_rafts; f++) {
+        //rafts.push_back(n["RAFT_LIST"][f].as<string>()); 
+    //    rafts[f] = n["RAFT_LIST"][f]; 
+    //    cout << "RAFT_LIST member: " << rafts[f] << endl; 
+    //}
     //
     //cout << "[x] I did something and device is " << device << endl; 
 } 
