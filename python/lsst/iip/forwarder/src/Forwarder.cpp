@@ -10,6 +10,14 @@ using namespace YAML;
 
 class Forwarder {
     public:
+
+    //Important 'per readout' values
+    std::vector<string> visit_raft_list;
+    std::string Visit_ID;
+    std::string Job_Num;
+    std::string Target_Dir;
+    std::string Daq;
+
     //General Forwarder consumers
     Consumer *from_foreman_consumer;
     Consumer *from_fetch_consumer;
@@ -450,9 +458,22 @@ void Forwarder::process_health_check(Node n) {
 
 void Forwarder::process_xfer_params(Node n) {
     //How to turn list from message
+    std::vector<string> rafts;
+    std::vector<string> raft_ccds;
+    unsigned short num_rafts = n["RAFT_LIST"].size();
+    for (unsigned short f = 0; f < num_rafts; f++) {
+        rafts.push_back(n["RAFT_LIST"][f].as<string>());
+        //raft_ccds.push_back(n["RAFT_CCD_LIST"][f].as<string>());
+    //    cout << "RAFT_LIST member: " << n["RAFT_LIST"][f] << endl;
+        cout << "RAFT_LIST member from vector: " << rafts[f] << endl;
+        //cout << "RAFT_CCD_LIST member from vector of vectors: " << rafts[f] << endl;
+    }
+
     //into class variable list?
     //replace this->raft_list with n.raft_list
     //replace this->raft_ccd_list with n.raft_ccd_list
+    this->visit_raft_list = rafts;
+
     //assign n.visit_id to this->visit_id
     //assign n.job_num to this->job_num
     //assign n.target_location to this->target_location
@@ -482,6 +503,11 @@ void Forwarder::process_take_image(Node n) {
 
 void Forwarder::process_end_readout(Node n) {
     cout << "This EndReadout Message should include an image name" << endl;
+    //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
+    //else, DAQ val will equal a path where files can be found.
+
+    //Create FileManifold object
+    //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
     return;
 }
 

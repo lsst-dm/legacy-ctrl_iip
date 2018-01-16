@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <yaml-cpp/yaml.h>
 #include <vector>
+#include <stdio.h>
 #include "Consumer_impl.h" 
 
 using namespace std; 
@@ -11,6 +12,7 @@ using namespace YAML;
 class Subscriber { 
     public: 
     Consumer *consumer; 
+    std::vector<string> visit_raft_list;
 
     Subscriber(); 
     ~Subscriber(); 
@@ -65,27 +67,37 @@ void Subscriber::do_something(Node n) {
     //}
     //
     //METHOD #3
-    //std::vector<string> rafts;
-    //unsigned short num_rafts = n["RAFT_LIST"].size();
-    //for (unsigned short f = 0; f < num_rafts; f++) {
-    //    //rafts.push_back(n["RAFT_LIST"][f].as<string>()); 
-    //    rafts.push_back(n["RAFT_LIST"][f].as(basic_string<char>)()); 
-    //    cout << "RAFT_LIST member: " << n["RAFT_LIST"][f] << endl; 
-    //}
-    //
-    //METHOD #4
-    std::vector<basic_string<char>> rafts;
+    std::vector<string> rafts;
+    std::vector<string> raft_ccds;
     unsigned short num_rafts = n["RAFT_LIST"].size();
     for (unsigned short f = 0; f < num_rafts; f++) {
-        rafts.push_back(n["RAFT_LIST"][f].as<basic_string<char>>()); 
-        cout << "RAFT_LIST member: " << rafts[f] << endl; 
+        rafts.push_back(n["RAFT_LIST"][f].as<string>()); 
+        //raft_ccds.push_back(n["RAFT_CCD_LIST"][f].as<string>()); 
+    //    rafts.push_back(n["RAFT_LIST"][f].as(basic_string<char>)()); 
+    //    cout << "RAFT_LIST member: " << n["RAFT_LIST"][f] << endl; 
+        cout << "RAFT_LIST member from vector: " << rafts[f] << endl; 
+        //cout << "RAFT_CCD_LIST member from vector of vectors: " << rafts[f] << endl; 
     }
+    this->visit_raft_list = rafts;
+    cout << "Class Var vector visit_raft_list[2] is: " << visit_raft_list[2] << endl; 
+    //
+    //METHOD #4
+    //std::string rafter = n["RAFT_LIST"].as<std::string>(); 
+    //printf("Raft list is %s", n["RAFT_LIST"]);
+    //std::list<string> rafter = n["RAFT_LIST"].as<std::list<string>>(); 
+    //cout << "RAFT_LIST param looks like this: " << rafter << endl;
+    //std::vector<basic_string<char>> rafts;
+    //unsigned short num_rafts = n["RAFT_LIST"].size();
+    //for (unsigned short f = 0; f < num_rafts; f++) {
+    //    rafts.push_back(n["RAFT_LIST"][f].as<basic_string<char>>()); 
+    //    cout << "RAFT_LIST member: " << rafts[f] << endl; 
+    //}
     //
     //METHOD #5
     //unsigned short num_rafts = n["RAFT_LIST"].size();
     //string rafts[num_rafts];
     //for (unsigned short f = 0; f < num_rafts; f++) {
-        //rafts.push_back(n["RAFT_LIST"][f].as<string>()); 
+    //    rafts.push_back(n["RAFT_LIST"][f].as<string>()); 
     //    rafts[f] = n["RAFT_LIST"][f]; 
     //    cout << "RAFT_LIST member: " << rafts[f] << endl; 
     //}
