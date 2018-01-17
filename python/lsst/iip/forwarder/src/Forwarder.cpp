@@ -13,10 +13,15 @@ class Forwarder {
 
     //Important 'per readout' values
     std::vector<string> visit_raft_list;
-    std::string Visit_ID;
-    std::string Job_Num;
-    std::string Target_Dir;
-    std::string Daq;
+    std::vector<std::vector<string> > visit_raft_ccd_list;
+    std::string Session_ID = "";
+    std::string Visit_ID = "";
+    std::string Job_Num = "";
+    std::string Target_Dir = "";
+    std::string Daq_Addr = "";
+    std::string Name = ""; //such as F1
+    std::string Lower_Name; //such as f1
+    std::string Component = ""; //such as FORWARDER_1
 
     //General Forwarder consumers
     Consumer *from_foreman_consumer;
@@ -43,7 +48,6 @@ class Forwarder {
     string FETCH_USER, FETCH_USER_PASSWD, FORMAT_USER, FORMAT_USER_PASSWD,  FORWARD_USER, FORWARD_USER_PASSWD;
     string FETCH_USER_PUB, FETCH_USER_PUB_PASSWD, FORMAT_USER_PUB, FORMAT_USER_PUB_PASSWD; 
     string FORWARD_USER_PUB, FORWARD_USER_PUB_PASSWD;
-    string LOWER_NAME; 
 
     Forwarder();
     ~Forwarder();
@@ -63,7 +67,9 @@ class Forwarder {
     //Declarations message handlers within callbacks
     void process_new_visit(Node n);
     void process_health_check(Node n);
-    void process_take_image(Node n);
+    void process_xfer_params(Noce n);
+    void process_take_images(Node n);
+    void process_take_images_done(Node n);
     void process_end_readout(Node n);
 
     void process_fetch(Node n);
@@ -99,9 +105,15 @@ map<string, funcptr> on_foreman_message_actions = {
     { "AR_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "PP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "SP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
-    { "AR_TAKE_IMAGE", &Forwarder::process_take_image},
-    { "PP_TAKE_IMAGE", &Forwarder::process_take_image},
-    { "SP_TAKE_IMAGE", &Forwarder::process_take_image},
+    { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
+    { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params_check},
+    { "SP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
+    { "AR_TAKE_IMAGES", &Forwarder::process_takes_image},
+    { "PP_TAKE_IMAGES", &Forwarder::process_takes_image},
+    { "SP_TAKE_IMAGES", &Forwarder::process_takes_image},
+    { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
+    { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
+    { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "AR_END_READOUT", &Forwarder::process_end_readout},
     { "PP_END_READOUT", &Forwarder::process_end_readout},
     { "SP_END_READOUT", &Forwarder::process_end_readout}
@@ -176,7 +188,10 @@ Forwarder::Forwarder() {
     try {
         root = config_file["ROOT"];
         NAME = root["NAME"].as<string>();
-        this->LOWER_NAME = root["LOWER_NAME"].as<string>();
+        FQN = root["FQN"].as<string>();
+        this->Name = NAME;
+        this->Component = FQN;
+        this->Lower_Name = root["LOWER_NAME"].as<string>();
         USER = root["USER"].as<string>();
         PASSWD = root["PASSWD"].as<string>();
         USER_PUB = root["USER_PUB"].as<string>();
@@ -188,7 +203,6 @@ Forwarder::Forwarder() {
         USER_FORWARD_PUB = root["USER_FORWARD_PUB"].as<string>();
         PASSWD_FORWARD_PUB = root["PASSWD_FORWARD_PUB"].as<string>();
         BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
-        FQN = root["FQN"].as<string>();
         HOSTNAME = root["HOSTNAME"].as<string>();
         IP_ADDR = root["IP_ADDR"].as<string>();
         CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
@@ -243,19 +257,19 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     ostringstream full_broker_url2;
     ostringstream consume_queue4;
     full_broker_url2 << "amqp://" << FETCH_USER << ":" << FETCH_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue4 << "fetch_consume_from_" << LOWER_NAME;
+    consume_queue4 << "fetch_consume_from_" << this->Lower_Name;
     from_forwarder_to_fetch = new Consumer(full_broker_url.str(), consume_queue4.str());
 
     ostringstream full_broker_url3;
     ostringstream consume_queue5;
     full_broker_url3 << "amqp://" << FORMAT_USER << ":" << FORMAT_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue5 << "format_consume_from_" << LOWER_NAME;
+    consume_queue5 << "format_consume_from_" << Lower_Name;
     from_forwarder_to_format = new Consumer(full_broker_url.str(), consume_queue5.str());
 
     ostringstream full_broker_url4;
     ostringstream consume_queue6;
     full_broker_url4 << "amqp://" << FORWARD_USER << ":" << FORWARD_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue6 << "forward_consume_from_" << LOWER_NAME;
+    consume_queue6 << "forward_consume_from_" << Lower_Name;
     from_forwarder_to_forward = new Consumer(full_broker_url.str(), consume_queue6.str());
 
 }
@@ -457,6 +471,19 @@ void Forwarder::process_health_check(Node n) {
 }
 
 void Forwarder::process_xfer_params(Node n) {
+    this->visit_raft_list.clear();
+    this->visit_raft_list = n["RAFT_LIST"].as<std::vector<string>>();
+    this->visit_raft_ccd_list.clear();
+    this->visit_raft_ccd_list = n["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
+
+    this->Session_ID = n["SESSION_ID"];
+    this->Visit_ID = n["VISIT_ID"];
+    this->Job_Num = n["JOB_NUM"];
+    this->Target_Dir = n["TARGET_LOCATION"];
+    this->Daq_Addr = n["DAQ_ADDR"]
+
+
+
     //How to turn list from message
     std::vector<string> rafts;
     std::vector<string> raft_ccds;
@@ -496,7 +523,12 @@ void Forwarder::process_xfer_params(Node n) {
     return;
 }
 
-void Forwarder::process_take_image(Node n) {
+void Forwarder::process_take_images(Node n) {
+    cout << "Take Image Message...should be some tasty params here" << endl;
+    return;
+}
+
+void Forwarder::process_take_images_done(Node n) {
     cout << "Take Image Message...should be some tasty params here" << endl;
     return;
 }
