@@ -482,29 +482,6 @@ void Forwarder::process_xfer_params(Node n) {
     this->Target_Dir = n["TARGET_LOCATION"];
     this->Daq_Addr = n["DAQ_ADDR"]
 
-
-
-    //How to turn list from message
-    std::vector<string> rafts;
-    std::vector<string> raft_ccds;
-    unsigned short num_rafts = n["RAFT_LIST"].size();
-    for (unsigned short f = 0; f < num_rafts; f++) {
-        rafts.push_back(n["RAFT_LIST"][f].as<string>());
-        //raft_ccds.push_back(n["RAFT_CCD_LIST"][f].as<string>());
-    //    cout << "RAFT_LIST member: " << n["RAFT_LIST"][f] << endl;
-        cout << "RAFT_LIST member from vector: " << rafts[f] << endl;
-        //cout << "RAFT_CCD_LIST member from vector of vectors: " << rafts[f] << endl;
-    }
-
-    //into class variable list?
-    //replace this->raft_list with n.raft_list
-    //replace this->raft_ccd_list with n.raft_ccd_list
-    this->visit_raft_list = rafts;
-
-    //assign n.visit_id to this->visit_id
-    //assign n.job_num to this->job_num
-    //assign n.target_location to this->target_location
-    //DAQ_ADDR is either file path or 'API'
     string ack_id = n["ACK_ID"].as<string>();
     string reply_queue = n["REPLY_QUEUE"].as<string>();
 
@@ -519,16 +496,20 @@ void Forwarder::process_xfer_params(Node n) {
             << ", ACK_BOOL: " << ack_bool << "}";
 
     FWDR_pub->publish_message(reply_queue, message.str());
-    cout << "Health Check request Message" << endl;
     return;
 }
 
 void Forwarder::process_take_images(Node n) {
+    this->num_images = n["NUM_IMAGES"];
     cout << "Take Image Message...should be some tasty params here" << endl;
     return;
 }
 
 void Forwarder::process_take_images_done(Node n) {
+    ack_id = n["ACK_ID"];
+    // 1) Message fetch, format, and forwarder to clear all when work queue is complete
+    // 2) forward thread must generate report
+    // 3) 
     cout << "Take Image Message...should be some tasty params here" << endl;
     return;
 }
