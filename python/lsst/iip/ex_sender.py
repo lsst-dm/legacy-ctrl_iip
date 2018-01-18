@@ -63,8 +63,8 @@ def main():
   #  while 1:
   msg = {}
   msg['MSG_TYPE'] = "DO_SOMETHING"
-  msg['RAFT_LIST'] = ['01','11','31','40']
-  msg['RAFT_CCD_LIST'] = [['52','54'],['53','60','62'],['65','68'],['42','11','12','14']]
+  msg['RAFT_LIST'] = ['01','11','22','31','40']
+  msg['RAFT_CCD_LIST'] = [['52','54'],['53','60','62'],['ALL'],['65','68'],['42','11','12','14']]
   time.sleep(2)
   sp1.publish_message("ocs_dmcs_consume", msg)
 

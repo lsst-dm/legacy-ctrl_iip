@@ -28,6 +28,9 @@ ROOT:
     BASE_BROKER_ADDR: "@141.142.238.10:5672/%2ftest"
 
     CONSUME_QUEUE: f1_consume
+    FETCH_CONSUME_QUEUE: f1_fetch_consume
+    FORMAT_CONSUME_QUEUE: f1_format_consume
+    FORWARD_CONSUME_QUEUE: f1_forward_consume
 
     FETCH_USER: FETCH_F1
     FETCH_USER_PASSWD: FETCH_F1

@@ -14,6 +14,10 @@ class Forwarder {
     //Important 'per readout' values
     std::vector<string> visit_raft_list;
     std::vector<std::vector<string> > visit_raft_ccd_list;
+
+    std::vector<string> current_image_work_list;
+    std::vector<string> finished_image_work_list;
+
     std::string Session_ID = "";
     std::string Visit_ID = "";
     std::string Job_Num = "";
@@ -165,6 +169,7 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
 //This handler is for messages from Primary Forwarder to forward thread
 map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK", &Forwarder::process_forward_health_check},
+    { "FETCH_END_READOUT", &Forwarder::process_fetch_end_readout},
     { "AR_FORWARD", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}
@@ -187,10 +192,8 @@ Forwarder::Forwarder() {
     string NAME, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR;
     try {
         root = config_file["ROOT"];
-        NAME = root["NAME"].as<string>();
-        FQN = root["FQN"].as<string>();
-        this->Name = NAME;
-        this->Component = FQN;
+        this->Name = root["NAME"].as<string>();
+        this->Component = root["FQN"].as<string>();
         this->Lower_Name = root["LOWER_NAME"].as<string>();
         USER = root["USER"].as<string>();
         PASSWD = root["PASSWD"].as<string>();
@@ -205,6 +208,9 @@ Forwarder::Forwarder() {
         BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
         HOSTNAME = root["HOSTNAME"].as<string>();
         IP_ADDR = root["IP_ADDR"].as<string>();
+        CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
+        fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
+        CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
         CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
         FETCH_USER = root["FETCH_USER"].as<string>();
         FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
@@ -476,11 +482,11 @@ void Forwarder::process_xfer_params(Node n) {
     this->visit_raft_ccd_list.clear();
     this->visit_raft_ccd_list = n["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
 
-    this->Session_ID = n["SESSION_ID"];
-    this->Visit_ID = n["VISIT_ID"];
-    this->Job_Num = n["JOB_NUM"];
-    this->Target_Dir = n["TARGET_LOCATION"];
-    this->Daq_Addr = n["DAQ_ADDR"]
+    this->Session_ID = n["SESSION_ID"].as<string>();
+    this->Visit_ID = n["VISIT_ID"].as<string>();
+    this->Job_Num = n["JOB_NUM"].as<string>();
+    this->Target_Dir = n["TARGET_LOCATION"].as<string>();
+    this->Daq_Addr = n["DAQ_ADDR"].as<string>();
 
     string ack_id = n["ACK_ID"].as<string>();
     string reply_queue = n["REPLY_QUEUE"].as<string>();
@@ -515,12 +521,22 @@ void Forwarder::process_take_images_done(Node n) {
 }
 
 void Forwarder::process_end_readout(Node n) {
-    cout << "This EndReadout Message should include an image name" << endl;
+    // Send IMAGE_ID to fetch thread...use message broker queue as work queue
     //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
     //else, DAQ val will equal a path where files can be found.
 
-    //Create FileManifold object
     //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
+    image_id = n["IMAGE_ID"].as<string>();
+    string msg_type = "FETCH_END_READOUT";
+    ostringstream message;
+    message << "{MSG_TYPE: " << message_type
+            << ", IMAGE_ID: " << image_id << "}";
+    FWDR_to_fetch_pub->publish_message(this->FETCH_CONSUME_QUEUE, message.str());
+    return;
+}
+
+void Forwarder::process_fetch_end_readout(Node n) {
+    cout << "process_fetch" << endl;
     return;
 }
 
