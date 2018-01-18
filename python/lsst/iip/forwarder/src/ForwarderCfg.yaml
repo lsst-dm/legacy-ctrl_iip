@@ -25,12 +25,13 @@ ROOT:
     FQN: FORWARDER_1
     IP_ADDR: 141.142.238.161
     HOSTNAME: lsst-wf-base01.ncsa.illinois.edu
+    WORK_DIR: /mnt/ram/
     BASE_BROKER_ADDR: "@141.142.238.10:5672/%2ftest"
 
     CONSUME_QUEUE: f1_consume
-    FETCH_CONSUME_QUEUE: f1_fetch_consume
-    FORMAT_CONSUME_QUEUE: f1_format_consume
-    FORWARD_CONSUME_QUEUE: f1_forward_consume
+    FETCH_CONSUME_QUEUE: fetch_consume_from_f1
+    FORMAT_CONSUME_QUEUE: format_consume_from_f1
+    FORWARD_CONSUME_QUEUE: forward_consume_from_f1
 
     FETCH_USER: FETCH_F1
     FETCH_USER_PASSWD: FETCH_F1

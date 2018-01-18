@@ -23,9 +23,16 @@ class Forwarder {
     std::string Job_Num = "";
     std::string Target_Dir = "";
     std::string Daq_Addr = "";
+    std::string Work_Dir = ""; 
     std::string Name = ""; //such as F1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
+   
+    
+    std::string consume_queue = "";
+    std::string fetch_consume_queue = "";
+    std::string format_consume_queue = "";
+    std::string forward_consume_queue = "";
 
     //General Forwarder consumers
     Consumer *from_foreman_consumer;
@@ -208,10 +215,11 @@ Forwarder::Forwarder() {
         BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
         HOSTNAME = root["HOSTNAME"].as<string>();
         IP_ADDR = root["IP_ADDR"].as<string>();
-        CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
-        fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
-        CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
-        CONSUME_QUEUE = root["CONSUME_QUEUE"].as<string>();
+        this->Work_Dir = root["WORK_DIR"].as<string>();
+        this->consume_queue = root["CONSUME_QUEUE"].as<string>();
+        this->fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
+        this->format_consume_queue = root["FORMAT_CONSUME_QUEUE"].as<string>();
+        this->forward_consume_queue = root["FORWARD_CONSUME_QUEUE"].as<string>();
         FETCH_USER = root["FETCH_USER"].as<string>();
         FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
         FETCH_USER_PUB = root["FETCH_USER_PUB"].as<string>();
@@ -243,7 +251,7 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //Consumers for Primary Forwarder
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
-    from_foreman_consumer = new Consumer(full_broker_url.str(), CONSUME_QUEUE);
+    from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
 
     ostringstream consume_queue1;
     consume_queue1 << CONSUME_QUEUE << "_from_fetch";
@@ -261,22 +269,16 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     ostringstream consume_queue;
 
     ostringstream full_broker_url2;
-    ostringstream consume_queue4;
     full_broker_url2 << "amqp://" << FETCH_USER << ":" << FETCH_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue4 << "fetch_consume_from_" << this->Lower_Name;
-    from_forwarder_to_fetch = new Consumer(full_broker_url.str(), consume_queue4.str());
+    from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
 
     ostringstream full_broker_url3;
-    ostringstream consume_queue5;
     full_broker_url3 << "amqp://" << FORMAT_USER << ":" << FORMAT_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue5 << "format_consume_from_" << Lower_Name;
-    from_forwarder_to_format = new Consumer(full_broker_url.str(), consume_queue5.str());
+    from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
 
     ostringstream full_broker_url4;
-    ostringstream consume_queue6;
     full_broker_url4 << "amqp://" << FORWARD_USER << ":" << FORWARD_USER_PASSWD << BASE_BROKER_ADDR ;
-    consume_queue6 << "forward_consume_from_" << Lower_Name;
-    from_forwarder_to_forward = new Consumer(full_broker_url.str(), consume_queue6.str());
+    from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
 
 }
 
@@ -529,14 +531,32 @@ void Forwarder::process_end_readout(Node n) {
     image_id = n["IMAGE_ID"].as<string>();
     string msg_type = "FETCH_END_READOUT";
     ostringstream message;
-    message << "{MSG_TYPE: " << message_type
+    message << "{MSG_TYPE: " << msg_type
             << ", IMAGE_ID: " << image_id << "}";
-    FWDR_to_fetch_pub->publish_message(this->FETCH_CONSUME_QUEUE, message.str());
+    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
     return;
 }
 
 void Forwarder::process_fetch_end_readout(Node n) {
-    cout << "process_fetch" << endl;
+    //Make dir using image_id as name under work_dir
+    //Fetch data from DAQ or copy from local drive
+    //Send message to Format thread with image_id
+    image_id = n["IMAGE_ID"].as<string>();
+    ostringstream cmd;
+    ostringstream filepath;
+    filepath << this->Work_Dir << "/" << image_id;
+    cmd << "mkdir " << filepath.str();
+    system(cmd.str());
+    if strcmp(this->Daq_Addr,"API") {
+        call Mikes API;
+    } else {
+        copy files from location Daq_Addr
+    }
+    string msg_type = "FORMAT_END_READOUT"
+    ostringstream message;
+    message << "{MSG_TYPE: " << msg_type
+            << ", IMAGE_ID: " << image_id << "}";
+    this->FWDR_to_format_pub(this->format_consume_queue, message.str());
     return;
 }
 
