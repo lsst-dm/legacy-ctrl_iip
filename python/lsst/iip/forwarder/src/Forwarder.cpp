@@ -7,9 +7,11 @@
 #include <iostream>
 #include <sstream>
 #include <pthread.h>
+#include <fstream>
 #include <yaml-cpp/yaml.h>
 #include "Consumer_impl.h"
 #include "SimplePublisher.h"
+#include "fitsio.h"
 
 
 #define SECONDARY_HDU 2
@@ -111,10 +113,10 @@ class Forwarder {
     static void *run_thread(void *);
     char* read_img_segment(const char*);
     unsigned char** assemble_pixels(char *);
-    void write_img(std::string, std::string, std::string);
+    void write_img(std::string, std::string);
     void assemble_img(YAML::Node);
     void send_completed_msg(std::string);
-    void list_files(string); 
+    vector<string> list_files(string); 
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -712,12 +714,11 @@ void Forwarder::write_img(string img, string header) {
 
 void Forwarder::assemble_img(Node n) {
     string img = n["IMG_NAME"].as<string>(); 
-    string header_path = n["HEADER_NAME"].as<string>(); 
-    string img_path = Work_Dir + img;
+    string header = n["HEADER_NAME"].as<string>(); 
 
     // create dir  /mnt/ram/FITS/IMG_10
     string fits_dir = Work_Dir + "FITS"; 
-    const int dir = mkdir(fits_dir, S_IRUSR | S_IWUSR | S_IXUSR); 
+    const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
     write_img(img, header);
 }
 
