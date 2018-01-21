@@ -27,6 +27,7 @@ class Forwarder {
     std::string Name = ""; //such as F1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
+    int Num_Images = 0; 
    
     
     std::string consume_queue = "";
@@ -78,13 +79,14 @@ class Forwarder {
     //Declarations message handlers within callbacks
     void process_new_visit(Node n);
     void process_health_check(Node n);
-    void process_xfer_params(Noce n);
+    void process_xfer_params(Node n);
     void process_take_images(Node n);
     void process_take_images_done(Node n);
     void process_end_readout(Node n);
 
     void process_fetch(Node n);
     void process_fetch_ack(Node n);
+    void process_fetch_end_readout(Node n);
     void process_fetch_health_check(Node n);
     void process_fetch_health_check_ack(Node n);
     void process_format(Node n);
@@ -117,11 +119,11 @@ map<string, funcptr> on_foreman_message_actions = {
     { "PP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "SP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params_check},
+    { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "SP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "AR_TAKE_IMAGES", &Forwarder::process_takes_image},
-    { "PP_TAKE_IMAGES", &Forwarder::process_takes_image},
-    { "SP_TAKE_IMAGES", &Forwarder::process_takes_image},
+    { "AR_TAKE_IMAGES", &Forwarder::process_take_images},
+    { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
+    { "SP_TAKE_IMAGES", &Forwarder::process_take_images},
     { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
@@ -160,6 +162,7 @@ map<string, funcptr> on_forward_message_actions = {
 //This handler is for messages from Primary Forwarder to fetch thread
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK", &Forwarder::process_fetch_health_check},
+    { "FETCH_END_READOUT", &Forwarder::process_fetch_end_readout},
     { "AR_FETCH", &Forwarder::process_fetch},
     { "PP_FETCH", &Forwarder::process_fetch},
     { "SP_FETCH", &Forwarder::process_fetch}
@@ -176,7 +179,6 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
 //This handler is for messages from Primary Forwarder to forward thread
 map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK", &Forwarder::process_forward_health_check},
-    { "FETCH_END_READOUT", &Forwarder::process_fetch_end_readout},
     { "AR_FORWARD", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}
@@ -469,7 +471,7 @@ void Forwarder::process_health_check(Node n) {
 
     ostringstream message;
     message << "{ MSG_TYPE: " << message_type
-            << ", COMPONENT: " << this.name
+            << ", COMPONENT: " << this->Name
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
 
@@ -499,7 +501,7 @@ void Forwarder::process_xfer_params(Node n) {
 
     ostringstream message;
     message << "{ MSG_TYPE: " << message_type
-            << ", COMPONENT: " << this.name
+            << ", COMPONENT: " << this->Name
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
 
@@ -508,13 +510,13 @@ void Forwarder::process_xfer_params(Node n) {
 }
 
 void Forwarder::process_take_images(Node n) {
-    this->num_images = n["NUM_IMAGES"];
+    this->Num_Images = n["NUM_IMAGES"].as<int>();;
     cout << "Take Image Message...should be some tasty params here" << endl;
     return;
 }
 
 void Forwarder::process_take_images_done(Node n) {
-    ack_id = n["ACK_ID"];
+    string ack_id = n["ACK_ID"].as<string>();
     // 1) Message fetch, format, and forwarder to clear all when work queue is complete
     // 2) forward thread must generate report
     // 3) 
@@ -528,7 +530,7 @@ void Forwarder::process_end_readout(Node n) {
     //else, DAQ val will equal a path where files can be found.
 
     //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
-    image_id = n["IMAGE_ID"].as<string>();
+    string image_id = n["IMAGE_ID"].as<string>();
     string msg_type = "FETCH_END_READOUT";
     ostringstream message;
     message << "{MSG_TYPE: " << msg_type
@@ -541,22 +543,25 @@ void Forwarder::process_fetch_end_readout(Node n) {
     //Make dir using image_id as name under work_dir
     //Fetch data from DAQ or copy from local drive
     //Send message to Format thread with image_id
-    image_id = n["IMAGE_ID"].as<string>();
+    string image_id = n["IMAGE_ID"].as<string>();
     ostringstream cmd;
     ostringstream filepath;
     filepath << this->Work_Dir << "/" << image_id;
     cmd << "mkdir " << filepath.str();
-    system(cmd.str());
-    if strcmp(this->Daq_Addr,"API") {
-        call Mikes API;
-    } else {
-        copy files from location Daq_Addr
-    }
-    string msg_type = "FORMAT_END_READOUT"
+    const std::string tmpstr = cmd.str();
+    const char* cmdstr = tmpstr.c_str();
+    system(cmdstr);
+    //XXX FIX
+    //if strcmp(this->Daq_Addr,"API") {
+    //    call Mikes API;
+    //} else {
+    //    copy files from location Daq_Addr
+    //}
+    string msg_type = "FORMAT_END_READOUT";
     ostringstream message;
     message << "{MSG_TYPE: " << msg_type
             << ", IMAGE_ID: " << image_id << "}";
-    this->FWDR_to_format_pub(this->format_consume_queue, message.str());
+    this->FWDR_to_format_pub->publish_message(this->format_consume_queue, message.str());
     return;
 }
 
