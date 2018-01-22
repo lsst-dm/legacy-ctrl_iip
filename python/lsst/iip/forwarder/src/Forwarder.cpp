@@ -1,9 +1,22 @@
+#include <sys/stat.h> 
+#include <dirent.h>
+#include <stdio.h>
+#include <string.h>
+#include <vector> 
+#include <algorithm> 
 #include <iostream>
 #include <sstream>
 #include <pthread.h>
+#include <fstream>
 #include <yaml-cpp/yaml.h>
 #include "Consumer_impl.h"
 #include "SimplePublisher.h"
+#include "fitsio.h"
+
+
+#define SECONDARY_HDU 2
+#define HEIGHT 512
+#define WIDTH 2048
 
 using namespace std;
 using namespace YAML;
@@ -78,7 +91,7 @@ class Forwarder {
     //Declarations message handlers within callbacks
     void process_new_visit(Node n);
     void process_health_check(Node n);
-    void process_xfer_params(Noce n);
+    void process_xfer_params(Node n);
     void process_take_images(Node n);
     void process_take_images_done(Node n);
     void process_end_readout(Node n);
@@ -98,6 +111,12 @@ class Forwarder {
 
     void run();
     static void *run_thread(void *);
+    char* read_img_segment(const char*);
+    unsigned char** assemble_pixels(char *);
+    void write_img(std::string, std::string);
+    void assemble_img(YAML::Node);
+    void send_completed_msg(std::string);
+    vector<string> list_files(string); 
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -620,6 +639,121 @@ void Forwarder::process_forward_health_check_ack(Node n) {
     return;
 }
 
+
+char* Forwarder::read_img_segment(const char *file_path) { 
+    fstream img_file(file_path, fstream::in | fstream::binary); 
+    long len = WIDTH * HEIGHT; 
+    char *buffer = new char[len]; 
+    img_file.seekg(0, ios::beg); 
+    img_file.read(buffer, len); 
+    img_file.close();
+    return buffer;
+} 
+
+unsigned char** Forwarder::assemble_pixels(char *buffer) { 
+    unsigned char **array = new unsigned char*[HEIGHT]; 
+    array[0] = (unsigned char *) malloc( WIDTH * HEIGHT * sizeof(unsigned char)); 
+
+    for (int i = 1; i < HEIGHT; i++) { 
+        array[i] = array[i-1] + WIDTH; 
+    } 
+
+    for (int j = 0; j < HEIGHT; j++) {
+        for (int i = 0; i < WIDTH; i++) {
+            array[j][i]= buffer[i+j]; 
+        } 
+    }
+    return array;
+} 
+
+void Forwarder::write_img(string img, string header) { 
+    long len = WIDTH * HEIGHT;
+    int bitpix = BYTE_IMG; 
+    long naxis = 2;
+    long naxes[2] = { WIDTH, HEIGHT }; 
+    long fpixel = 1; 
+    long nelements = len; 
+    int status = 0; 
+    int hdunum = 2;
+    int nkeys; 
+    char card[FLEN_CARD]; 
+    fitsfile *iptr, *optr; 
+
+    // /mnt/ram/IMG_31
+    string img_path = Work_Dir + img;
+    string header_path = Work_Dir + "header/" + header;
+    string destination = Work_Dir + "FITS/" + img;
+
+    fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
+    fits_create_file(&optr, destination.c_str(), &status); 
+    fits_copy_hdu(iptr, optr, 0, &status); 
+
+    vector<string> file_names = list_files(img_path); 
+    vector<string>::iterator it; 
+    for (it = file_names.begin(); it != file_names.end(); it++) { 
+        string img_segment = *it; 
+        char *img_buffer = read_img_segment(img_segment.c_str());
+        unsigned char **array = assemble_pixels(img_buffer); 
+
+        fits_movabs_hdu(iptr, hdunum, NULL, &status); 
+        fits_create_img(optr, bitpix, naxis, naxes, &status); 
+        fits_write_img(optr, TBYTE, fpixel, nelements, array[0], &status); 
+
+        fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
+        for (int i = 1; i <= nkeys; i++) { 
+            fits_read_record(iptr, i, card, &status); 
+            fits_write_record(optr, card, &status); 
+        }
+        hdunum++;
+    } 
+    fits_close_file(iptr, &status); 
+    fits_close_file(optr, &status); 
+
+    send_completed_msg(destination);
+} 
+
+void Forwarder::assemble_img(Node n) {
+    string img = n["IMG_NAME"].as<string>(); 
+    string header = n["HEADER_NAME"].as<string>(); 
+
+    // create dir  /mnt/ram/FITS/IMG_10
+    string fits_dir = Work_Dir + "FITS"; 
+    const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
+    write_img(img, header);
+}
+
+vector<string> Forwarder::list_files(string path) { 
+    struct dirent *entry; 
+    DIR *dir  = opendir(path.c_str()); 
+    vector<string> file_names; 
+    while (entry  = readdir(dir)) { 
+        string name = entry->d_name;
+        if (strcmp(name.c_str(), ".") && strcmp(name.c_str(), "..")) { 
+            // if less than 10 rename them. 
+            size_t next = name.find_last_of("-"); 
+            string back = name.substr(next+1, name.size()); 
+            if (stoi(back) < 10 && back.size() < 2) { 
+                string front = name.substr(0, next+1); 
+                string final_name = front + "0" + back; 
+                string old_file = path + name; 
+                string new_file = path + final_name; 
+                rename(old_file.c_str(), new_file.c_str());  // BE CARFUL 
+                file_names.push_back(final_name); 
+            } 
+        }
+    } 
+
+    sort(file_names.begin(), file_names.end()); 
+    closedir(dir);
+    return file_names; 
+} 
+
+void Forwarder::send_completed_msg(string directory) { 
+    ostringstream msg; 
+    msg << "{ MSG_TYPE: FORMAT_DONE" 
+        << ", DIRECTORY: " << directory << "}"; 
+    fmt_pub->publish_message(this->forward_consume_queue, msg.str()); 
+} 
 
 int main() {
     Forwarder *fwdr = new Forwarder();
