@@ -192,7 +192,8 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
     { "PP_FORMAT", &Forwarder::process_format},
-    { "SP_FORMAT", &Forwarder::process_format}
+    { "SP_FORMAT", &Forwarder::process_format}, 
+    { "FORMAT_START", &Forwarder::assemble_img} 
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
@@ -647,6 +648,16 @@ void Forwarder::process_forward_health_check_ack(Node n) {
     return;
 }
 
+void Forwarder::assemble_img(Node n) {
+    string img = n["IMG_NAME"].as<string>(); 
+    string header = n["HEADER_NAME"].as<string>(); 
+
+    // create dir  /mnt/ram/FITS/IMG_10
+    string fits_dir = Work_Dir + "FITS"; 
+    const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
+    write_img(img, header);
+}
+
 
 char* Forwarder::read_img_segment(const char *file_path) { 
     fstream img_file(file_path, fstream::in | fstream::binary); 
@@ -699,7 +710,7 @@ void Forwarder::write_img(string img, string header) {
     vector<string> file_names = list_files(img_path); 
     vector<string>::iterator it; 
     for (it = file_names.begin(); it != file_names.end(); it++) { 
-        string img_segment = *it; 
+        string img_segment = img_path + "/" + *it; 
         char *img_buffer = read_img_segment(img_segment.c_str());
         unsigned char **array = assemble_pixels(img_buffer); 
 
@@ -720,16 +731,6 @@ void Forwarder::write_img(string img, string header) {
     send_completed_msg(destination);
 } 
 
-void Forwarder::assemble_img(Node n) {
-    string img = n["IMG_NAME"].as<string>(); 
-    string header = n["HEADER_NAME"].as<string>(); 
-
-    // create dir  /mnt/ram/FITS/IMG_10
-    string fits_dir = Work_Dir + "FITS"; 
-    const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
-    write_img(img, header);
-}
-
 vector<string> Forwarder::list_files(string path) { 
     struct dirent *entry; 
     DIR *dir  = opendir(path.c_str()); 
@@ -737,17 +738,7 @@ vector<string> Forwarder::list_files(string path) {
     while (entry  = readdir(dir)) { 
         string name = entry->d_name;
         if (strcmp(name.c_str(), ".") && strcmp(name.c_str(), "..")) { 
-            // if less than 10 rename them. 
-            size_t next = name.find_last_of("-"); 
-            string back = name.substr(next+1, name.size()); 
-            if (stoi(back) < 10 && back.size() < 2) { 
-                string front = name.substr(0, next+1); 
-                string final_name = front + "0" + back; 
-                string old_file = path + name; 
-                string new_file = path + final_name; 
-                rename(old_file.c_str(), new_file.c_str());  // BE CARFUL 
-                file_names.push_back(final_name); 
-            } 
+            file_names.push_back(name); 
         }
     } 
 
