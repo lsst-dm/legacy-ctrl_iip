@@ -1,6 +1,6 @@
-INCLUDE       = -I../../ocs/include -I/home/hwin16/downloads/cfitsio
-LIBPATH       = -L../../ocs/lib -Wl,-rpath,../../ocs/lib -L/home/hwin16/downloads/cfitsio/lib
-LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcurl
+INCLUDE       = -I../../ocs/include -I../include
+LIBPATH       = -L../../ocs/lib -Wl,-rpath,../../ocs/lib -L../lib 
+LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm
 OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
 
 all: Forwarder Formatter
