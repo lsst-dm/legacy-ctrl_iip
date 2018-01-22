@@ -255,16 +255,18 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     full_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
     from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
 
-    ostringstream consume_queue1;
-    consume_queue1 << CONSUME_QUEUE << "_from_fetch";
-    from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
+    //ostringstream consume_queue1;
+    //consume_queue1 << this->consume_queue << "_from_fetch";
+    //from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
 
-    ostringstream consume_queue2;
-    consume_queue2 << CONSUME_QUEUE << "_from_format";
-    from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
+    //ostringstream consume_queue2;
+    //consume_queue2 << this->consume_queue << "_from_format";
+    //from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
 
     ostringstream consume_queue3;
-    consume_queue3 << CONSUME_QUEUE << "_from_forward";
+    consume_queue3 << this->consume_queue << "_from_forward";
+    ostringstream from_fwd_broker;
+    from_fwd_broker << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
     from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
 
     //Consumers for sub-components
