@@ -233,7 +233,7 @@ Forwarder::Forwarder() {
         PASSWD_FORMAT_PUB = root["PASSWD_FORMAT_PUB"].as<string>();
         USER_FORWARD_PUB = root["USER_FORWARD_PUB"].as<string>();
         PASSWD_FORWARD_PUB = root["PASSWD_FORWARD_PUB"].as<string>();
-        BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
+        this->BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
         HOSTNAME = root["HOSTNAME"].as<string>();
         IP_ADDR = root["IP_ADDR"].as<string>();
         this->Work_Dir = root["WORK_DIR"].as<string>();
@@ -241,20 +241,20 @@ Forwarder::Forwarder() {
         this->fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
         this->format_consume_queue = root["FORMAT_CONSUME_QUEUE"].as<string>();
         this->forward_consume_queue = root["FORWARD_CONSUME_QUEUE"].as<string>();
-        FETCH_USER = root["FETCH_USER"].as<string>();
-        FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
-        FETCH_USER_PUB = root["FETCH_USER_PUB"].as<string>();
-        FETCH_USER_PUB_PASSWD = root["FETCH_USER_PUB_PASSWD"].as<string>();
+        this->FETCH_USER = root["FETCH_USER"].as<string>();
+        this->FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
+        this->FETCH_USER_PUB = root["FETCH_USER_PUB"].as<string>();
+        this->FETCH_USER_PUB_PASSWD = root["FETCH_USER_PUB_PASSWD"].as<string>();
 
-        FORMAT_USER = root["FORMAT_USER"].as<string>();
-        FORMAT_USER_PASSWD = root["FORMAT_USER_PASSWD"].as<string>();
-        FORMAT_USER_PUB = root["FORMAT_USER_PUB"].as<string>();
-        FORMAT_USER_PUB_PASSWD = root["FORMAT_USER_PUB_PASSWD"].as<string>();
+        this->FORMAT_USER = root["FORMAT_USER"].as<string>();
+        this->FORMAT_USER_PASSWD = root["FORMAT_USER_PASSWD"].as<string>();
+        this->FORMAT_USER_PUB = root["FORMAT_USER_PUB"].as<string>();
+        this->FORMAT_USER_PUB_PASSWD = root["FORMAT_USER_PUB_PASSWD"].as<string>();
 
-        FORWARD_USER = root["FORWARD_USER"].as<string>();
-        FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
-        FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
-        FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
+        this->FORWARD_USER = root["FORWARD_USER"].as<string>();
+        this->FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
+        this->FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
+        this->FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
     }
     catch (YAML::TypedBadConversion<string>& e) {
         cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
@@ -272,36 +272,43 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //Consumers for Primary Forwarder
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
+    cout << full_broker_url << endl;
     from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
 
     ostringstream consume_queue1;
     consume_queue1 << this->consume_queue << "_from_fetch";
+    cout << full_broker_url << endl;
     from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
 
     ostringstream consume_queue2;
     consume_queue2 << this->consume_queue << "_from_format";
+    cout << full_broker_url << endl;
     from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
 
     ostringstream consume_queue3;
     consume_queue3 << this->consume_queue << "_from_forward";
-    ostringstream from_fwd_broker;
-    from_fwd_broker << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
+    ostringstream from_fwd_broker_url;
+    from_fwd_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
+    cout << from_fwd_broker_url << endl;
     from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
 
     //Consumers for sub-components
     //ostringstream consume_queue;
 
     ostringstream full_broker_url2;
-    full_broker_url2 << "amqp://" << FETCH_USER << ":" << FETCH_USER_PASSWD << BASE_BROKER_ADDR ;
+    full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD << this->BASE_BROKER_ADDR ;
+    cout << full_broker_url << endl;
     from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
 
     ostringstream full_broker_url3;
-    full_broker_url3 << "amqp://" << FORMAT_USER << ":" << FORMAT_USER_PASSWD << BASE_BROKER_ADDR ;
+    full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD << this->BASE_BROKER_ADDR;
+    cout << full_broker_url3 << endl;
     from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
     cout << this->format_consume_queue << endl; 
 
     ostringstream full_broker_url4;
-    full_broker_url4 << "amqp://" << FORWARD_USER << ":" << FORWARD_USER_PASSWD << BASE_BROKER_ADDR ;
+    full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD << this->BASE_BROKER_ADDR ;
+    cout << full_broker_url4 << endl;
     from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
 
 }
