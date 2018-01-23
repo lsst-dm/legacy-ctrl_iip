@@ -172,7 +172,8 @@ map<string, funcptr> on_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
     { "AR_FORWARD_ACK", &Forwarder::process_forward_ack},
     { "PP_FORWARD_ACK", &Forwarder::process_forward_ack},
-    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack}
+    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack},
+    { "FORMAT_DONE", &Forwarder::process_formatted_img} 
 
 };
 
@@ -728,7 +729,7 @@ void Forwarder::write_img(string img, string header) {
     fits_close_file(iptr, &status); 
     fits_close_file(optr, &status); 
 
-    send_completed_msg(destination);
+    send_completed_msg(img);
 } 
 
 vector<string> Forwarder::list_files(string path) { 
@@ -747,11 +748,30 @@ vector<string> Forwarder::list_files(string path) {
     return file_names; 
 } 
 
-void Forwarder::send_completed_msg(string directory) { 
+void Forwarder::send_completed_msg(string img_name) { 
     ostringstream msg; 
     msg << "{ MSG_TYPE: FORMAT_DONE" 
-        << ", DIRECTORY: " << directory << "}"; 
+        << ", IMG_NAME: " << img_name << "}"; 
     fmt_pub->publish_message(this->forward_consume_queue, msg.str()); 
+} 
+
+///////////////////////////////////////////////////////////////////////////////
+// Forward part 
+///////////////////////////////////////////////////////////////////////////////
+
+void Forwarder::process_formatted_img(Node n) { 
+    string img_name = n["IMG_NAME"].as<string>(); 
+    string img_path = this->Work_Dir + "FITS/" + img_name; 
+    string dest_path = "F2@141.142.238.182:/home/F2"; 
+    
+    // use bbcp to send file 
+    ostringstream bbcp_cmd; 
+    bbcp_cmd << "bbcp "
+             << img_path
+             << " " 
+             << dest_path; 
+    cout << bbcp_cmd.str() << endl; 
+    //system(bbcp_cmd.str()); 
 } 
 
 int main() {
