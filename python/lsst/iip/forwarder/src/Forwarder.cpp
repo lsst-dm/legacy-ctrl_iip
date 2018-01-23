@@ -119,6 +119,8 @@ class Forwarder {
     void assemble_img(YAML::Node);
     void send_completed_msg(std::string);
     vector<string> list_files(string); 
+
+    void process_formatted_img(Node); 
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -173,7 +175,6 @@ map<string, funcptr> on_forward_message_actions = {
     { "AR_FORWARD_ACK", &Forwarder::process_forward_ack},
     { "PP_FORWARD_ACK", &Forwarder::process_forward_ack},
     { "SP_FORWARD_ACK", &Forwarder::process_forward_ack},
-    { "FORMAT_DONE", &Forwarder::process_formatted_img} 
 
 };
 
@@ -202,7 +203,8 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK", &Forwarder::process_forward_health_check},
     { "AR_FORWARD", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
-    { "SP_FORWARD", &Forwarder::process_forward}
+    { "SP_FORWARD", &Forwarder::process_forward}, 
+    { "FORMAT_DONE", &Forwarder::process_formatted_img} 
 
 };
 
@@ -762,7 +764,7 @@ void Forwarder::send_completed_msg(string img_name) {
 void Forwarder::process_formatted_img(Node n) { 
     string img_name = n["IMG_NAME"].as<string>(); 
     string img_path = this->Work_Dir + "FITS/" + img_name; 
-    string dest_path = "F2@141.142.238.182:/home/F2"; 
+    string dest_path = "F2@141.142.238.182:/home/F2/" + img_name; 
     
     // use bbcp to send file 
     ostringstream bbcp_cmd; 
@@ -771,7 +773,8 @@ void Forwarder::process_formatted_img(Node n) {
              << " " 
              << dest_path; 
     cout << bbcp_cmd.str() << endl; 
-    //system(bbcp_cmd.str()); 
+    system(bbcp_cmd.str().c_str()); 
+    this->finished_image_work_list.push_back(img_name);
 } 
 
 int main() {
