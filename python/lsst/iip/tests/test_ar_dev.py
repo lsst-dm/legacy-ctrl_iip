@@ -74,6 +74,8 @@ class TestArDev:
             emsg = "Unable to find CFG Yaml file %s\n" % self._config_file
             print(emsg + trace)
             raise  
+
+        raft_dict = cdm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
         broker_addr = cdm[ROOT]['BASE_BROKER_ADDR']
     
         dmcs_name = cdm[ROOT]['DMCS_BROKER_NAME']
@@ -196,36 +198,76 @@ class TestArDev:
         msg = {}
         msg['MSG_TYPE'] = "AR_NEXT_VISIT"
         msg['VISIT_ID'] = 'XX_28272' 
+        msg['JOB_NUM'] = '4xx72'
+        msg['SESSION_ID'] = 'SI_469976'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
-        msg['BORE_SIGHT'] = "231,123786456342, -45.3457156906, FK5"
+        msg['AR'] = "231"
+        msg['DEC'] = "-45.34"
+        msg['ANGLE'] = "120.0
+        msg['RAFT_LIST'] = ['10','32','41','42','43']
+        msg['RAFT_CCD_LIST'] = [['ALL'],['02','11','12'],['00','02'],['02','12','11','22','00'],['ALL']]
         time.sleep(2)
         print("Next Visit Message")
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
           
         msg = {}
-        msg['MSG_TYPE'] = "AR_START_INTEGRATION"
+        msg['MSG_TYPE'] = "AR_TAKE_IMAGES"
         msg['JOB_NUM'] = '4xx72'
-        msg['IMAGE_ID'] = 'IMG_444244'
-        msg['VISIT_ID'] = 'V14494'
-        msg['SESSION_ID'] = '4_14_7211511'
-        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'AR_ACK_94671'
-        msg['CCD_LIST'] = [4,14,16,17,29,35,36]
-        time.sleep(2)
-        print("AR Start Integration Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
-      
-        msg = {}
-        msg['MSG_TYPE'] = "AR_READOUT"
-        msg['JOB_NUM'] = '4xx72'
-        msg['IMAGE_ID'] = 'IMG_444244'
-        msg['VISIT_ID'] = 'V14494'
-        msg['SESSION_ID'] = '4_14_7211511'
+        msg['NUM_IMAGES'] = '4'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'ACK_44221'
         time.sleep(2)
-        print("AR Readout Message")
+        print("AR Take Images Message")
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+
+        msg = {}
+        msg['MSG_TYPE'] = "AR_END_READOUT"
+        msg['JOB_NUM'] = '4xx72'
+        msg['IMAGE_ID'] = 'IMG_444245'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
+        msg['ACK_ID'] = 'AR_ACK_94671'
+        time.sleep(2)
+        print("AR END READOUT Message")
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+      
+        msg = {}
+        msg['MSG_TYPE'] = "AR_END_READOUT"
+        msg['JOB_NUM'] = '4xx72'
+        msg['IMAGE_ID'] = 'IMG_444246'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
+        msg['ACK_ID'] = 'AR_ACK_94673'
+        time.sleep(2)
+        print("AR END READOUT Message")
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+
+        msg = {}
+        msg['MSG_TYPE'] = "AR_END_READOUT"
+        msg['JOB_NUM'] = '4xx72'
+        msg['IMAGE_ID'] = 'IMG_444247'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
+        msg['ACK_ID'] = 'AR_ACK_94676'
+        time.sleep(2)
+        print("AR END READOUT Message")
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+
+        msg = {}
+        msg['MSG_TYPE'] = "AR_END_READOUT"
+        msg['JOB_NUM'] = '4xx72'
+        msg['IMAGE_ID'] = 'IMG_444248'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
+        msg['ACK_ID'] = 'AR_ACK_94677'
+        time.sleep(2)
+        print("AR END READOUT Message")
+        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+
+        msg = {}
+        msg['MSG_TYPE'] = "AR_TAKE_IMAGES_DONE"
+        msg['JOB_NUM'] = '4xx72'
+        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
+        msg['ACK_ID'] = 'ACK_44221'
+        time.sleep(2)
+        print("AR Take Images Done Message")
         self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
 
         time.sleep(9)
@@ -308,7 +350,8 @@ class TestArDev:
             msg['COMPONENT'] = 'ARCHIVE_CTRL'
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            msg['TARGET_DIR'] = '/dev/test/null' 
+            #msg['TARGET_DIR'] = '/dev/test/null' 
+            msg['TARGET_DIR'] = '/tmp' 
             self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_ITEMS_XFERD':
@@ -353,7 +396,7 @@ class TestArDev:
             msg['ACK_ID'] = body['ACK_ID']
             self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
-        elif body['MSG_TYPE'] == 'AR_FWDR_READOUT':
+        elif body['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
             # Find message in message list for xfer_params
             xfer_msg = None
             for msg in self.f1_consumer_msg_list:
@@ -363,15 +406,31 @@ class TestArDev:
             if xfer_msg == None:
                 pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
 
+        elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES_DONE':
+            # Find message in message list for xfer_params
+            xfer_msg = None
+            image_id_list = []
+            for msg in self.f1_consumer_msg_list:
+                if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
+                    image_id_list.append(msg['IMAGE_ID']
+                if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
+                    xfer_msg = msg
+            if xfer_msg == None:
+                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
+
             # use message to build response
             msg = {}
-            msg['MSG_TYPE'] = 'AR_FWDR_READOUT_ACK'
+            msg['MSG_TYPE'] = 'AR_FWDR_TAKE_IMAGES_DONE_ACK'
             msg['COMPONENT'] = 'FORWARDER_1'
             msg['JOB_NUM'] = xfer_msg['JOB_NUM']
             msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
             msg['RESULT_LIST'] = {}
+            raft_list = xfer_msg['XFER_PARAMS']['RAFT_LIST']
+            raft_ccd_list = xfer_msg['XFER_PARAMS']['RAFT_CCD_LIST']
+            msg['RAFT_LIST'] = raft_list
+            msg['RAFT_CCD_LIST'] = raft_ccd_list
             msg['RESULT_LIST']['CCD_LIST'] = []
             msg['RESULT_LIST']['FILENAME_LIST'] = []
             msg['RESULT_LIST']['CHECKSUM_LIST'] = []
@@ -380,8 +439,10 @@ class TestArDev:
             CHECKSUM_LIST = []
             target_dir = xfer_msg['TARGET_DIR']
             ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
+            ccd_list = self.convert_raft_and_ccd_list_to_name_list(raft_list, raft_ccd_list)
             for ccd in ccd_list:
                 CCD_LIST.append(ccd)
+                ### XXX ADD IMAGE_ID from IMAGE_ID_LIST to target_dir and ccd name
                 FILENAME_LIST.append(target_dir + str(ccd))
                 CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
             msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
@@ -453,5 +514,43 @@ class TestArDev:
 
         else:
             pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
+
+    def convert_raftdict_to_name_list(self, rdict):
+        raft_list = list(rdict.keys())
+        num_rafts = len(raft_list)
+        integrated_names_list = []
+        for i in range(0,num_rafts):
+            current_raft = raft_list[i]
+            ccd_list = []
+            ccd_list = rdict[current_raft]
+            if ccd_list[0] == 'ALL':
+                ccd_list = ['00','10','20','01','11','21','02','12','22']
+            num_current_ccds = len(ccd_list)
+            for j in range(0,num_current_ccds):
+                tmp_str = current_raft + '-' + ccd_list[j]
+                integrated_names_list.append(tmp_str)
+
+        return integrated_names_list
+
+
+    def convert_raft_and_ccd_list_to_name_list(self, raft_list, raft_ccd_list):
+        #raft_list = list(rdict.keys())
+        num_rafts = len(raft_list)
+        integrated_names_list = []
+        for i in range(0,num_rafts):
+            current_raft = raft_list[i]
+            ccd_list = []
+            ccd_list = raft_ccd_list[i]
+            if ccd_list[0] == 'ALL':
+                ccd_list = ['00','10','20','01','11','21','02','12','22']
+            num_current_ccds = len(ccd_list)
+            for j in range(0,num_current_ccds):
+                tmp_str = current_raft + '-' + ccd_list[j]
+                integrated_names_list.append(tmp_str)
+
+        return integrated_names_list
+
+
+
 
 

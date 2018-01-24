@@ -329,6 +329,8 @@ ROOT:
         MSG_TYPE: AR_TAKE_IMAGES
         JOB_NUM:
         NUM_IMAGES:
+        REPLY_QUEUE:
+        ACK_ID:
 
     AR_TAKE_IMAGES_ACK:
         MSG_TYPE: AR_TAKE_IMAGES_ACK
@@ -338,6 +340,7 @@ ROOT:
 
     AR_TAKE_IMAGES_DONE:
         MSG_TYPE: AR_TAKE_IMAGES_DONE
+        REPLY_QUEUE:
         ACK_ID:
 
     AR_TAKE_IMAGES_DONE_ACK:
@@ -345,7 +348,7 @@ ROOT:
         ACK_ID:
 
 
-    AR_READOUT:
+    AR_END_READOUT:
         MSG_TYPE: AR_READOUT
         JOB_NUM: 6
         IMAGE_ID:
@@ -467,6 +470,13 @@ ROOT:
         MSG_TYPE: AR_FWDR_TAKE_IMAGES
         # This message is simply a notification for fwder to clean up and prepare...no ack
 
+    AR_END_READOUT:
+        MSG_TYPE: AR_END_READOUT
+        JOB_NUM:
+        IMAGE_ID:
+        REPLY_QUEUE:
+        ACK_ID:
+
     AR_FWDR_TAKE_IMAGES_DONE:
         MSG_TYPE: AR_FWDR_TAKE_IMAGES_DONE
         JOB_NUM:
@@ -478,11 +488,15 @@ ROOT:
         COMPONENT:
         ACK_ID:
         ACK_BOOL:
-        RAFT_LIST:
-        RAFT_CCD_LIST:
+        RESULT_LIST:
+            RAFT_LIST:
+            RAFT_CCD_LIST:
+            CCD_LIST: Ordered list of CCDs - index is shared with lists below
+            FILENAME_LIST: Ordered list of Path plus filename used for the transfer
+            CHECKSUM_LIST: Ordered list of File checksum value
 
-    AR_FWDR_READOUT:
-        MSG_TYPE: AR_FWDR_READOUT
+    AR_FWDR_END_READOUT:
+        MSG_TYPE: AR_FWDR_END_READOUT
         JOB_NUM:
         SESSION_ID:
         VISIT_ID:
@@ -957,6 +971,7 @@ ROOT:
 
     AR_END_READOUT:
         MSG_TYPE: AR_END_READOUT
+        JOB_NUM:
         IMAGE_ID:
         REPLY_QUEUE:
         ACK_ID:

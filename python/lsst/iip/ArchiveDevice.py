@@ -200,7 +200,7 @@ class ArchiveDevice:
         # Add job scbd entry
         self.JOB_SCBD.add_job(job_number, visit_id, raft_list, raft_ccd_list)
         self.JOB_SCBD.set_value_for_job(job_number, 'VISIT_ID', visit_id)
-        self.ack_timer(2.5)
+        self.ack_timer(1.5)
 
         healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
         if healthy_fwdrs == None:
@@ -215,17 +215,16 @@ class ArchiveDevice:
             self.FWD_SCBD.set_forwarder_status(forwarder, 'HEALTHY')
 
         # send new_archive_item msg to archive controller
-        start_int_params = {}
+        new_items_params = {}
         ac_timed_ack = self.get_next_timed_ack_id('AR_CTRL_NEW_ITEM')
-        start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
-        start_int_params['ACK_ID'] = ac_timed_ack
-        start_int_params['JOB_NUM'] = job_number
-        start_int_params['SESSION_ID'] = session_id
-        start_int_params['VISIT_ID'] = visit_id
-        start_int_params['IMAGE_ID'] = image_id
-        start_int_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
+        new_items_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
+        new_items_params['ACK_ID'] = ac_timed_ack
+        new_items_params['JOB_NUM'] = job_number
+        new_items_params['SESSION_ID'] = session_id
+        new_items_params['VISIT_ID'] = visit_id
+        new_items_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
         self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
-        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
+        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, new_items_params)
 
         ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
 
@@ -357,6 +356,10 @@ class ArchiveDevice:
             schedule['FORWARDER_LIST'] = FORWARDER_LIST
             schedule['RAFT_LIST'] = RAFT_LIST
             schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST
+            if self.DP:
+                print("In divide work one fwdr case, finished schedule is:")
+                self.prp.pprint(schedule)
+                print("Finished divide work one fwdr case")
             return schedule
 
         if num_rafts <= num_fwdrs:
@@ -392,10 +395,14 @@ class ArchiveDevice:
                 FORWARDER_LIST.append(fwdrs_list[i])
                 RAFT_LIST.append(list(tmp_list))
                 RAFT_CCD_LIST.append(list(tmp_raft_list))
-            schedule['FORWARDERS_LIST'] = FORWARDER_LIST
+            schedule['FORWARDER_LIST'] = FORWARDER_LIST
             schedule['RAFT_LIST'] = RAFT_LIST
             schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST
 
+        if self.DP:
+            print("In divide work one fwdr case, finished schedule is:")
+            self.prp.pprint(schedule)
+            print("Finished divide work one fwdr case")
         return schedule
 
 
@@ -439,6 +446,9 @@ class ArchiveDevice:
         job_num = params[JOB_NUM]
         self.JOB_SCBD.set_value_for_job(job_num, 'NUM_IMAGES', num_images)
         work_sched = self.JOB_SCBD.get_work_schedule_for_job(job_num)
+        print("Work Schedule Structure is: ")
+        self.prp.pprint(work_sched)
+        print("Done Printing Work Schedule Structure.")
         fwdrs = work_sched['FORWARDERS_LIST']
         for fwdr in fwdrs:
             route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
