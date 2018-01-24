@@ -36,6 +36,9 @@ class JobScoreboard(Scoreboard):
     JOB_STATUS = 'JOB_STATUS'
     STATUS = 'STATUS'
     SUB_TYPE = 'SUB_TYPE'
+    RA = 'RA'
+    DEC = 'DEC'
+    ANGLE = 'ANGLE'
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
     DB_TYPE = ""
@@ -356,11 +359,13 @@ class JobScoreboard(Scoreboard):
         return self._redis.get(self.CURRENT_SESSION_ID)
 
 
-    def set_visit_id(self, visit_id, bore_sight):
+    def set_visit_id(self, visit_id, ra, dec, angle):
         if self.check_connection():
             print("In job scbd, setting visit ID")
             self._redis.lpush(self.VISIT_ID_LIST, visit_id)
-            self._redis.hset(visit_id, 'BORE_SIGHT', bore_sight)
+            self._redis.hset(visit_id, self.RA, ra)
+            self._redis.hset(visit_id, self.DEC, dec)
+            self._redis.hset(visit_id, self.ANGLE, angle)
             #params = {}
             #params['SUB_TYPE'] = 'VISIT'
             #params['VISIT_ID'] = visit_id

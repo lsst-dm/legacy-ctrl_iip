@@ -72,8 +72,7 @@ class ArchiveDevice:
 
 
 
-        self._msg_actions = { 'AR_START_INTEGRATION': self.process_start_integration,
-                              'AR_NEW_SESSION': self.set_session,
+        self._msg_actions = { 'AR_NEW_SESSION': self.set_session,
                               'AR_NEXT_VISIT': self.process_next_visit,
                               'AR_READOUT': self.process_dmcs_readout,
                               'AR_FWDR_HEALTH_CHECK_ACK': self.process_ack,
@@ -200,7 +199,7 @@ class ArchiveDevice:
 
         # Add job scbd entry
         self.JOB_SCBD.add_job(job_number, visit_id, raft_list, raft_ccd_list)
-        self.JOB_SCBD.set_job_value(job_number, 'VISIT_ID', visit_id)
+        self.JOB_SCBD.set_value_for_job(job_number, 'VISIT_ID', visit_id)
         self.ack_timer(2.5)
 
         healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
@@ -364,7 +363,7 @@ class ArchiveDevice:
             for k in range (0, num_rafts):
                 FORWARDER_LIST.append(fwdrs_list[k])
                 #little_list.append(ccd_list[k])
-                RAFT_LIST.append(raft_list[k))  # Need a copy here...
+                RAFT_LIST.append(raft_list[k])  # Need a copy here...
                 RAFT_CCD_LIST.append = deepcopy(raft_ccd_list[k]) 
                 schedule['FORWARDER_LIST'] = FORWARDER_LIST
                 schedule['RAFT_LIST'] = RAFT_LIST
@@ -393,7 +392,7 @@ class ArchiveDevice:
                 FORWARDER_LIST.append(fwdrs_list[i])
                 RAFT_LIST.append(list(tmp_list))
                 RAFT_CCD_LIST.append(list(tmp_raft_list))
-            schedule['FORWARDER_LIST'] = FORWARDER_LIST
+            schedule['FORWARDERS_LIST'] = FORWARDER_LIST
             schedule['RAFT_LIST'] = RAFT_LIST
             schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST
 
@@ -429,7 +428,6 @@ class ArchiveDevice:
         dmcs_message['ACK_ID'] = params['ACK_ID']
         dmcs_message['SESSION_ID'] = params['SESSION_ID']
         dmcs_message['VISIT_ID'] = params['VISIT_ID']
-        dmcs_message['IMAGE_ID'] = params['IMAGE_ID']
         dmcs_message[ACK_BOOL] = False 
         dmcs_message['COMPONENT'] = self.COMPONENT_NAME
         self.JOB_SCBD.set_value_for_job(params[JOB_NUM], STATE, "JOB_REFUSED")
@@ -467,7 +465,7 @@ class ArchiveDevice:
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'PREPARE_READOUT')
         fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
         work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
-        fwdrs = work_schedule['FORWARDER_LIST']
+        fwdrs = work_schedule['FORWARDERS_LIST']
 
         self.send_readout(params, fwdrs, fwdr_readout_ack)
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT_STARTED')
@@ -575,7 +573,7 @@ class ArchiveDevice:
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['ACK_BOOL'] = True
         ack_msg['RESULT_LIST'] = results
-        self._publisher.publish_message(reply_queue), ack_msg)
+        self._publisher.publish_message(reply_queue, ack_msg)
 
         ### FIXME Set state as complete for Job
 

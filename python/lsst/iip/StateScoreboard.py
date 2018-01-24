@@ -1,4 +1,5 @@
 import redis
+import toolsmod
 from toolsmod import get_timestamp
 from toolsmod import get_epoch_timestamp
 from toolsmod import L1RedisError
@@ -46,6 +47,7 @@ class StateScoreboard(Scoreboard):
     PP = "PP"
     CU = "CU"
     SP = "SP"
+    prp = toolsmod.prp
   
 
     def __init__(self, db_type, db_instance, ddict, rdict):
@@ -77,7 +79,13 @@ class StateScoreboard(Scoreboard):
 
         self.init_redis(ddict)
 
-        self.set_current_raft_configuration(rdict)
+        #self.set_current_raft_configuration(rdict)
+        self.set_current_configured_rafts(rdict)
+
+        dd = self.get_current_configured_rafts()
+        print("In SSCBD Init - after inserting rafts then pullin it out once again...")
+        self.prp.pprint(dd)
+        print("Done printing init rafts\n====================\n")
     
 
     def connect(self):
@@ -343,7 +351,10 @@ class StateScoreboard(Scoreboard):
         if self.check_connection():
             current_session = self._redis.get(self.CURRENT_SESSION_ID)
             current_session_rafts = str(current_session) + "_RAFTS"
-            return self.raft_dict_to_lists(self._redis.hget(current_session_rafts, self.RAFTS))
+            rdict = yaml.load(self._redis.hget(current_session_rafts, self.RAFTS))
+            print("The SScbd raft_dict from line 350 is: ")
+            self.prp.pprint(rdict)
+            return self.raft_dict_to_lists(rdict)
         else:
             LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
@@ -358,15 +369,17 @@ class StateScoreboard(Scoreboard):
 
     def get_current_configured_rafts(self):
         if self.check_connection():
-            return yaml.load(self._redis.hget(self.CURRENT_RAFT_CONFIGURATION, self.RAFTS)
+            return yaml.load(self._redis.hget(self.CURRENT_RAFT_CONFIGURATION, self.RAFTS))
         else:
             LOGGER.error('Unable to retrieve current configured rafts due to lack of redis connection')
 
 
     def raft_dict_to_lists(self, raft_dict):
+        print("The SScbd raft_dict from line 370 is: ")
+        self.prp.pprint(raft_dict)
         raft_list = []
         ccd_list = []
-        keez = list(raft_dict.keys())
+        keez = raft_dict.keys()
         for kee in keez:
             raft_list.append(str(kee))
             tmp_list = []
@@ -476,7 +489,7 @@ class StateScoreboard(Scoreboard):
             if device == self.SP:
                 return self._redis.lindex('SP_JOBS', 0)
 
-    """
+    ### Deprecated
     def set_rafts_for_job(self, job_number, raft_list, raft_ccd_list):
         """Pairs is a temporary relationship between Forwarders
            and Distributors that lasts for one job. Note the use of yaml...
@@ -499,6 +512,7 @@ class StateScoreboard(Scoreboard):
             return False
 
 
+    ### Deprecated
     def get_ccds_for_job(self, job_number):
         if self.check_connection():
             ccds =  self._redis.hget(str(job_number), 'CCDS')
@@ -507,7 +521,6 @@ class StateScoreboard(Scoreboard):
             return yaml.load(ccds)
         else:
             return None
-    """
 
     def set_results_for_job(self, job_number, results):
         if self.check_connection():

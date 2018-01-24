@@ -271,25 +271,25 @@ Forwarder::Forwarder() {
 void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //Consumers for Primary Forwarder
     ostringstream full_broker_url;
-    full_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
-    cout << full_broker_url << endl;
+    full_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
+    cout << full_broker_url.str() << endl;
     from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
 
     ostringstream consume_queue1;
     consume_queue1 << this->consume_queue << "_from_fetch";
-    cout << full_broker_url << endl;
+    cout << full_broker_url.str() << endl;
     from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
 
     ostringstream consume_queue2;
     consume_queue2 << this->consume_queue << "_from_format";
-    cout << full_broker_url << endl;
+    cout << full_broker_url.str() << endl;
     from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
 
     ostringstream consume_queue3;
     consume_queue3 << this->consume_queue << "_from_forward";
     ostringstream from_fwd_broker_url;
-    from_fwd_broker_url << "amqp://" << USER << ":" << PASSWD << BASE_BROKER_ADDR ;
-    cout << from_fwd_broker_url << endl;
+    from_fwd_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
+    cout << from_fwd_broker_url.str() << endl;
     from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
 
     //Consumers for sub-components
@@ -297,18 +297,18 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
 
     ostringstream full_broker_url2;
     full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD << this->BASE_BROKER_ADDR ;
-    cout << full_broker_url << endl;
+    cout << full_broker_url.str() << endl;
     from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
 
     ostringstream full_broker_url3;
     full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD << this->BASE_BROKER_ADDR;
-    cout << full_broker_url3 << endl;
+    cout << full_broker_url3.str() << endl;
     from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
-    cout << this->format_consume_queue << endl; 
+    //cout << this->format_consume_queue << endl; 
 
     ostringstream full_broker_url4;
     full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD << this->BASE_BROKER_ADDR ;
-    cout << full_broker_url4 << endl;
+    cout << full_broker_url4.str() << endl;
     from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
 
 }
@@ -390,37 +390,38 @@ void *Forwarder::run_thread(void *pargs) {
 void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
     //Publishers
     ostringstream full_broker_url;
-    full_broker_url << "amqp://" << USER_PUB << ":" << PASSWD_PUB << BASE_BROKER_ADDR;
-    //cout << "Broker url is: " << full_broker_url.str();
+    full_broker_url << "amqp://" << this->USER_PUB << ":" << this->PASSWD_PUB << this->BASE_BROKER_ADDR;
+    cout << "Pub Broker url is: " << full_broker_url.str() << endl;
     FWDR_pub = new SimplePublisher(full_broker_url.str());
 
     ostringstream full_broker_url1;
-    full_broker_url1 << "amqp://" << USER_FETCH_PUB << ":" << PASSWD_FETCH_PUB << BASE_BROKER_ADDR;
-    //cout << "Broker url is: " << full_broker_url1.str();
+    full_broker_url1 << "amqp://" << this->USER_FETCH_PUB << ":" << this->PASSWD_FETCH_PUB << this->BASE_BROKER_ADDR;
+    cout << "Pub Broker url is: " << full_broker_url1.str() << endl;
     FWDR_to_fetch_pub = new SimplePublisher(full_broker_url1.str());
 
     ostringstream full_broker_url2;
-    full_broker_url2 << "amqp://" << USER_FORMAT_PUB << ":" << PASSWD_FORMAT_PUB << BASE_BROKER_ADDR;
-    //cout << "Broker url is: " << full_broker_url2.str();
+    full_broker_url2 << "amqp://" << this->USER_FORMAT_PUB << ":" << this->PASSWD_FORMAT_PUB << this->BASE_BROKER_ADDR;
+    cout << "Pub Broker url is: " << full_broker_url2.str() << endl;
     FWDR_to_format_pub = new SimplePublisher(full_broker_url2.str());
 
     ostringstream full_broker_url3;
-    full_broker_url3 << "amqp://" << USER_FORWARD_PUB << ":" << PASSWD_FORWARD_PUB << BASE_BROKER_ADDR;
-    //cout << "Broker url is: " << full_broker_url3.str();
+    full_broker_url3 << "amqp://" << this->USER_FORWARD_PUB << ":" << this->PASSWD_FORWARD_PUB << this->BASE_BROKER_ADDR;
+    cout << "Pub Broker url is: " << full_broker_url3.str() << endl;
     FWDR_to_forward_pub = new SimplePublisher(full_broker_url3.str());
 
     ostringstream full_broker_url4;
-    full_broker_url4 << "amqp://" << FETCH_USER_PUB << ":" << FETCH_USER_PUB_PASSWD << BASE_BROKER_ADDR;
-    //cout << "Broker url is: " << full_broker_url4.str();
+    full_broker_url4 << "amqp://" << this->FETCH_USER_PUB << ":" << this->FETCH_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
+    cout << "Pub Broker url is: " << full_broker_url4.str() << endl;
     fetch_pub = new SimplePublisher(full_broker_url4.str());
 
     ostringstream full_broker_url5;
-    full_broker_url5 << "amqp://" << FORMAT_USER_PUB << ":" << FORMAT_USER_PUB_PASSWD << BASE_BROKER_ADDR;
-    //cout << "Broker url is: " << full_broker_url5.str();
+    full_broker_url5 << "amqp://" << this->FORMAT_USER_PUB << ":" << this->FORMAT_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
+    cout << "Pub Broker url is: " << full_broker_url5.str() << endl;
     fmt_pub = new SimplePublisher(full_broker_url5.str());
 
     ostringstream full_broker_url6;
-    full_broker_url6 << "amqp://" << FORWARD_USER_PUB << ":" << FORWARD_USER_PUB_PASSWD << BASE_BROKER_ADDR;
+    full_broker_url6 << "amqp://" << this->FORWARD_USER_PUB << ":" << this->FORWARD_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
+    cout << "Pub Broker url is: " << full_broker_url6.str() << endl;
     fwd_pub = new SimplePublisher(full_broker_url6.str());
 }
 
