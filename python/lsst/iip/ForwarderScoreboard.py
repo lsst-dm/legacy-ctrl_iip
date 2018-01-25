@@ -1,6 +1,7 @@
 from Scoreboard import Scoreboard
 import redis
 import sys
+import yaml
 import logging
 from const import * 
 

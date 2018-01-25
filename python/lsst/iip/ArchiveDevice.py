@@ -166,6 +166,9 @@ class ArchiveDevice:
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
+        print("Message in foreman ACK Queue: ")
+        self.prp.pprint(body)
+        print("forman ACK Queue is done printing incoming message")
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -226,7 +229,9 @@ class ArchiveDevice:
         self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, new_items_params)
 
-        ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
+        #ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
+        ### FIX - Go back to orig timer val
+        ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 6.0)
 
         if ar_response == None:
            # FIXME raise L1 exception and bail out
@@ -240,6 +245,10 @@ class ArchiveDevice:
         # divide image fetch across forwarders
         list_of_fwdrs = list(healthy_fwdrs.keys())
         work_schedule = self.divide_work(list_of_fwdrs, raft_list, raft_ccd_list)
+        if self.DP:
+            print("Here is the work schedule hot off of the divide_work stack:")
+            self.prp.pprint(work_schedule) 
+            print("------------- Done Printing Work Schedule --------------")
 
         # send target dir, and job, session,visit and work to do to healthy forwarders
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
@@ -259,17 +268,17 @@ class ArchiveDevice:
         fwdr_new_target_params[JOB_NUM] = job_number
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
         fwdr_new_target_params[REPLY_QUEUE] = self.AR_FOREMAN_ACK_PUBLISH
-        target_location = self.archve_name + "@" + self.archive_ip + ":" + target_dir
+        target_location = self.archive_name + "@" + self.archive_ip + ":" + target_dir
         fwdr_new_target_params['TARGET_LOCATION'] = target_location
 
-        len_fwdrs_list = len(work_schedule['FORWARDERS_LIST'])
+        len_fwdrs_list = len(work_schedule['FORWARDER_LIST'])
         for i in range (0, len_fwdrs_list):
-            fwdr = work_schedule['FORWARDERS_LIST'][i]
+            fwdr = work_schedule['FORWARDER_LIST'][i]
             xfer_params_dict = {}
             xfer_params_dict['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
             xfer_params_dict['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
             # record work order in scoreboard
-            self.FWDR_SCBD.set_work_by_job(fwdr, job_number, xfer_params_dict)
+            self.FWD_SCBD.set_work_by_job(fwdr, job_number, xfer_params_dict)
             xfer_params_dict['AR_FWDR'] = fwdr
             fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
@@ -294,7 +303,6 @@ class ArchiveDevice:
         st_int_params_ack['ACK_BOOL'] = True
         st_int_params_ack['JOB_NUM'] = job_number
         st_int_params_ack['SESSION_ID'] = session_id
-        st_int_params_ack['IMAGE_ID'] = image_id
         st_int_params_ack['VISIT_ID'] = visit_id
         st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
         self.accept_job(st_int_params_ack)
@@ -449,10 +457,13 @@ class ArchiveDevice:
         print("Work Schedule Structure is: ")
         self.prp.pprint(work_sched)
         print("Done Printing Work Schedule Structure.")
-        fwdrs = work_sched['FORWARDERS_LIST']
+        fwdrs = work_sched['FORWARDER_LIST']
+        msg = {}
+        msg['MSG_TYPE'] = 'AR_FWDR_TAKE_IMAGES'
+        msg['NUM_IMAGES'] = num_images
         for fwdr in fwdrs:
-            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
-            self._publisher.publish_message(route_key, {'MSG_TYPE': 'AR_FWDR_TAKE_IMAGES'})
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
+            self._publisher.publish_message(route_key, msg)
         
 
 
@@ -475,7 +486,7 @@ class ArchiveDevice:
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'PREPARE_READOUT')
         fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
         work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
-        fwdrs = work_schedule['FORWARDERS_LIST']
+        fwdrs = work_schedule['FORWARDER_LIST']
 
         self.send_readout(params, fwdrs, fwdr_readout_ack)
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT_STARTED')
@@ -504,16 +515,16 @@ class ArchiveDevice:
         image_id = params[IMAGE_ID]
         # send readout to forwarders
         self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT')
-        fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
+        fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_END_READOUT_ACK")
         work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
         fwdrs = work_schedule['FORWARDER_LIST']
         len_fwdrs = len(fwdrs)
         msg = {}
-        msg[MSG_TYPE] = 'AR_FWDR_READOUT'
+        msg[MSG_TYPE] = 'AR_FWDR_END_READOUT'
         msg[JOB_NUM] = job_number
         msg[IMAGE_ID] = image_id
         for i in range (0, len_fwdrs):
-            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
             self._publisher.publish_message(route_key, msg)
 
 
@@ -626,7 +637,7 @@ class ArchiveDevice:
         msg[JOB_NUM] = job_number
         msg[ACK_ID] = fwdr_readout_ack
         for i in range (0, len_fwdrs):
-            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
             self._publisher.publish_message(route_key, msg)
 
         ### FIX Add Final Response to DMCS
@@ -640,6 +651,9 @@ class ArchiveDevice:
 
             :return: None.
         """
+        print("archivedevice process_ack message: ")
+        self.prp.pprint(params)
+        print("Done printing incoming process_ack message")
         self.ACK_SCBD.add_timed_ack(params)
         
 

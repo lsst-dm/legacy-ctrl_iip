@@ -131,29 +131,36 @@ class TestArDev:
         print("Opening publisher with this URL string: %s" % F2_pub_broker_url)
         self.F2_publisher = SimplePublisher(F2_pub_broker_url, "YAML")
    
+        print("All publishers are running...")
  
         # Must be done before consumer threads are started
         # This is used for verifying message structure
         self._msg_auth = MessageAuthority()
+        print("MessageAuthority running...")
 
         self.dmcs_consumer = Consumer(dmcs_broker_url,'dmcs_ack_consume', 'thread-dmcs',
                                      self.on_dmcs_message,'YAML')
         self.dmcs_consumer.start()
 
+        print("DMCS Consumer running...")
 
         self.ar_ctrl_consumer = Consumer(ar_ctrl_broker_url,'archive_ctrl_consume', 'thread-ar-ctrl', 
                                     self.on_ar_ctrl_message,'YAML')
         self.ar_ctrl_consumer.start()
 
+        print("ar_ctrl Consumer running...")
 
         self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
                                     self.on_f1_message,'YAML')
         self.F1_consumer.start()
 
+        print("F1 Consumer running...")
 
         self.F2_consumer = Consumer(F2_broker_url,'f2_consume', 'thread-f2', 
                                     self.on_f2_message,'YAML')
         self.F2_consumer.start()
+
+        print("F2 Consumer running...")
 
         sleep(3)
         print("Test Setup Complete. Commencing Messages...")
@@ -206,9 +213,9 @@ class TestArDev:
         msg['SESSION_ID'] = 'SI_469976'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
-        msg['AR'] = "231"
+        msg['RA'] = "231.221"
         msg['DEC'] = "-45.34"
-        msg['ANGLE'] = "120.0
+        msg['ANGLE'] = "120.0"
         msg['RAFT_LIST'] = ['10','32','41','42','43']
         msg['RAFT_CCD_LIST'] = [['ALL'],['02','11','12'],['00','02'],['02','12','11','22','00'],['ALL']]
         time.sleep(2)
@@ -348,6 +355,9 @@ class TestArDev:
     def on_ar_ctrl_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
         self.ar_ctrl_consumer_msg_list.append(body)
+        print("GOT ME A FOREMAN MESSAGE TO ARCHIE")
+        self.prp.pprint(body)
+        print("AND SENDING THIS ACK BACK: ")
         if body['MSG_TYPE'] == 'NEW_ARCHIVE_ITEM':
             msg = {}
             msg['MSG_TYPE'] = 'NEW_ARCHIVE_ITEM_ACK'
@@ -356,6 +366,9 @@ class TestArDev:
             msg['ACK_BOOL'] = True
             #msg['TARGET_DIR'] = '/dev/test/null' 
             msg['TARGET_DIR'] = '/tmp' 
+            self.prp.pprint(msg)
+            print("++++AND BEING SENT TO++++  %s" % body['REPLY_QUEUE'])
+            print("Done in NEW_ARCHIVE_ITEM HANDLER")
             self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_ITEMS_XFERD':
@@ -415,10 +428,10 @@ class TestArDev:
             # Find message in message list for xfer_params
             xfer_msg = None
             image_id_list = []
-            num_images = 0;
+            num_images = 0
             for msg in self.f1_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-                    image_id_list.append(msg['IMAGE_ID']
+                    image_id_list.append(msg['IMAGE_ID'])
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
                     xfer_msg = msg
                 if msg['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
@@ -476,6 +489,11 @@ class TestArDev:
             self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
+            print("111111111111111111111111111111111111111111")
+            print("111111111111111111111111111111111111111111")
+            self.prp.pprint(body)
+            print("111111111111111111111111111111111111111111")
+            print("111111111111111111111111111111111111111111")
             msg = {}
             msg['MSG_TYPE'] = 'AR_FWDR_XFER_PARAMS_ACK'
             msg['COMPONENT'] = 'FORWARDER_2'
@@ -493,14 +511,7 @@ class TestArDev:
 
 
         elif body['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-            # Find message in message list for xfer_params
-            xfer_msg = None
-            for msg in self.f1_consumer_msg_list:
-                if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
-                    xfer_msg = msg
-                    break
-            if xfer_msg == None:
-                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
+            pass
 
         elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES_DONE':
             # Find message in message list for xfer_params
@@ -509,7 +520,7 @@ class TestArDev:
             num_images = 0;
             for msg in self.f2_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-                    image_id_list.append(msg['IMAGE_ID']
+                    image_id_list.append(msg['IMAGE_ID'])
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
                     xfer_msg = msg
                 if msg['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
@@ -546,10 +557,10 @@ class TestArDev:
             msg['RESULT_LIST']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
             msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
             msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
-            self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
-            pytest.fail("The following unknown message was received by FWDR F1: %s" % body)
+            pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
 
 
     def convert_raftdict_to_name_list(self, rdict):

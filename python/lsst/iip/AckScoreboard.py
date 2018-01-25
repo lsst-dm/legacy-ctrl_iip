@@ -130,16 +130,16 @@ class AckScoreboard(Scoreboard):
             # ACK_IDS are for unit tests and for printing out entire scoreboard
             #self._redis.lpush(self.ACK_IDS, ack_id_string)
             
-            params = {}
-            params['SUB_TYPE'] = ack_sub_type
-            params['ACK_ID'] = ack_id_string
-            if 'JOB_NUM' in ack_msg_body:
-                params['JOB_NUM'] = ack_msg_body['JOB_NUM']
-            if 'IMAGE_ID' in ack_msg_body:
-                params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
-            params['COMPONENT'] = ack_component_name
-            params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
-            self.persist(self.build_audit_data(params))
+       #     params = {}
+       #     params['SUB_TYPE'] = ack_sub_type
+       #     params['ACK_ID'] = ack_id_string
+       #     if 'JOB_NUM' in ack_msg_body:
+       #         params['JOB_NUM'] = ack_msg_body['JOB_NUM']
+       #     if 'IMAGE_ID' in ack_msg_body:
+       #         params['IMAGE_ID'] = ack_msg_body['IMAGE_ID']
+       #     params['COMPONENT'] = ack_component_name
+       #     params['ACK_BOOL'] = ack_msg_body['ACK_BOOL']
+       #     self.persist(self.build_audit_data(params))
             
         else:
             LOGGER.error('Unable to add new ACK; Redis connection unavailable')
