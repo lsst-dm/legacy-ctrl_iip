@@ -59,6 +59,7 @@ class TestArDev:
     EXPECTED_DMCS_MESSAGES = 1
     EXPECTED_F1_MESSAGES = 1
     EXPECTED_F2_MESSAGES = 1
+    NUM_READOUTS = 0
 
     ccd_list = [14,17,21.86]
     prp = toolsmod.prp
@@ -163,7 +164,10 @@ class TestArDev:
         self.verify_ar_ctrl_messages()
         self.verify_F1_messages()
         self.verify_F2_messages()
+
         sleep(3)
+
+        # Shut down consumer threads nicely
         self.dmcs_consumer.stop()
         self.dmcs_consumer.join()
         self.ar_ctrl_consumer.stop()
@@ -396,25 +400,29 @@ class TestArDev:
             msg['ACK_ID'] = body['ACK_ID']
             self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
+        elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
+            # This message handler is not necessary as it does nothing
+            # But it is explanatory in nature for understanding/maintaining the file.
+            #
+            # No ack necessary - but NUM_IMAGES param will be 
+            # needed in AR_FWDR_TAKE_IMAGES_DONE message handler below
+            pass
+
         elif body['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-            # Find message in message list for xfer_params
-            xfer_msg = None
-            for msg in self.f1_consumer_msg_list:
-                if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
-                    xfer_msg = msg
-                    break
-            if xfer_msg == None:
-                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
+            self.NUM_READOUTS = self.NUM_READOUTS + 1
 
         elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES_DONE':
             # Find message in message list for xfer_params
             xfer_msg = None
             image_id_list = []
+            num_images = 0;
             for msg in self.f1_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
                     image_id_list.append(msg['IMAGE_ID']
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
                     xfer_msg = msg
+                if msg['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
+                    num_images = int(msg['NUM_IMAGES'])
             if xfer_msg == None:
                 pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
 
@@ -423,31 +431,33 @@ class TestArDev:
             msg['MSG_TYPE'] = 'AR_FWDR_TAKE_IMAGES_DONE_ACK'
             msg['COMPONENT'] = 'FORWARDER_1'
             msg['JOB_NUM'] = xfer_msg['JOB_NUM']
-            msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
             msg['ACK_ID'] = body['ACK_ID']
-            msg['ACK_BOOL'] = True
-            msg['RESULT_LIST'] = {}
             raft_list = xfer_msg['XFER_PARAMS']['RAFT_LIST']
             raft_ccd_list = xfer_msg['XFER_PARAMS']['RAFT_CCD_LIST']
-            msg['RAFT_LIST'] = raft_list
-            msg['RAFT_CCD_LIST'] = raft_ccd_list
-            msg['RESULT_LIST']['CCD_LIST'] = []
-            msg['RESULT_LIST']['FILENAME_LIST'] = []
-            msg['RESULT_LIST']['CHECKSUM_LIST'] = []
-            CCD_LIST = []
+            msg['RESULT_SET'] = {}
+            msg['RESULT_SET']['RAFT_LIST'] = raft_list
+            msg['RESULT_SET']['RAFT_CCD_LIST'] = raft_ccd_list
+            msg['RESULT_SET']['RAFT_PLUS_CCD_LIST'] = []
+            msg['RESULT_SET']['FILENAME_LIST'] = []
+            msg['RESULT_SET']['CHECKSUM_LIST'] = []
+            RAFT_PLUS_CCD_LIST = []
             FILENAME_LIST = []
             CHECKSUM_LIST = []
             target_dir = xfer_msg['TARGET_DIR']
-            ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
-            ccd_list = self.convert_raft_and_ccd_list_to_name_list(raft_list, raft_ccd_list)
-            for ccd in ccd_list:
-                CCD_LIST.append(ccd)
+            rafts_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
+            raft_plus_ccd_list = self.convert_raft_and_ccd_list_to_name_list(raft_list, raft_ccd_list)
+            for ccd in raft_plus_ccd_list:
+                RAFT_PLUS_CCD_LIST.append(ccd)
                 ### XXX ADD IMAGE_ID from IMAGE_ID_LIST to target_dir and ccd name
                 FILENAME_LIST.append(target_dir + str(ccd))
                 CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
-            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
+            msg['RESULT_LIST']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
             msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
             msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
+            if num_images == self.NUM_READOUTS:
+                msg['ACK_BOOL'] = True
+            else:
+                msg['ACK_BOOL'] = False
             self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
@@ -473,47 +483,74 @@ class TestArDev:
             msg['ACK_ID'] = body['ACK_ID']
             self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
-        elif body['MSG_TYPE'] == 'AR_FWDR_READOUT':
+        elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
+            # This message handler is not necessary as it does nothing
+            # But it is explanatory in nature for understanding/maintaining the file.
+            #
+            # No ack necessary - but NUM_IMAGES param will be 
+            # needed in AR_FWDR_TAKE_IMAGES_DONE message handler below
+            pass
+
+
+        elif body['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
             # Find message in message list for xfer_params
             xfer_msg = None
-            for msg in self.f2_consumer_msg_list:
+            for msg in self.f1_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
                     xfer_msg = msg
                     break
             if xfer_msg == None:
-                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F2")
+                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
+
+        elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES_DONE':
+            # Find message in message list for xfer_params
+            xfer_msg = None
+            image_id_list = []
+            num_images = 0;
+            for msg in self.f2_consumer_msg_list:
+                if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
+                    image_id_list.append(msg['IMAGE_ID']
+                if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
+                    xfer_msg = msg
+                if msg['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
+                    num_images = msg['NUM_IMAGES']
+            if xfer_msg == None:
+                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
 
             # use message to build response
             msg = {}
-            msg['MSG_TYPE'] = 'AR_FWDR_READOUT_ACK'
+            msg['MSG_TYPE'] = 'AR_FWDR_TAKE_IMAGES_DONE_ACK'
             msg['COMPONENT'] = 'FORWARDER_2'
             msg['JOB_NUM'] = xfer_msg['JOB_NUM']
-            msg['IMAGE_ID'] = xfer_msg['IMAGE_ID']
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            msg['RESULT_LIST'] = {}
-            msg['RESULT_LIST']['CCD_LIST'] = []
-            msg['RESULT_LIST']['FILENAME_LIST'] = []
-            msg['RESULT_LIST']['CHECKSUM_LIST'] = []
-            CCD_LIST = []
+            raft_list = xfer_msg['XFER_PARAMS']['RAFT_LIST']
+            raft_ccd_list = xfer_msg['XFER_PARAMS']['RAFT_CCD_LIST']
+            msg['RESULT_SET'] = {}
+            msg['RESULT_SET']['RAFT_LIST'] = raft_list
+            msg['RESULT_SET']['RAFT_CCD_LIST'] = raft_ccd_list
+            msg['RESULT_SET']['RAFT_PLUS_CCD_LIST'] = []
+            msg['RESULT_SET']['FILENAME_LIST'] = []
+            msg['RESULT_SET']['CHECKSUM_LIST'] = []
+            RAFT_PLUS_CCD_LIST = []
             FILENAME_LIST = []
             CHECKSUM_LIST = []
             target_dir = xfer_msg['TARGET_DIR']
-            ccd_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
-            for ccd in ccd_list:
-                CCD_LIST.append(ccd)
+            rafts_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
+            raft_plus_ccd_list = self.convert_raft_and_ccd_list_to_name_list(raft_list, raft_ccd_list)
+            for ccd in raft_plus_ccd_list:
+                RAFT_PLUS_CCD_LIST.append(ccd)
+                ### XXX ADD IMAGE_ID from IMAGE_ID_LIST to target_dir and ccd name
                 FILENAME_LIST.append(target_dir + str(ccd))
                 CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
-            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST
+            msg['RESULT_LIST']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
             msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
             msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
-            print("----------------------\nAt end of  F2 Message AR_FWDR_READOUT...")
-            print("%s" % get_timestamp())
-            print("------------------------------------\n\n")
-            self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
-            pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
+            pytest.fail("The following unknown message was received by FWDR F1: %s" % body)
+
 
     def convert_raftdict_to_name_list(self, rdict):
         raft_list = list(rdict.keys())

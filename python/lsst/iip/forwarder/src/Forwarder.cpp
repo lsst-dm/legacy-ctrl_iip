@@ -143,12 +143,12 @@ map<string, funcptr> on_foreman_message_actions = {
     { "AR_TAKE_IMAGES", &Forwarder::process_take_images},
     { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
     { "SP_TAKE_IMAGES", &Forwarder::process_take_images},
-    { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
-    { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
-    { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "AR_END_READOUT", &Forwarder::process_end_readout},
     { "PP_END_READOUT", &Forwarder::process_end_readout},
-    { "SP_END_READOUT", &Forwarder::process_end_readout}
+    { "SP_END_READOUT", &Forwarder::process_end_readout},
+    { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
+    { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
+    { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}
 };
 
 //The next three handlers are essentially acks...

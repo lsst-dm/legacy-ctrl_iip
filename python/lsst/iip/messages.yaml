@@ -488,10 +488,10 @@ ROOT:
         COMPONENT:
         ACK_ID:
         ACK_BOOL:
-        RESULT_LIST:
+        RESULT_SET:
             RAFT_LIST:
             RAFT_CCD_LIST:
-            CCD_LIST: Ordered list of CCDs - index is shared with lists below
+            RAFT_PLUS_CCD_LIST: index of ccds in the form raftname-ccdname or 10-22 for example
             FILENAME_LIST: Ordered list of Path plus filename used for the transfer
             CHECKSUM_LIST: Ordered list of File checksum value
 

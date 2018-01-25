@@ -4,6 +4,7 @@
 #rabbitmqctl -p /bunny purge_queue pp_foreman_consume
 #rabbitmqctl -p /bunny purge_queue ar_foreman_consume
 #rabbitmqctl -p /bunny purge_queue cu_foreman_consume
+#rabbitmqctl -p /bunny purge_queue sp_foreman_consume
 #rabbitmqctl -p /bunny purge_queue f_consume
 #rabbitmqctl -p /bunny purge_queue archive_ctrl_consume
 #rabbitmqctl -p /bunny purge_queue archive_ctrl_publish
