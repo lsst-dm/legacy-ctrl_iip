@@ -764,7 +764,7 @@ void Forwarder::send_completed_msg(string img_name) {
 void Forwarder::process_formatted_img(Node n) { 
     string img_name = n["IMG_NAME"].as<string>(); 
     string img_path = this->Work_Dir + "FITS/" + img_name; 
-    string dest_path = "F2@141.142.238.182:/home/F2/" + img_name; 
+    string dest_path = "ARCHIE@141.142.238.15:/home/ARCHIE/" + img_name; 
     
     // use bbcp to send file 
     ostringstream bbcp_cmd; 
