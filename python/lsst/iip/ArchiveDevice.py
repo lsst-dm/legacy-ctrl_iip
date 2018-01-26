@@ -78,6 +78,7 @@ class ArchiveDevice:
                               'AR_FWDR_HEALTH_CHECK_ACK': self.process_ack,
                               'AR_FWDR_XFER_PARAMS_ACK': self.process_ack,
                               'AR_FWDR_READOUT_ACK': self.process_ack,
+                              'AR_FWDR_TAKE_IMAGES_DONE_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
                               'AR_TAKE_IMAGES': self.take_images,
@@ -166,9 +167,6 @@ class ArchiveDevice:
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
-        print("Message in foreman ACK Queue: ")
-        self.prp.pprint(body)
-        print("forman ACK Queue is done printing incoming message")
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -194,7 +192,8 @@ class ArchiveDevice:
         job_number = params[JOB_NUM]
         raft_list = params['RAFT_LIST']
         raft_ccd_list = params['RAFT_CCD_LIST']
-        start_int_ack_id = params[ACK_ID]
+        next_visit_reply_queue = params['REPLY_QUEUE']
+        next_visit_ack_id = params[ACK_ID]
 
         # next, run health check
         health_check_ack_id = self.get_next_timed_ack_id('AR_FWDR_HEALTH_ACK')
@@ -238,8 +237,9 @@ class ArchiveDevice:
            print("B-B-BAD Trouble; no ar_response")
            
        
-        target_dir = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
-        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 'TARGET_DIR': dir})
+        target_location = ar_response['ARCHIVE_CTRL']['TARGET_LOCATION']
+        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 
+                                                  'TARGET_LOCATION': target_location})
         
 
         # divide image fetch across forwarders
@@ -268,8 +268,8 @@ class ArchiveDevice:
         fwdr_new_target_params[JOB_NUM] = job_number
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
         fwdr_new_target_params[REPLY_QUEUE] = self.AR_FOREMAN_ACK_PUBLISH
-        target_location = self.archive_name + "@" + self.archive_ip + ":" + target_dir
-        fwdr_new_target_params['TARGET_LOCATION'] = target_location
+        final_target_location = self.archive_name + "@" + self.archive_ip + ":" + target_location
+        fwdr_new_target_params['TARGET_LOCATION'] = final_target_location
 
         len_fwdrs_list = len(work_schedule['FORWARDER_LIST'])
         for i in range (0, len_fwdrs_list):
@@ -297,15 +297,12 @@ class ArchiveDevice:
         self.JOB_SCBD.set_value_for_job(job_number,'STATE','XFER_PARAMS_SENT')
 
         # accept job by Ach'ing True
-        st_int_params_ack = {}
-        st_int_params_ack['MSG_TYPE'] = 'AR_START_INTEGRATION_ACK'
-        st_int_params_ack['ACK_ID'] = start_int_ack_id
-        st_int_params_ack['ACK_BOOL'] = True
-        st_int_params_ack['JOB_NUM'] = job_number
-        st_int_params_ack['SESSION_ID'] = session_id
-        st_int_params_ack['VISIT_ID'] = visit_id
-        st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
-        self.accept_job(st_int_params_ack)
+        ar_next_visit_ack = {}
+        ar_next_visit_ack['MSG_TYPE'] = 'AR_NEXT_VISIT_ACK'
+        ar_next_visit_ack['ACK_ID'] = next_visit_ack_id
+        ar_next_visit_ack['ACK_BOOL'] = True
+        ar_next_visit_ack['COMPONENT'] = self.COMPONENT_NAME
+        self.accept_job(next_visit_reply_queue, ar_next_visit_ack)
 
         self.JOB_SCBD.set_value_for_job(job_number, STATE, "JOB_ACCEPTED")
         fscbd_params = {'STATE':'AWAITING_READOUT'}
@@ -414,7 +411,7 @@ class ArchiveDevice:
         return schedule
 
 
-    def accept_job(self, dmcs_message):
+    def accept_job(self, reply_queue, dmcs_message):
         """ Send AR_START_INTEGRATION_ACK message with ack_bool equals True (job accepted)
             and other job specs to dmcs_ack_consume queue.
 
@@ -422,7 +419,7 @@ class ArchiveDevice:
 
             :return: None.
         """
-        self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
+        self._publisher.publish_message(reply_queue, dmcs_message)
 
 
     def refuse_job(self, params, fail_details):
@@ -454,9 +451,6 @@ class ArchiveDevice:
         job_num = params[JOB_NUM]
         self.JOB_SCBD.set_value_for_job(job_num, 'NUM_IMAGES', num_images)
         work_sched = self.JOB_SCBD.get_work_schedule_for_job(job_num)
-        print("Work Schedule Structure is: ")
-        self.prp.pprint(work_sched)
-        print("Done Printing Work Schedule Structure.")
         fwdrs = work_sched['FORWARDER_LIST']
         msg = {}
         msg['MSG_TYPE'] = 'AR_FWDR_TAKE_IMAGES'
@@ -635,12 +629,23 @@ class ArchiveDevice:
         msg = {}
         msg[MSG_TYPE] = 'AR_FWDR_TAKE_IMAGES_DONE'
         msg[JOB_NUM] = job_number
+        msg['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH 
         msg[ACK_ID] = fwdr_readout_ack
         for i in range (0, len_fwdrs):
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
             self._publisher.publish_message(route_key, msg)
 
+        ### FIX Check Archive Controller
+        wait up to 15 sec for readout responses
+        fwdr_readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len_fwdrs, 15.0)
+        fwdr_responses = list(fwdr_readout_responses.keys())
+        RESULT_SET = {}
+        RESULT_SET['RAFT_PLUS_CCD_LIST'] = []
+        RESULT_SET['CHECKSUM_LIST'] = []
+        RESULT_SET['FILENAME_LIST'] = {}
+        wait up to 15 sec for Ar Ctrl response
         ### FIX Add Final Response to DMCS
+        send result set to DMCS
 
  
     def process_ack(self, params):
@@ -651,9 +656,6 @@ class ArchiveDevice:
 
             :return: None.
         """
-        print("archivedevice process_ack message: ")
-        self.prp.pprint(params)
-        print("Done printing incoming process_ack message")
         self.ACK_SCBD.add_timed_ack(params)
         
 

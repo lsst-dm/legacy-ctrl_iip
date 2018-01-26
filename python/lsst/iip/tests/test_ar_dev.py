@@ -193,7 +193,7 @@ class TestArDev:
         # Tests only an AR device
         
         self.EXPECTED_AR_CTRL_MESSAGES = 2
-        self.EXPECTED_DMCS_MESSAGES = 4
+        self.EXPECTED_DMCS_MESSAGES = 2
         self.EXPECTED_F1_MESSAGES = 3
         self.EXPECTED_F2_MESSAGES = 3
 
@@ -287,7 +287,9 @@ class TestArDev:
 
     def verify_dmcs_messages(self):
         len_list = len(self.dmcs_consumer_msg_list)
+        print("DMCS RECEIVED %s MESSAGES" % len_list)
         if len_list != self.EXPECTED_DMCS_MESSAGES:
+            print("Incorrect number of DMCS messages received")
             pytest.fail('DMCS simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_DMCS_MESSAGES, len_list))
 
@@ -296,13 +298,17 @@ class TestArDev:
             msg = self.dmcs_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
+                print("This DMCS message failed verification: ")
+                self.prp.pprint(msg)
                 pytest.fail("The following DMCS Bridge response message failed when compared with the sovereign example: %s" % msg)
         print("Responses to DMCS Bridge pass verification.")
    
 
     def verify_ar_ctrl_messages(self):
         len_list = len(self.ar_ctrl_consumer_msg_list)
+        print("AR_CTRL RECEIVED %s MESSAGES" % len_list)
         if len_list != self.EXPECTED_AR_CTRL_MESSAGES:
+            print("Incorrect number of AR_CTRL messages received")
             pytest.fail('AR CTRL simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_AR_CTRL_MESSAGES, len_list))
 
@@ -311,13 +317,17 @@ class TestArDev:
             msg = self.ar_ctrl_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
+                print("This AR_CTRL message failed verification: ")
+                self.prp.pprint(msg)
                 pytest.fail("The following message to the AR CTRL failed when compared with the sovereign example: %s" % msg)
         print("Messages to the AR CTRL pass verification.")
    
 
     def verify_F1_messages(self):
         len_list = len(self.f1_consumer_msg_list)
+        print("F1 RECEIVED %s MESSAGES" % len_list)
         if len_list != self.EXPECTED_F1_MESSAGES:
+            print("Incorrect number of F1 messages received")
             pytest.fail('F1 simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_F1_MESSAGES, len_list))
 
@@ -326,6 +336,8 @@ class TestArDev:
             msg = self.f1_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
+                print("This F1 message failed verification: ")
+                self.prp.pprint(msg)
                 pytest.fail("The following message to F1 failed when compared with the sovereign example: %s" % msg)
 
         print("Messages to F1 pass verification.")
@@ -333,7 +345,9 @@ class TestArDev:
    
     def verify_F2_messages(self):
         len_list = len(self.f2_consumer_msg_list)
+        print("F2 RECEIVED %s MESSAGES" % len_list)
         if len_list != self.EXPECTED_F2_MESSAGES:
+            print("Incorrect number of F2 messages received")
             pytest.fail('F2 simulator received incorrect number of messages.\nExpected %s but received %s'\
                         % (self.EXPECTED_F2_MESSAGES, len_list))
 
@@ -342,6 +356,8 @@ class TestArDev:
             msg = self.f2_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
+                print("This F2 message failed verification: ")
+                self.prp.pprint(msg)
                 pytest.fail("The following message to F2 failed when compared with the sovereign example: %s" % msg)
 
         print("Messages to F2 pass verification.")
@@ -355,20 +371,13 @@ class TestArDev:
     def on_ar_ctrl_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
         self.ar_ctrl_consumer_msg_list.append(body)
-        print("GOT ME A FOREMAN MESSAGE TO ARCHIE")
-        self.prp.pprint(body)
-        print("AND SENDING THIS ACK BACK: ")
         if body['MSG_TYPE'] == 'NEW_ARCHIVE_ITEM':
             msg = {}
             msg['MSG_TYPE'] = 'NEW_ARCHIVE_ITEM_ACK'
             msg['COMPONENT'] = 'ARCHIVE_CTRL'
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            #msg['TARGET_DIR'] = '/dev/test/null' 
-            msg['TARGET_DIR'] = '/tmp' 
-            self.prp.pprint(msg)
-            print("++++AND BEING SENT TO++++  %s" % body['REPLY_QUEUE'])
-            print("Done in NEW_ARCHIVE_ITEM HANDLER")
+            msg['TARGET_LOCATION'] = '/tmp' 
             self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_ITEMS_XFERD':
@@ -456,17 +465,16 @@ class TestArDev:
             RAFT_PLUS_CCD_LIST = []
             FILENAME_LIST = []
             CHECKSUM_LIST = []
-            target_dir = xfer_msg['TARGET_DIR']
-            rafts_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
+            target_location = xfer_msg['TARGET_LOCATION']
             raft_plus_ccd_list = self.convert_raft_and_ccd_list_to_name_list(raft_list, raft_ccd_list)
             for ccd in raft_plus_ccd_list:
                 RAFT_PLUS_CCD_LIST.append(ccd)
                 ### XXX ADD IMAGE_ID from IMAGE_ID_LIST to target_dir and ccd name
-                FILENAME_LIST.append(target_dir + str(ccd))
+                FILENAME_LIST.append(target_location + "/" + str(ccd))
                 CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
-            msg['RESULT_LIST']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
-            msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
-            msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
+            msg['RESULT_SET']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
+            msg['RESULT_SET']['FILENAME_LIST'] = FILENAME_LIST
+            msg['RESULT_SET']['CHECKSUM_LIST'] = CHECKSUM_LIST
             if num_images == self.NUM_READOUTS:
                 msg['ACK_BOOL'] = True
             else:
@@ -489,11 +497,6 @@ class TestArDev:
             self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
-            print("111111111111111111111111111111111111111111")
-            print("111111111111111111111111111111111111111111")
-            self.prp.pprint(body)
-            print("111111111111111111111111111111111111111111")
-            print("111111111111111111111111111111111111111111")
             msg = {}
             msg['MSG_TYPE'] = 'AR_FWDR_XFER_PARAMS_ACK'
             msg['COMPONENT'] = 'FORWARDER_2'
@@ -546,17 +549,16 @@ class TestArDev:
             RAFT_PLUS_CCD_LIST = []
             FILENAME_LIST = []
             CHECKSUM_LIST = []
-            target_dir = xfer_msg['TARGET_DIR']
-            rafts_list = xfer_msg['XFER_PARAMS']['CCD_LIST']
+            target_location = xfer_msg['TARGET_LOCATION']
             raft_plus_ccd_list = self.convert_raft_and_ccd_list_to_name_list(raft_list, raft_ccd_list)
             for ccd in raft_plus_ccd_list:
                 RAFT_PLUS_CCD_LIST.append(ccd)
-                ### XXX ADD IMAGE_ID from IMAGE_ID_LIST to target_dir and ccd name
-                FILENAME_LIST.append(target_dir + str(ccd))
+                ### XXX ADD IMAGE_ID from IMAGE_ID_LIST to target_location and ccd name
+                FILENAME_LIST.append(target_location + "/" + str(ccd))
                 CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
-            msg['RESULT_LIST']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
-            msg['RESULT_LIST']['FILENAME_LIST'] = FILENAME_LIST
-            msg['RESULT_LIST']['CHECKSUM_LIST'] = CHECKSUM_LIST
+            msg['RESULT_SET']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
+            msg['RESULT_SET']['FILENAME_LIST'] = FILENAME_LIST
+            msg['RESULT_SET']['CHECKSUM_LIST'] = CHECKSUM_LIST
             self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
