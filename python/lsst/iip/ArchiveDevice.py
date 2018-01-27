@@ -643,9 +643,33 @@ class ArchiveDevice:
         RESULT_SET['RAFT_PLUS_CCD_LIST'] = []
         RESULT_SET['CHECKSUM_LIST'] = []
         RESULT_SET['FILENAME_LIST'] = {}
+        for fwdr_comp in fwdr_responses:
+            RESULT_SET['RAFT_PLUS_CCD_LIST'] += fwdr_comp['RESULT_SET']['RAFT_PLUS_CCD_LIST']
+            RESULT_SET['CHECKSUM_LIST'] += fwdr_comp['RESULT_SET']['CHECKSUM_LIST']
+            RESULT_SET['FILENAME_LIST'] += fwdr_comp['RESULT_SET']['FILENAME_LIST']
+            
+        ar_xferd_ack = self.get_next_timed_ack_id("AR_ITEMS_XFERD_ACK")
+        arc_msg = {}
+        arc_msg['MSG_TYPE'] = 'AR_ITEMS_XFERD'
+        arc_msg['ACK_ID'] = ar_xferd_ack
+        arc_msg['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH 
+        arc_msg['RESULT_SET'] = RESULT_SET
+        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, arc_msg)
+
+    
+        ar_ctrl_response = self.progressive_ack_timer(ar_xferd_ack, 1, 11.0)
         wait up to 15 sec for Ar Ctrl response
         ### FIX Add Final Response to DMCS
         send result set to DMCS
+        num_images - 
+        dmcs_msg = {}
+        dmcs_msg['AR_TAKE_IMAGES_DONE_ACK']
+        dmcs_msg['ACK_ID'] = readout_ack_id
+        dmcs_msg['ACK_BOOL'] = True
+        dmcs_msg['JOB_NUM'] = job_number
+        dmcs_msg['COMPONENT'] = self.COMPONENT_NAME
+        dmcs_msg['RESULT_SET'] = ar_ctrl_response['RESULT_SET']
+        self._publisher.publish_message(reply_queue, dmcs_msg)
 
  
     def process_ack(self, params):
