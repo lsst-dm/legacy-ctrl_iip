@@ -1,3 +1,7 @@
+/////////////////////////////////////////////////////////////////
+// FIX: Add conditional to process_format for end_readout versus take_aiamges_done.
+//
+
 #include <sys/stat.h> 
 #include <dirent.h>
 #include <stdio.h>
@@ -27,6 +31,7 @@ class Forwarder {
     //Important 'per readout' values
     std::vector<string> visit_raft_list;
     std::vector<std::vector<string> > visit_raft_ccd_list;
+    std::vector<string> image_id_list;
 
     std::vector<string> current_image_work_list;
     std::vector<string> finished_image_work_list;
@@ -186,6 +191,7 @@ map<string, funcptr> on_forward_message_actions = {
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK", &Forwarder::process_fetch_health_check},
     { "FETCH_END_READOUT", &Forwarder::process_fetch_end_readout},
+    { "TAKE_IMAGES_DONE", &Forwarder::process_fetch_end_readout},
     { "AR_FETCH", &Forwarder::process_fetch},
     { "PP_FETCH", &Forwarder::process_fetch},
     { "SP_FETCH", &Forwarder::process_fetch}
@@ -195,6 +201,7 @@ map<string, funcptr> on_forwarder_to_fetch_message_actions = {
 map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
+    { "TAKE_IMAGES_DONE", &Forwarder::process_format},
     { "PP_FORMAT", &Forwarder::process_format},
     { "SP_FORMAT", &Forwarder::process_format}, 
     { "FORMAT_START", &Forwarder::assemble_img} 
@@ -204,6 +211,8 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
 map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK", &Forwarder::process_forward_health_check},
     { "AR_FORWARD", &Forwarder::process_forward},
+    { "FORMAT_DONE", &Forwarder::process_forward}, 
+    { "TAKE_IMAGES_DONE", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}, 
     { "FORMAT_DONE", &Forwarder::process_formatted_img} 
@@ -551,48 +560,6 @@ void Forwarder::process_take_images(Node n) {
     return;
 }
 
-void Forwarder::process_take_images_done(Node n) {
-    string ack_id = n["ACK_ID"].as<string>();
-    string reply_queue = n["REPLY_QUEUE"].as<string>();
-    // 1) Message fetch, format, and forwarder to clear all when work queue is complete
-    // 2) forward thread must generate report
-    // 3) Get filename_list of files transferred
-    // 4) Get checksum_list that corressponds to each file...
-    ostringstream message;
-    YAML::emitter file_list;
-    YAML::emitter csum_list;
-    YAML::emitter result_set;
-    string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK "
-    string ack_bool = "True "
-    
-    file_list << YAML::BeginSeq;
-    csum_list << YAML::BeginSeq;
-    for(int i = 0; i < files_transferred_list.size(); i++) {
-      file_list << files_transferred_list[i].str();
-      csum_list << checksum_list[i].str();
-    }
-    file_list << YAML::EndSeq;
-    csum_list << YAML::EndSeq;
-
-    result_set << YAML::BeginMap;
-    result_set << YAML::KEY << "FILENAME_LIST";
-    result_set << YAML::VALUE << file_list:
-    result_set << YAML::KEY << "CHECKSUM_LIST";
-    result_set << YAML::VALUE << file_list:
-    result_set << YAML::EndMap;
-    massage << "{MSG_TYPE: " << msg_type 
-            << "COMPONENT: " << this->Component
-            << "ACK_ID: " << ack_id
-            << "ACK_BOOL: " << ack_bool
-            << "RESULT_SET: " << result_set.c_str() << "}";
-    
-    #vector<string> file_names = list_files(img_path); 
-    #vector<string>::iterator it; 
-    #for (it = file_names.begin(); it != file_names.end(); it++) { 
-    #    string img_segment = *it; 
-    return;
-}
-
 void Forwarder::process_end_readout(Node n) {
     // Send IMAGE_ID to fetch thread...use message broker queue as work queue
     //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
@@ -600,6 +567,7 @@ void Forwarder::process_end_readout(Node n) {
 
     //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
     string image_id = n["IMAGE_ID"].as<string>();
+    image_id_list.push_back(image_id);
     string msg_type = "FETCH_END_READOUT";
     ostringstream message;
     message << "{MSG_TYPE: " << msg_type
@@ -608,10 +576,19 @@ void Forwarder::process_end_readout(Node n) {
     return;
 }
 
+//From forwarder main thread to fetch thread
 void Forwarder::process_fetch_end_readout(Node n) {
     //Make dir using image_id as name under work_dir
     //Fetch data from DAQ or copy from local drive
     //Send message to Format thread with image_id
+    string type_msg = n["MSG_TYPE"].as<string>();
+    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << type_msg << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return
+    }
+
     string image_id = n["IMAGE_ID"].as<string>();
     ostringstream cmd;
     ostringstream filepath;
@@ -620,18 +597,24 @@ void Forwarder::process_fetch_end_readout(Node n) {
     const std::string tmpstr = cmd.str();
     const char* cmdstr = tmpstr.c_str();
     system(cmdstr);
-    //XXX FIX
-    //if strcmp(this->Daq_Addr,"API") {
-    //    call Mikes API;
-    //} else {
-    //    copy files from location Daq_Addr
-    //}
     string msg_type = "FORMAT_END_READOUT";
     ostringstream message;
     message << "{MSG_TYPE: " << msg_type
             << ", IMAGE_ID: " << image_id << "}";
-    this->FWDR_to_format_pub->publish_message(this->format_consume_queue, message.str());
+    this->fetch_pub->publish_message(this->format_consume_queue, message.str());
     return;
+}
+
+void Forwarder::process_take_images_done(Node n) {
+    string ack_id = n["ACK_ID"].as<string>();
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    // 1) Message fetch, format, and forwarder to clear all when work queue is complete
+    // 2) forward thread must generate report
+    // 3) Get filename_list of files transferred
+    // 4) Get checksum_list that corressponds to each file...
+
+    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
+
 }
 
 void Forwarder::process_fetch(Node n) {
@@ -675,8 +658,45 @@ void Forwarder::process_format_health_check_ack(Node n) {
 }
 
 void Forwarder::process_forward(Node n) {
-    cout << "Processing forward message" << endl;
-    return;
+    string type_msg = n["MSG_TYPE"].as<string>();
+    if strcmp(type_msg, "FORMAT_DONE") {
+      this->process_formatted_img(n);
+      return;
+    }
+    else if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+      ostringstream message;
+      YAML::emitter file_list;
+      YAML::emitter csum_list;
+      YAML::emitter result_set;
+      string ack_id = n["ACK_ID"].as<string>();
+      string reply_queue = n["REPLY_QUEUE"].as<string>();
+      string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK "
+      string ack_bool = "True "
+    
+      file_list << YAML::BeginSeq;
+      csum_list << YAML::BeginSeq;
+      for(int i = 0; i < finished_image_work_list.size(); i++) {
+        file_list << finished_image_work_list[i].str();
+        csum_list << checksum_list[i].str();
+      }
+      file_list << YAML::EndSeq;
+      csum_list << YAML::EndSeq;
+
+      result_set << YAML::BeginMap;
+      result_set << YAML::KEY << "FILENAME_LIST";
+      result_set << YAML::VALUE << file_list:
+      result_set << YAML::KEY << "CHECKSUM_LIST";
+      result_set << YAML::VALUE << file_list:
+      result_set << YAML::EndMap;
+      message << "{MSG_TYPE: " << msg_type 
+              << "COMPONENT: " << this->Component
+              << "ACK_ID: " << ack_id
+              << "ACK_BOOL: " << ack_bool
+              << "RESULT_SET: " << result_set.c_str() << "}";
+    
+      this->fetch_pub->publish_message(reply_queue, message.str());
+      return;
+    }
 }
 
 void Forwarder::process_forward_ack(Node n) {
@@ -686,6 +706,48 @@ void Forwarder::process_forward_ack(Node n) {
 
 void Forwarder::process_forward_health_check(Node n) {
     cout << "Processing forward health check message" << endl;
+    type_msg = n["MSG_TYPE"].as<string>();
+    type_msg = n["MSG_TYPE"].as<string>();
+    type_msg = n["MSG_TYPE"].as<string>();
+    type_msg = n["MSG_TYPE"].as<string>();
+    type_msg = n["MSG_TYPE"].as<string>();
+    type_msg = n["MSG_TYPE"].as<string>();
+    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << type_msg << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return
+    }
+    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << type_msg << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return
+    }
+    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << type_msg << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return
+    }
+    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << type_msg << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return
+    }
+    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << type_msg << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return
+    }
+    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << type_msg << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return
+    }
     return;
 }
 
