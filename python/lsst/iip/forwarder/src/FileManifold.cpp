@@ -41,13 +41,20 @@ FileManiFold::FileManifold(const char* dir_prefix, const char* visit_name, const
         ccd_name = ccd[a][b]
         for (int c = 0; c < 16; c++)  // Segments
         {
+          std::string seg; 
+          if (c < 10) { 
+              seg = "0" + to_string(c);
+          } 
+          else { 
+              seg = to_string(c); 
+          } 
           std::ostringstream fns;
           fns << dir_prefix << visit_name \
                             << "/" \
                             << image_name \
                             << "--" << raft \
                             << "-ccd." << ccd_name \ 
-                            << "_segment." << c;
+                            << "_segment." << seg;
 
           AMP_SEGMENTS[a][b][c].open(fns.str().c_str(), \
                                      std::ios::out | std::ios::app | std::ios::binary );
@@ -88,13 +95,20 @@ FileManifold::FileManifold(const char* dir_prefix,
 
   for (int c = 0; c < 16; c++)  // Segments
   {
+    std::string seg; 
+    if (c < 10) { 
+        seg = "0" + to_string(c);
+    } 
+    else { 
+        seg = to_string(c); 
+    } 
     std::ostringstream fns;
     fns << dir_prefix << visit_name \
                       << "/" \
                       << image_name \
                       << "--" << raft \
                       << "-ccd." << ccd \ 
-                      << "_segment." << c;
+                      << "_segment." << seg;
 
     CCD_SEGMENTS[c].open(fns.str().c_str(), \
                          std::ios::out | std::ios::app | std::ios::binary );

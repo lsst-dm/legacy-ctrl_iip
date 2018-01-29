@@ -121,6 +121,8 @@ class Forwarder {
     void assemble_img(YAML::Node);
     void send_completed_msg(std::string);
     vector<string> list_files(string); 
+
+    void process_formatted_img(Node); 
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -174,7 +176,7 @@ map<string, funcptr> on_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
     { "AR_FORWARD_ACK", &Forwarder::process_forward_ack},
     { "PP_FORWARD_ACK", &Forwarder::process_forward_ack},
-    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack}
+    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack},
 
 };
 
@@ -194,7 +196,8 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
     { "PP_FORMAT", &Forwarder::process_format},
-    { "SP_FORMAT", &Forwarder::process_format}
+    { "SP_FORMAT", &Forwarder::process_format}, 
+    { "FORMAT_START", &Forwarder::assemble_img} 
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
@@ -202,7 +205,8 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK", &Forwarder::process_forward_health_check},
     { "AR_FORWARD", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
-    { "SP_FORWARD", &Forwarder::process_forward}
+    { "SP_FORWARD", &Forwarder::process_forward}, 
+    { "FORMAT_DONE", &Forwarder::process_formatted_img} 
 
 };
 
@@ -690,6 +694,16 @@ void Forwarder::process_forward_health_check_ack(Node n) {
     return;
 }
 
+void Forwarder::assemble_img(Node n) {
+    string img = n["IMG_NAME"].as<string>(); 
+    string header = n["HEADER_NAME"].as<string>(); 
+
+    // create dir  /mnt/ram/FITS/IMG_10
+    string fits_dir = Work_Dir + "FITS"; 
+    const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
+    write_img(img, header);
+}
+
 
 char* Forwarder::read_img_segment(const char *file_path) { 
     fstream img_file(file_path, fstream::in | fstream::binary); 
@@ -742,7 +756,7 @@ void Forwarder::write_img(string img, string header) {
     vector<string> file_names = list_files(img_path); 
     vector<string>::iterator it; 
     for (it = file_names.begin(); it != file_names.end(); it++) { 
-        string img_segment = *it; 
+        string img_segment = img_path + "/" + *it; 
         char *img_buffer = read_img_segment(img_segment.c_str());
         unsigned char **array = assemble_pixels(img_buffer); 
 
@@ -760,18 +774,8 @@ void Forwarder::write_img(string img, string header) {
     fits_close_file(iptr, &status); 
     fits_close_file(optr, &status); 
 
-    send_completed_msg(destination);
+    send_completed_msg(img);
 } 
-
-void Forwarder::assemble_img(Node n) {
-    string img = n["IMG_NAME"].as<string>(); 
-    string header = n["HEADER_NAME"].as<string>(); 
-
-    // create dir  /mnt/ram/FITS/IMG_10
-    string fits_dir = Work_Dir + "FITS"; 
-    const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
-    write_img(img, header);
-}
 
 vector<string> Forwarder::list_files(string path) { 
     struct dirent *entry; 
@@ -780,17 +784,7 @@ vector<string> Forwarder::list_files(string path) {
     while (entry  = readdir(dir)) { 
         string name = entry->d_name;
         if (strcmp(name.c_str(), ".") && strcmp(name.c_str(), "..")) { 
-            // if less than 10 rename them. 
-            size_t next = name.find_last_of("-"); 
-            string back = name.substr(next+1, name.size()); 
-            if (stoi(back) < 10 && back.size() < 2) { 
-                string front = name.substr(0, next+1); 
-                string final_name = front + "0" + back; 
-                string old_file = path + name; 
-                string new_file = path + final_name; 
-                rename(old_file.c_str(), new_file.c_str());  // BE CARFUL 
-                file_names.push_back(final_name); 
-            } 
+            file_names.push_back(name); 
         }
     } 
 
@@ -799,11 +793,31 @@ vector<string> Forwarder::list_files(string path) {
     return file_names; 
 } 
 
-void Forwarder::send_completed_msg(string directory) { 
+void Forwarder::send_completed_msg(string img_name) { 
     ostringstream msg; 
     msg << "{ MSG_TYPE: FORMAT_DONE" 
-        << ", DIRECTORY: " << directory << "}"; 
+        << ", IMG_NAME: " << img_name << "}"; 
     fmt_pub->publish_message(this->forward_consume_queue, msg.str()); 
+} 
+
+///////////////////////////////////////////////////////////////////////////////
+// Forward part 
+///////////////////////////////////////////////////////////////////////////////
+
+void Forwarder::process_formatted_img(Node n) { 
+    string img_name = n["IMG_NAME"].as<string>(); 
+    string img_path = this->Work_Dir + "FITS/" + img_name; 
+    string dest_path = this->Target_Dir + img_name; 
+    
+    // use bbcp to send file 
+    ostringstream bbcp_cmd; 
+    bbcp_cmd << "bbcp "
+             << img_path
+             << " " 
+             << dest_path; 
+    cout << bbcp_cmd.str() << endl; 
+    system(bbcp_cmd.str().c_str()); 
+    this->finished_image_work_list.push_back(img_name);
 } 
 
 int main() {
