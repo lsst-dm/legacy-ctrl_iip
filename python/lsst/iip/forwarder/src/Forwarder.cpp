@@ -549,8 +549,16 @@ void Forwarder::process_take_images_done(Node n) {
     string ack_id = n["ACK_ID"].as<string>();
     // 1) Message fetch, format, and forwarder to clear all when work queue is complete
     // 2) forward thread must generate report
-    // 3) 
-    cout << "Take Image Message...should be some tasty params here" << endl;
+    // 3) Get filename_list of files transferred
+    // 4) Get checksum_list that corressponds to each file...
+    ostringstream message;
+    map<string, vector<string>> result_set = {
+    
+    }
+    #vector<string> file_names = list_files(img_path); 
+    #vector<string>::iterator it; 
+    #for (it = file_names.begin(); it != file_names.end(); it++) { 
+    #    string img_segment = *it; 
     return;
 }
 
