@@ -640,7 +640,7 @@ class ArchiveDevice:
         fwdr_readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len_fwdrs, 15.0)
         fwdr_responses = list(fwdr_readout_responses.keys())
         RESULT_SET = {}
-        RESULT_SET['RAFT_PLUS_CCD_LIST'] = []
+        RESULT_SET['IMAGE_ID_LIST'] = []
         RESULT_SET['CHECKSUM_LIST'] = []
         RESULT_SET['FILENAME_LIST'] = {}
         for fwdr_comp in fwdr_responses:

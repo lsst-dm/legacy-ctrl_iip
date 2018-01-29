@@ -400,29 +400,6 @@ ROOT:
 
 
 
-    AR_ITEMS_XFERD: 
-        MSG_TYPE: AR_ITEMS_XFERD
-        ACK_ID: 
-        IMAGE_ID: 
-        CCD_LIST:
-            FILENAME: 
-            CHECKSUM: 
-
-    AR_ITEMS_XFERD_ACK: 
-        MSG_TYPE: AR_ITEMS_XFERD_ACK
-        IMAGE_ID:
-        ACK_ID:
-        RESULTS_LIST: 
-                CCD: 
-    #SESSION_ID: num from OCS (if archive wants it...for dir name?
-    #ACK_ID: seq. num
-    #-------------------------------------------------
-    #Msg # AR2: Archive Health Check ACK from Archive Controller to Base Archive Foreman
-    #MSG_TYPE: ARCHIVE_HEALTH_CHECK_ACK
-    #ACK_BOOL: True or False
-    #ACK_ID: return seq. num
-
-
     AR_FWDR_HEALTH_CHECK:
         MSG_TYPE: AR_FWDR_HEALTH_CHECK
         REPLY_QUEUE: 'ar_foreman_ack_publish'
@@ -497,9 +474,10 @@ ROOT:
         ACK_ID:
         ACK_BOOL:
         RESULT_SET:
-            RAFT_LIST:
-            RAFT_CCD_LIST:
-            RAFT_PLUS_CCD_LIST: index of ccds in the form raftname-ccdname or 10-22 for example
+            # Add these in when approach to determining losses is result set is determined.
+            #RAFT_LIST:
+            #RAFT_CCD_LIST:
+            #RAFT_PLUS_CCD_LIST: index of ccds in the form raftname-ccdname or 10-22 for example
             FILENAME_LIST: Ordered list of Path plus filename used for the transfer
             CHECKSUM_LIST: Ordered list of File checksum value
 
@@ -531,7 +509,7 @@ ROOT:
         ACK_ID: seq. num
         REPLY_QUEUE:
         RESULT_SET:
-            RAFT_PLUS_CCD_LIST: Index shared in corrospondence with lists below
+            IMAGE_ID_LIST: Index shared in corrospondence with lists below
             FILENAME_LIST: Path plus filename used for the transfer
             CHECKSUM_LIST: File checksum values
 
@@ -543,7 +521,7 @@ ROOT:
         ACK_BOOL:
         REPLY_QUEUE:
         RESULT_SET:
-          RAFT_PLUS_CCD_LIST: Index shared in corrospondence with lists below
+          IMAGE_ID_LIST: Index shared in corrospondence with lists below
           RECEIPT_LIST: Alphanumeric receipt or 'none' for failure
           FILENAME_LIST:
 

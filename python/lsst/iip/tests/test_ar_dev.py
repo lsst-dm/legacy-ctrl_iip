@@ -386,17 +386,14 @@ class TestArDev:
             msg['COMPONENT'] = 'ARCHIVE_CTRL'
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            msg['IMAGE_ID'] = body['IMAGE_ID']
-            msg['RESULT_LIST'] = {}
-            msg['RESULT_LIST']['CCD_LIST'] = []
-            msg['RESULT_LIST']['RECEIPT_LIST'] = []
-            CCD_LIST = []
+            filename_list = body['RESULT_SET']['FILENAME_LIST']
+            msg['RESULT_SET'] = {}
+            msg['RESULT_SET']['IMAGE_ID_LIST'] = body['RESULT_SET']['IMAGE_ID_LIST']
+            msg['RESULT_SET']['RECEIPT_LIST'] = []
+            msg['RESULT_SET']['FILENAME_LIST'] = filename_list
             RECEIPT_LIST = []
-            ccd_list = body['RESULT_LIST']['CCD_LIST']
-            for ccd in ccd_list:
-                CCD_LIST.append(ccd)  
-                RECEIPT_LIST.append('x14_' + str(ccd))
-            msg['RESULT_LIST']['CCD_LIST'] = CCD_LIST 
+            for filename in filename_list:
+                RECEIPT_LIST.append('x14_' + str(filename))
             msg['RESULT_LIST']['RECEIPT_LIST'] = RECEIPT_LIST 
             self.ar_ctrl_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
