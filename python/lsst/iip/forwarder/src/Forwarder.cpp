@@ -30,6 +30,8 @@ class Forwarder {
 
     std::vector<string> current_image_work_list;
     std::vector<string> finished_image_work_list;
+    std::vector<string> files_transferred_list;
+    std::vector<string> checksum_list;
 
     std::string Session_ID = "";
     std::string Visit_ID = "";
@@ -547,14 +549,39 @@ void Forwarder::process_take_images(Node n) {
 
 void Forwarder::process_take_images_done(Node n) {
     string ack_id = n["ACK_ID"].as<string>();
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
     // 1) Message fetch, format, and forwarder to clear all when work queue is complete
     // 2) forward thread must generate report
     // 3) Get filename_list of files transferred
     // 4) Get checksum_list that corressponds to each file...
     ostringstream message;
-    map<string, vector<string>> result_set = {
+    YAML::emitter file_list;
+    YAML::emitter csum_list;
+    YAML::emitter result_set;
+    string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK "
+    string ack_bool = "True "
     
+    file_list << YAML::BeginSeq;
+    csum_list << YAML::BeginSeq;
+    for(int i = 0; i < files_transferred_list.size(); i++) {
+      file_list << files_transferred_list[i].str();
+      csum_list << checksum_list[i].str();
     }
+    file_list << YAML::EndSeq;
+    csum_list << YAML::EndSeq;
+
+    result_set << YAML::BeginMap;
+    result_set << YAML::KEY << "FILENAME_LIST";
+    result_set << YAML::VALUE << file_list:
+    result_set << YAML::KEY << "CHECKSUM_LIST";
+    result_set << YAML::VALUE << file_list:
+    result_set << YAML::EndMap;
+    massage << "{MSG_TYPE: " << msg_type 
+            << "COMPONENT: " << this->Component
+            << "ACK_ID: " << ack_id
+            << "ACK_BOOL: " << ack_bool
+            << "RESULT_SET: " << result_set.c_str() << "}";
+    
     #vector<string> file_names = list_files(img_path); 
     #vector<string>::iterator it; 
     #for (it = file_names.begin(); it != file_names.end(); it++) { 
