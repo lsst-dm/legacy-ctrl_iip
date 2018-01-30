@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////
-// FIX: Add conditional to process_format for end_readout versus take_aiamges_done.
+// FIX: Add conditional to process_format for end_readout versus take_images_done.
 //
 
 #include <sys/stat.h> 
@@ -190,8 +190,8 @@ map<string, funcptr> on_forward_message_actions = {
 //This handler is for messages from Primary Forwarder to fetch thread
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK", &Forwarder::process_fetch_health_check},
-    { "FETCH_END_READOUT", &Forwarder::process_fetch_end_readout},
-    { "TAKE_IMAGES_DONE", &Forwarder::process_fetch_end_readout},
+    { "FETCH_END_READOUT", &Forwarder::process_fetch},
+    { "FETCH_TAKE_IMAGES_DONE", &Forwarder::process_fetch},
     { "AR_FETCH", &Forwarder::process_fetch},
     { "PP_FETCH", &Forwarder::process_fetch},
     { "SP_FETCH", &Forwarder::process_fetch}
@@ -201,17 +201,17 @@ map<string, funcptr> on_forwarder_to_fetch_message_actions = {
 map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
-    { "TAKE_IMAGES_DONE", &Forwarder::process_format},
+    { "FORMAT_END_READOUT", &Forwarder::assemble_img}, 
+    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format},
     { "PP_FORMAT", &Forwarder::process_format},
-    { "SP_FORMAT", &Forwarder::process_format}, 
-    { "FORMAT_START", &Forwarder::assemble_img} 
+    { "SP_FORMAT", &Forwarder::process_format} 
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
 map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK", &Forwarder::process_forward_health_check},
     { "AR_FORWARD", &Forwarder::process_forward},
-    { "FORMAT_DONE", &Forwarder::process_forward}, 
+    { "FORMAT_END_READOUT", &Forwarder::process_forward}, 
     { "TAKE_IMAGES_DONE", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}, 
@@ -577,43 +577,64 @@ void Forwarder::process_end_readout(Node n) {
 }
 
 //From forwarder main thread to fetch thread
-void Forwarder::process_fetch_end_readout(Node n) {
-    //Make dir using image_id as name under work_dir
-    //Fetch data from DAQ or copy from local drive
-    //Send message to Format thread with image_id
+void Forwarder::process_fetch(Node n) {
+    //If message_type FETCH_END_READOUT, 
+    //  Make dir using image_id as name under work_dir
+    //  Fetch data from DAQ or copy from local drive
+    //  Send message to Format thread with image_id as msg_type FORMAT_END_READOUT
+    //Else if message_type FETCH_TAKE_IMAGES_DONE,
+    //  copy msg ack params and send to Format thread as msg_type FORMAT_TAKE_IMAGES_DONE 
+
     string type_msg = n["MSG_TYPE"].as<string>();
-    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+    
+    if strcmp(type_msg, "FETCH_TAKE_IMAGES_DONE") {
+      string new_msg_type = "FORMAT_TAKE_IMAGES_DONE";
+      string job_num = n["JOB_NUM"].as<string>();
+      string reply_queue = n["REPLY_QUEUE"].as<string>();
+      string ack_id = n["ACK_ID"].as<string>();
       ostringstream msg;
-      msg << "{MSG_TYPE: " << type_msg << "}";
+      msg << "{MSG_TYPE: " << new_type_msg 
+          << ", JOB_NUM: " << job_num
+          << ", REPLY_QUEUE: " << reply_queue
+          << ", ACK_ID: " << ack_id << "}";
       this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
       return
     }
 
-    string image_id = n["IMAGE_ID"].as<string>();
-    ostringstream cmd;
-    ostringstream filepath;
-    filepath << this->Work_Dir << "/" << image_id;
-    cmd << "mkdir " << filepath.str();
-    const std::string tmpstr = cmd.str();
-    const char* cmdstr = tmpstr.c_str();
-    system(cmdstr);
-    string msg_type = "FORMAT_END_READOUT";
-    ostringstream message;
-    message << "{MSG_TYPE: " << msg_type
-            << ", IMAGE_ID: " << image_id << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, message.str());
-    return;
+    if strcmp(type_msg, "FETCH_END_READOUT") {
+      string image_id = n["IMAGE_ID"].as<string>();
+      ostringstream cmd;
+      ostringstream filepath;
+      filepath << this->Work_Dir << "/" << image_id;
+      cmd << "mkdir " << filepath.str();
+      const std::string tmpstr = cmd.str();
+      const char* cmdstr = tmpstr.c_str();
+      system(cmdstr);
+      string new_msg_type = "FORMAT_END_READOUT";
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << new_msg_type
+              << ", IMAGE_ID: " << image_id << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return;
+    }
 }
 
 void Forwarder::process_take_images_done(Node n) {
+    ostringstream msg;
+    string new_msg_type = "FETCH_TAKE_IMAGES_DONE";
+    string job_num = n["JOB_NUM"].as<string>();
     string ack_id = n["ACK_ID"].as<string>();
     string reply_queue = n["REPLY_QUEUE"].as<string>();
-    // 1) Message fetch, format, and forwarder to clear all when work queue is complete
-    // 2) forward thread must generate report
-    // 3) Get filename_list of files transferred
-    // 4) Get checksum_list that corressponds to each file...
+    // 1) Message fetch to pass along this message when work queue is complete
+    // 2) Later, forward thread must generate report
+    // 3) Send filename_list of files transferred in report
+    // 4) Send checksum_list that corressponds to each file in report
 
-    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
+    msg << "{MSG_TYPE: " << new_type_msg 
+        << ", JOB_NUM: " << job_num
+        << ", REPLY_QUEUE: " << reply_queue
+        << ", ACK_ID: " << ack_id << "}";
+    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.str());
 
 }
 
@@ -659,7 +680,7 @@ void Forwarder::process_format_health_check_ack(Node n) {
 
 void Forwarder::process_forward(Node n) {
     string type_msg = n["MSG_TYPE"].as<string>();
-    if strcmp(type_msg, "FORMAT_DONE") {
+    if strcmp(type_msg, "FORMAT_END_READOUT") {
       this->process_formatted_img(n);
       return;
     }
@@ -706,49 +727,6 @@ void Forwarder::process_forward_ack(Node n) {
 
 void Forwarder::process_forward_health_check(Node n) {
     cout << "Processing forward health check message" << endl;
-    type_msg = n["MSG_TYPE"].as<string>();
-    type_msg = n["MSG_TYPE"].as<string>();
-    type_msg = n["MSG_TYPE"].as<string>();
-    type_msg = n["MSG_TYPE"].as<string>();
-    type_msg = n["MSG_TYPE"].as<string>();
-    type_msg = n["MSG_TYPE"].as<string>();
-    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << type_msg << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-      return
-    }
-    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << type_msg << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-      return
-    }
-    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << type_msg << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-      return
-    }
-    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << type_msg << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-      return
-    }
-    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << type_msg << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-      return
-    }
-    if strcmp(type_msg, "TAKE_IMAGES_DONE") {
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << type_msg << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-      return
-    }
-    return;
 }
 
 void Forwarder::process_forward_health_check_ack(Node n) {
