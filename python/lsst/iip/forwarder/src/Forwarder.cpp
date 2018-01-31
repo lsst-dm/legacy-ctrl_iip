@@ -659,6 +659,40 @@ void Forwarder::process_fetch_health_check_ack(Node n) {
 }
 
 void Forwarder::process_format(Node n) {
+    string type_msg = n["MSG_TYPE"].as<string>();
+    
+    if strcmp(type_msg, "FORMAT_TAKE_IMAGES_DONE") {
+      string new_msg_type = "FORWARD_TAKE_IMAGES_DONE";
+      string job_num = n["JOB_NUM"].as<string>();
+      string reply_queue = n["REPLY_QUEUE"].as<string>();
+      string ack_id = n["ACK_ID"].as<string>();
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << new_type_msg 
+          << ", JOB_NUM: " << job_num
+          << ", REPLY_QUEUE: " << reply_queue
+          << ", ACK_ID: " << ack_id << "}";
+      this->fetch_pub->publish_message(this->forward_consume_queue, msg.str());
+      return
+    }
+
+    ////// FINISH FORMAT AND SEND READOUT TO FORWARD
+    if strcmp(type_msg, "FORMAT_END_READOUT") {
+      this->assemble_img(n)
+      string image_id = n["IMAGE_ID"].as<string>();
+      ostringstream cmd;
+      ostringstream filepath;
+      filepath << this->Work_Dir << "/" << image_id;
+      cmd << "mkdir " << filepath.str();
+      const std::string tmpstr = cmd.str();
+      const char* cmdstr = tmpstr.c_str();
+      system(cmdstr);
+      string new_msg_type = "FORWARD_END_READOUT";
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << new_msg_type
+              << ", IMAGE_ID: " << image_id << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return;
+    }
     cout << "processing format message" << endl;
     return;
 }
@@ -680,11 +714,11 @@ void Forwarder::process_format_health_check_ack(Node n) {
 
 void Forwarder::process_forward(Node n) {
     string type_msg = n["MSG_TYPE"].as<string>();
-    if strcmp(type_msg, "FORMAT_END_READOUT") {
+    if strcmp(type_msg, "FORWARD_END_READOUT") {
       this->process_formatted_img(n);
       return;
     }
-    else if strcmp(type_msg, "TAKE_IMAGES_DONE") {
+    else if strcmp(type_msg, "FORWARD_TAKE_IMAGES_DONE") {
       ostringstream message;
       YAML::emitter file_list;
       YAML::emitter csum_list;
@@ -734,8 +768,9 @@ void Forwarder::process_forward_health_check_ack(Node n) {
     return;
 }
 
+/////////////////////////////////////////////////////////////////////////
 void Forwarder::assemble_img(Node n) {
-    string img = n["IMG_NAME"].as<string>(); 
+    string image_id = n["IMAGE_ID"].as<string>(); 
     string header = n["HEADER_NAME"].as<string>(); 
 
     // create dir  /mnt/ram/FITS/IMG_10
@@ -833,19 +868,20 @@ vector<string> Forwarder::list_files(string path) {
     return file_names; 
 } 
 
-void Forwarder::send_completed_msg(string img_name) { 
+void Forwarder::send_completed_msg(string image_id) { 
     ostringstream msg; 
-    msg << "{ MSG_TYPE: FORMAT_DONE" 
-        << ", IMG_NAME: " << img_name << "}"; 
+    msg << "{ MSG_TYPE: FORWARD_END_READOUT" 
+        << ", IMAGE_ID: " << image_id << "}"; 
     fmt_pub->publish_message(this->forward_consume_queue, msg.str()); 
 } 
+///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
 // Forward part 
 ///////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::process_formatted_img(Node n) { 
-    string img_name = n["IMG_NAME"].as<string>(); 
+    string img_name = n["IMAGE_ID"].as<string>(); 
     string img_path = this->Work_Dir + "FITS/" + img_name; 
     string dest_path = this->Target_Dir + img_name; 
     
