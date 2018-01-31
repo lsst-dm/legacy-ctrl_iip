@@ -37,6 +37,7 @@ class Forwarder {
     std::string Target_Dir = "";
     std::string Daq_Addr = "";
     std::string Work_Dir = ""; 
+    std::string Src_Dir = ""; 
     std::string Name = ""; //such as F1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
@@ -241,6 +242,7 @@ Forwarder::Forwarder() {
         HOSTNAME = root["HOSTNAME"].as<string>();
         IP_ADDR = root["IP_ADDR"].as<string>();
         this->Work_Dir = root["WORK_DIR"].as<string>();
+        this->Src_Dir = root["SRC_DIR"].as<string>(); 
         this->consume_queue = root["CONSUME_QUEUE"].as<string>();
         this->fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
         this->format_consume_queue = root["FORMAT_CONSUME_QUEUE"].as<string>();
@@ -577,12 +579,17 @@ void Forwarder::process_fetch_end_readout(Node n) {
     const std::string tmpstr = cmd.str();
     const char* cmdstr = tmpstr.c_str();
     system(cmdstr);
-    //XXX FIX
-    //if strcmp(this->Daq_Addr,"API") {
+
+    if strcmp(this->Daq_Addr,"API") {
     //    call Mikes API;
-    //} else {
-    //    copy files from location Daq_Addr
-    //}
+    } else {
+        string src_path = Src_Dir + image_id + "/*"; 
+
+        ostringstream cp_cmd; 
+        cp_cmd << "cp " << src_path << " " << filepath << "/"; 
+        cout << cp_cmd.str() << endl; 
+        system(cp_cmd.str().c_str()); 
+    }
     string msg_type = "FORMAT_END_READOUT";
     ostringstream message;
     message << "{MSG_TYPE: " << msg_type
