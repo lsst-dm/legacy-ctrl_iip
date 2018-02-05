@@ -5,8 +5,10 @@
 #include "SAL_archiver.h" // for fake guys
 #include "SAL_camera.h"
 #include "SAL_tcs.h"
+#include "SAL_dmHeaderService.h"
 #include "ccpp_sal_camera.h"
 #include "ccpp_sal_tcs.h"
+#include "ccpp_sal_dmHeaderService.h"
 #include "os.h"
 #include <yaml-cpp/yaml.h>
 #include <stdlib.h>
@@ -35,7 +37,7 @@ EventSubscriber::~EventSubscriber() {
 } 
 
 void EventSubscriber::setup_events_listeners() { 
-    int thread_counts = 12; 
+    int thread_counts = 13; 
     funcptr thread_funcs[] {  &EventSubscriber::run_ccs_takeImages, 
                                &EventSubscriber::run_ccs_startIntegration, 
                                &EventSubscriber::run_ccs_startReadout, 
@@ -47,7 +49,8 @@ void EventSubscriber::setup_events_listeners() {
                                &EventSubscriber::run_tcs_target, 
                                &EventSubscriber::run_targetVisitAccept, 
                                &EventSubscriber::run_targetVisitDone, 
-                               &EventSubscriber::run_takeImageDone  };
+                               &EventSubscriber::run_takeImageDone,
+                               &EventSubscriber::run_getHeaderService};
     
     for (int i = 0; i < thread_counts; i++) { 
         ostringstream rmq_url; 
@@ -444,6 +447,42 @@ void *EventSubscriber::run_takeImageDone(void *args) {
             cout << "=== Event takeImageDone received = " << endl;
             ostringstream msg; 
             msg << "{ MSG_TYPE: TAKE_IMAGE_DONE }"; 
+            publisher->publish_message(queue, msg.str()); 
+        } 
+        os_nanoSleep(delay_10ms);
+    }  
+    mgr.salShutdown(); 
+    return 0;
+} 
+            
+void *EventSubscriber::run_getHeaderService(void *args) { 
+    event_args *params = ((event_args *)args); 
+    string queue = params->publish_queue; 
+    string broker_addr = params->broker_addr; 
+ 
+    os_time delay_10ms = { 0, 10000000 };
+    int status = -1; 
+    SAL_dmHeaderService mgr = SAL_dmHeaderService(); 
+    dmHeaderService_logevent_LargeFileObjectAvailableC SALInstance; 
+
+    mgr.salEvent("dmHeaderService_logevent_LargeFileObjectAvailable"); 
+    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
+
+    while(1) { 
+        status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
+
+        if (status == SAL__OK) { 
+            cout << "=== Event HeaderService received = " << endl;
+            string path = SALInstance.URL; 
+            size_t found = path.find_last_of("/"); 
+            string file_name = path.substr(found+1); 
+
+            size_t dot = file_name.find_last_of("."); 
+            string img_id = file_name.substr(0, dot); 
+
+            ostringstream msg; 
+            msg << "{ MSG_TYPE: HEADER_READY"
+                << ", IMG_ID: " << img_id << "}"; 
             publisher->publish_message(queue, msg.str()); 
         } 
         os_nanoSleep(delay_10ms);

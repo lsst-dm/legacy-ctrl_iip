@@ -26,5 +26,6 @@ class EventSubscriber {
         static void *run_tcs_target(void*); 
         static void *run_targetVisitAccept(void*);
         static void *run_targetVisitDone(void*);
-        static void *run_takeImageDone  (void*);
+        static void *run_takeImageDone(void*);
+        static void *run_getHeaderService(void*);
 }; 
