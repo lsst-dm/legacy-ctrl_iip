@@ -86,7 +86,7 @@ void *EventSubscriber::run_ccs_takeImages(void *args) {
         if (status > 0) { 
             cout << "=== Command takeImages Received. =" << endl; 
             ostringstream msg; 
-            msg << "{ MSG_TYPE: CCS_TAKE_IMAGES"
+            msg << "{ MSG_TYPE: DMCS_TAKE_IMAGES"
                 << ", NUM_IMAGES: " << SALInstance.numImages
                 << ", EXP_TIME: " << SALInstance.expTime
                 << ", SHUTTER: " << SALInstance.shutter
@@ -208,8 +208,8 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
         if (status == SAL__OK) { 
             cout << "=== Event endReadout received = " << endl;
             ostringstream msg; 
-            msg << "{ MSG_TYPE: END_READOUT" 
-                << ", IMAGE_NAME: " << SALInstance.ImageName << "}"; 
+            msg << "{ MSG_TYPE: DMCS_END_READOUT" 
+                << ", IMAGE_ID: " << SALInstance.ImageName << "}"; 
             publisher->publish_message(queue, msg.str());
         } 
         os_nanoSleep(delay_10ms); 
@@ -349,7 +349,7 @@ void *EventSubscriber::run_tcs_target(void *args) {
             cout << "=== tcs command target received = " << endl;
 
             ostringstream msg; 
-            msg << " { MSG_TYPE: TCS_TARGET" 
+            msg << " { MSG_TYPE: DMCS_TCS_TARGET" 
                 << ", TARGET_ID: " << SALInstance.targetId
                 << ", FIELD_ID: " << SALInstance.fieldId
                 << ", GROUP_ID: " << SALInstance.groupId
@@ -446,7 +446,7 @@ void *EventSubscriber::run_takeImageDone(void *args) {
         if (status == SAL__OK) { 
             cout << "=== Event takeImageDone received = " << endl;
             ostringstream msg; 
-            msg << "{ MSG_TYPE: TAKE_IMAGE_DONE }"; 
+            msg << "{ MSG_TYPE: DMCS_TAKE_IMAGES_DONE }"; 
             publisher->publish_message(queue, msg.str()); 
         } 
         os_nanoSleep(delay_10ms);
