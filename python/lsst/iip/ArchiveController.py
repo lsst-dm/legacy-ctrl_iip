@@ -10,6 +10,7 @@ import toolsmod  # here so reader knows where intake yaml method resides
 from toolsmod import *
 import _thread
 import logging
+import threading
 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -72,6 +73,9 @@ class ArchiveController:
         LOGGER.info('Setting up archive consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread for archive consumer')
 
+        self.shutdown_event = threading.Event() 
+        self.shutdown_event.clear() 
+
         kws = {}
         md = {}
         md['amqp_url'] = self._base_broker_url
@@ -82,7 +86,7 @@ class ArchiveController:
         md['test_val'] = None
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', kws)
+        self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
 
