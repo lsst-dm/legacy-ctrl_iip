@@ -128,7 +128,7 @@ class Forwarder {
     char* read_img_segment(const char*);
     unsigned char** assemble_pixels(char *);
     void write_img(std::string, std::string);
-    void assemble_img(string, string);
+    void assemble_img(Node);
     void send_completed_msg(std::string);
     vector<string> list_files(string); 
 
@@ -690,6 +690,7 @@ void Forwarder::process_format(Node n) {
       return;
     }
 
+    /** 
     ////// FINISH FORMAT AND SEND READOUT TO FORWARD
     if (type_msg == "FORMAT_END_READOUT") {
       this->assemble_img(n);
@@ -708,6 +709,7 @@ void Forwarder::process_format(Node n) {
       this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
       return;
     }
+    */ 
     cout << "trouble processing format message" << endl;
     return;
 }
@@ -746,17 +748,18 @@ void Forwarder::process_forward(Node n) {
       file_list << YAML::BeginSeq;
       csum_list << YAML::BeginSeq;
       for(int i = 0; i < finished_image_work_list.size(); i++) {
-        file_list << finished_image_work_list[i].str();
-        csum_list << checksum_list[i].str();
+        file_list << finished_image_work_list[i];
+        csum_list << checksum_list[i];
       }
       file_list << YAML::EndSeq;
       csum_list << YAML::EndSeq;
 
+      // FIXME: EMITTER usage needs to be checked. 
       result_set << YAML::BeginMap;
       result_set << YAML::Key << "FILENAME_LIST";
-      result_set << YAML::Value << file_list; 
+      result_set << YAML::Value << file_list.c_str(); 
       result_set << YAML::Key << "CHECKSUM_LIST";
-      result_set << YAML::Value << file_list;
+      result_set << YAML::Value << file_list.c_str();
       result_set << YAML::EndMap;
       message << "{MSG_TYPE: " << msg_type 
               << "COMPONENT: " << this->Component
@@ -783,11 +786,13 @@ void Forwarder::process_forward_health_check_ack(Node n) {
     return;
 }
 
-void Forwarder::assemble_img(string header, string img) {
+void Forwarder::assemble_img(Node n) {
+    string img_id = n["IMAGE_ID"].as<string>(); 
+    string header = n["HEADER"].as<string>(); 
     // create dir  /mnt/ram/FITS/IMG_10
     string fits_dir = Work_Dir + "FITS"; 
     const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
-    write_img(img, header);
+    write_img(img_id, header);
 }
 
 
@@ -901,7 +906,10 @@ void Forwarder::look_for_work() {
                 this->header_info_dict.erase(mit); 
 
                 // do the work 
-                assemble_img(header_filename, img_id); 
+                Node n; 
+                n["IMAGE_ID"] = img_id; 
+                n["HEADER"] = header_filename; 
+                assemble_img(n); 
             } 
         } 
     } 
@@ -934,9 +942,9 @@ void Forwarder::look_for_work() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::process_formatted_img(Node n) { 
-    string img_name = n["IMAGE_ID"].as<string>(); 
-    string img_path = this->Work_Dir + "FITS/" + img_name; 
-    string dest_path = this->Target_Dir + img_name; 
+    string img_id = n["IMAGE_ID"].as<string>(); 
+    string img_path = this->Work_Dir + "FITS/" + img_id; 
+    string dest_path = this->Target_Dir + img_id; 
     
     // use bbcp to send file 
     ostringstream bbcp_cmd; 
