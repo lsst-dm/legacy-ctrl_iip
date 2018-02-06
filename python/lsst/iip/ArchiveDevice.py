@@ -636,7 +636,7 @@ class ArchiveDevice:
             self._publisher.publish_message(route_key, msg)
 
         ### FIX Check Archive Controller
-        wait up to 15 sec for readout responses
+        # wait up to 15 sec for readout responses
         fwdr_readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len_fwdrs, 15.0)
         fwdr_responses = list(fwdr_readout_responses.keys())
         RESULT_SET = {}
@@ -658,10 +658,10 @@ class ArchiveDevice:
 
     
         ar_ctrl_response = self.progressive_ack_timer(ar_xferd_ack, 1, 11.0)
-        wait up to 15 sec for Ar Ctrl response
+        # wait up to 15 sec for Ar Ctrl response
         ### FIX Add Final Response to DMCS
-        send result set to DMCS
-        num_images - 
+        #send result set to DMCS
+        #num_images - 
         dmcs_msg = {}
         dmcs_msg['AR_TAKE_IMAGES_DONE_ACK']
         dmcs_msg['ACK_ID'] = readout_ack_id
