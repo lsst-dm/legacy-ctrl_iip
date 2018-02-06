@@ -21,12 +21,15 @@
 //    ----------------
 
 using namespace YAML;
-
-
+//Outer vector is for CCDs and inner is segments
+vector<vector<std::ofstream>> raft_file_handles;
 
 // Fetch entire designated raft
-FileManiFold::FileManifold(const char* dir_prefix, const char* visit_name, const char* image_name, const char* raft) {
-
+#FileManiFold::FileManifold(const char* dir_prefix, const char* visit_name, const char* image_name, const char* raft) {
+FileManifold::FileManifold(const char* raft, 
+               map<str, vector<string>> source_boards,
+               const char image_id, 
+               const char* dir_prefix) {
 
     char ccd[3][3] = { { "00","01","02"},
                        { "10","11","12"},
@@ -34,13 +37,12 @@ FileManiFold::FileManifold(const char* dir_prefix, const char* visit_name, const
 
 
     // setup_filestreams 
-    for (int a = 0; a < 3; a++)  // REBs
-    {  
-      for (int b = 0; b < 3; b++) // CCDs 
-      {
-        ccd_name = ccd[a][b]
-        for (int c = 0; c < 16; c++)  // Segments
-        {
+    for (map<string,string>::iterator it = source_boards.begin(); it != source_boards.end(); ++it) { 
+      string brd_tmpstr = it->first;
+      vector<string> ccd_tmpvec = it.second;
+      for (int i = 0; i < ccd_tmpvec.size(); i++) {  // CCDs 
+        ccd_name = ccd_tmpvec[i];
+        for (int j = 0; j < 16; j++) {   // Segments
           std::string seg; 
           if (c < 10) { 
               seg = "0" + to_string(c);
@@ -49,8 +51,7 @@ FileManiFold::FileManifold(const char* dir_prefix, const char* visit_name, const
               seg = to_string(c); 
           } 
           std::ostringstream fns;
-          fns << dir_prefix << visit_name \
-                            << "/" \
+          fns << dir_prefix << "/" \
                             << image_name \
                             << "--" << raft \
                             << "-ccd." << ccd_name \ 
@@ -65,12 +66,11 @@ FileManiFold::FileManifold(const char* dir_prefix, const char* visit_name, const
 
 
 
-// Fetch only the designated CCD from the designated source board on the designated raft
-FileManifold::FileManifold(const char* dir_prefix, 
-               const char* visit_name, 
-               const char* image_name, 
-               const char* raft, 
-               const char* ccd) {
+// Fetch only the designated CCDs from the designated raft
+FileManifold::FileManifold(const char* raft, 
+               map<str, vector<string>> source_boards,
+               const char image_id, 
+               const char* dir_prefix) {
 
 
     // convert ccd into board so source is known
