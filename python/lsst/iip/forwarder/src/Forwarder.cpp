@@ -125,15 +125,15 @@ class Forwarder {
 
     void run();
     static void *run_thread(void *);
-    char* read_img_segment(const char*);
-    unsigned char** assemble_pixels(char *);
-    void write_img(std::string, std::string);
-    void assemble_img(Node);
-    void send_completed_msg(std::string);
-    vector<string> list_files(string); 
+    char* format_read_img_segment(const char*);
+    unsigned char** format_assemble_pixels(char *);
+    void format_write_img(std::string, std::string);
+    void format_assemble_img(Node);
+    void format_send_completed_msg(std::string);
+    void format_look_for_work(); 
+    vector<string> format_list_files(string); 
 
-    void process_formatted_img(Node); 
-    void look_for_work(); 
+    void forward_process_formatted_img(Node); 
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -207,7 +207,7 @@ map<string, funcptr> on_forwarder_to_fetch_message_actions = {
 map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
-    { "FORMAT_END_READOUT", &Forwarder::assemble_img}, 
+    { "FORMAT_END_READOUT", &Forwarder::format_assemble_img}, 
     { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format},
     { "PP_FORMAT", &Forwarder::process_format},
     { "SP_FORMAT", &Forwarder::process_format} 
@@ -221,7 +221,7 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "TAKE_IMAGES_DONE", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}, 
-    { "FORMAT_DONE", &Forwarder::process_formatted_img} 
+    { "FORMAT_DONE", &Forwarder::forward_process_formatted_img} 
 
 };
 
@@ -497,14 +497,14 @@ void Forwarder::on_forwarder_to_format_message(string body) {
     string message_type = node["MSG_TYPE"].as<string>();
     if (message_type == "FORMAT_END_READOUT") { 
         this->readout_img_ids.push_back(node["IMAGE_ID"].as<string>()); 
-        this->look_for_work(); 
+        format_look_for_work(); 
     } 
     else if (message_type == "HEADER_READY") { 
         this->header_info_dict[node["IMAGE_ID"].as<string>()] = node["FILENAME"].as<string>(); 
-        this->look_for_work(); 
+        format_look_for_work(); 
     } 
     else if (message_type == "FORMAT_TAKE_IMAGES_DONE") { 
-        this->look_for_work(); 
+        format_look_for_work(); 
     } 
     else { 
         funcptr action = on_forwarder_to_format_message_actions[message_type];
@@ -732,7 +732,7 @@ void Forwarder::process_format_health_check_ack(Node n) {
 void Forwarder::process_forward(Node n) {
     string type_msg = n["MSG_TYPE"].as<string>();
     if (type_msg == "FORWARD_END_READOUT") {
-      this->process_formatted_img(n);
+      this->forward_process_formatted_img(n);
       return;
     }
     else if (type_msg == "FORWARD_TAKE_IMAGES_DONE") {
@@ -786,17 +786,17 @@ void Forwarder::process_forward_health_check_ack(Node n) {
     return;
 }
 
-void Forwarder::assemble_img(Node n) {
+void Forwarder::format_assemble_img(Node n) {
     string img_id = n["IMAGE_ID"].as<string>(); 
     string header = n["HEADER"].as<string>(); 
     // create dir  /mnt/ram/FITS/IMG_10
     string fits_dir = Work_Dir + "FITS"; 
     const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
-    write_img(img_id, header);
+    format_write_img(img_id, header);
 }
 
 
-char* Forwarder::read_img_segment(const char *file_path) { 
+char* Forwarder::format_read_img_segment(const char *file_path) { 
     fstream img_file(file_path, fstream::in | fstream::binary); 
     long len = WIDTH * HEIGHT; 
     char *buffer = new char[len]; 
@@ -806,7 +806,7 @@ char* Forwarder::read_img_segment(const char *file_path) {
     return buffer;
 } 
 
-unsigned char** Forwarder::assemble_pixels(char *buffer) { 
+unsigned char** Forwarder::format_assemble_pixels(char *buffer) { 
     unsigned char **array = new unsigned char*[HEIGHT]; 
     array[0] = (unsigned char *) malloc( WIDTH * HEIGHT * sizeof(unsigned char)); 
 
@@ -822,7 +822,7 @@ unsigned char** Forwarder::assemble_pixels(char *buffer) {
     return array;
 } 
 
-void Forwarder::write_img(string img, string header) { 
+void Forwarder::format_write_img(string img, string header) { 
     long len = WIDTH * HEIGHT;
     int bitpix = BYTE_IMG; 
     long naxis = 2;
@@ -844,12 +844,12 @@ void Forwarder::write_img(string img, string header) {
     fits_create_file(&optr, destination.c_str(), &status); 
     fits_copy_hdu(iptr, optr, 0, &status); 
 
-    vector<string> file_names = list_files(img_path); 
+    vector<string> file_names = format_list_files(img_path); 
     vector<string>::iterator it; 
     for (it = file_names.begin(); it != file_names.end(); it++) { 
         string img_segment = img_path + "/" + *it; 
-        char *img_buffer = read_img_segment(img_segment.c_str());
-        unsigned char **array = assemble_pixels(img_buffer); 
+        char *img_buffer = format_read_img_segment(img_segment.c_str());
+        unsigned char **array = format_assemble_pixels(img_buffer); 
 
         fits_movabs_hdu(iptr, hdunum, NULL, &status); 
         fits_create_img(optr, bitpix, naxis, naxes, &status); 
@@ -865,10 +865,10 @@ void Forwarder::write_img(string img, string header) {
     fits_close_file(iptr, &status); 
     fits_close_file(optr, &status); 
 
-    send_completed_msg(img);
+    format_send_completed_msg(img);
 } 
 
-vector<string> Forwarder::list_files(string path) { 
+vector<string> Forwarder::format_list_files(string path) { 
     struct dirent *entry; 
     DIR *dir  = opendir(path.c_str()); 
     vector<string> file_names; 
@@ -884,7 +884,7 @@ vector<string> Forwarder::list_files(string path) {
     return file_names; 
 } 
 
-void Forwarder::send_completed_msg(string image_id) { 
+void Forwarder::format_send_completed_msg(string image_id) { 
     ostringstream msg; 
     msg << "{ MSG_TYPE: FORWARD_END_READOUT" 
         << ", IMAGE_ID: " << image_id << "}"; 
@@ -892,7 +892,7 @@ void Forwarder::send_completed_msg(string image_id) {
 } 
 ///////////////////////////////////////////////////////////////////////////
 
-void Forwarder::look_for_work() { 
+void Forwarder::format_look_for_work() { 
     vector<string>::iterator it;
     map<string, string>::iterator mit;  
     map<string, string>::iterator tid; 
@@ -909,7 +909,7 @@ void Forwarder::look_for_work() {
                 Node n; 
                 n["IMAGE_ID"] = img_id; 
                 n["HEADER"] = header_filename; 
-                assemble_img(n); 
+                format_assemble_img(n); 
             } 
         } 
     } 
@@ -941,7 +941,7 @@ void Forwarder::look_for_work() {
 // Forward part 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Forwarder::process_formatted_img(Node n) { 
+void Forwarder::forward_process_formatted_img(Node n) { 
     string img_id = n["IMAGE_ID"].as<string>(); 
     string img_path = this->Work_Dir + "FITS/" + img_id; 
     string dest_path = this->Target_Dir + img_id; 
