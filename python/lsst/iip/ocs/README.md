@@ -39,3 +39,7 @@ AckSubscriber test takes a while to start up since it simulates CommandListener,
 * EventSubscriber  
 `pytest -s -v tests/test_ocs_eventsubscriber.py`
 
+# Command Sequence 
+* STANDBY
+* ENABLE
+* DISABLE
