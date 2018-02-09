@@ -120,6 +120,11 @@ class Forwarder {
 
     void run();
     static void *run_thread(void *);
+    void fetch_readout_image(std::string, std::ostringstream);
+    void fetch_readout_raft(*std::string raft, *vector<string>ccd_list, \
+                            *std::string image_id, *std::string dir_prefix);
+    void fetch_reassemble_raft_image(*std::string raft, map<string, vector<string>> source_boards, 
+                                     *std::string image_id, *std::string dir_prefix);
     char* read_img_segment(const char*);
     unsigned char** assemble_pixels(char *);
     void write_img(std::string, std::string);
@@ -616,9 +621,9 @@ void Forwarder::process_fetch(Node n) {
 
     if strcmp(type_msg, "FETCH_END_READOUT") {
       // For raft in raft_list:
-      //   send raft and associated ccd list from raft_ccd_list to readout_image()
+      //   send raft and associated ccd list from raft_ccd_list to fetch_readout_image()
       //   ccd_list *could* be 'all', or a subset
-      //   readout_image() should determine which boards (sources) are needed to be read for ccd list
+      //   fetch_readout_image() should determine which boards (sources) are needed to be read for ccd list
       //   The board list should be iterated through.
       //   after each board is read, the appropriate ccds on that board should be split out
       //   This could be done with map with key being board, and val being a vector of which CCDs should be pulled
@@ -633,7 +638,7 @@ void Forwarder::process_fetch(Node n) {
       system(cmdstr);
 
 
-      this->readout_image(image_id, filepath);
+      this->fetch_readout_image(image_id, filepath);
 
 
       string new_msg_type = "FORMAT_END_READOUT";
@@ -662,11 +667,6 @@ void Forwarder::process_take_images_done(Node n) {
         << ", ACK_ID: " << ack_id << "}";
     this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.str());
 
-}
-
-void Forwarder::process_fetch(Node n) {
-    cout << "process_fetch" << endl;
-    return;
 }
 
 void Forwarder::process_fetch_ack(Node n) {
@@ -929,16 +929,16 @@ int main() {
     }
 }
 
-void Forwarder::readout_image(image_id, dir_prefix) {
+void Forwarder::fetch_readout_image(image_id, dir_prefix) {
   // Iterate through raft_list
   for int i = 0; i < this->raft_list.size(); i++) {
     vector<string> ccd_list = raft_ccd_list[i];
-    readout_raft(this->raft_list[i], ccd_list, image_id, dir_prefix);
+    fetch_readout_raft(this->raft_list[i], ccd_list, image_id, dir_prefix);
   }
 
 }
 
-void Forwarder::readout_raft(raft, ccd_list, image_id, dir_prefix) {
+void Forwarder::fetch_readout_raft(raft, ccd_list, image_id, dir_prefix) {
   // put a map together with raft board for key, and ccd_list as value
   source_boards = map<string, vector<string>>; 
   for int i = 0; i < ccd_list.size(); i++) {
@@ -952,7 +952,7 @@ void Forwarder::readout_raft(raft, ccd_list, image_id, dir_prefix) {
       int brd = this->board_layout[ccd_list[i]];
       string board = std::to_string(brd);
       
-      if source_boards.count(board){  //board exists as a key...
+      if source_boards.count(board) {  //board exists as a key...
         source_boards[board].push_back(ccd_list[i]);
       }
       else {
@@ -963,12 +963,12 @@ void Forwarder::readout_raft(raft, ccd_list, image_id, dir_prefix) {
   // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
   // but the source_boards map generated above, may not include keys for all 3 source boards.
   //fm = generate_file_manifold(raft,source_boards, image_id, dir_prefix);
-  reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
+  fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
 
 }
 
-void reassemble_raft_image(raft, source_boards, img_id, dir_prefix) {
-
+void fetch_reassemble_raft_image(raft, source_boards, img_id, dir_prefix) {
+  //FIX - check that PARTITION should be raft
   IMS::Store store(PARTITION);
 
   IMS::Image image(IMAGE, store);
@@ -979,10 +979,27 @@ void reassemble_raft_image(raft, source_boards, img_id, dir_prefix) {
 
   DAQ::Location location;
 
+  int board = 0;
+
+  //The loop below processes each raft board (an individual source) one at a time.
+  //In order to avoid boards that do not have desired CCDs on them, we check within
+  //this loop; if board is not needed, we skip processing it. This is done by
+  //converting the board counter to a string, and checking within the source_boards map
+  //for a key representing the current board. If it exists, send board(location) to
+  //reassemble process
+  // FOR GREGG T: Is there a way to get a board number directly from API
+  //rather than using the indirect counter method used here?
   while(sources.remove(location))
   {
-      reassemble_process(location, image, amp_segments, board);
-      board++;
+      string board_str = std::to_string(board)
+      if(source_boards.count(board_str) {
+        std::vector<string> ccds_for_board = source_boards[board_str]
+        fetch_reassemble_process(raft, location, image, ccds_for_board);
+        board++;
+      } 
+      else {
+        continue;
+      }
   }
 
   return EXIT_SUCCESS;
@@ -1014,4 +1031,105 @@ Move to a method called reassemble_process called above...
         AMP_SEGMENTS[a][b][c].open(fns.str().c_str(), \
                                    std::ios::out | std::ios::app | std::ios::binary );
   
+}
+
+// Above, the source boards are iterated through one at a time.
+// If the requested raft/ccd(s) can be found within the current board, the needed CCD list
+// for the current board is sent to this method along with the board location.
+// These two args are used to extract the correct data.
+// The other two args (raft and image_id) are used in constructing the output filename
+//
+// First, determine the number of CCDs in the ccds_for_board vector arg.
+// the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
+void fetch_reassemble_process(std::string raft, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board)
+{
+  IMS::Source source(location, image);
+
+  IMS::Science slice(source);
+
+  if(!slice) return;
+
+  uint64_t pixel = 0;
+  uint64_t total_stripes = 0;
+  uint64_t pixel_errors = 0;
+  do
+  {
+    total_stripes += slice.stripes();
+    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+    IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
+    IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
+
+    slice.decode012(ccd0, ccd1, ccd2);
+
+    for(int s=0; s<slice.stripes(); ++s)
+    {
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if((++pixel&PIX_MASK) ^ ccd0[s].segment[amp]) ++pixel_errors;
+        amp_segments[board][0][amp].write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 1);
+      }
+
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if((++pixel&PIX_MASK) ^ ccd1[s].segment[amp]) ++pixel_errors;
+        amp_segments[board][1][amp].write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 1);
+      }
+
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if((++pixel&PIX_MASK) ^ ccd2[s].segment[amp]) ++pixel_errors;
+        amp_segments[board][2][amp].write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 1);
+      }
+
+    }
+
+    delete [] ccd0;
+    delete [] ccd1;
+    delete [] ccd2;
+
+  }
+  while(slice.advance());
+
+  printf(STRIPE_ERROR, (long long int)total_stripes, EXPECTED_STRIPES);
+  printf(PIXEL_ERROR, (long long int)pixel_errors, (long long int)pixel);
+
+  return;
+
+}
+
+void Forwarder::fetch_return_decode_string(board, ccds_for_board) {
+
+  std::vector<string> sorted_ccds_for_board = fetch_sort_ccds_for_board(ccds_for_board)
+  int num_ccds = ccds_for_board.size()
+  switch (board) {
+    case 0: //Board 0
+        
+
+    case 1: //Board 1
+
+    case 2: //Board 2
+
+  }
+
+}
+
+std::vector<string> Forwarder::fetch_sort_ccds_for_board(std::vector<string> ccds_for_board) {
+
+  std::vector<string> sorted_ccds;
+  std::vector<string>::iterator it;
+  for (int i = 0; i < 3; i++) {
+    for (it = ccds_for_board.begin(); it != ccds_for_board.end(); it++) {
+        if ( (*it )[1] == i.to_string() ) {
+          sorted_ccds.push_back(it);
+          break;
+        } 
+    }
+  }
+  return sorted_ccds;
+      
+
+}
+
+  
+
 }

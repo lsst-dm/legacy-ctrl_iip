@@ -45,7 +45,7 @@ class Forwarder {
     std::string Daq_Addr = "";
     std::string Work_Dir = ""; 
     std::string Src_Dir = ""; 
-    std::string Name = ""; //such as F1
+    std::string Name = ""; //such as FORWARDER_1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
     int Num_Images = 0; 
@@ -451,6 +451,10 @@ void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
 
 //Messages received by Primary Forwarder from Foreman
 void Forwarder::on_foreman_message(string body) {
+    cout << "In forwarder callback that receives msgs from AR foreman" << endl;
+    cout << "-----------Message Body Is:------------" << endl;
+    cout << body << endl;
+    cout << "----------------------" << endl;
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_foreman_message_actions[message_type];
@@ -532,24 +536,37 @@ void Forwarder::process_health_check(Node n) {
 
     string message_type = "AR_FWDR_HEALTH_CHECK_ACK";
     //string component = "AR";
-    string ack_bool = "false";
+    string ack_bool = "True";
 
     ostringstream message;
     message << "{ MSG_TYPE: " << message_type
-            << ", COMPONENT: " << this->Name
+            << ", COMPONENT: " << this->Component
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
 
     FWDR_pub->publish_message(reply_queue, message.str());
-    cout << "Health Check request Message" << endl;
+    cout << "Health Check request Message, ACK sent to: " << reply_queue << endl;
     return;
 }
 
 void Forwarder::process_xfer_params(Node n) {
+    cout << "Entering process_xfer_params method" << endl;
+    cout << "Node is " << n <<  endl;
+
     this->visit_raft_list.clear();
-    this->visit_raft_list = n["RAFT_LIST"].as<std::vector<string>>();
+    cout << "In process_xfer_params, raft_list has been cleared" << endl;
+
+//    this->visit_raft_list = n["XFER_PARAMS"]["RAFT_LIST"].as<std::vector<string>>();
+//    cout << "In process_xfer_params, raft_list has been ASSIGNED to class var" << endl;
+
     this->visit_raft_ccd_list.clear();
-    this->visit_raft_ccd_list = n["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
+    cout << "Done with raft list, but not raft_ccd_list" << endl;
+
+//    cout << "raft from array of rafts is:  " << this->visit_raft_list[0].c_str() << endl;
+
+    cout << "Done with raft list, but not raft_ccd_list" << endl;
+
+    this->visit_raft_ccd_list = n["XFER_PARAMS"]["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
 
     this->Session_ID = n["SESSION_ID"].as<string>();
     this->Visit_ID = n["VISIT_ID"].as<string>();
@@ -566,7 +583,7 @@ void Forwarder::process_xfer_params(Node n) {
 
     ostringstream message;
     message << "{ MSG_TYPE: " << message_type
-            << ", COMPONENT: " << this->Name
+            << ", COMPONENT: " << this->Component
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
 
