@@ -6,6 +6,8 @@ logs
 *.o
 forwarder/src/*.o
 ocs/obj/*.o
+forwarder/src/Forwarder
+
 
 
 
