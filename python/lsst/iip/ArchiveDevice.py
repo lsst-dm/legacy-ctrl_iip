@@ -268,7 +268,7 @@ class ArchiveDevice:
         xfer_params_ack_id = self.get_next_timed_ack_id("AR_FWDR_PARAMS_ACK") 
 
         fwdr_new_target_params = {} 
-        #fwdr_new_target_params['XFER_PARAMS'] = {}
+        fwdr_new_target_params['XFER_PARAMS'] = {}
         fwdr_new_target_params[MSG_TYPE] = 'AR_FWDR_XFER_PARAMS'
         fwdr_new_target_params[SESSION_ID] = session_id
         fwdr_new_target_params[VISIT_ID] = visit_id
@@ -282,16 +282,16 @@ class ArchiveDevice:
         for i in range (0, len_fwdrs_list):
             fwdr = work_schedule['FORWARDER_LIST'][i]
             xfer_params_dict = {}
-            #xfer_params_dict['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
-            #xfer_params_dict['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
+            xfer_params_dict['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
+            xfer_params_dict['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
 
-            fwdr_new_target_params['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
-            fwdr_new_target_params['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
+            #fwdr_new_target_params['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
+            #fwdr_new_target_params['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
 
             # record work order in scoreboard
             self.FWD_SCBD.set_work_by_job(fwdr, job_number, xfer_params_dict)
             xfer_params_dict['AR_FWDR'] = fwdr
-            #fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
+            fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
             print(" sending xfer_params...route_key is %s" % route_key)
             print(" sending xfer_params...fwdr is %s" % fwdr)

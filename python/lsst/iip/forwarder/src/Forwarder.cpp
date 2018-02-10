@@ -29,8 +29,8 @@ class Forwarder {
     public:
 
     //Important 'per readout' values
-    std::vector<string> visit_raft_list;
-    std::vector<std::vector<string> > visit_raft_ccd_list;
+    std::vector<string> visit_raft_string_list;
+    std::vector<std::vector<string>> visit_ccd_string_lists_by_raft;
     std::vector<string> image_id_list;
 
     std::vector<string> current_image_work_list;
@@ -41,7 +41,7 @@ class Forwarder {
     std::string Session_ID = "";
     std::string Visit_ID = "";
     std::string Job_Num = "";
-    std::string Target_Dir = "";
+    std::string Target_Location = "";
     std::string Daq_Addr = "";
     std::string Work_Dir = ""; 
     std::string Src_Dir = ""; 
@@ -551,31 +551,39 @@ void Forwarder::process_health_check(Node n) {
 
 void Forwarder::process_xfer_params(Node n) {
     cout << "Entering process_xfer_params method" << endl;
-    cout << "Node is " << n <<  endl;
+    cout << "Incoming Node n is " << n <<  endl;
 
-    this->visit_raft_list.clear();
-    cout << "In process_xfer_params, raft_list has been cleared" << endl;
+    Node p = n["XFER_PARAMS"];
+    cout << "Sub Node p is " << p <<  endl;
 
-//    this->visit_raft_list = n["XFER_PARAMS"]["RAFT_LIST"].as<std::vector<string>>();
-//    cout << "In process_xfer_params, raft_list has been ASSIGNED to class var" << endl;
+    this->visit_raft_string_list.clear();
+    this->visit_raft_string_list = p["RAFT_LIST"].as<vector<string>>();
+    cout << "In process_xfer_params, RAFT_LIST has been ASSIGNED to class var" << endl;
 
-    this->visit_raft_ccd_list.clear();
-    cout << "Done with raft list, but not raft_ccd_list" << endl;
-
-//    cout << "raft from array of rafts is:  " << this->visit_raft_list[0].c_str() << endl;
-
-    cout << "Done with raft list, but not raft_ccd_list" << endl;
-
-    this->visit_raft_ccd_list = n["XFER_PARAMS"]["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
+    this->visit_ccd_string_lists_by_raft.clear();
+    this->visit_ccd_string_lists_by_raft = p["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
+    cout << "In process_xfer_params, RAFT_CCC_LIST has been ASSIGNED to class var" << endl;
 
     this->Session_ID = n["SESSION_ID"].as<string>();
-    this->Visit_ID = n["VISIT_ID"].as<string>();
+    cout << "After setting SESSION_ID" << endl;
+
     this->Job_Num = n["JOB_NUM"].as<string>();
-    this->Target_Dir = n["TARGET_LOCATION"].as<string>();
-    this->Daq_Addr = n["DAQ_ADDR"].as<string>();
+    cout << "After setting JOB_NUM" << endl;
+
+    this->Target_Location = n["TARGET_LOCATION"].as<string>();
+    cout << "After setting TARGET_LOCATION" << endl;
+
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    cout << "After extracting REPLY_QUEUE" << endl;
 
     string ack_id = n["ACK_ID"].as<string>();
-    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    cout << "After extracting ACK_ID" << endl;
+
+    //this->Daq_Addr = n["DAQ_ADDR"].as<string>();
+    //cout << "After setting DAQ_ADDR" << endl;
+
+    //this->Visit_ID = n["VISIT_ID"].as<string>();
+    //cout << "After setting VISIT_ID" << endl;
 
     string message_type = "AR_FWDR_XFER_PARAMS_ACK";
     //string component = "AR";
@@ -961,7 +969,7 @@ void Forwarder::look_for_work() {
 void Forwarder::process_formatted_img(Node n) { 
     string img_id = n["IMAGE_ID"].as<string>(); 
     string img_path = this->Work_Dir + "FITS/" + img_id; 
-    string dest_path = this->Target_Dir + img_id; 
+    string dest_path = this->Target_Location + img_id; 
     
     // use bbcp to send file 
     ostringstream bbcp_cmd; 
