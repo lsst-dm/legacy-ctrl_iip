@@ -813,6 +813,7 @@ class DMCS:
             msg_params[MSG_TYPE] = k + '_TAKE_IMAGES_DONE'
             msg_params[ACK_ID] = ack_id
             msg_params[JOB_NUM] = job_num
+            msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
             self.STATE_SCBD.set_job_state(job_num, "READOUT")
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 

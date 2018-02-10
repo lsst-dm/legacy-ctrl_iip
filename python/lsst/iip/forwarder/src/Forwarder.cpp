@@ -490,6 +490,10 @@ void Forwarder::on_forward_message(string body) {
 
 //Messages received by the fetch, format, and forward threads
 void Forwarder::on_forwarder_to_fetch_message(string body) {
+    cout << "In fETCHr callback that receives msgs from main forwarder thread" << endl;
+    cout << "-----------Message Body Is:------------" << endl;
+    cout << body << endl;
+    cout << "----------------------" << endl;
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forwarder_to_fetch_message_actions[message_type];
@@ -600,12 +604,14 @@ void Forwarder::process_xfer_params(Node n) {
 }
 
 void Forwarder::process_take_images(Node n) {
+    cout << endl << "IN process_take_images" << endl;
     this->Num_Images = n["NUM_IMAGES"].as<int>();;
     cout << "Take Image Message...should be some tasty params here" << endl;
     return;
 }
 
 void Forwarder::process_end_readout(Node n) {
+    cout << "IN PROCESS_END_READOUT" << endl;
     // Send IMAGE_ID to fetch thread...use message broker queue as work queue
     //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
     //else, DAQ val will equal a path where files can be found.
@@ -623,6 +629,7 @@ void Forwarder::process_end_readout(Node n) {
 
 //From forwarder main thread to fetch thread
 void Forwarder::process_fetch(Node n) {
+    cout << endl << "********IN PROCESS_END_READOUT********" << endl;
     //If message_type FETCH_END_READOUT, 
     //  Make dir using image_id as name under work_dir
     //  Fetch data from DAQ or copy from local drive
@@ -655,6 +662,13 @@ void Forwarder::process_fetch(Node n) {
       const std::string tmpstr = cmd.str();
       const char* cmdstr = tmpstr.c_str();
       system(cmdstr);
+
+      ostringstream acmd;
+      acmd << "cp " << Src_Dir <<"/*  " << filepath.str();
+      const std::string atmpstr = acmd.str();
+      const char* acmdstr = atmpstr.c_str();
+      system(acmdstr);
+ 
       string new_msg_type = "FORMAT_END_READOUT";
       ostringstream msg;
       msg << "{MSG_TYPE: " << new_msg_type
