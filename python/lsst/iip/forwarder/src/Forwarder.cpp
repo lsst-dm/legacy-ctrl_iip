@@ -155,7 +155,7 @@ map<string, funcptr> on_foreman_message_actions = {
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "SP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "AR_TAKE_IMAGES", &Forwarder::process_take_images},
+    { "AR_FWDR_TAKE_IMAGES", &Forwarder::process_take_images},
     { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
     { "SP_TAKE_IMAGES", &Forwarder::process_take_images},
     { "AR_FWDR_END_READOUT", &Forwarder::process_end_readout},

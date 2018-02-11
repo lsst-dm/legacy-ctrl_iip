@@ -11,21 +11,22 @@ import _thread
 class Premium:
   def __init__(self):
     logging.basicConfig()
+    #os.system('rabbitmqctl -p /tester purge_queue firehose')
+    #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
+    #broker_url = 'amqp://BASE:BASE@141.142.208.191:5672/%2Fbunny'
     #broker_url = 'amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?heartbeat=300'
-    broker_url = 'amqp://DMCS_PUB:DMCS_PUB@141.142.238.10:5672/%2Ftest'
+    #broker_url = 'amqp://PFM:PFM@141.142.238.10:5672/%2Fbunny?autoAck=true'
     #broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
     #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
     #self._cons = FirehoseConsumer(broker_url, 'firehose', "YAML")
-    """
-    self._cons = Consumer(broker_url, 'ocs_dmcs_consume', "YAML")
-    try:
-      _thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
-    except e:
-      print("Cannot start thread")
-      print(e)
+    #self._cons = Consumer(broker_url, 'ocs_dmcs_consume', "YAML")
+    #try:
+    #  _thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
+    #except e:
+    #  print("Cannot start thread")
+    #  print(e)
 
-    time.sleep(2)
-    """
+    #time.sleep(420)
     
   def mycallback(self, ch, methon, properties, body):
     print("  ")
@@ -48,8 +49,8 @@ class Premium:
 def main():
   premium = Premium()
   #sp1 = SimplePublisher('amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?heartbeat=300', "YAML")
-  sp1 = SimplePublisher('amqp://DMCS_PUB:DMCS_PUB@141.142.238.10:5672/%2Ftest', "YAML")
-  #sp1 = SimplePublisher('amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny', "YAML")
+  sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Ftest', "YAML")
+  #sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Fbunny', "YAML")
   #sp2 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
   #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
   #cons = Consumer(broker_url, 'F8_consume')
@@ -59,106 +60,68 @@ def main():
   #  print "Cannot start thread"
 
 
-  #  while 1:
-  msg = {}
-  msg['MSG_TYPE'] = "FETCH_HEALTH_CHECK"
-  msg['DEVICE'] = 'AR'
-  time.sleep(2)
-  sp1.publish_message("fetch_consume_from_f1", msg)
+  print("Begin Send Messages...")
 
-  msg = {}
-  msg['MSG_TYPE'] = "SP_FETCH"
-  msg['DEVICE'] = 'AR'
-  time.sleep(2)
-  sp1.publish_message("fetch_consume_from_f1", msg)
 
+  print("Sending AR_FWDR_HEALTH_CHECK message")
   msg = {}
-  msg['MSG_TYPE'] = "PP_FORMAT"
-  msg['DEVICE'] = 'AR'
-  time.sleep(4)
-  sp1.publish_message("format_consume_from_f1", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "FORWARD_HEALTH_CHECK"
-  msg['DEVICE'] = 'AR'
-  time.sleep(1)
-  sp1.publish_message("forward_consume_from_f1", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "SP_FORWARD"
-  msg['DEVICE'] = 'AR'
-  time.sleep(1)
-  sp1.publish_message("forward_consume_from_f1", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "AR_FORWARD_ACK"
-  msg['DEVICE'] = 'AR'
-  time.sleep(1)
-  sp1.publish_message("f1_consume_from_forwarder", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "FORMAT_HEALTH_CHECK_ACK"
-  msg['DEVICE'] = 'AR'
-  time.sleep(1)
-  sp1.publish_message("f1_consume_from_format", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "PP_FETCH_ACK"
-  msg['DEVICE'] = 'AR'
-  time.sleep(1)
-  sp1.publish_message("f1_consume_from_fetch", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "PP_TAKE_IMAGE"
-  msg['DEVICE'] = 'AR'
-  time.sleep(1)
-  sp1.publish_message("f1_consume", msg)
-
-  msg = {}
-  msg['MSG_TYPE'] = "AR_END_READOUT"
-  msg['DEVICE'] = 'AR'
-  time.sleep(1)
-  sp1.publish_message("f1_consume", msg)
-
+  msg['MSG_TYPE'] = "AR_FWDR_HEALTH_CHECK"
+  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
+  msg['ACK_ID'] = 'xxX22122'
   time.sleep(5)
+  sp1.publish_message("f1_consume", msg)
 
-
-  """
+  print("Sending AR_FWDR_XFER_PARAMS message")
   msg = {}
-  msg['MSG_TYPE'] = "NEXT_VISIT"
-  msg['VISIT_ID'] = 'XX_28272'
-  msg['BORE_SIGHT'] = 'A LITTLE TO THE LEFT'
-  time.sleep(4)
-  sp1.publish_message("ocs_dmcs_consume", msg)
+  msg['MSG_TYPE'] = "AR_FWDR_XFER_PARAMS"
+  msg['JOB_NUM'] = 'j42'
+  msg['TARGET_LOCATION'] = '/tmp/gunk'
+  msg['SESSION_ID'] = 'sess77'
+  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
+  msg['DAQ_ADDR'] = 'LOCAL'
+  msg['VISIT_ID'] = 'vv2'
+  msg['ACK_ID'] = 'AR_FWDR_XFER_PARAMS_ACK_552'
+  # These lists are prepped for sending directly to a forwarder
+  msg["XFER_PARAMS"] = {}
+  msg['XFER_PARAMS']['AR_FWDR'] = 'FORWARDER_F1'
+  msg['XFER_PARAMS']['RAFT_LIST'] = ['11','22']
+  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['60'],['ALL']]
+  time.sleep(2)
+  sp1.publish_message("f1_consume", msg)
 
+  print("Sending AR_FWDR_TAKE_IMAGES message")
   msg = {}
-  msg['MSG_TYPE'] = "START_INTEGRATION"
-  msg['IMAGE_ID'] = 'IMG_444244'
-  msg['DEVICE'] = 'AR'
+  msg['MSG_TYPE'] = "AR_FWDR_TAKE_IMAGES"
+  msg['JOB_NUM'] = 'j42'
+  msg['NUM_IMAGES'] = '2'
+  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
+  msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
   time.sleep(4)
-  sp1.publish_message("ocs_dmcs_consume", msg)
+  sp1.publish_message("f1_consume", msg)
 
+  print("Sending AR_FWDR_END_READOUT message")
   msg = {}
-  msg['MSG_TYPE'] = "READOUT"
-  msg['IMAGE_ID'] = 'IMG_444244'
-  msg['DEVICE'] = 'AR'
+  msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
+  msg['IMAGE_ID'] = 'IMG_100'
+  msg['JOB_NUM'] = 'j42'
+  msg['VISIT_ID'] = 'vv2'
+  msg['SESSION_ID'] = 'sess77'
+  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
+  msg['ACK_ID'] = 'AR_FWDR_END_READOUT_ACK_557'
   time.sleep(4)
-  sp1.publish_message("ocs_dmcs_consume", msg)
-  """ 
+  sp1.publish_message("f1_consume", msg)
+
+  print("Sending AR_FWDR_TAKE_IMAGES_DONE message")
+  msg = {}
+  msg['MSG_TYPE'] = "AR_FWDR_TAKE_IMAGES_DONE"
+  msg['JOB_NUM'] = 'j42'
+  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
+  msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
+  time.sleep(6)
+  sp1.publish_message("f1_consume", msg)
+
 
   print("Sender done")
-
-
-    #sp2.publish_message("ack_publish", "No, It's COLD")
-    #time.sleep(2)
-    #pass
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":  main()
