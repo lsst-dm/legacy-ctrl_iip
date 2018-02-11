@@ -167,6 +167,9 @@ class ArchiveDevice:
         msg_dict = body 
         LOGGER.info('In ACK message callback')
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
+        print("In AR_DEV ack handler, msg is: ")
+        self.prp.pprint(body)
+        print("--------------------------- ")
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -237,13 +240,17 @@ class ArchiveDevice:
            print("B-B-BAD Trouble; no ar_response")
            
        
-        target_location = ar_response['ARCHIVE_CTRL']['TARGET_LOCATION']
+        #target_location = ar_response['ARCHIVE_CTRL']['TARGET_LOCATION']
+        target_location = "/tmp/gunk"
         self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 
                                                   'TARGET_LOCATION': target_location})
         
 
         # divide image fetch across forwarders
         list_of_fwdrs = list(healthy_fwdrs.keys())
+        print("Just before divide_work...list_of_fwdrs is:")
+        self.prp.pprint(list_of_fwdrs)
+        print("------------------------------")
         work_schedule = self.divide_work(list_of_fwdrs, raft_list, raft_ccd_list)
         if self.DP:
             print("Here is the work schedule hot off of the divide_work stack:")
@@ -277,11 +284,18 @@ class ArchiveDevice:
             xfer_params_dict = {}
             xfer_params_dict['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
             xfer_params_dict['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
+
+            #fwdr_new_target_params['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
+            #fwdr_new_target_params['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
+
             # record work order in scoreboard
             self.FWD_SCBD.set_work_by_job(fwdr, job_number, xfer_params_dict)
             xfer_params_dict['AR_FWDR'] = fwdr
             fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
+            print(" sending xfer_params...route_key is %s" % route_key)
+            print(" sending xfer_params...fwdr is %s" % fwdr)
+            print ("Publishing string xfger params... %s" % str(fwdr_new_target_params)) 
             self._publisher.publish_message(route_key, fwdr_new_target_params)
        
 
@@ -353,11 +367,17 @@ class ArchiveDevice:
         schedule['CCD_LIST'] = []  # A list of ccd lists; index of main list matches same forwarder list index
         FORWARDER_LIST = []
         RAFT_LIST = [] # This is a 'list of lists'
-        RAFT_CCD_LIST = [] # This is a 'list of lists'
+        tmp_raft_list = []
+        RAFT_CCD_LIST = [] # This is a 'list of lists of lists'
+        tmp_raft_ccd_list = []
         if num_fwdrs == 1:
             FORWARDER_LIST.append(fwdrs_list[0])
-            RAFT_LIST = deepcopy(raft_list)
-            RAFT_CCD_LIST = deepcopy(raft_ccd_list)
+            for item in raft_list:
+                tmp_raft_list.append(item) 
+            RAFT_LIST.append(list(tmp_raft_list))
+            for item in raft_ccd_list:
+                tmp_raft_ccd_list.append(list(item))
+            RAFT_CCD_LIST.append(list(tmp_raft_ccd_list))
             schedule['FORWARDER_LIST'] = FORWARDER_LIST
             schedule['RAFT_LIST'] = RAFT_LIST
             schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST
@@ -382,13 +402,13 @@ class ArchiveDevice:
             remainder_rafts = len(raft_list) % num_fwdrs
             offset = 0
             for i in range(0, num_fwdrs):
-                tmp_list = []
                 tmp_raft_list = []
+                tmp_raft_ccd_list = []
                 for j in range (offset, (rafts_per_fwdr + offset)):
                     if (j) >= num_rafts:
                         break
-                    tmp_list.append(raft_list[j])
-                    tmp_raft_list.append(deepcopy(raft_ccd_list[j]))
+                    tmp_raft_list.append(raft_list[j])
+                    tmp_raft_ccd_list.append(deepcopy(raft_ccd_list[j]))
                 offset = offset + rafts_per_fwdr
 
                 # If num_fwdrs divided into num_rafts equally, we are done...else, deal with remainder
@@ -398,8 +418,8 @@ class ArchiveDevice:
                         tmp_raft_list.append(deepcopy(raft_ccd_list[k]))
                     offset = offset + remainder_rafts
                 FORWARDER_LIST.append(fwdrs_list[i])
-                RAFT_LIST.append(list(tmp_list))
-                RAFT_CCD_LIST.append(list(tmp_raft_list))
+                RAFT_LIST.append(list(tmp_raft_list))
+                RAFT_CCD_LIST.append(list(tmp_raft_ccd_list))
             schedule['FORWARDER_LIST'] = FORWARDER_LIST
             schedule['RAFT_LIST'] = RAFT_LIST
             schedule['RAFT_CCD_LIST'] = RAFT_CCD_LIST

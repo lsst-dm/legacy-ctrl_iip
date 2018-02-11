@@ -312,6 +312,7 @@ class StateScoreboard(Scoreboard):
             #    self._redis.hset(self.CU, 'SESSION_ID', session_id)
             id = "Session_" + str(session_id)
             self._redis.set(self.CURRENT_SESSION_ID, id)
+            print("SETTING NEW SESSION_ID")
             self.set_rafts_for_current_session(id)
             return id
         else:
@@ -350,7 +351,9 @@ class StateScoreboard(Scoreboard):
     def get_rafts_for_current_session_as_lists(self):
         if self.check_connection():
             current_session = self._redis.get(self.CURRENT_SESSION_ID)
+            print("current_session is %s" % current_session)
             current_session_rafts = str(current_session) + "_RAFTS"
+            print("current_session_rafts is %s" % current_session_rafts)
             rdict = yaml.load(self._redis.hget(current_session_rafts, self.RAFTS))
             print("The SScbd raft_dict from line 350 is: ")
             self.prp.pprint(rdict)

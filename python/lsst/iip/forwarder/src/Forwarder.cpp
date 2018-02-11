@@ -29,8 +29,8 @@ class Forwarder {
     public:
 
     //Important 'per readout' values
-    std::vector<string> visit_raft_list;
-    std::vector<std::vector<string> > visit_raft_ccd_list;
+    std::vector<string> visit_raft_string_list;
+    std::vector<std::vector<string>> visit_ccd_string_lists_by_raft;
     std::vector<string> image_id_list;
 
     std::vector<string> current_image_work_list;
@@ -41,11 +41,11 @@ class Forwarder {
     std::string Session_ID = "";
     std::string Visit_ID = "";
     std::string Job_Num = "";
-    std::string Target_Dir = "";
+    std::string Target_Location = "";
     std::string Daq_Addr = "";
     std::string Work_Dir = ""; 
     std::string Src_Dir = ""; 
-    std::string Name = ""; //such as F1
+    std::string Name = ""; //such as FORWARDER_1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
     int Num_Images = 0; 
@@ -155,10 +155,10 @@ map<string, funcptr> on_foreman_message_actions = {
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "SP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "AR_TAKE_IMAGES", &Forwarder::process_take_images},
+    { "AR_FWDR_TAKE_IMAGES", &Forwarder::process_take_images},
     { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
     { "SP_TAKE_IMAGES", &Forwarder::process_take_images},
-    { "AR_END_READOUT", &Forwarder::process_end_readout},
+    { "AR_FWDR_END_READOUT", &Forwarder::process_end_readout},
     { "PP_END_READOUT", &Forwarder::process_end_readout},
     { "SP_END_READOUT", &Forwarder::process_end_readout},
     { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
@@ -451,6 +451,10 @@ void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
 
 //Messages received by Primary Forwarder from Foreman
 void Forwarder::on_foreman_message(string body) {
+    cout << "In forwarder callback that receives msgs from AR foreman" << endl;
+    cout << "-----------Message Body Is:------------" << endl;
+    cout << body << endl;
+    cout << "----------------------" << endl;
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_foreman_message_actions[message_type];
@@ -486,6 +490,10 @@ void Forwarder::on_forward_message(string body) {
 
 //Messages received by the fetch, format, and forward threads
 void Forwarder::on_forwarder_to_fetch_message(string body) {
+    cout << "In fETCHr callback that receives msgs from main forwarder thread" << endl;
+    cout << "-----------Message Body Is:------------" << endl;
+    cout << body << endl;
+    cout << "----------------------" << endl;
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forwarder_to_fetch_message_actions[message_type];
@@ -532,33 +540,54 @@ void Forwarder::process_health_check(Node n) {
 
     string message_type = "AR_FWDR_HEALTH_CHECK_ACK";
     //string component = "AR";
-    string ack_bool = "false";
+    string ack_bool = "True";
 
     ostringstream message;
     message << "{ MSG_TYPE: " << message_type
-            << ", COMPONENT: " << this->Name
+            << ", COMPONENT: " << this->Component
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
 
     FWDR_pub->publish_message(reply_queue, message.str());
-    cout << "Health Check request Message" << endl;
+    cout << "Health Check request Message, ACK sent to: " << reply_queue << endl;
     return;
 }
 
 void Forwarder::process_xfer_params(Node n) {
-    this->visit_raft_list.clear();
-    this->visit_raft_list = n["RAFT_LIST"].as<std::vector<string>>();
-    this->visit_raft_ccd_list.clear();
-    this->visit_raft_ccd_list = n["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
+    cout << "Entering process_xfer_params method" << endl;
+    cout << "Incoming Node n is " << n <<  endl;
+
+    Node p = n["XFER_PARAMS"];
+    cout << "Sub Node p is " << p <<  endl;
+
+    this->visit_raft_string_list.clear();
+    this->visit_raft_string_list = p["RAFT_LIST"].as<vector<string>>();
+    cout << "In process_xfer_params, RAFT_LIST has been ASSIGNED to class var" << endl;
+
+    this->visit_ccd_string_lists_by_raft.clear();
+    this->visit_ccd_string_lists_by_raft = p["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
+    cout << "In process_xfer_params, RAFT_CCC_LIST has been ASSIGNED to class var" << endl;
 
     this->Session_ID = n["SESSION_ID"].as<string>();
-    this->Visit_ID = n["VISIT_ID"].as<string>();
+    cout << "After setting SESSION_ID" << endl;
+
     this->Job_Num = n["JOB_NUM"].as<string>();
-    this->Target_Dir = n["TARGET_LOCATION"].as<string>();
-    this->Daq_Addr = n["DAQ_ADDR"].as<string>();
+    cout << "After setting JOB_NUM" << endl;
+
+    this->Target_Location = n["TARGET_LOCATION"].as<string>();
+    cout << "After setting TARGET_LOCATION" << endl;
+
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    cout << "After extracting REPLY_QUEUE" << endl;
 
     string ack_id = n["ACK_ID"].as<string>();
-    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    cout << "After extracting ACK_ID" << endl;
+
+    //this->Daq_Addr = n["DAQ_ADDR"].as<string>();
+    //cout << "After setting DAQ_ADDR" << endl;
+
+    //this->Visit_ID = n["VISIT_ID"].as<string>();
+    //cout << "After setting VISIT_ID" << endl;
 
     string message_type = "AR_FWDR_XFER_PARAMS_ACK";
     //string component = "AR";
@@ -566,7 +595,7 @@ void Forwarder::process_xfer_params(Node n) {
 
     ostringstream message;
     message << "{ MSG_TYPE: " << message_type
-            << ", COMPONENT: " << this->Name
+            << ", COMPONENT: " << this->Component
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
 
@@ -575,12 +604,14 @@ void Forwarder::process_xfer_params(Node n) {
 }
 
 void Forwarder::process_take_images(Node n) {
+    cout << endl << "IN process_take_images" << endl;
     this->Num_Images = n["NUM_IMAGES"].as<int>();;
     cout << "Take Image Message...should be some tasty params here" << endl;
     return;
 }
 
 void Forwarder::process_end_readout(Node n) {
+    cout << "IN PROCESS_END_READOUT" << endl;
     // Send IMAGE_ID to fetch thread...use message broker queue as work queue
     //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
     //else, DAQ val will equal a path where files can be found.
@@ -598,6 +629,7 @@ void Forwarder::process_end_readout(Node n) {
 
 //From forwarder main thread to fetch thread
 void Forwarder::process_fetch(Node n) {
+    cout << endl << "********IN PROCESS_END_READOUT********" << endl;
     //If message_type FETCH_END_READOUT, 
     //  Make dir using image_id as name under work_dir
     //  Fetch data from DAQ or copy from local drive
@@ -630,6 +662,13 @@ void Forwarder::process_fetch(Node n) {
       const std::string tmpstr = cmd.str();
       const char* cmdstr = tmpstr.c_str();
       system(cmdstr);
+
+      ostringstream acmd;
+      acmd << "cp " << Src_Dir <<"/*  " << filepath.str();
+      const std::string atmpstr = acmd.str();
+      const char* acmdstr = atmpstr.c_str();
+      system(acmdstr);
+ 
       string new_msg_type = "FORMAT_END_READOUT";
       ostringstream msg;
       msg << "{MSG_TYPE: " << new_msg_type
@@ -944,7 +983,7 @@ void Forwarder::format_look_for_work() {
 void Forwarder::forward_process_formatted_img(Node n) { 
     string img_id = n["IMAGE_ID"].as<string>(); 
     string img_path = this->Work_Dir + "FITS/" + img_id; 
-    string dest_path = this->Target_Dir + img_id; 
+    string dest_path = this->Target_Location + img_id; 
     
     // use bbcp to send file 
     ostringstream bbcp_cmd; 

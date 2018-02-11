@@ -25,8 +25,8 @@ ROOT:
     FQN: FORWARDER_1
     IP_ADDR: 141.142.238.161
     HOSTNAME: lsst-wf-base01.ncsa.illinois.edu
-    WORK_DIR: /mnt/ram/
-    SRC_DIR: /tmp/gunk/
+    WORK_DIR: /tmp/source
+    SRC_DIR: /tmp/gunk
     DAQ_ADDR: LOCAL
     BASE_BROKER_ADDR: "@141.142.238.10:5672/%2ftest"
 

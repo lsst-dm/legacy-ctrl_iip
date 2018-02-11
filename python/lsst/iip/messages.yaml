@@ -453,6 +453,10 @@ ROOT:
 
     AR_FWDR_TAKE_IMAGES:
         MSG_TYPE: AR_FWDR_TAKE_IMAGES
+        JOB_NUM:
+        NUM_IMAGES:
+        REPLY_QUEUE:
+        ACK_ID:
         # This message is simply a notification for fwder to clean up and prepare...no ack
 
     AR_END_READOUT:
