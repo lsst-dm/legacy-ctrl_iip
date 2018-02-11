@@ -93,11 +93,19 @@ def main():
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_TAKE_IMAGES"
   msg['JOB_NUM'] = 'j42'
-  msg['NUM_IMAGES'] = '2'
+  msg['NUM_IMAGES'] = 2
   msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
   msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
   time.sleep(4)
   sp1.publish_message("f1_consume", msg)
+
+  print("Sending header information") 
+  msg = {} 
+  msg["MSG_TYPE"] = "HEADER_READY"
+  msg["FILENAME"] = "/tmp/header/IMG_100/IMG_100.header"
+  msg["IMAGE_ID"] = "IMG_100"
+  time.sleep(4)
+  sp1.publish_message("f1_consume", msg) 
 
   print("Sending AR_FWDR_END_READOUT message")
   msg = {}
@@ -111,14 +119,17 @@ def main():
   time.sleep(4)
   sp1.publish_message("f1_consume", msg)
 
+
+  ''' 
   print("Sending AR_FWDR_TAKE_IMAGES_DONE message")
   msg = {}
-  msg['MSG_TYPE'] = "AR_FWDR_TAKE_IMAGES_DONE"
+  msg['MSG_TYPE'] = "AR_TAKE_IMAGES_DONE"
   msg['JOB_NUM'] = 'j42'
   msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
   msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
   time.sleep(6)
   sp1.publish_message("f1_consume", msg)
+  '''
 
 
   print("Sender done")
