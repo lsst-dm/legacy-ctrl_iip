@@ -225,7 +225,7 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "TAKE_IMAGES_DONE", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}, 
-    { "FORMAT_DONE", &Forwarder::forward_process_formatted_img} 
+    { "FORWARD_END_READOUT", &Forwarder::forward_process_formatted_img} 
 
 };
 
@@ -505,6 +505,10 @@ void Forwarder::on_forwarder_to_fetch_message(string body) {
 }
 
 void Forwarder::on_forwarder_to_format_message(string body) {
+    cout << "In format callback that receives msgs from main forwarder thread" << endl;
+    cout << "-----------Message Body Is:------------" << endl;
+    cout << body << endl;
+    cout << "----------------------" << endl;
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forwarder_to_format_message_actions[message_type];
@@ -834,6 +838,7 @@ void Forwarder::process_forward_health_check_ack(Node n) {
 ////////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_process_end_readout(Node node) { 
+    cout << "[f] fper" << endl;
     string image_id = node["IMAGE_ID"].as<string>(); 
     this->readout_img_ids.push_back(image_id); 
     this->format_look_for_work(); 
@@ -901,7 +906,7 @@ void Forwarder::format_write_img(string img, string header) {
     // /mnt/ram/IMG_31
     string img_path = Work_Dir + "/" + img;
     string header_path = header;
-    string destination = Work_Dir + "/FITS/" + img;
+    string destination = Work_Dir + "/FITS/" + img + ".fits";
     cout << "[x] header: " << header_path << endl; 
     cout << "[x] destination:" << destination << endl;
 
@@ -950,6 +955,7 @@ vector<string> Forwarder::format_list_files(string path) {
 } 
 
 void Forwarder::format_send_completed_msg(string image_id) { 
+    cout << "[f] fscm" << endl;
     ostringstream msg; 
     msg << "{ MSG_TYPE: FORWARD_END_READOUT" 
         << ", IMAGE_ID: " << image_id << "}"; 
@@ -962,6 +968,7 @@ void Forwarder::format_look_for_work() {
     vector<string>::iterator it;
     map<string, string>::iterator mit;  
     map<string, string>::iterator tid; 
+    cout << "readout SIZE: " << readout_img_ids.size() << endl;
     if (this->readout_img_ids.size() != 0) { 
         cout << "[x] img data exists" << endl; 
         for (it = this->readout_img_ids.begin(); it != this->readout_img_ids.end(); it++) { 
@@ -1012,8 +1019,8 @@ void Forwarder::format_look_for_work() {
 
 void Forwarder::forward_process_formatted_img(Node n) { 
     string img_id = n["IMAGE_ID"].as<string>(); 
-    string img_path = this->Work_Dir + "FITS/" + img_id; 
-    string dest_path = this->Target_Location + img_id; 
+    string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
+    string dest_path = this->Target_Location + "/" + img_id; 
     
     // use bbcp to send file 
     ostringstream bbcp_cmd; 
