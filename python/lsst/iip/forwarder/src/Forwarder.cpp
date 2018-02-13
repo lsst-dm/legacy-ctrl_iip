@@ -132,11 +132,12 @@ class Forwarder {
     void format_assemble_img(Node);
     void format_send_completed_msg(std::string);
     void format_look_for_work(); 
-    void format_process_end_readout(Node n); 
-    void format_get_header(Node n); 
+    void format_process_end_readout(Node); 
+    void format_get_header(Node); 
     vector<string> format_list_files(string); 
 
-    void forward_process_formatted_img(Node); 
+    void forward_process_end_readout(Node); 
+    void forward_process_take_images_done(Node); 
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -211,11 +212,11 @@ map<string, funcptr> on_forwarder_to_fetch_message_actions = {
 map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
-    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format},
     { "PP_FORMAT", &Forwarder::process_format},
     { "SP_FORMAT", &Forwarder::process_format}, 
     { "FORMAT_END_READOUT", &Forwarder::format_process_end_readout}, 
     { "FORMAT_HEADER_READY", &Forwarder::format_get_header}, 
+    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format},
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
@@ -225,8 +226,8 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "TAKE_IMAGES_DONE", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}, 
-    { "FORWARD_END_READOUT", &Forwarder::forward_process_formatted_img} 
-
+    { "FORWARD_END_READOUT", &Forwarder::forward_process_end_readout}, 
+    { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done},  
 };
 
 Forwarder::Forwarder() {
@@ -476,6 +477,7 @@ void Forwarder::on_fetch_message(string body) {
 
 //Messages received by Primary Forwarder from format thread
 void Forwarder::on_format_message(string body) {
+    cout << "ON_FORMAT: " << body << endl;
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_format_message_actions[message_type];
@@ -484,6 +486,7 @@ void Forwarder::on_format_message(string body) {
 
 //Messages received by Primary Forwarder from forwardthread
 void Forwarder::on_forward_message(string body) {
+    cout << "ON_FORWARD: " << body << endl;
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forward_message_actions[message_type];
@@ -516,6 +519,10 @@ void Forwarder::on_forwarder_to_format_message(string body) {
 }
 
 void Forwarder::on_forwarder_to_forward_message(string body) {
+    cout << "In forward callback that receives msgs from main forwarder thread" << endl;
+    cout << "-----------Message Body Is:------------" << endl;
+    cout << body << endl;
+    cout << "----------------------" << endl;
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forwarder_to_forward_message_actions[message_type];
@@ -673,6 +680,7 @@ void Forwarder::process_fetch(Node n) {
 
       ostringstream acmd;
       acmd << "cp " << Src_Dir <<"/*  " << filepath.str();
+      cout << "fetch_end_readout" << acmd.str() << endl;
       const std::string atmpstr = acmd.str();
       const char* acmdstr = atmpstr.c_str();
       system(acmdstr);
@@ -702,7 +710,6 @@ void Forwarder::process_take_images_done(Node n) {
         << ", REPLY_QUEUE: " << reply_queue
         << ", ACK_ID: " << ack_id << "}";
     this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.str());
-
 }
 
 void Forwarder::process_fetch_ack(Node n) {
@@ -721,6 +728,7 @@ void Forwarder::process_fetch_health_check_ack(Node n) {
 }
 
 void Forwarder::process_format(Node n) {
+    cout << "process_format" << endl;
     string type_msg = n["MSG_TYPE"].as<string>();
     
     if (type_msg == "FORMAT_TAKE_IMAGES_DONE") {
@@ -733,33 +741,15 @@ void Forwarder::process_format(Node n) {
           << ", JOB_NUM: " << job_num
           << ", REPLY_QUEUE: " << reply_queue
           << ", ACK_ID: " << ack_id << "}";
-      this->fetch_pub->publish_message(this->forward_consume_queue, msg.str());
+      this->fmt_pub->publish_message(this->forward_consume_queue, msg.str());
       return;
     }
-
-    /** 
-    ////// FINISH FORMAT AND SEND READOUT TO FORWARD
-    if (type_msg == "FORMAT_END_READOUT") {
-      this->assemble_img(n);
-      string image_id = n["IMAGE_ID"].as<string>();
-      ostringstream cmd;
-      ostringstream filepath;
-      filepath << this->Work_Dir << "/" << image_id;
-      cmd << "mkdir " << filepath.str();
-      const std::string tmpstr = cmd.str();
-      const char* cmdstr = tmpstr.c_str();
-      system(cmdstr);
-      string new_msg_type = "FORWARD_END_READOUT";
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << new_msg_type
-              << ", IMAGE_ID: " << image_id << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-      return;
-    }
-    */ 
-    cout << "trouble processing format message" << endl;
     return;
 }
+
+void Forwarder::process_forward(Node n) { 
+    cout << "processing foward message" << endl;
+} 
 
 void Forwarder::process_format_ack(Node n) {
     cout << "processing format ack message" << endl;
@@ -776,61 +766,18 @@ void Forwarder::process_format_health_check_ack(Node n) {
     return;
 }
 
-void Forwarder::process_forward(Node n) {
-    string type_msg = n["MSG_TYPE"].as<string>();
-    if (type_msg == "FORWARD_END_READOUT") {
-      this->forward_process_formatted_img(n);
-      return;
-    }
-    else if (type_msg == "FORWARD_TAKE_IMAGES_DONE") {
-      ostringstream message;
-      YAML::Emitter file_list;
-      YAML::Emitter csum_list;
-      YAML::Emitter result_set;
-      string ack_id = n["ACK_ID"].as<string>();
-      string reply_queue = n["REPLY_QUEUE"].as<string>();
-      string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK ";
-      string ack_bool = "True ";
-    
-      file_list << YAML::BeginSeq;
-      csum_list << YAML::BeginSeq;
-      for(int i = 0; i < finished_image_work_list.size(); i++) {
-        file_list << finished_image_work_list[i];
-        csum_list << checksum_list[i];
-      }
-      file_list << YAML::EndSeq;
-      csum_list << YAML::EndSeq;
-
-      // FIXME: EMITTER usage needs to be checked. 
-      result_set << YAML::BeginMap;
-      result_set << YAML::Key << "FILENAME_LIST";
-      result_set << YAML::Value << file_list.c_str(); 
-      result_set << YAML::Key << "CHECKSUM_LIST";
-      result_set << YAML::Value << file_list.c_str();
-      result_set << YAML::EndMap;
-      message << "{MSG_TYPE: " << msg_type 
-              << "COMPONENT: " << this->Component
-              << "ACK_ID: " << ack_id
-              << "ACK_BOOL: " << ack_bool
-              << "RESULT_SET: " << result_set.c_str() << "}";
-    
-      this->fetch_pub->publish_message(reply_queue, message.str());
-      return;
-    }
-}
-
 void Forwarder::process_forward_ack(Node n) {
-    cout << "Processing forward ack message" << endl;
-    return;
+  cout << "Processing forward ack message" << endl;
+  return;
 }
 
 void Forwarder::process_forward_health_check(Node n) {
-    cout << "Processing forward health check message" << endl;
+  cout << "Processing forward health check message" << endl;
 }
 
 void Forwarder::process_forward_health_check_ack(Node n) {
-    cout << "Processing forward health check ack message" << endl;
-    return;
+  cout << "Processing forward health check ack message" << endl;
+  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -838,6 +785,7 @@ void Forwarder::process_forward_health_check_ack(Node n) {
 ////////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_process_end_readout(Node node) { 
+    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
     cout << "[f] fper" << endl;
     string image_id = node["IMAGE_ID"].as<string>(); 
     this->readout_img_ids.push_back(image_id); 
@@ -845,15 +793,16 @@ void Forwarder::format_process_end_readout(Node node) {
 } 
 
 void Forwarder::format_get_header(Node node) { 
-    cout << "[x] in fgh" << endl; 
+    cout << "[f] fgh" << endl; 
     string image_id = node["IMAGE_ID"].as<string>(); 
     string filename = node["FILENAME"].as<string>(); 
     cout << "[x] " << image_id << ": " << filename << endl;
     this->header_info_dict[image_id] = filename; 
     this->format_look_for_work(); 
 } 
+
 void Forwarder::format_assemble_img(Node n) {
-    cout << "[x] fai" << endl; 
+    cout << "[f] fai" << endl; 
     string img_id = n["IMAGE_ID"].as<string>(); 
     string header = n["HEADER"].as<string>(); 
     // create dir  /mnt/ram/FITS/IMG_10
@@ -891,6 +840,7 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
 } 
 
 void Forwarder::format_write_img(string img, string header) { 
+    cout << "[x] fwi" << endl;
     long len = WIDTH * HEIGHT;
     int bitpix = BYTE_IMG; 
     long naxis = 2;
@@ -935,6 +885,7 @@ void Forwarder::format_write_img(string img, string header) {
     fits_close_file(iptr, &status); 
     fits_close_file(optr, &status); 
 
+    cout << "end of fwi" << endl;
     format_send_completed_msg(img);
 } 
 
@@ -956,22 +907,24 @@ vector<string> Forwarder::format_list_files(string path) {
 
 void Forwarder::format_send_completed_msg(string image_id) { 
     cout << "[f] fscm" << endl;
-    ostringstream msg; 
-    msg << "{ MSG_TYPE: FORWARD_END_READOUT" 
-        << ", IMAGE_ID: " << image_id << "}"; 
-    fmt_pub->publish_message(this->forward_consume_queue, msg.str()); 
+    Emitter msg; 
+    msg << BeginMap; 
+    msg << Key << "MSG_TYPE" << Value << "FORWARD_END_READOUT"; 
+    msg << Key << "IMAGE_ID" << Value << image_id; 
+    msg << EndMap; 
+    fmt_pub->publish_message(this->forward_consume_queue, msg.c_str()); 
 } 
 ///////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_look_for_work() { 
-    cout << "[x] In format_look-for_work" << endl;
+    cout << "[f] flfw" << endl;
     vector<string>::iterator it;
     map<string, string>::iterator mit;  
     map<string, string>::iterator tid; 
     cout << "readout SIZE: " << readout_img_ids.size() << endl;
-    if (this->readout_img_ids.size() != 0) { 
+    if (this->readout_img_ids.size() != 0 && this->header_info_dict.size() != 0) { 
         cout << "[x] img data exists" << endl; 
-        for (it = this->readout_img_ids.begin(); it != this->readout_img_ids.end(); it++) { 
+        for (it = this->readout_img_ids.begin(); it != this->readout_img_ids.end(); ) { 
             string img_id = *it; 
             mit = this->header_info_dict.find(img_id); 
             if (mit != this->header_info_dict.end()) { 
@@ -985,31 +938,12 @@ void Forwarder::format_look_for_work() {
                 n["HEADER"] = header_filename; 
                 format_assemble_img(n); 
             } 
+            else it++; 
         } 
     } 
-
-    if (this->readout_img_ids.size() == 0 && this->take_img_done_msg.size() == 0) { 
+    else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
         cout << "[x] no img data" << endl; 
         return; 
-    } 
-
-    if (this->readout_img_ids.size() == 0 && this->take_img_done_msg.size() == 0) { 
-        cout << "[x] got take_img" << endl;
-        Emitter msg; 
-        msg << BeginMap; 
-
-        for (tid = this->take_img_done_msg.begin(); tid != this->take_img_done_msg.end(); tid++) { 
-            string key = tid->first; 
-            string val = tid->second; 
-            if (key == "MSG_TYPE") { 
-                val = "FORWARD_TAKE_IMAGES_DONE"; 
-            } 
-
-            msg << Key << key; 
-            msg << Value << val; 
-        } 
-        msg << EndMap; 
-        fmt_pub->publish_message(this->forward_consume_queue, msg.c_str()); 
     } 
 } 
 
@@ -1017,20 +951,48 @@ void Forwarder::format_look_for_work() {
 // Forward part 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Forwarder::forward_process_formatted_img(Node n) { 
+void Forwarder::forward_process_end_readout(Node n) { 
     string img_id = n["IMAGE_ID"].as<string>(); 
     string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
-    string dest_path = this->Target_Location + "/" + img_id; 
-    
+    string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
+  
     // use bbcp to send file 
     ostringstream bbcp_cmd; 
     bbcp_cmd << "bbcp "
-             << img_path
-             << " " 
-             << dest_path; 
+           << img_path
+           << " " 
+           << dest_path; 
     cout << bbcp_cmd.str() << endl; 
     system(bbcp_cmd.str().c_str()); 
     this->finished_image_work_list.push_back(img_id);
+    cout << "[X] READOUT COMPLETE." << endl;
+} 
+
+void Forwarder::forward_process_take_images_done(Node n) { 
+    cout << "get here" << endl;
+    ostringstream message;
+    string ack_id = n["ACK_ID"].as<string>();
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK ";
+    string ack_bool = "True";
+  
+    Emitter msg; 
+    msg << BeginMap; 
+    msg << Key << "MSG_TYPE" << Value << msg_type; 
+    msg << Key << "COMPONENT" << Value << this->Component; 
+    msg << Key << "ACK_ID" << Value << ack_id; 
+    msg << Key << "ACK_BOOL" << Value << ack_bool; 
+    msg << Key << "RESULT_SET" << Value << Flow; 
+        msg << BeginMap; 
+        msg << Key << "FILENAME_LIST" << Value << Flow << finished_image_work_list; 
+        msg << Key << "CHECKSUM_LIST" << Value << Flow << checksum_list;  
+        msg << EndMap; 
+    msg << EndMap; 
+    cout << "[x] tid msg: " << endl; 
+    cout << msg.c_str() << endl;
+  
+    this->fwd_pub->publish_message(reply_queue, msg.c_str());
+    cout << "msg is replied to ..." << reply_queue << endl;
 } 
 
 int main() {

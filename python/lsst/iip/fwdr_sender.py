@@ -75,7 +75,7 @@ def main():
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_XFER_PARAMS"
   msg['JOB_NUM'] = 'j42'
-  msg['TARGET_LOCATION'] = '/tmp/gunk'
+  msg['TARGET_LOCATION'] = '/tmp/target'
   msg['SESSION_ID'] = 'sess77'
   msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
   msg['DAQ_ADDR'] = 'LOCAL'
@@ -99,14 +99,6 @@ def main():
   time.sleep(4)
   sp1.publish_message("f1_consume", msg)
 
-  print("Sending header information") 
-  msg = {} 
-  msg["MSG_TYPE"] = "HEADER_READY"
-  msg["FILENAME"] = "/tmp/header/IMG_100/IMG_100.header"
-  msg["IMAGE_ID"] = "IMG_100"
-  time.sleep(4)
-  sp1.publish_message("f1_consume", msg) 
-
   print("Sending AR_FWDR_END_READOUT message")
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
@@ -120,7 +112,34 @@ def main():
   sp1.publish_message("f1_consume", msg)
 
 
-  ''' 
+  print("Sending HEADER1 information") 
+  msg = {} 
+  msg["MSG_TYPE"] = "HEADER_READY"
+  msg["FILENAME"] = "/tmp/header/IMG_100/IMG_100.header"
+  msg["IMAGE_ID"] = "IMG_100"
+  time.sleep(4)
+  sp1.publish_message("f1_consume", msg) 
+
+  print("Sending HEADER2 information") 
+  msg = {} 
+  msg["MSG_TYPE"] = "HEADER_READY"
+  msg["FILENAME"] = "/tmp/header/IMG_101/IMG_101.header"
+  msg["IMAGE_ID"] = "IMG_101"
+  time.sleep(4)
+  sp1.publish_message("f1_consume", msg) 
+
+  print("Sending AR_FWDR_END_READOUT message")
+  msg = {}
+  msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
+  msg['IMAGE_ID'] = 'IMG_101'
+  msg['JOB_NUM'] = 'j42'
+  msg['VISIT_ID'] = 'vv2'
+  msg['SESSION_ID'] = 'sess77'
+  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
+  msg['ACK_ID'] = 'AR_FWDR_END_READOUT_ACK_558'
+  time.sleep(4)
+  sp1.publish_message("f1_consume", msg)
+
   print("Sending AR_FWDR_TAKE_IMAGES_DONE message")
   msg = {}
   msg['MSG_TYPE'] = "AR_TAKE_IMAGES_DONE"
@@ -129,7 +148,6 @@ def main():
   msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
   time.sleep(6)
   sp1.publish_message("f1_consume", msg)
-  '''
 
 
   print("Sender done")
