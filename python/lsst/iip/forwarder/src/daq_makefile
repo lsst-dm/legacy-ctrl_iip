@@ -10,3 +10,9 @@ Forwarder: Forwarder.cpp
 
 clean: 
 	rm Forwarder
+
+
+###  Parsons additions
+#g++ -o tester4.o -c -std=gnu++0x -g -Wall -DSINGLE_TASK -I${RELEASE}/include tester4.cpp
+#g++ -o tester4 -Wl,-rpath=${RELEASE}/x86/lib tester4.o -L${RELEASE}/x86/lib -ldaq -lims -ldsi -losa -ldss -lnet
+
