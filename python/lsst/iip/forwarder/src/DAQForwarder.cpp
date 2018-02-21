@@ -1069,9 +1069,9 @@ void fetch_reassemble_process(std::string raft, string image_id, const DAQ::Loca
   uint64_t total_stripes = 0;
   uint64_t pixel_errors = 0;
 
-  boolean do_ccd0 = FALSE;
-  boolean do_ccd1 = FALSE;
-  boolean do_ccd2 = FALSE;
+  bool do_ccd0 = false;
+  bool do_ccd1 = false;
+  bool do_ccd2 = false;
 
   std::vector<std::ofstream> FH0;
   std::vector<std::ofstream> FH1;
