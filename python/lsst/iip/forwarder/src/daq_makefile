@@ -9,12 +9,12 @@ OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
 all: Forwarder
 
 Forwarder: Forwarder.cpp
-        g++ -std=c++11 $(INCLUDE) $(LIBPATH) $(OBJ) -g -o Forwarder Forwarder.cpp $(LIB)
+	g++ -std=c++11 $(INCLUDE) $(LIBPATH) $(OBJ) -g -o Forwarder Forwarder.cpp $(LIB)
 
 DAQForwarder: DAQForwarder.cpp
-        g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -g -o DAQForwarder DAQForwarder.cp
+	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -g -o DAQForwarder DAQForwarder.cpp $(LIB) $(DAQ_LIB)
 
 clean: 
-        rm Forwarder
+	rm Forwarder
 
 

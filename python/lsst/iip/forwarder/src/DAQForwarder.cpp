@@ -1,5 +1,4 @@
 /////////////////////////////////////////////////////////////////
-// FIX: Add conditional to process_format for end_readout versus take_images_done.
 //
 
 #include <sys/stat.h> 
@@ -17,10 +16,20 @@
 #include "SimplePublisher.h"
 #include "fitsio.h"
 
+#include "daq/Location.hh"
+#include "daq/LocationSet.hh"
+
+#include "ims/Store.hh"
+#include "ims/Image.hh"
+#include "ims/Source.hh"
+#include "ims/Slice.hh"
+#include "ims/Science.hh"
+
 
 #define SECONDARY_HDU 2
 #define HEIGHT 512
 #define WIDTH 2048
+#define N_AMPS 16
 
 using namespace std;
 using namespace YAML;
@@ -29,8 +38,8 @@ class Forwarder {
     public:
 
     //Important 'per readout' values
-    std::vector<string> visit_raft_string_list;
-    std::vector<std::vector<string>> visit_ccd_string_lists_by_raft;
+    std::vector<string> visit_raft_list;
+    std::vector<std::vector<string>> visit_ccd_list_by_raft;
     std::vector<string> image_id_list;
 
     std::vector<string> current_image_work_list;
@@ -236,6 +245,26 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "SP_FORWARD", &Forwarder::process_forward}, 
     { "FORWARD_END_READOUT", &Forwarder::forward_process_end_readout}, 
     { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done},  
+};
+
+map<string, int> Board_Layout = {
+    { "00", 0},
+    { "10", 0},
+    { "20", 0},
+    { "01", 1},
+    { "11", 1},
+    { "21", 1},
+    { "02", 2},
+    { "12", 2},
+    { "22", 2}
+
+};
+
+map<string, vector<string>> All_Boards = {
+    { "0", {"00","10","20"}},
+    { "1", {"01","11","21"}},
+    { "2", {"02","12","22"}}
+
 };
 
 Forwarder::Forwarder() {
@@ -583,12 +612,12 @@ void Forwarder::process_xfer_params(Node n) {
     Node p = n["XFER_PARAMS"];
     cout << "Sub Node p is " << p <<  endl;
 
-    this->visit_raft_string_list.clear();
-    this->visit_raft_string_list = p["RAFT_LIST"].as<vector<string>>();
+    this->visit_raft_list.clear();
+    this->visit_raft_list = p["RAFT_LIST"].as<vector<string>>();
     cout << "In process_xfer_params, RAFT_LIST has been ASSIGNED to class var" << endl;
 
-    this->visit_ccd_string_lists_by_raft.clear();
-    this->visit_ccd_string_lists_by_raft = p["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
+    this->visit_ccd_list_by_raft.clear();
+    this->visit_ccd_list_by_raft = p["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
     cout << "In process_xfer_params, RAFT_CCC_LIST has been ASSIGNED to class var" << endl;
 
     this->Session_ID = n["SESSION_ID"].as<string>();
@@ -661,21 +690,21 @@ void Forwarder::process_fetch(Node n) {
 
     string type_msg = n["MSG_TYPE"].as<string>();
 
-    if strcmp(type_msg, "FETCH_TAKE_IMAGES_DONE") {
+    if (type_msg == "FETCH_TAKE_IMAGES_DONE") {
       string new_msg_type = "FORMAT_TAKE_IMAGES_DONE";
       string job_num = n["JOB_NUM"].as<string>();
       string reply_queue = n["REPLY_QUEUE"].as<string>();
       string ack_id = n["ACK_ID"].as<string>();
       ostringstream msg;
-      msg << "{MSG_TYPE: " << new_type_msg
+      msg << "{MSG_TYPE: " << new_msg_type
           << ", JOB_NUM: " << job_num
           << ", REPLY_QUEUE: " << reply_queue
           << ", ACK_ID: " << ack_id << "}";
       this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-      return
+      return;
     }
 
-    if strcmp(type_msg, "FETCH_END_READOUT") {
+    if (type_msg == "FETCH_END_READOUT") {
       // For raft in raft_list:
       //   send raft and associated ccd list from raft_ccd_list to fetch_readout_image()
       //   ccd_list *could* be 'all', or a subset
@@ -693,7 +722,7 @@ void Forwarder::process_fetch(Node n) {
       system(cmdstr);
 
 
-      this->fetch_readout_image(image_id, filepath);
+      this->fetch_readout_image(image_id, filepath.str());
 
 
       string new_msg_type = "FORMAT_END_READOUT";
@@ -1020,53 +1049,52 @@ void Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
   // The ccd_list is a vector that holds the ccds desired from this raft.
   // It might have the string 'ALL'...if so, fetch all ccds for this raft.
 
-  for int i = 0; i < this->raft_list.size(); i++) {
-    vector<string> ccd_list = raft_ccd_list[i];
-    fetch_readout_raft(this->raft_list[i], ccd_list, image_id, dir_prefix);
+  for (int i = 0; i < this->visit_raft_list.size(); i++) {
+    vector<string> ccd_list = this->visit_ccd_list_by_raft[i];
+    fetch_readout_raft(this->visit_raft_list[i], ccd_list, image_id, dir_prefix);
   }
 
 }
 
 void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix) {
-  // put a map together with raft board for key, and ccd_list as value
-  source_boards = map<string, vector<string>>;
-  for int i = 0; i < ccd_list.size(); i++) {
-    if strcmp(ccd_list[0], "ALL")
-    {
-      source_boards = fill_all_boards();
-      break;
-    }
-    else
-    {
-      int brd = this->board_layout[ccd_list[i]];
+  // put a map together with raft electronic board (source) for key, and ccd_list as value
+  map<string, vector<string>> source_boards;
+  if (ccd_list[0] == "ALL") {
+    source_boards = All_Boards;
+  }
+  else {
+    for (int i = 0; i < ccd_list.size(); i++) {
+      int brd = Board_Layout[ccd_list[i]];
       string board = std::to_string(brd);
 
-      if source_boards.count(board) {
+      if (source_boards.count(board)) {
         //board exists as a key already...
         source_boards[board].push_back(ccd_list[i]);
       }
       else {
         // Create new map key entry for this board
-        source_boards.insert ( std::pair<string,vector<string>>(board,vector<string>.push_back(ccd_list[i]) );
+        source_boards.insert(pair<string,vector<string>>(board,vector<string>()));
+        source_boards[board].push_back(ccd_list[i]);
       }
     }
   }
   // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
   // but the source_boards map generated above, may not include keys for all 3 source boards.
   // If ccd list is especially sparse, only one board might be included in map.
-  fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
+  this->fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
 
 }
 
-void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string img_id, string dir_prefix) {
+void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
   // Fetch LocationSet for raft.
   // Examine each source in set...
   ostringstream raft_name;
   raft_name << "raft" << raft;
-  IMS::Store store(raft_name.str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+  string rafty = raft_name.str();
+  IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
 
-  IMS::Image image(image_id, store);
+  IMS::Image image(image_id.c_str(), store);
 
   image.synopsis();
 
@@ -1086,11 +1114,11 @@ void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source
   //rather than using the indirect counter method used here?
   while(sources.remove(location))
   {
-      string board_str = std::to_string(board)
-      if(source_boards.count(board_str) {  // If current board source is in the source_boards mape
+      string board_str = std::to_string(board);
+      if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
                                            // that we put together in the preceeding method...
-        std::vector<string> ccds_for_board = source_boards[board_str]
-        fetch_reassemble_process(raft, image_id, location, image, ccds_for_board);
+        std::vector<string> ccds_for_board = source_boards[board_str];
+        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
         board++;
       }
       else {
@@ -1098,8 +1126,7 @@ void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source
       }
   }
 
-  return EXIT_SUCCESS;
-
+  return;
 }
 
 // Above, the source boards are iterated through one at a time.
@@ -1110,7 +1137,7 @@ void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source
 //
 // First, determine the number of CCDs in the ccds_for_board vector arg.
 // the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
-void fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
+void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
 {
   IMS::Source source(location, image);
 
@@ -1134,25 +1161,22 @@ void fetch_reassemble_process(std::string raft, string image_id, const DAQ::Loca
   std::vector<std::ofstream> FH1;
   std::vector<std::ofstream> FH2;
 
-  // FIX FIX Change to switch statement...
-  for ( const std::string &s : ccds_for_board ) {
-    if ( s[0] == "0" ) {
-      do_ccd0 = TRUE;
-      fetch_set_up_filehandles(FH0, image_id, raft, s, dir_prefix);
+  vector<string>::iterator it=ccds_for_board.begin();
+  while(it!=ccds_for_board.end()){
+        if(it[0] == "0") {
+            do_ccd0 = true;
+            this->fetch_set_up_filehandles(FH0, image_id, raft, it[0], dir_prefix);
+        }
+        if(it[0] == "1") {
+            do_ccd1 = true;
+            this->fetch_set_up_filehandles(FH1, image_id, raft, it[0], dir_prefix);
+        }
+        if(it[0] == "2") {
+            do_ccd2 = true;
+            this->fetch_set_up_filehandles(FH2, image_id, raft, it[0], dir_prefix);
+        }
+        ++it;
     }
-
-    if ( s[0] == "1" ) {
-      do_ccd1 = TRUE;
-      fetch_set_up_filehandles(FH1, image_id, raft, s, dir_prefix);
-    }
-
-    if ( s[2] == "2" ) {
-      do_ccd2 = TRUE;
-      fetch_set_up_filehandles(FH2, image_id, raft, s, dir_prefix);
-    }
-
-  }
-
 
   do
   {
@@ -1168,30 +1192,31 @@ void fetch_reassemble_process(std::string raft, string image_id, const DAQ::Loca
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd0) {
-          FH0.write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 1);
+          FH0[amp].write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 1);
         }
       }
 
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd1) {
-          FH1.write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 1);
+          FH1[amp].write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 1);
         }
       }
 
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd2) {
-          FH2.write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 1);
+          FH2[amp].write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 1);
+        }
       }
 
-    }
 
     delete [] ccd0;
     delete [] ccd1;
     delete [] ccd2;
 
 
+    }
   }
   while(slice.advance());
 
@@ -1205,9 +1230,10 @@ void fetch_reassemble_process(std::string raft, string image_id, const DAQ::Loca
   return;
 
 }
-
-void fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
+/*
+void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
   for (int i=0; i < 16; i++) {
+        std::ofstream fh;
         std::string seg;
         if (i < 10) {
             seg = "0" + to_string(i);
@@ -1215,7 +1241,7 @@ void fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, string image_
         else {
             seg = to_string(i);
         }
-        std::ostringstream fh;
+        std::ostringstream fns;
         fns << dir_prefix << "/" \
                           << image_id \
                           << "--" << raft \
@@ -1225,6 +1251,34 @@ void fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, string image_
         fh.open(fns.str().c_str(), \
                 std::ios::out | std::ios::app | std::ios::binary );
         fh_set.push_back(std::move(fh));  // The new, cool kid way to deal with smart pointers!
+  }
+}
+*/
+
+
+void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
+  for (int i=0; i < 16; i++) {
+        std::ofstream fh;
+        std::string seg;
+        if (i < 10) {
+            seg = "0" + to_string(i);
+        }
+        else {
+            seg = to_string(i);
+        }
+        std::ostringstream fns;
+        fns << dir_prefix << "/" \
+                          << image_id \
+                          << "--" << raft \
+                          << "-ccd." << ccd \
+                          << "_segment." << seg;
+
+        fh_set[i].open(fns.str().c_str(), \
+                std::ios::out | std::ios::app | std::ios::binary );
+
+        //fh_set.push_back(std::move(fh));  // The new, cool kid way to deal with smart pointers!
+  }
+}
 
 void Forwarder::fetch_close_filehandles(std::vector<std::ofstream> &fh_set) {
 
