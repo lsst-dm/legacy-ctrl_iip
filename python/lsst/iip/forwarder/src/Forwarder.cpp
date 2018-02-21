@@ -540,7 +540,10 @@ void Forwarder::process_header_ready(Node n) {
     // create header subfolder
     string path = n["FILENAME"].as<string>(); 
     int img_idx = path.find_last_of("/"); 
-    string img_id = path.substr(img_idx + 1); 
+    int dot_idx = path.find_last_of("."); 
+    int num_char = dot_idx - (img_idx + 1); // offset +1
+    string img_id = path.substr(img_idx + 1, num_char); 
+    cout << "XXX img_id: " << img_id << endl;
 
     string sub_dir = main_header_dir + "/" + img_id; 
     cout << "[x] sub header dir: " << sub_dir << endl; 
@@ -548,13 +551,13 @@ void Forwarder::process_header_ready(Node n) {
 
     // scp to /tmp/header/IMG_ID/IMG_ID.header
     ostringstream cp_cmd; 
-    cp_cmd << "scp ~/.ssh/id_rsa "
+    cp_cmd << "scp -i ~/.ssh/id_rsa "
            << path
            << " " 
-           << main_header_dir
+           << sub_dir
            << "/"; 
     cout << cp_cmd.str() << endl; 
-    //system(bbcp_cmd.str().c_str()); 
+    system(cp_cmd.str().c_str()); 
 
     Emitter msg; 
     msg << BeginMap; 

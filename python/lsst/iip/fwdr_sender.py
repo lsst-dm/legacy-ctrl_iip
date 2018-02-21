@@ -115,7 +115,7 @@ def main():
   print("Sending HEADER1 information") 
   msg = {} 
   msg["MSG_TYPE"] = "HEADER_READY"
-  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/IMG_100/IMG_100.header"
+  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/IMG_100.header"
   #msg["IMAGE_ID"] = "IMG_100"
   time.sleep(4)
   sp1.publish_message("f1_consume", msg) 
