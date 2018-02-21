@@ -532,6 +532,7 @@ void Forwarder::on_forwarder_to_forward_message(string body) {
 void Forwarder::process_header_ready(Node n) { 
     cout << "[x] phr" << endl; 
     // create header folder
+    // TODO: Should be work_dir? 
     string main_header_dir = "/tmp/header"; 
     // TODO: Check if dir exists
     cout << "[x] header main dir: " << main_header_dir << endl; 
@@ -549,7 +550,7 @@ void Forwarder::process_header_ready(Node n) {
     cout << "[x] sub header dir: " << sub_dir << endl; 
     const int dir_cmd = mkdir(sub_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);  
 
-    // scp to /tmp/header/IMG_ID/IMG_ID.header
+    // scp felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
     ostringstream cp_cmd; 
     cp_cmd << "scp -i ~/.ssh/id_rsa "
            << path
@@ -559,11 +560,14 @@ void Forwarder::process_header_ready(Node n) {
     cout << cp_cmd.str() << endl; 
     system(cp_cmd.str().c_str()); 
 
+    string img_idx_wheader = path.substr(img_idx + 1);  
+    string header_path = sub_dir + "/" + img_idx_wheader;
+
     Emitter msg; 
     msg << BeginMap; 
     msg << Key << "MSG_TYPE" << Value << "FORMAT_HEADER_READY"; 
     msg << Key << "IMAGE_ID" << Value << img_id; 
-    msg << Key << "FILENAME" << Value << n["FILENAME"].as<string>(); 
+    msg << Key << "FILENAME" << Value << header_path; 
     msg << EndMap; 
     cout << "[x] msg: " << msg.c_str() << endl;
 
