@@ -25,8 +25,8 @@ class TestSetup:
     def __init__(self):
         #self.set_permissions()
         #Choose a connection...
-        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.160:5672/%2ftest'))
-        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
+        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
+        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
 
         self.channel = self.connection.channel()
 
@@ -34,7 +34,7 @@ class TestSetup:
         ## queue_bind(callback, queue, exchange, routing_key=None, nowait=False, arguments=None)
         
         ### Exchange Declares - message' is primary exchange for lsst 
-        self.channel.exchange_declare(exchange='message', type='direct', durable=True)
+        #self.channel.exchange_declare(exchange='message', type='direct', durable=True)
         #self.channel.exchange_delete(exchange='message')
         time.sleep(2)
                  
@@ -42,10 +42,12 @@ class TestSetup:
         ## start with pool of queues for 40 forwarders and 24 distributors
         #self.delete_forwarder_queues(30)
         #self.delete_distributor_queues(24)
-        self.setup_forwarders(30)        
-        self.setup_distributors(24)        
+        #self.setup_forwarders(30)        
+        #self.setup_distributors(24)        
         
-        
+        self.channel.queue_declare(queue='f99_consume',durable=True)
+        self.channel.queue_bind(queue='f99_consume', exchange='message', routing_key='f99_foreman_consume' )
+        '''
         ### Queue Declares and Bindings
         
         ## Queue for foreman test suite
@@ -89,7 +91,6 @@ class TestSetup:
         self.channel.queue_declare(queue='event_dmcs_consume',durable=True)
         self.channel.queue_bind(queue='event_dmcs_consume', exchange='message', routing_key='event_dmcs_consume' )
         
-        """ 
         ## Catch all queues for forwarders messaging non-ack info to foremen
         self.channel.queue_declare(queue='ar_forwarder_publish',durable=True)
         self.channel.queue_bind(queue='ar_forwarder_publish', exchange='message',routing_key='ar_forwarder_publish')
@@ -99,7 +100,6 @@ class TestSetup:
         
         self.channel.queue_declare(queue='cu_forwarder_publish',durable=True)
         self.channel.queue_bind(queue='cu_forwarder_publish', exchange='message',routing_key='cu_forwarder_publish')
-        """
         
         ## Acks to foremen
         self.channel.queue_declare(queue='ar_foreman_ack_publish',durable=True)
@@ -132,7 +132,7 @@ class TestSetup:
          
         self.channel.queue_declare(queue='ncsa_foreman_ack_publish',durable=True)
         self.channel.queue_bind(queue='ncsa_foreman_ack_publish', exchange='message',routing_key='ncsa_foreman_ack_publish')
-         
+        ''' 
         self.connection.close()
 
 
@@ -160,8 +160,7 @@ class TestSetup:
         for i in range (1, num + 1):
             q = 'd' + str(i) + '_consume'
             self.channel.queue_delete(queue=q)
-
-    """
+    '''
     def set_permissions(self):
        os.system('rabbitmqctl -p /test BASE '.*' '.*' '.*') 
        os.system('rabbitmqctl -p /test BASE_PUB '.*' '.*' '.*') 
@@ -185,8 +184,7 @@ class TestSetup:
     
        os.system('rabbitmqctl -p /test NCSA '.*' '.*' '.*') 
        os.system('rabbitmqctl -p /test NCSA_PUB '.*' '.*' '.*') 
-    """
-    
+    '''    
     
 def main():
     print("Starting TestSetup run...")
@@ -198,7 +196,6 @@ def main():
 if __name__ == '__main__':
     main()
 
-#"""
 #while True:
 #  x = int(raw_input("1 = forwarder responses, 2 = dmcs responses, 3 = other component, or 4 - F4: "))
 #  if x == 1:

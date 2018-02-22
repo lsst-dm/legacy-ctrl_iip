@@ -1,4 +1,4 @@
-# Cfg settings for foreman
+# Cfg settings for system
 ROOT:
   NUMBER_OF_PAIRS: 10
 
@@ -126,6 +126,13 @@ ROOT:
     ARCHIVE_IP: 141.142.230.190
     ARCHIVE_HOSTNAME: ARCHIE
     ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
+    CHECKSUM_ENABLED: no
+  EFD:
+    EFD_NAME: LFA
+    EFD_LOGIN: LFA
+    EFD_IP: 141.142.237.177
+    EFD_HOSTNAME: ARCHIE
+    EFD_XFER_ROOT: /mnt/lfa/
     CHECKSUM_ENABLED: no
   OCS: 
     OCS_NAME: OCS
