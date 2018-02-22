@@ -30,6 +30,7 @@
 #define HEIGHT 512
 #define WIDTH 2048
 #define N_AMPS 16
+#define DEBUG 1
 
 using namespace std;
 using namespace YAML;
@@ -1078,6 +1079,17 @@ void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string 
       }
     }
   }
+#ifdef DEBUG
+//cout << "In fetch_readout_raft, source_board map is:  " << std::to_string(source_boards) << endl;
+for(auto it = source_boards.cbegin(); it != source_boards.cend(); ++it)
+{
+    std::cout << it->first << ":" << "\n";
+    for (auto i: it->second) {
+        cout << i << " ";
+    }
+    cout << endl;
+}
+#endif
   // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
   // but the source_boards map generated above, may not include keys for all 3 source boards.
   // If ccd list is especially sparse, only one board might be included in map.
@@ -1104,6 +1116,9 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
 
   int board = 0; // Only way we know how to access a board is by its integer id.
 
+#ifdef DEBUG
+cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
+#endif
   //The loop below processes each raft board (an individual source) one at a time.
   //In order to avoid boards that do not have desired CCDs on them, we check within
   //this loop; if board is not needed, we skip processing it. This is done by
@@ -1118,6 +1133,14 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
       if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
                                            // that we put together in the preceeding method...
         std::vector<string> ccds_for_board = source_boards[board_str];
+#ifdef DEBUG
+cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
+cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
+    for (auto i: ccds_for_board) {
+        cout << i << " ";
+    }
+    cout << endl;
+#endif
         this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
         board++;
       }
@@ -1165,15 +1188,27 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
   while(it!=ccds_for_board.end()){
         if(it[0] == "0") {
             do_ccd0 = true;
+#ifdef DEBUG
+cout << "In fetch_reassemble_process, calling setup filehandles for image " << image_id << endl;
+#endif
             this->fetch_set_up_filehandles(FH0, image_id, raft, it[0], dir_prefix);
+#ifdef DEBUG
+cout << "In fetch_reassemble_process, file handles for ccd0 are set up" << endl;
+#endif
         }
         if(it[0] == "1") {
             do_ccd1 = true;
             this->fetch_set_up_filehandles(FH1, image_id, raft, it[0], dir_prefix);
+#ifdef DEBUG
+cout << "In fetch_reassemble_process, file handles for ccd1 are set up" << endl;
+#endif
         }
         if(it[0] == "2") {
             do_ccd2 = true;
             this->fetch_set_up_filehandles(FH2, image_id, raft, it[0], dir_prefix);
+#ifdef DEBUG
+cout << "In fetch_reassemble_process, file handles for ccd2 are set up" << endl;
+#endif
         }
         ++it;
     }
