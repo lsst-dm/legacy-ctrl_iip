@@ -62,7 +62,6 @@ def main():
 
   print("Begin Send Messages...")
 
-  '''
   print("Sending AR_FWDR_HEALTH_CHECK message")
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_HEALTH_CHECK"
@@ -111,21 +110,17 @@ def main():
   time.sleep(4)
   sp1.publish_message("f1_consume", msg)
 
-  '''
   print("Sending HEADER1 information") 
   msg = {} 
   msg["MSG_TYPE"] = "HEADER_READY"
-  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/IMG_100/IMG_100.header"
-  #msg["IMAGE_ID"] = "IMG_100"
+  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/IMG_100.header"
   time.sleep(4)
   sp1.publish_message("f1_consume", msg) 
 
-  '''
   print("Sending HEADER2 information") 
   msg = {} 
   msg["MSG_TYPE"] = "HEADER_READY"
-  msg["FILENAME"] = "/tmp/header/IMG_101/IMG_101.header"
-  msg["IMAGE_ID"] = "IMG_101"
+  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/IMG_101.header"
   time.sleep(4)
   sp1.publish_message("f1_consume", msg) 
 
@@ -149,7 +144,6 @@ def main():
   msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
   time.sleep(6)
   sp1.publish_message("f1_consume", msg)
-  '''
 
   print("Sender done")
 
