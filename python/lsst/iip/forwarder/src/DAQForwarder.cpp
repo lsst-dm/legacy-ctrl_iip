@@ -141,8 +141,8 @@ class Forwarder {
     void fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
     void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
-    void fetch_set_up_filehandles(std::vector<std::ofstream> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
-    void fetch_close_filehandles(std::vector<std::ofstream> &fh_set);
+    void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
+    void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
 
     char* format_read_img_segment(const char*);
     unsigned char** format_assemble_pixels(char *);
@@ -1283,21 +1283,21 @@ cout << "do_ccd2 is set to false." << endl;
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd0) {
-          FH0[amp].write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 1);
+          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 1);
         }
       }
 
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd1) {
-          FH1[amp].write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 1);
+          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 1);
         }
       }
 
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd2) {
-          FH2[amp].write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 1);
+          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 1);
         }
       }
 
@@ -1347,9 +1347,9 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, st
 */
 
 
-void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> fh_set[], string image_id, string raft, string ccd, string dir_prefix){
+void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
   for (int i=0; i < 16; i++) {
-        std::ofstream fh;
+        //std::ofstream fh;
         std::string seg;
         if (i < 10) {
             seg = "0" + to_string(i);
@@ -1375,10 +1375,10 @@ cout << "FILENAME:  " << fns.str() << endl;
   }
 }
 
-void Forwarder::fetch_close_filehandles(std::vector<std::ofstream> &fh_set) {
+void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
 
   for (int i = 0; i < 16; i++) {
-    fh_set[i].close();
+    fh_set[i]->close();
   }
 
 }
