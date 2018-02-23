@@ -67,6 +67,7 @@ void EventSubscriber::setup_events_listeners() {
     }  
 } 
 
+/** 
 void *EventSubscriber::run_ccs_takeImages(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -101,8 +102,43 @@ void *EventSubscriber::run_ccs_takeImages(void *args) {
     mgr.salShutdown(); 
     return 0;
 } 
+*/ 
+void *EventSubscriber::run_ccs_takeImages(void *args) { 
+    event_args *params = ((event_args *)args); 
+    string queue = params->publish_queue; 
+    string broker_addr = params->broker_addr; 
+ 
+    os_time delay_10ms = { 0, 10000000 };
+    int status = -1; 
+    SAL_camera mgr = SAL_camera(); 
+    camera_command_takeImagesC SALInstance; 
 
-/**
+    mgr.salProcessor("camera_command_takeImages"); 
+    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
+
+    while(1) { 
+        status = mgr.acceptCommand_takeImages(&SALInstance); 
+
+        if (status > 0) { 
+            cout << "=== Command nextVisit Received. =" << endl; 
+            Emitter msg;
+            msg << BeginMap; 
+            msg << Key << "MSG_TYPE" << Value << "DMCS_TCS_TARGET"; 
+            msg << Key << "RA" << Value << "16"; 
+            msg << Key << "DEC" << Value << "27"; 
+            msg << Key << "ANGLE" << Value << "33";
+            msg << Key << "VISIT_ID" << Value << "visit_123";
+	    msg << Key << "TARGET_ID" << Value << "targe_321"; 
+            msg << EndMap; 	
+	    cout << "ER: " << msg.c_str() << endl; 
+            publisher->publish_message(queue, msg.c_str());
+        } 
+        os_nanoSleep(delay_10ms); 
+    }  
+    mgr.salShutdown(); 
+    return 0;
+} 
+
 void *EventSubscriber::run_ccs_startIntegration(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -120,7 +156,8 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
         status = mgr.getEvent_startIntegration(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event endReadout received = " << endl;
+            cout << "=== Event startIntegration received = " << endl;
+		/** 		
             Emitter msg;
             msg << BeginMap; 
             msg << Key << "MSG_TYPE" << Value << "DMCS_TCS_TARGET"; 
@@ -128,16 +165,17 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
             msg << Key << "DEC" << Value << "27"; 
             msg << Key << "ANGLE" << Value << "33";
             msg << Key << "VISIT_ID" << Value << "visit_123";
+	    msg << Key << "TARGET_ID" << Value << "targe_321"; 
             msg << EndMap; 	
 	    cout << "ER: " << msg.c_str() << endl; 
             publisher->publish_message(queue, msg.c_str());
+		*/ 
         } 
         os_nanoSleep(delay_10ms); 
     }  
     mgr.salShutdown(); 
     return 0;
 } 
-*/
 
 void *EventSubscriber::run_ccs_startReadout(void *args) { 
     event_args *params = ((event_args *)args); 
@@ -341,6 +379,7 @@ void *EventSubscriber::run_ccs_endShutterClose(void *args) {
     return 0;
 } 
 
+/**
 void *EventSubscriber::run_ccs_startIntegration(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -370,6 +409,7 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
     mgr.salShutdown(); 
     return 0;
 } 
+*/ 
 void *EventSubscriber::run_tcs_target(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
