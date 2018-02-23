@@ -102,6 +102,7 @@ void *EventSubscriber::run_ccs_takeImages(void *args) {
     return 0;
 } 
 
+/**
 void *EventSubscriber::run_ccs_startIntegration(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -136,6 +137,7 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
     mgr.salShutdown(); 
     return 0;
 } 
+*/
 
 void *EventSubscriber::run_ccs_startReadout(void *args) { 
     event_args *params = ((event_args *)args); 
@@ -339,6 +341,35 @@ void *EventSubscriber::run_ccs_endShutterClose(void *args) {
     return 0;
 } 
 
+void *EventSubscriber::run_ccs_startIntegration(void *args) { 
+    event_args *params = ((event_args *)args); 
+    string queue = params->publish_queue; 
+    string broker_addr = params->broker_addr; 
+ 
+    os_time delay_10ms = { 0, 10000000 };
+    int status = -1; 
+    SAL_camera mgr = SAL_camera(); 
+    camera_logevent_startIntegrationC SALInstance; 
+
+    mgr.salEvent("camera_logevent_startIntegration"); 
+    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
+
+    while(1) { 
+        status = mgr.getEvent_startIntegration(&SALInstance); 
+
+        if (status == SAL__OK) { 
+            cout << "=== Event dmcs_endreadout received = " << endl;
+            ostringstream msg; 
+            msg << "{ MSG_TYPE: DMCS_END_READOUT" 
+                << ", IMAGE_ID: " << SALInstance.imageName << "}"; 
+            cout << "XXX " << msg.str() << endl;
+            publisher->publish_message(queue, msg.str()); 
+        } 
+        os_nanoSleep(delay_10ms);
+    }  
+    mgr.salShutdown(); 
+    return 0;
+} 
 void *EventSubscriber::run_tcs_target(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
