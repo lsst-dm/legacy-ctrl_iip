@@ -119,11 +119,17 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
         status = mgr.getEvent_startIntegration(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event startIntegration Received =" << endl; 
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: CCS_START_INTEGRATION"
-                << ", IMAGE_NAME: " << SALInstance.imageName  << "}"; 
-            publisher->publish_message(queue, msg.str());
+            cout << "=== Event endReadout received = " << endl;
+            Emitter msg;
+            msg << BeginMap; 
+            msg << Key << "MSG_TYPE" << Value << "DMCS_TCS_TARGET"; 
+            msg << Key << "RA" << Value << "16"; 
+            msg << Key << "DEC" << Value << "27"; 
+            msg << Key << "ANGLE" << Value << "33";
+            msg << Key << "VISIT_ID" << Value << "visit_123";
+            msg << EndMap; 	
+	    cout << "ER: " << msg.c_str() << endl; 
+            publisher->publish_message(queue, msg.c_str());
         } 
         os_nanoSleep(delay_10ms); 
     }  
@@ -159,7 +165,6 @@ void *EventSubscriber::run_ccs_startReadout(void *args) {
     return 0;
 } 
 
-/**
 void *EventSubscriber::run_ccs_endReadout(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -178,17 +183,20 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
 
         if (status == SAL__OK) { 
             cout << "=== Event endReadout received = " << endl;
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: CCS_END_READOUT }"; 
-            publisher->publish_message(queue, msg.str());
+            Emitter msg; 
+            msg << BeginMap; 
+            msg << Key << "MSG_TYPE" << Value << "DMCS_END_READOUT"; 
+            msg << Key << "IMAGE_ID" << Value << SALInstance.imageName;   
+            msg << EndMap; 
+            cout << "XXX: " << msg.c_str() << endl;
+            publisher->publish_message(queue, msg.c_str());
         } 
         os_nanoSleep(delay_10ms); 
     }  
     mgr.salShutdown(); 
     return 0;
 } 
-*/ 
-
+/** 
 void *EventSubscriber::run_ccs_endReadout(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -217,6 +225,7 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
     mgr.salShutdown(); 
     return 0;
 } 
+*/
 
 void *EventSubscriber::run_ccs_startShutterOpen(void *args) { 
     event_args *params = ((event_args *)args); 
@@ -473,17 +482,22 @@ void *EventSubscriber::run_getHeaderService(void *args) {
 
         if (status == SAL__OK) { 
             cout << "=== Event HeaderService received = " << endl;
+	    /**
             string path = SALInstance.URL; 
             size_t found = path.find_last_of("/"); 
             string file_name = path.substr(found+1); 
 
             size_t dot = file_name.find_last_of("."); 
             string img_id = file_name.substr(0, dot); 
+		*/
 
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: HEADER_READY"
-                << ", IMG_ID: " << img_id << "}"; 
-            publisher->publish_message(queue, msg.str()); 
+            Emitter msg;
+            msg << BeginMap; 
+            msg << Key << "MSG_TYPE" << Value << "DMCS_HEADER_READY"; 
+            msg << Key << "FILENAME" << Value << SALInstance.URL; 
+            msg << EndMap; 	
+	    cout << "HR: " << msg.c_str() << endl; 
+            publisher->publish_message(queue, msg.c_str()); 
         } 
         os_nanoSleep(delay_10ms);
     }  
