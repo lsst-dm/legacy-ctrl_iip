@@ -717,7 +717,7 @@ void Forwarder::process_fetch(Node n) {
       ostringstream cmd;
       ostringstream filepath;
       filepath << this->Work_Dir << "/" << image_id;
-      cmd << "mkdir " << filepath.str();
+      cmd << "mkdir -p " << filepath.str();
       const std::string tmpstr = cmd.str();
       const char* cmdstr = tmpstr.c_str();
       system(cmdstr);
@@ -1130,9 +1130,27 @@ cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
   while(sources.remove(location))
   {
       string board_str = std::to_string(board);
+
+cout << "XXX fetch_assemble_raft_image -- looking at board: " << board_str << endl;
+
       if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
                                            // that we put together in the preceeding method...
-        std::vector<string> ccds_for_board = source_boards[board_str];
+
+cout << "XXX fetch_assemble_raft_image -- source_board.count says YES to board: " << board_str << endl;
+
+        //std::vector<string> ccds_for_board = source_boards[board_str];
+        std::vector<string> ccds_for_board;
+
+        for (auto ii : source_boards[board_str]) {
+
+cout << "XXX fetch_reassemble_raft_image -- Adding " << ii << " to ccds_for_board vector." << endl;
+
+          ccds_for_board.push_back(ii);
+
+cout << "XXX fetch_reassemble_raft_image -- CCD added to ccds_for_board vector." << endl;
+
+        }
+
 #ifdef DEBUG
 cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
 cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
@@ -1142,11 +1160,13 @@ cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:
     cout << endl;
 #endif
         this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
-        board++;
+//        board++;
       }
-      else {
-        continue;
-      }
+//      else {
+//cout << "XXX fetch_assemble_raft_image -- source_board.count says NO to board: " << board_str << endl;
+//        continue;
+//      }
+    board++;
   }
 
   return;
@@ -1162,6 +1182,9 @@ cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:
 // the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
 void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
 {
+
+cout << "XXXX fetch_reassemble_process -- Entry into Method..." << endl;
+
   IMS::Source source(location, image);
 
   IMS::Science slice(source);
@@ -1180,38 +1203,71 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
   bool do_ccd1 = false;
   bool do_ccd2 = false;
 
-  std::vector<std::ofstream> FH0;
-  std::vector<std::ofstream> FH1;
-  std::vector<std::ofstream> FH2;
+  std::vector<std::ofstream*> FH0;
+  std::vector<std::ofstream*> FH1;
+  std::vector<std::ofstream*> FH2;
 
-  vector<string>::iterator it=ccds_for_board.begin();
-  while(it!=ccds_for_board.end()){
-        if(it[0] == "0") {
+  //std::ofstream FH0[16];
+  //std::ofstream FH1[16];
+  //std::ofstream FH2[16];
+
+  //vector<string>::iterator it=ccds_for_board.begin();
+  //while(it!=ccds_for_board.end()){
+  for (int x = 0; x < ccds_for_board.size(); x++) {
+
+        cout << "ccds_for_board is: " << ccds_for_board[x] << endl;
+        cout << "ccds_for_board[x][0] is: " << ccds_for_board[x][0] << endl;
+        if (string(1, ccds_for_board[x][0]) == "0") {
+        //if(ccds_for_board[x][0] == "0") {
             do_ccd0 = true;
 #ifdef DEBUG
 cout << "In fetch_reassemble_process, calling setup filehandles for image " << image_id << endl;
 #endif
-            this->fetch_set_up_filehandles(FH0, image_id, raft, it[0], dir_prefix);
+            this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[0], dir_prefix);
 #ifdef DEBUG
 cout << "In fetch_reassemble_process, file handles for ccd0 are set up" << endl;
 #endif
         }
-        if(it[0] == "1") {
+        //if(ccds_for_board[x][0] == "1") {
+        if (string(1, ccds_for_board[x][0]) == "1") {
+cout << "Yes! We know we are looking at a CCD in board one in the middle position..." << endl;
             do_ccd1 = true;
-            this->fetch_set_up_filehandles(FH1, image_id, raft, it[0], dir_prefix);
+            this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[0], dir_prefix);
 #ifdef DEBUG
 cout << "In fetch_reassemble_process, file handles for ccd1 are set up" << endl;
 #endif
         }
-        if(it[0] == "2") {
+        //if(ccds_for_board[x][0] == "2") {
+        if (string(1, ccds_for_board[x][0]) == "2") {
             do_ccd2 = true;
-            this->fetch_set_up_filehandles(FH2, image_id, raft, it[0], dir_prefix);
+            this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[0], dir_prefix);
 #ifdef DEBUG
 cout << "In fetch_reassemble_process, file handles for ccd2 are set up" << endl;
 #endif
         }
-        ++it;
     }
+cout << "XXXXX fetch_reassemble_process -- Just before do/while loop" << endl;
+if ( do_ccd0) {
+  cout << "do_ccd0 is set to true!" << endl;
+}
+else {
+cout << "do_ccd0 is set to false." << endl;
+}
+
+if ( do_ccd1) {
+  cout << "do_ccd1 is set to true!" << endl;
+}
+else {
+cout << "do_ccd1 is set to false." << endl;
+}
+
+if ( do_ccd2) {
+  cout << "do_ccd2 is set to true!" << endl;
+}
+else {
+cout << "do_ccd2 is set to false." << endl;
+}
+
 
   do
   {
@@ -1291,7 +1347,7 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, st
 */
 
 
-void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
+void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> fh_set[], string image_id, string raft, string ccd, string dir_prefix){
   for (int i=0; i < 16; i++) {
         std::ofstream fh;
         std::string seg;
@@ -1307,11 +1363,15 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, st
                           << "--" << raft \
                           << "-ccd." << ccd \
                           << "_segment." << seg;
+cout << "FILENAME:  " << fns.str() << endl;
 
-        fh_set[i].open(fns.str().c_str(), \
-                std::ios::out | std::ios::app | std::ios::binary );
+        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
+        fh_set.push_back(fh); 
 
+        //fh.open(fns.str(), \
+        //        std::ios::out | std::ios::app | std::ios::binary );
         //fh_set.push_back(std::move(fh));  // The new, cool kid way to deal with smart pointers!
+        //
   }
 }
 
