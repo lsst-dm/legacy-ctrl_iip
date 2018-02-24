@@ -25,8 +25,8 @@ class TestSetup:
     def __init__(self):
         #self.set_permissions()
         #Choose a connection...
-        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
-        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
+        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
+        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
 
         self.channel = self.connection.channel()
 
@@ -44,9 +44,31 @@ class TestSetup:
         #self.delete_distributor_queues(24)
         #self.setup_forwarders(30)        
         #self.setup_distributors(24)        
+
+        self.channel.queue_delete('f99_consume')
+        time.sleep(3)
         
         self.channel.queue_declare(queue='f99_consume',durable=True)
-        self.channel.queue_bind(queue='f99_consume', exchange='message', routing_key='f99_foreman_consume' )
+        self.channel.queue_bind(queue='f99_consume', exchange='message', routing_key='f99_consume' )
+
+        self.channel.queue_declare(queue='fetch_consume_from_f99',durable=True)
+        self.channel.queue_bind(queue='fetch_consume_from_f99', exchange='message', routing_key='fetch_consume_from_f99' )
+
+        self.channel.queue_declare(queue='format_consume_from_f99',durable=True)
+        self.channel.queue_bind(queue='format_consume_from_f99', exchange='message', routing_key='format_consume_from_f99' )
+
+        self.channel.queue_declare(queue='forward_consume_from_f99',durable=True)
+        self.channel.queue_bind(queue='forward_consume_from_f99', exchange='message', routing_key='forward_consume_from_f99' )
+
+        self.channel.queue_declare(queue='f99_consume_from_fetch',durable=True)
+        self.channel.queue_bind(queue='f99_consume_from_fetch', exchange='message', routing_key='f99_consume_from_fetch' )
+
+        self.channel.queue_declare(queue='f99_consume_from_format',durable=True)
+        self.channel.queue_bind(queue='f99_consume_from_format', exchange='message', routing_key='f99_consume_from_format' )
+
+        self.channel.queue_declare(queue='f99_consume_from_forward',durable=True)
+        self.channel.queue_bind(queue='f99_consume_from_forward', exchange='message', routing_key='f99_consume_from_forward' )
+
         '''
         ### Queue Declares and Bindings
         
