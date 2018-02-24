@@ -108,6 +108,7 @@ class DMCS:
                               'CCS_START_READOUT': self.process_ccs_readout_event,
                               'CCS_SHUTTER_CLOSE': self.process_ccs_shutter_close_event,
                               'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
+                              'DMCS_HEADER_READY': self.process_header_ready_event,
                               'DMCS_TCS_TARGET': self.process_target_visit_event, 
                               'DMCS_TAKE_IMAGES': self.process_ccs_take_images_event,
 			      'DMCS_TAKE_IMAGES_DONE': self.process_take_images_done, 
@@ -687,7 +688,7 @@ class DMCS:
             raft_list, raft_ccd_list = self.STATE_SCBD.get_rafts_for_current_session_as_lists()
             msg['RAFT_LIST'] = raft_list
             msg['RAFT_CCD_LIST'] = raft_ccd_list
-            filter = params['FILTER']
+            #filter = params['FILTER']
             msg['REPLY_QUEUE'] = "dmcs_ack_consume"
 
 
@@ -702,7 +703,7 @@ class DMCS:
                 msg[ACK_ID] = ack_id
                 job_num = self.STATE_SCBD.get_next_job_num( session_id)
                 self.STATE_SCBD.add_job(job_num, visit_id, raft_list, raft_ccd_list)
-                self.STATE_SCBD.set_value_for_job(job_num, 'FILTER', filter)
+                #self.STATE_SCBD.set_value_for_job(job_num, 'FILTER', filter)
                 self.STATE_SCBD.set_current_device_job(job_num, str(k))
                 self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
                 msg[JOB_NUM] = job_num
@@ -819,7 +820,18 @@ class DMCS:
 
         ### FIX Progressive timer, then collect acks and process what was done, then return to DMCS with results
 
-        
+    def process_header_ready_event(self, params):
+        msg_params = {}
+        fname = params['FILENAME']        
+        msg_params['FILENAME'] = self.efd + fname        
+        enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+        for k in list(enabled_devices.keys()):
+            msg_params[MSG_TYPE] = k + '_HEADER_READY'
+            msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
+            job_num = self.STATE_SCBD.get_current_device_job(str(k))
+            msg_params[JOB_NUM] = job_num
+            self.STATE_SCBD.set_job_state(job_num, "READOUT")
+            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
     def process_telemetry(self, msg):
         """ None.
@@ -1323,9 +1335,12 @@ class DMCS:
             self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
             self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
             self.sp_cfg_keys = cdm[ROOT]['SP_CFG_KEYS']
+            self.efd_login = cdm[ROOT]['EFD']['EFD_LOGIN']
+            self.efd_ip = cdm[ROOT]['EFD']['EFD_IP']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
+            self.efd = self.efd_login + "@" + self.efd_ip + ":"
         except KeyError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find key in CDM representation of %s\n" % filename

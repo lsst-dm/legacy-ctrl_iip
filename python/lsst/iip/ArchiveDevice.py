@@ -82,6 +82,7 @@ class ArchiveDevice:
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
                               'AR_TAKE_IMAGES': self.take_images,
+                              'AR_HEADER_READY': self.process_header_ready_event,
                               'AR_END_READOUT': self.process_end_readout, 
                               'AR_TAKE_IMAGES_DONE': self.take_images_done}
 
@@ -479,6 +480,21 @@ class ArchiveDevice:
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
             self._publisher.publish_message(route_key, msg)
         
+    def process_header_ready_event(self, params):
+        fname = params['FILENAME']
+        msg = {}
+        msg['MSG_TYPE'] = 'AR_FWDR_HEADER_READY'
+        msg['FILENAME'] = fname
+        job_num = params[JOB_NUM]
+        self.JOB_SCBD.set_value_for_job(job_num, 'HDR_FNAME', fname)
+        work_sched = self.JOB_SCBD.get_work_schedule_for_job(job_num)
+
+        fwdrs = work_sched['FORWARDER_LIST']
+        for fwdr in fwdrs:
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
+            self._publisher.publish_message(route_key, msg)
+        
+
 
 
     ### NOTE: Deprecated...
