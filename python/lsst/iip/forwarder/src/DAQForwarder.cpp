@@ -30,6 +30,7 @@
 #define HEIGHT 512
 #define WIDTH 2048
 #define N_AMPS 16
+#define PIX_MASK 0x3FFFF
 #define DEBUG 1
 
 using namespace std;
@@ -51,7 +52,7 @@ class Forwarder {
     std::string Session_ID = "";
     std::string Visit_ID = "";
     std::string Job_Num = "";
-    std::string Target_Location = "";
+    std::string Target_Location = "/tmp/target";
     std::string Daq_Addr = "";
     std::string Work_Dir = ""; 
     std::string Src_Dir = ""; 
@@ -186,7 +187,7 @@ map<string, funcptr> on_foreman_message_actions = {
     { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
-    { "HEADER_READY", &Forwarder::process_header_ready }, 
+    { "AR_FWDR_HEADER_READY", &Forwarder::process_header_ready }, 
 };
 
 //The next three handlers are essentially acks...
@@ -567,19 +568,51 @@ void Forwarder::on_forwarder_to_forward_message(string body) {
     (this->*action)(node);
 }
 
-void Forwarder::process_header_ready(Node n) { 
-    cout << "[x] phr" << endl; 
-    Emitter msg; 
-    msg << BeginMap; 
-    msg << Key << "MSG_TYPE" << Value << "FORMAT_HEADER_READY"; 
-    msg << Key << "IMAGE_ID" << Value << n["IMAGE_ID"].as<string>(); 
-    msg << Key << "FILENAME" << Value << n["FILENAME"].as<string>(); 
-    msg << EndMap; 
-    cout << "[x] msg: " << msg.c_str() << endl;
+void Forwarder::process_header_ready(Node n) {
+    cout << "[x] phr" << endl;
+    // create header folder
+    // TODO: Should be work_dir?
+     string main_header_dir = "/tmp/header";
+    // TODO: Check if dir exists
+    cout << "[x] header main dir: " << main_header_dir << endl;
+    const int dir = mkdir(main_header_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+  
+    // create header subfolder
+    string path = n["FILENAME"].as<string>();
+    int img_idx = path.find_last_of("/");
+    int dot_idx = path.find_last_of(".");
+    int num_char = dot_idx - (img_idx + 1); // offset +1
+    string img_id = path.substr(img_idx + 1, num_char);
+    cout << "XXX img_id: " << img_id << endl;
+    //
+    string sub_dir = main_header_dir + "/" + img_id;
+    cout << "[x] sub header dir: " << sub_dir << endl;
+    const int dir_cmd = mkdir(sub_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+    
+    // scp felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
+    ostringstream cp_cmd;
+    cp_cmd << "scp -i ~/.ssh/id_rsa "
+           << path
+           << " "
+           << sub_dir
+           << "/";
+     cout << cp_cmd.str() << endl;
+     system(cp_cmd.str().c_str());
+    
+     string img_idx_wheader = path.substr(img_idx + 1);
+     string header_path = sub_dir + "/" + img_idx_wheader;
+    
+     Emitter msg;
+     msg << BeginMap;
+     msg << Key << "MSG_TYPE" << Value << "FORMAT_HEADER_READY";
+     msg << Key << "IMAGE_ID" << Value << img_id;
+     msg << Key << "FILENAME" << Value << header_path;
+     msg << EndMap;
+     cout << "[x] msg: " << msg.c_str() << endl;
 
-    // publish to format thread
-    FWDR_to_format_pub->publish_message(this->format_consume_queue, msg.c_str()); 
-} 
+     // publish to format thread
+     FWDR_to_format_pub->publish_message(this->format_consume_queue, msg.c_str());
+}
 
 //Message action handler methods...
 void Forwarder::process_new_visit(Node n) {
@@ -627,7 +660,7 @@ void Forwarder::process_xfer_params(Node n) {
     this->Job_Num = n["JOB_NUM"].as<string>();
     cout << "After setting JOB_NUM" << endl;
 
-    this->Target_Location = n["TARGET_LOCATION"].as<string>();
+    //this->Target_Location = n["TARGET_LOCATION"].as<string>();
     cout << "After setting TARGET_LOCATION" << endl;
 
     string reply_queue = n["REPLY_QUEUE"].as<string>();
@@ -715,12 +748,17 @@ void Forwarder::process_fetch(Node n) {
       //   This could be done with map with key being board, and val being a vector of which CCDs should be pulled
       string image_id = n["IMAGE_ID"].as<string>();
       ostringstream cmd;
+      ostringstream rmcmd;
       ostringstream filepath;
       filepath << this->Work_Dir << "/" << image_id;
       cmd << "mkdir -p " << filepath.str();
+      rmcmd << "rm  " << filepath.str() << "/*";
       const std::string tmpstr = cmd.str();
       const char* cmdstr = tmpstr.c_str();
+      const std::string tmp_rmstr = rmcmd.str();
+      const char* rmcmdstr = tmp_rmstr.c_str();
       system(cmdstr);
+      //system(rmcmdstr);
 
 
       this->fetch_readout_image(image_id, filepath.str());
@@ -998,13 +1036,13 @@ void Forwarder::forward_process_end_readout(Node n) {
     string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
   
     // use bbcp to send file 
-    ostringstream bbcp_cmd; 
-    bbcp_cmd << "bbcp "
+    ostringstream cp_cmd; 
+    cp_cmd << "cp "
            << img_path
            << " " 
            << dest_path; 
-    cout << bbcp_cmd.str() << endl; 
-    system(bbcp_cmd.str().c_str()); 
+    cout << cp_cmd.str() << endl; 
+    system(cp_cmd.str().c_str()); 
     this->finished_image_work_list.push_back(img_id);
     cout << "[X] READOUT COMPLETE." << endl;
 } 
@@ -1101,7 +1139,7 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
   // Fetch LocationSet for raft.
   // Examine each source in set...
   ostringstream raft_name;
-  raft_name << "raft" << raft;
+  raft_name << raft;
   string rafty = raft_name.str();
   IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
@@ -1268,7 +1306,6 @@ else {
 cout << "do_ccd2 is set to false." << endl;
 }
 
-
   do
   {
     total_stripes += slice.stripes();
@@ -1277,6 +1314,7 @@ cout << "do_ccd2 is set to false." << endl;
     IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
 
     slice.decode012(ccd0, ccd1, ccd2);
+    int num1, num2, num3;
 
     for(int s=0; s<slice.stripes(); ++s)
     {
@@ -1301,13 +1339,11 @@ cout << "do_ccd2 is set to false." << endl;
         }
       }
 
-
+    }
     delete [] ccd0;
     delete [] ccd1;
     delete [] ccd2;
 
-
-    }
   }
   while(slice.advance());
 
@@ -1321,31 +1357,6 @@ cout << "do_ccd2 is set to false." << endl;
   return;
 
 }
-/*
-void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
-  for (int i=0; i < 16; i++) {
-        std::ofstream fh;
-        std::string seg;
-        if (i < 10) {
-            seg = "0" + to_string(i);
-        }
-        else {
-            seg = to_string(i);
-        }
-        std::ostringstream fns;
-        fns << dir_prefix << "/" \
-                          << image_id \
-                          << "--" << raft \
-                          << "-ccd." << ccd \
-                          << "_segment." << seg;
-
-        fh.open(fns.str().c_str(), \
-                std::ios::out | std::ios::app | std::ios::binary );
-        fh_set.push_back(std::move(fh));  // The new, cool kid way to deal with smart pointers!
-  }
-}
-*/
-
 
 void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
   for (int i=0; i < 16; i++) {
@@ -1363,7 +1374,7 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, s
                           << "--" << raft \
                           << "-ccd." << ccd \
                           << "_segment." << seg;
-cout << "FILENAME:  " << fns.str() << endl;
+//cout << "FILENAME:  " << fns.str() << endl;
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
         fh_set.push_back(fh); 
