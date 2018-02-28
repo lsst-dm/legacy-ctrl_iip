@@ -657,6 +657,16 @@ rabbitmqctl add_user AFM_PUB AFM_PUB
 rabbitmqctl set_permissions -p /bunny AFM_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test AFM_PUB '.*' '.*' '.*'
 
+
+rabbitmqctl add_user AUX AUX
+rabbitmqctl set_permissions -p /bunny AUX '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test AUX '.*' '.*' '.*'
+
+rabbitmqctl add_user AUX_PUB AUX_PUB
+rabbitmqctl set_permissions -p /bunny AUX_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test AUX_PUB '.*' '.*' '.*'
+
+
 rabbitmqctl add_user PFM PFM
 rabbitmqctl set_permissions -p /bunny PFM '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test PFM '.*' '.*' '.*'
@@ -665,6 +675,7 @@ rabbitmqctl add_user PFM_PUB PFM_PUB
 rabbitmqctl set_permissions -p /bunny PFM_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test PFM_PUB '.*' '.*' '.*'
 
+
 rabbitmqctl add_user PFM_NCSA PFM_NCSA
 rabbitmqctl set_permissions -p /bunny PFM_NCSA '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test PFM_NCSA '.*' '.*' '.*'
@@ -672,6 +683,7 @@ rabbitmqctl set_permissions -p /test PFM_NCSA '.*' '.*' '.*'
 rabbitmqctl add_user PFM_NCSA_PUB PFM_NCSA_PUB
 rabbitmqctl set_permissions -p /bunny PFM_NCSA_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test PFM_NCSA_PUB '.*' '.*' '.*'
+
 
 rabbitmqctl add_user NFM_BASE NFM_BASE
 rabbitmqctl set_permissions -p /bunny NFM_BASE '.*' '.*' '.*'

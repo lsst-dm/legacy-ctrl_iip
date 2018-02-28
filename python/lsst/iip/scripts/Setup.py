@@ -50,8 +50,8 @@ class Setup:
         self.channel.queue_declare(queue='cu_foreman_consume',durable=True)
         self.channel.queue_bind(queue='cu_foreman_consume', exchange='message', routing_key='cu_foreman_consume' )
         """        
-        self.channel.queue_declare(queue='sp_foreman_consume',durable=True)
-        self.channel.queue_bind(queue='sp_foreman_consume', exchange='message', routing_key='sp_foreman_consume' )
+        self.channel.queue_declare(queue='aux_foreman_consume',durable=True)
+        self.channel.queue_bind(queue='aux_foreman_consume', exchange='message', routing_key='aux_foreman_consume' )
         """
         ## DMCS queues
         self.channel.queue_declare(queue='dmcs_fault_queue',durable=True)
@@ -91,6 +91,8 @@ class Setup:
         self.channel.queue_declare(queue='cu_foreman_ack_publish',durable=True)
         self.channel.queue_bind(queue='cu_foreman_ack_publish', exchange='message', routing_key='cu_foreman_ack_publish' )
         
+        self.channel.queue_declare(queue='aux_foreman_ack_publish',durable=True)
+        self.channel.queue_bind(queue='aux_foreman_ack_publish', exchange='message', routing_key='aux_foreman_ack_publish' )
         
         ## Queues for Archive Controller and Auditor
         self.channel.queue_declare(queue='audit_consume',durable=True)
