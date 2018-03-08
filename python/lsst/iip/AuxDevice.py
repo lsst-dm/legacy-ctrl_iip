@@ -34,11 +34,11 @@ class AuxDevice:
         It receives jobs and divides and assigns the work to forwarders, records state and
         status change of forwarders, and sends messages accordingly.
     """
-    COMPONENT_NAME = 'SP_FOREMAN'
-    AR_FOREMAN_CONSUME = "sp_foreman_consume"
+    COMPONENT_NAME = 'AUX_FOREMAN'
+    AR_FOREMAN_CONSUME = "aux_foreman_consume"
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
-    SP_FOREMAN_ACK_PUBLISH = "sp_foreman_ack_publish"
+    AUX_FOREMAN_ACK_PUBLISH = "aux_foreman_ack_publish"
     START_INTEGRATION_XFER_PARAMS = {}
     CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
@@ -73,17 +73,17 @@ class AuxDevice:
 
 
         self._msg_actions = { 'AR_START_INTEGRATION': self.process_start_integration,
-                              'SP_NEW_SESSION': self.set_session,
-                              'SP_NEXT_VISIT': self.process_target_event,
+                              'AUX_NEW_SESSION': self.set_session,
+                              'AUX_NEXT_VISIT': self.process_target_event,
                               'AR_READOUT': self.process_dmcs_readout,
-                              'SP_FWDR_HEALTH_CHECK_ACK': self.process_ack,
-                              'SP_FWDR_XFER_PARAMS_ACK': self.process_ack,
+                              'AUX_FWDR_HEALTH_CHECK_ACK': self.process_ack,
+                              'AUX_FWDR_XFER_PARAMS_ACK': self.process_ack,
                               'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
-                              'AR_TAKE_IMAGES': self.take_images,
-                              'AR_END_READOUT': self.process_end_readout, 
-                              'AR_TAKE_IMAGES_DONE': self.take_images_done}
+                              'AUX_TAKE_IMAGES': self.take_images,
+                              'AUX_END_READOUT': self.process_end_readout, 
+                              'AUX_TAKE_IMAGES_DONE': self.take_images_done}
 
 
         self._next_timed_ack_id = 0
@@ -114,7 +114,7 @@ class AuxDevice:
         self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
 
 
-    def on_ar_foreman_message(self, ch, method, properties, body):
+    def on_aux_foreman_message(self, ch, method, properties, body):
         """ Calls the appropriate AR message action handler according to message type.
 
             :params ch: Channel to message broker, unused unless testing.
@@ -128,8 +128,8 @@ class AuxDevice:
         #msg_dict = yaml.load(body) 
         ch.basic_ack(method.delivery_tag)
         msg_dict = body 
-        LOGGER.info('In AR Foreman message callback')
-        LOGGER.info('Message from DMCS to AR Foreman callback message body is: %s', str(msg_dict))
+        LOGGER.info('In AUX Foreman message callback')
+        LOGGER.info('Message from DMCS to AUX Foreman callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -188,12 +188,13 @@ class AuxDevice:
         session_id = self.get_current_session()
         visit_id = self.get_current_visit()
         job_number = params[JOB_NUM]
+        # These next three lines must have WFS and Guide sensor info added
         raft_list = params['RAFT_LIST']
         raft_ccd_list = params['RAFT_CCD_LIST']
         start_int_ack_id = params[ACK_ID]
 
         # next, run health check
-        health_check_ack_id = self.get_next_timed_ack_id('AR_FWDR_HEALTH_ACK')
+        health_check_ack_id = self.get_next_timed_ack_id('AUX_FWDR_HEALTH_ACK')
         num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
 
         # Add job scbd entry
@@ -215,14 +216,14 @@ class AuxDevice:
 
         # send new_archive_item msg to archive controller
         start_int_params = {}
-        ac_timed_ack = self.get_next_timed_ack_id('AR_CTRL_NEW_ITEM')
+        ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
         start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
         start_int_params['ACK_ID'] = ac_timed_ack
         start_int_params['JOB_NUM'] = job_number
         start_int_params['SESSION_ID'] = session_id
         start_int_params['VISIT_ID'] = visit_id
         start_int_params['IMAGE_ID'] = image_id
-        start_int_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
+        start_int_params['REPLY_QUEUE'] = self.AUX_FOREMAN_ACK_PUBLISH
         self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
 
@@ -766,10 +767,10 @@ class AuxDevice:
             sys.exit(101)
 
         try:
-            self._msg_name = cdm[ROOT][AFM_BROKER_NAME]      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT][AFM_BROKER_PASSWD]   
-            self._msg_pub_name = cdm[ROOT]['AFM_BROKER_PUB_NAME']      # Message broker user & passwd
-            self._msg_pub_passwd = cdm[ROOT]['AFM_BROKER_PUB_PASSWD']   
+            self._msg_name = cdm[ROOT][AUX_BROKER_NAME]      # Message broker user & passwd
+            self._msg_passwd = cdm[ROOT][AUX_BROKER_PASSWD]   
+            self._msg_pub_name = cdm[ROOT]['AUX_BROKER_PUB_NAME']      # Message broker user & passwd
+            self._msg_pub_passwd = cdm[ROOT]['AUX_BROKER_PUB_PASSWD']   
             self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
             self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
@@ -813,9 +814,9 @@ class AuxDevice:
         kws = {}
         md = {}
         md['amqp_url'] = base_broker_url
-        md['name'] = 'Thread-ar_foreman_consume'
-        md['queue'] = 'ar_foreman_consume'
-        md['callback'] = self.on_ar_foreman_message
+        md['name'] = 'Thread-aux_foreman_consume'
+        md['queue'] = 'aux_foreman_consume'
+        md['callback'] = self.on_aux_foreman_message
         md['format'] = "YAML"
         md['test_val'] = None
         kws[md['name']] = md
@@ -823,7 +824,7 @@ class AuxDevice:
         md = {}
         md['amqp_url'] = base_broker_url
         md['name'] = 'Thread-ar_foreman_ack_publish'
-        md['queue'] = 'ar_foreman_ack_publish'
+        md['queue'] = 'aux_foreman_ack_publish'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
         md['test_val'] = 'test_it'

@@ -96,16 +96,16 @@ def main():
   print("AR STANDBY")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
-  msg = {}
-  msg['MSG_TYPE'] = "STANDBY"
-  msg['DEVICE'] = 'PP'
-  msg['CFG_KEY'] = "2C16"
-  msg['ACK_ID'] = 'PP_7'
-  msg['ACK_DELAY'] = 2
-  msg['CMD_ID'] = '4434278813'
-  time.sleep(3)
-  print("PP STANDBY")
-  sp1.publish_message("ocs_dmcs_consume", msg)
+#  msg = {}
+#  msg['MSG_TYPE'] = "STANDBY"
+#  msg['DEVICE'] = 'PP'
+#  msg['CFG_KEY'] = "2C16"
+#  msg['ACK_ID'] = 'PP_7'
+#  msg['ACK_DELAY'] = 2
+#  msg['CMD_ID'] = '4434278813'
+#  time.sleep(3)
+#  print("PP STANDBY")
+#  sp1.publish_message("ocs_dmcs_consume", msg)
 
   #msg = {}
   #msg['MSG_TYPE'] = "NEW_SESSION"
@@ -125,15 +125,15 @@ def main():
   print("AR DISABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
-  msg = {}
-  msg['MSG_TYPE'] = "DISABLE"
-  msg['DEVICE'] = 'PP'
-  msg['ACK_ID'] = 'PP_8'
-  msg['ACK_DELAY'] = 2
-  msg['CMD_ID'] = '4434278815'
-  time.sleep(3)
-  print("PP DISABLE")
-  sp1.publish_message("ocs_dmcs_consume", msg)
+#  msg = {}
+#  msg['MSG_TYPE'] = "DISABLE"
+#  msg['DEVICE'] = 'PP'
+#  msg['ACK_ID'] = 'PP_8'
+#  msg['ACK_DELAY'] = 2
+#  msg['CMD_ID'] = '4434278815'
+#  time.sleep(3)
+#  print("PP DISABLE")
+#  sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
   msg['MSG_TYPE'] = "ENABLE"
@@ -145,15 +145,15 @@ def main():
   print("AR ENABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
-  msg = {}
-  msg['MSG_TYPE'] = "ENABLE"
-  msg['DEVICE'] = 'PP'
-  msg['ACK_ID'] = 'PP_12'
-  msg['ACK_DELAY'] = 2
-  msg['CMD_ID'] = '4434278817'
-  time.sleep(3)
-  print("PP ENABLE")
-  sp1.publish_message("ocs_dmcs_consume", msg)
+#  msg = {}
+#  msg['MSG_TYPE'] = "ENABLE"
+#  msg['DEVICE'] = 'PP'
+#  msg['ACK_ID'] = 'PP_12'
+#  msg['ACK_DELAY'] = 2
+#  msg['CMD_ID'] = '4434278817'
+#  time.sleep(3)
+#  print("PP ENABLE")
+#  sp1.publish_message("ocs_dmcs_consume", msg)
 
 
   """
@@ -173,7 +173,7 @@ def main():
   time.sleep(5)
   sp1.publish_message("ocs_dmcs_consume", msg)
   """ 
-
+  """
   msg = {}
   msg['MSG_TYPE'] = "NEXT_VISIT"
   msg['VISIT_ID'] = 'V_1443'
@@ -229,7 +229,7 @@ def main():
   time.sleep(5)
   print("READOUT Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
-
+  """
   time.sleep(15)
 
   print("Sender done")

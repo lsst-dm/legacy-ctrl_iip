@@ -1,4 +1,4 @@
-# Cfg settings for foreman
+# Cfg settings for system
 ROOT:
   NUMBER_OF_PAIRS: 10
 
@@ -16,6 +16,11 @@ ROOT:
   AFM_BROKER_PASSWD: AFM
   AFM_BROKER_PUB_NAME: AFM_PUB
   AFM_BROKER_PUB_PASSWD: AFM_PUB
+
+  AUX_BROKER_NAME: AUX
+  AUX_BROKER_PASSWD: AUX
+  AUX_BROKER_PUB_NAME: AUX_PUB
+  AUX_BROKER_PUB_PASSWD: AUX_PUB
 
   PFM_BROKER_NAME: PFM
   PFM_BROKER_PASSWD: PFM
@@ -88,12 +93,13 @@ ROOT:
   DMCS_FAULT_QUEUE: dmcs_fault_queue
   DEFAULT_RAFT_CONFIGURATION:
 #    raft00: ['ALL'] 
-#    raft10: ['ALL'] 
-    raft20: ['00','12','22'] 
-    raft30: ['00','01','02','11','12','22','10']
-    raft40: ['ALL'] 
     raft01: ['11'] 
-    raft11: ['12','22'] 
+#    raft10: ['11'] 
+#    raft20: ['00','12','22'] 
+#    raft30: ['00','01','02','11','12','22','10']
+#    raft40: ['ALL'] 
+#    raft01: ['11'] 
+#    raft11: ['12','22'] 
 #    raft21: ['ALL'] 
 #    raft31: ['ALL'] 
 #    raft41: ['ALL'] 
@@ -127,6 +133,13 @@ ROOT:
     ARCHIVE_HOSTNAME: ARCHIE
     ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
     CHECKSUM_ENABLED: no
+  EFD:
+    EFD_NAME: LFA
+    EFD_LOGIN: felipe
+    EFD_IP: 141.142.238.177
+    EFD_HOSTNAME: ARCHIE
+    EFD_XFER_ROOT: /mnt/lfa/
+    CHECKSUM_ENABLED: no
   OCS: 
     OCS_NAME: OCS
     OCS_PASSWD: OCS
@@ -158,12 +171,20 @@ ROOT:
     FWDR_DIR_PREFIX: /tmp/gunk/
 
     ARCHIVE_FORWARDERS:
-      FORWARDER_1:
-        NAME: F1
-        HOSTNAME: lsst-wf-base01.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.182
+#      FORWARDER_1:
+#        NAME: F1
+#        HOSTNAME: lsst-wf-base01.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.238.181
+#        STATE: IDLE
+#        CONSUME_QUEUE: f1_consume
+#        PUBLISH_QUEUE: ar_foreman_ack_publish
+#
+      FORWARDER_99:
+        NAME: F99
+        HOSTNAME: lsst-daq.ncsa.illinois.edu  
+        IP_ADDR: 141.142.238.74
         STATE: IDLE
-        CONSUME_QUEUE: f1_consume
+        CONSUME_QUEUE: f99_consume
         PUBLISH_QUEUE: ar_foreman_ack_publish
 
 #      FORWARDER_8:
