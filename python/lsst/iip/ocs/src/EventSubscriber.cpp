@@ -197,9 +197,11 @@ void *EventSubscriber::run_ccs_startReadout(void *args) {
 
         if (status == SAL__OK) { 
             cout << "=== Event startReadout received = " << endl;
+    /** 
             ostringstream msg; 
             msg << "{ MSG_TYPE: CCS_START_READOUT}"; 
             publisher->publish_message(queue, msg.str()); 
+    */
         } 
         os_nanoSleep(delay_10ms); 
     }  
@@ -287,9 +289,11 @@ void *EventSubscriber::run_ccs_startShutterOpen(void *args) {
 
         if (status == SAL__OK) { 
             cout << "=== Event startShutterOpen received = " << endl;
+            /**
             ostringstream msg; 
             msg << "{ MSG_TYPE: CCS_START_SHUTTER_OPEN }"; 
             publisher->publish_message(queue, msg.str()); 
+            */
         } 
         os_nanoSleep(delay_10ms);
     }  
@@ -316,8 +320,10 @@ void *EventSubscriber::run_ccs_startShutterClose(void *args) {
         if (status == SAL__OK) { 
             cout << "=== Event startShutterClose received = " << endl;
             ostringstream msg; 
+            /**
             msg << "{ MSG_TYPE: CCS_START_SHUTTER_CLOSE }"; 
             publisher->publish_message(queue, msg.str()); 
+            */
         } 
         os_nanoSleep(delay_10ms);
     }  
@@ -343,9 +349,11 @@ void *EventSubscriber::run_ccs_endShutterOpen(void *args) {
 
         if (status == SAL__OK) { 
             cout << "=== Event endShutterOpen received = " << endl;
+            /**
             ostringstream msg; 
             msg << "{ MSG_TYPE: CCS_END_SHUTTER_OPEN }"; 
             publisher->publish_message(queue, msg.str()); 
+            */
         } 
         os_nanoSleep(delay_10ms);
     }  
@@ -371,9 +379,11 @@ void *EventSubscriber::run_ccs_endShutterClose(void *args) {
 
         if (status == SAL__OK) { 
             cout << "=== Event endShutterClose received = " << endl;
+            /**
             ostringstream msg; 
             msg << "{ MSG_TYPE: CCS_END_SHUTTER_CLOSE }"; 
             publisher->publish_message(queue, msg.str()); 
+            */
         } 
         os_nanoSleep(delay_10ms);
     }  
@@ -537,7 +547,6 @@ void *EventSubscriber::run_takeImageDone(void *args) {
     return 0;
 } 
             
-/** 
 void *EventSubscriber::run_getHeaderService(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -569,7 +578,7 @@ void *EventSubscriber::run_getHeaderService(void *args) {
     mgr.salShutdown(); 
     return 0;
 } 
-*/ 
+/** 
 void *EventSubscriber::run_getHeaderService(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -601,6 +610,7 @@ void *EventSubscriber::run_getHeaderService(void *args) {
     mgr.salShutdown(); 
     return 0;
 } 
+*/ 
 
 int main() { 
     EventSubscriber event; 
