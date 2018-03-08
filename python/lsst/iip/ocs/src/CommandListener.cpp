@@ -3,6 +3,7 @@
 #include <sstream> 
 #include <pthread.h>
 #include <string>
+#include <yaml-cpp/yaml.h>
 #include "SAL_archiver.h" 
 #include "SAL_catchuparchiver.h"
 #include "SAL_processingcluster.h" 
@@ -10,6 +11,7 @@
 #include "CommandListener.h"
 
 using namespace std;
+using namespace YAML;
 
 int next_timed_ack_id = 0; 
 
@@ -29,27 +31,30 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
 	if (cmdId > 0) { 
 	    cout << "== " << device << " " << command_name << " Command" << endl; 
-	    ostringstream ack_msg; 
 	    string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
-	    ack_msg << "{ MSG_TYPE: " << command_name 
-		    << ", DEVICE: " << device 
-		    << ", CMD_ID: " << to_string(cmdId) 
-		    << ", ACK_ID: " << ack_id
-		    << "}"; 
-	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
+            Emitter ack_msg; 
+            ack_msg << BeginMap; 
+            ack_msg << Key << "MSG_TYPE" << Value << command_name; 
+	    ack_msg << Key << "DEVICE" << Value << device;
+            ack_msg << Key << "CMD_ID" << Value << to_string(cmdId); 
+	    ack_msg << Key << "ACK_ID" << Value << ack_id; 
+            ack_msg << EndMap; 
+	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
 
-	    ostringstream book_keeping; 
-	    book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
-                         << ", SUB_TYPE: " << command_name
-			 << ", ACK_ID: " << ack_id 
-			 << ", CHECKBOX: false" 
-			 << ", TIME: " << get_current_time()
-			 << ", CMD_ID: " << to_string(cmdId) 
-			 << ", DEVICE: " << device << "}"; 
-	    cout << "XXX BOOK_KEEPING: " << book_keeping.str() << endl; 
+            Emitter book_keeping; 
+            book_keeping << BeginMap; 
+	    book_keeping << Key << "MSG_TYPE" << Value << "BOOK_KEEPING";
+            book_keeping << Key << "SUB_TYPE" << Value << command_name;
+	    book_keeping << Key << "ACK_ID" << Value << ack_id ;
+	    book_keeping << Key << "CHECKBOX" << Value << "false"; 
+	    book_keeping << Key << "TIME" << Value << get_current_time();
+	    book_keeping << Key << "CMD_ID" << Value << to_string(cmdId); 
+	    book_keeping << Key << "DEVICE" << Value << device; 
+            book_keeping << EndMap; 
+	    cout << "XXX BOOK_KEEPING: " << book_keeping.c_str() << endl; 
 
-	    publisher->publish_message(consume_q, book_keeping.str()); 
-	    publisher->publish_message(publish_q, ack_msg.str());  
+	    publisher->publish_message(consume_q, book_keeping.c_str()); 
+	    publisher->publish_message(publish_q, ack_msg.c_str());  
 	}
 	os_nanoSleep(delay_10ms); 
     } 
@@ -69,28 +74,31 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
 	if (cmdId > 0) { 
 	    cout << "== " << device << " " << command_name << " Command" << endl; 
-	    ostringstream ack_msg; 
 	    string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
-	    ack_msg << "{ MSG_TYPE: " << command_name 
-		    << ", DEVICE: " << device 
-		    << ", CMD_ID: " << to_string(cmdId) 
-		    << ", ACK_ID: " << ack_id
-		    << ", CFG_KEY: " << SALInstance.configuration
-		    << "}"; 
-	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
+            Emitter ack_msg; 
+            ack_msg << BeginMap; 
+            ack_msg << Key << "MSG_TYPE" << Value << command_name; 
+	    ack_msg << Key << "DEVICE" << Value << device;
+            ack_msg << Key << "CMD_ID" << Value << to_string(cmdId); 
+	    ack_msg << Key << "ACK_ID" << Value << ack_id; 
+	    ack_msg << Key << "CFG_KEY" << Value << SALInstance.configuration; 
+            ack_msg << EndMap; 
+	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
 
-	    ostringstream book_keeping; 
-	    book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
-                         << ", SUB_TYPE: " << command_name
-			 << ", ACK_ID: " << ack_id 
-			 << ", CHECKBOX: false" 
-			 << ", TIME: " << get_current_time()
-			 << ", CMD_ID: " << to_string(cmdId) 
-			 << ", DEVICE: " << device << "}"; 
-	    cout << "XXX BOOK_KEEPING: " << book_keeping.str() << endl; 
+            Emitter book_keeping; 
+            book_keeping << BeginMap; 
+	    book_keeping << Key << "MSG_TYPE" << Value << "BOOK_KEEPING";
+            book_keeping << Key << "SUB_TYPE" << Value << command_name;
+	    book_keeping << Key << "ACK_ID" << Value << ack_id ;
+	    book_keeping << Key << "CHECKBOX" << Value << "false"; 
+	    book_keeping << Key << "TIME" << Value << get_current_time();
+	    book_keeping << Key << "CMD_ID" << Value << to_string(cmdId); 
+	    book_keeping << Key << "DEVICE" << Value << device; 
+            book_keeping << EndMap; 
+	    cout << "XXX BOOK_KEEPING: " << book_keeping.c_str() << endl; 
 
-	    publisher->publish_message(consume_q, book_keeping.str()); 
-	    publisher->publish_message(publish_q, ack_msg.str());  
+	    publisher->publish_message(consume_q, book_keeping.c_str()); 
+	    publisher->publish_message(publish_q, ack_msg.c_str());  
 	}
 	os_nanoSleep(delay_10ms); 
     } 

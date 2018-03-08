@@ -28,7 +28,7 @@ EFD      = /opt/sal/ts_sal/test/efd/cpp
 CFLAGS   = -g -Wall -c 
 COMPVERS = -std=c++11
 
-all: CommandListener AckSubscriber EventSubscriber Test_CommandListener Test_AckSubscriber Test_EventSubscriber SimplePublisher Consumer
+all: CommandListener AckSubscriber EventSubscriber SimplePublisher Consumer
 
 OCS_Bridge: OCS_Bridge.cpp SimplePublisher
 	$(CC) $(COMPVERS) $(INCLUDE) -Wl,-rpath,../lib -L../lib ../obj/SimplePublisher.o -c -o ../obj/OCS_Bridge.o OCS_Bridge.cpp -lSimpleAmqpClient -lyaml-cpp 
@@ -41,18 +41,6 @@ AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod
 
 EventSubscriber: EventSubscriber.cpp SimplePublisher
 	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CAMERA)/src/.obj/SAL_camera.o $(TCS)/src/.obj/SAL_tcs.o $(EFD)/src/.obj/SAL_efd.o $(HEADER)/src/.obj/SAL_dmHeaderService.o $(CAMERA)/src/.obj/CheckStatus.o ../obj/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(LDLIBS) 
-
-Test_OCS_Bridge: Test_OCS_Bridge.cpp SimplePublisher
-	$(CC) $(COMPVERS) $(INCLUDE) -Wl,-rpath,../lib -L../lib ../obj/SimplePublisher.o -c -o ../obj/Test_OCS_Bridge.o Test_OCS_Bridge.cpp -lSimpleAmqpClient -lyaml-cpp 
-
-Test_CommandListener: Test_CommandListener.cpp Test_OCS_Bridge Toolsmod
-	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o ../obj/Test_OCS_Bridge.o ../obj/SimplePublisher.o ../obj/Toolsmod.o -Wall -o Test_CommandListener Test_CommandListener.cpp $(LDLIBS) 
-
-Test_AckSubscriber: Test_AckSubscriber.cpp Consumer SimplePublisher Test_OCS_Bridge Toolsmod
-	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o ../obj/Test_OCS_Bridge.o ../obj/Consumer.o ../obj/SimplePublisher.o ../obj/Toolsmod.o -Wall -g -o Test_AckSubscriber Test_AckSubscriber.cpp $(LDLIBS) 
-
-Test_EventSubscriber: Test_EventSubscriber.cpp SimplePublisher
-	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CAMERA)/src/.obj/SAL_camera.o $(TCS)/src/.obj/SAL_tcs.o $(CAMERA)/src/.obj/CheckStatus.o ../obj/SimplePublisher.o -Wall -g -o Test_EventSubscriber Test_EventSubscriber.cpp $(LDLIBS) 
 
 SimplePublisher: SimplePublisher.cpp
 	$(CC) $(COMPVERS) $(INCLUDE) -Wl,-rpath,../lib -L../lib -c -o ../obj/SimplePublisher.o SimplePublisher.cpp -lSimpleAmqpClient 

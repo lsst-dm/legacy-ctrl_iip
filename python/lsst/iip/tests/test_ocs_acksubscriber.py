@@ -18,11 +18,11 @@ from SimplePublisher import SimplePublisher
 class TestOCS_AckSubscriber: 
 
     os.chdir("ocs/src")
-    ackSubscriber = subprocess.Popen("./Test_AckSubscriber&", shell=True, preexec_fn=os.setsid)
+    ackSubscriber = subprocess.Popen("./AckSubscriber&", shell=True, preexec_fn=os.setsid)
     print("Preparing ackSubscriber ...")
     sleep(120) 
 
-    cmdListener = subprocess.Popen("./Test_CommandListener&", shell=True, preexec_fn=os.setsid)
+    cmdListener = subprocess.Popen("./CommandListener&", shell=True, preexec_fn=os.setsid)
     print("Preparing cmdListener ...")
     sleep(10) 
 

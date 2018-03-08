@@ -16,7 +16,7 @@ from time import sleep
 class TestOCS_CommandListener: 
 
     os.chdir("ocs/src")
-    cmd = subprocess.Popen("./Test_CommandListener&", shell=True, preexec_fn=os.setsid)
+    cmd = subprocess.Popen("./CommandListener&", shell=True, preexec_fn=os.setsid)
     sleep(10) 
 
     EXPECTED_DMCS_MESSAGES = 24
