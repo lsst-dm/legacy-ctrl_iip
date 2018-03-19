@@ -932,6 +932,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
 {
 
 cout << "XXXX fetch_reassemble_process -- Entry into Method..." << endl;
+cout << "XXXX fetch_reassemble_process -- Vector ccds_for_board is " << ccds_for_board << endl;
 
   IMS::Source source(location, image);
 
@@ -995,26 +996,6 @@ cout << "In fetch_reassemble_process, file handles for ccd2 are set up" << endl;
         }
     }
 cout << "XXXXX fetch_reassemble_process -- Just before do/while loop" << endl;
-if ( do_ccd0) {
-  cout << "do_ccd0 is set to true!" << endl;
-}
-else {
-cout << "do_ccd0 is set to false." << endl;
-}
-
-if ( do_ccd1) {
-  cout << "do_ccd1 is set to true!" << endl;
-}
-else {
-cout << "do_ccd1 is set to false." << endl;
-}
-
-if ( do_ccd2) {
-  cout << "do_ccd2 is set to true!" << endl;
-}
-else {
-cout << "do_ccd2 is set to false." << endl;
-}
 
   do
   {
@@ -1031,21 +1012,21 @@ cout << "do_ccd2 is set to false." << endl;
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd0) {
-          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 1);
+          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); 32 bits...
         }
       }
 
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd1) {
-          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 1);
+          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 4);
         }
       }
 
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd2) {
-          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 1);
+          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 4);
         }
       }
 
