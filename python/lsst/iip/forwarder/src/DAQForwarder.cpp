@@ -1012,7 +1012,7 @@ cout << "XXXXX fetch_reassemble_process -- Just before do/while loop" << endl;
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd0) {
-          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); 32 bits...
+          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
         }
       }
 
