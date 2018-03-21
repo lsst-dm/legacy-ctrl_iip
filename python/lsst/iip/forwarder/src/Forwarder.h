@@ -30,6 +30,8 @@ class Forwarder {
     std::string format_consume_queue = "";
     std::string forward_consume_queue = "";
 
+    int ERROR_CODE_PREFIX; 
+
     //General Forwarder consumers
     Consumer *from_foreman_consumer;
     Consumer *from_fetch_consumer;

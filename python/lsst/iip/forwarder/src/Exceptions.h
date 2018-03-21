@@ -11,6 +11,7 @@ class L1Exception: public exception {
             errormsg = msg; 
         } 
 
+        // virtual const char* what() const throw() { 
         virtual const char* what() const throw() { 
             return errormsg.c_str(); 
         } 
@@ -58,18 +59,12 @@ class L1ConfigIOError : public L1Error {
         L1ConfigIOError(const string& msg) : L1Error(msg) {}
 }; 
 
-class L1ConfigKeyError : public L1Error { 
-    // Raise when L1Config file cannot be opened 
+class L1CannotCreateDirError: public L1Exception { 
     public: 
-        L1ConfigKeyError(const string& msg) : L1Error(msg) {}
+        L1CannotCreateDirError(const string& msg) : L1Exception (msg) {} 
 }; 
 
-class L1CannotCreateDirError: public L1Error { 
+class L1CannotCopyFileError: public L1Exception { 
     public: 
-        L1CannotCreateDirError(const string& msg) : L1Error(msg) {} 
-}; 
-
-class L1CannotCopyFileError: public L1Error { 
-    public: 
-        L1CannotCopyFileError(const string& msg) : L1Error(msg) {} 
+        L1CannotCopyFileError(const string& msg) : L1Exception(msg) {} 
 }; 

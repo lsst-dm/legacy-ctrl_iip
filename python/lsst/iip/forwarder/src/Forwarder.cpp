@@ -3,6 +3,7 @@
 //
 
 #include <sys/stat.h> 
+#include <errno.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,7 +17,7 @@
 #include "SimplePublisher.h"
 #include "fitsio.h"
 #include "Forwarder.h"
-#include "exceptions.h"
+#include "Exceptions.h"
 
 #define SECONDARY_HDU 2
 #define HEIGHT 512
@@ -116,186 +117,207 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
 };
 
 Forwarder::Forwarder() {
-    // Read config file
-    Node config_file;
-    try {
-        config_file = LoadFile("../../ForwarderCfg.yaml");
-    }
-    catch (YAML::BadFile& e) {
-        // FIX better catch clause...at LEAST a log message
-        cout << "Error reading ForwarderCfg.yaml file." << endl;
-        exit(EXIT_FAILURE);
-    }
+    try { 
+        Node config_file;
+        try {
+            config_file = LoadFile("../../ForwarderCfg.yaml");
+        }
+        catch (YAML::BadFile& e) {
+            throw L1ConfigIOError("In constructor, forwarder cannot open ForwarderCfg.yaml"); 
+        }
 
-    Node root;
-    string NAME, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR;
-    try {
-        root = config_file["ROOT"];
-        this->Name = root["NAME"].as<string>();
-        this->Component = root["FQN"].as<string>();
-        this->Lower_Name = root["LOWER_NAME"].as<string>();
-        USER = root["USER"].as<string>();
-        PASSWD = root["PASSWD"].as<string>();
-        USER_PUB = root["USER_PUB"].as<string>();
-        PASSWD_PUB = root["PASSWD_PUB"].as<string>();
-        USER_FETCH_PUB = root["USER_FETCH_PUB"].as<string>();
-        PASSWD_FETCH_PUB = root["PASSWD_FETCH_PUB"].as<string>();
-        USER_FORMAT_PUB = root["USER_FORMAT_PUB"].as<string>();
-        PASSWD_FORMAT_PUB = root["PASSWD_FORMAT_PUB"].as<string>();
-        USER_FORWARD_PUB = root["USER_FORWARD_PUB"].as<string>();
-        PASSWD_FORWARD_PUB = root["PASSWD_FORWARD_PUB"].as<string>();
-        this->BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
-        HOSTNAME = root["HOSTNAME"].as<string>();
-        IP_ADDR = root["IP_ADDR"].as<string>();
-        this->Work_Dir = root["WORK_DIR"].as<string>();
-        this->Src_Dir = root["SRC_DIR"].as<string>(); 
-        this->consume_queue = root["CONSUME_QUEUE"].as<string>();
-        this->fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
-        this->format_consume_queue = root["FORMAT_CONSUME_QUEUE"].as<string>();
-        this->forward_consume_queue = root["FORWARD_CONSUME_QUEUE"].as<string>();
-        this->FETCH_USER = root["FETCH_USER"].as<string>();
-        this->FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
-        this->FETCH_USER_PUB = root["FETCH_USER_PUB"].as<string>();
-        this->FETCH_USER_PUB_PASSWD = root["FETCH_USER_PUB_PASSWD"].as<string>();
+        Node root;
+        string NAME, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR;
+        ERROR_CODE_PREFIX = 5600; 
+        try {
+            root = config_file["ROOT"];
+            this->Name = root["NAME"].as<string>();
+            this->Component = root["FQN"].as<string>();
+            this->Lower_Name = root["LOWER_NAME"].as<string>();
+            USER = root["USER"].as<string>();
+            PASSWD = root["PASSWD"].as<string>();
+            USER_PUB = root["USER_PUB"].as<string>();
+            PASSWD_PUB = root["PASSWD_PUB"].as<string>();
+            USER_FETCH_PUB = root["USER_FETCH_PUB"].as<string>();
+            PASSWD_FETCH_PUB = root["PASSWD_FETCH_PUB"].as<string>();
+            USER_FORMAT_PUB = root["USER_FORMAT_PUB"].as<string>();
+            PASSWD_FORMAT_PUB = root["PASSWD_FORMAT_PUB"].as<string>();
+            USER_FORWARD_PUB = root["USER_FORWARD_PUB"].as<string>();
+            PASSWD_FORWARD_PUB = root["PASSWD_FORWARD_PUB"].as<string>();
+            this->BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
+            HOSTNAME = root["HOSTNAME"].as<string>();
+            IP_ADDR = root["IP_ADDR"].as<string>();
+            this->Work_Dir = root["WORK_DIR"].as<string>();
+            this->Src_Dir = root["SRC_DIR"].as<string>(); 
+            this->consume_queue = root["CONSUME_QUEUE"].as<string>();
+            this->fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
+            this->format_consume_queue = root["FORMAT_CONSUME_QUEUE"].as<string>();
+            this->forward_consume_queue = root["FORWARD_CONSUME_QUEUE"].as<string>();
+            this->FETCH_USER = root["FETCH_USER"].as<string>();
+            this->FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
+            this->FETCH_USER_PUB = root["FETCH_USER_PUB"].as<string>();
+            this->FETCH_USER_PUB_PASSWD = root["FETCH_USER_PUB_PASSWD"].as<string>();
 
-        this->FORMAT_USER = root["FORMAT_USER"].as<string>();
-        this->FORMAT_USER_PASSWD = root["FORMAT_USER_PASSWD"].as<string>();
-        this->FORMAT_USER_PUB = root["FORMAT_USER_PUB"].as<string>();
-        this->FORMAT_USER_PUB_PASSWD = root["FORMAT_USER_PUB_PASSWD"].as<string>();
+            this->FORMAT_USER = root["FORMAT_USER"].as<string>();
+            this->FORMAT_USER_PASSWD = root["FORMAT_USER_PASSWD"].as<string>();
+            this->FORMAT_USER_PUB = root["FORMAT_USER_PUB"].as<string>();
+            this->FORMAT_USER_PUB_PASSWD = root["FORMAT_USER_PUB_PASSWD"].as<string>();
 
-        this->FORWARD_USER = root["FORWARD_USER"].as<string>();
-        this->FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
-        this->FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
-        this->FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
-    }
-    catch (YAML::TypedBadConversion<string>& e) {
-        cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
-    }
+            this->FORWARD_USER = root["FORWARD_USER"].as<string>();
+            this->FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
+            this->FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
+            this->FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
+        }
+        catch (YAML::TypedBadConversion<string>& e) {
+            throw L1YamlKeyError("In constructor, forwarder cannot acquire required files from config file."); 
+        }
 
-    //ostringstream full_broker_url;
-    //full_broker_url << "amqp://" << user_name << ":" << passwd << basePbroker_addr from above...
-
-    setup_consumers(BASE_BROKER_ADDR);
-    setup_publishers(BASE_BROKER_ADDR);
+        setup_consumers(BASE_BROKER_ADDR);
+        setup_publishers(BASE_BROKER_ADDR);
+    } 
+    catch (L1ConfigIOError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 1; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl;  
+        exit(ERROR_CODE);
+    } 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+        exit(ERROR_CODE); 
+    } 
     
 }
 
 void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //Consumers for Primary Forwarder
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
-    cout << full_broker_url.str() << endl;
-    from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
+    try { 
+        ostringstream full_broker_url;
+        full_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
+        cout << full_broker_url.str() << endl;
+        from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
 
-    ostringstream consume_queue1;
-    consume_queue1 << this->consume_queue << "_from_fetch";
-    cout << full_broker_url.str() << endl;
-    from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
+        ostringstream consume_queue1;
+        consume_queue1 << this->consume_queue << "_from_fetch";
+        cout << full_broker_url.str() << endl;
+        from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
 
-    ostringstream consume_queue2;
-    consume_queue2 << this->consume_queue << "_from_format";
-    cout << full_broker_url.str() << endl;
-    from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
+        ostringstream consume_queue2;
+        consume_queue2 << this->consume_queue << "_from_format";
+        cout << full_broker_url.str() << endl;
+        from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
 
-    ostringstream consume_queue3;
-    consume_queue3 << this->consume_queue << "_from_forward";
-    ostringstream from_fwd_broker_url;
-    from_fwd_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
-    cout << from_fwd_broker_url.str() << endl;
-    from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
+        ostringstream consume_queue3;
+        consume_queue3 << this->consume_queue << "_from_forward";
+        ostringstream from_fwd_broker_url;
+        from_fwd_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
+        cout << from_fwd_broker_url.str() << endl;
+        from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
 
-    //Consumers for sub-components
-    //ostringstream consume_queue;
+        //Consumers for sub-components
+        //ostringstream consume_queue;
 
-    ostringstream full_broker_url2;
-    full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD << this->BASE_BROKER_ADDR ;
-    cout << full_broker_url.str() << endl;
-    from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
+        ostringstream full_broker_url2;
+        full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD << this->BASE_BROKER_ADDR ;
+        cout << full_broker_url.str() << endl;
+        from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
 
-    ostringstream full_broker_url3;
-    full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD << this->BASE_BROKER_ADDR;
-    cout << full_broker_url3.str() << endl;
-    from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
-    //cout << this->format_consume_queue << endl; 
+        ostringstream full_broker_url3;
+        full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD << this->BASE_BROKER_ADDR;
+        cout << full_broker_url3.str() << endl;
+        from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
+        //cout << this->format_consume_queue << endl; 
 
-    ostringstream full_broker_url4;
-    full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD << this->BASE_BROKER_ADDR ;
-    cout << full_broker_url4.str() << endl;
-    from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
-
+        ostringstream full_broker_url4;
+        full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD << this->BASE_BROKER_ADDR ;
+        cout << full_broker_url4.str() << endl;
+        from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 }
 
 void Forwarder::run() {
-    //Set up argument structs for all seven consumer threads
-    //Primary Forwarder consumer threads
-    arg_struct *args1 = new arg_struct;
-    args1->consumer = from_foreman_consumer;
-    args1->forwarder = this;
-    args1->funcptr = &Forwarder::on_foreman_message;
+    try { 
+        //Set up argument structs for all seven consumer threads
+        //Primary Forwarder consumer threads
+        arg_struct *args1 = new arg_struct;
+        args1->consumer = from_foreman_consumer;
+        args1->forwarder = this;
+        args1->funcptr = &Forwarder::on_foreman_message;
 
-    arg_struct *args2 = new arg_struct;
-    args2->consumer = from_fetch_consumer;
-    args2->forwarder = this;
-    args2->funcptr = &Forwarder::on_fetch_message;
+        arg_struct *args2 = new arg_struct;
+        args2->consumer = from_fetch_consumer;
+        args2->forwarder = this;
+        args2->funcptr = &Forwarder::on_fetch_message;
 
-    arg_struct *args3 = new arg_struct;
-    args3->consumer = from_format_consumer;
-    args3->forwarder = this;
-    args3->funcptr = &Forwarder::on_format_message;
+        arg_struct *args3 = new arg_struct;
+        args3->consumer = from_format_consumer;
+        args3->forwarder = this;
+        args3->funcptr = &Forwarder::on_format_message;
 
-    arg_struct *args4 = new arg_struct;
-    args4->consumer = from_forward_consumer;
-    args4->forwarder = this;
-    args4->funcptr = &Forwarder::on_forward_message;
+        arg_struct *args4 = new arg_struct;
+        args4->consumer = from_forward_consumer;
+        args4->forwarder = this;
+        args4->funcptr = &Forwarder::on_forward_message;
 
-    //Subcomponent consumer threads
-    arg_struct *args5 = new arg_struct;
-    args5->consumer = from_forwarder_to_fetch;
-    args5->forwarder = this;
-    args5->funcptr = &Forwarder::on_forwarder_to_fetch_message;
+        //Subcomponent consumer threads
+        arg_struct *args5 = new arg_struct;
+        args5->consumer = from_forwarder_to_fetch;
+        args5->forwarder = this;
+        args5->funcptr = &Forwarder::on_forwarder_to_fetch_message;
 
-    arg_struct *args6 = new arg_struct;
-    args6->consumer = from_forwarder_to_format;
-    args6->forwarder = this;
-    args6->funcptr = &Forwarder::on_forwarder_to_format_message;
+        arg_struct *args6 = new arg_struct;
+        args6->consumer = from_forwarder_to_format;
+        args6->forwarder = this;
+        args6->funcptr = &Forwarder::on_forwarder_to_format_message;
 
-    arg_struct *args7 = new arg_struct;
-    args7->consumer = from_forwarder_to_forward;
-    args7->forwarder = this;
-    args7->funcptr = &Forwarder::on_forwarder_to_forward_message;
+        arg_struct *args7 = new arg_struct;
+        args7->consumer = from_forwarder_to_forward;
+        args7->forwarder = this;
+        args7->funcptr = &Forwarder::on_forwarder_to_forward_message;
 
-    //Create then run threads
-    pthread_t t1;
-    pthread_create(&t1, NULL, &Forwarder::run_thread, args1);
+        //Create then run threads
+        pthread_t t1;
+        pthread_create(&t1, NULL, &Forwarder::run_thread, args1);
 
-    pthread_t t2;
-    pthread_create(&t2, NULL, &Forwarder::run_thread, args2);
+        pthread_t t2;
+        pthread_create(&t2, NULL, &Forwarder::run_thread, args2);
 
-    pthread_t t3;
-    pthread_create(&t3, NULL, &Forwarder::run_thread, args3);
+        pthread_t t3;
+        pthread_create(&t3, NULL, &Forwarder::run_thread, args3);
 
-    pthread_t t4;
-    pthread_create(&t4, NULL, &Forwarder::run_thread, args4);
+        pthread_t t4;
+        pthread_create(&t4, NULL, &Forwarder::run_thread, args4);
 
-    pthread_t t5;
-    pthread_create(&t5, NULL, &Forwarder::run_thread, args5);
+        pthread_t t5;
+        pthread_create(&t5, NULL, &Forwarder::run_thread, args5);
 
-    pthread_t t6;
-    pthread_create(&t6, NULL, &Forwarder::run_thread, args6);
+        pthread_t t6;
+        pthread_create(&t6, NULL, &Forwarder::run_thread, args6);
 
-    pthread_t t7;
-    pthread_create(&t7, NULL, &Forwarder::run_thread, args7);
+        pthread_t t7;
+        pthread_create(&t7, NULL, &Forwarder::run_thread, args7);
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 
 }
 
 void *Forwarder::run_thread(void *pargs) {
-
-    arg_struct *params = ((arg_struct *) pargs);
-    Consumer *consumer = params->consumer;
-    Forwarder *forwarder = params->forwarder;
-    callback<Forwarder> on_msg = params->funcptr;
-
-    consumer->run<Forwarder>(forwarder, on_msg);
+    try { 
+        arg_struct *params = ((arg_struct *) pargs);
+        Consumer *consumer = params->consumer;
+        Forwarder *forwarder = params->forwarder;
+        callback<Forwarder> on_msg = params->funcptr;
+        consumer->run<Forwarder>(forwarder, on_msg);
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 }
 
 
@@ -338,8 +360,7 @@ void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
         fwd_pub = new SimplePublisher(full_broker_url6.str());
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -353,19 +374,19 @@ void Forwarder::on_foreman_message(string body) {
     try  { 
         Node node = Load(body);
         string message_type = node["MSG_TYPE"].as<string>();
-        if (on_foreman_message_actions.find(message_type) == on_foreman_message_actions.end()) { 
-            throw L1YamlError("In on_foreman_message, forwarder received unknown MSG_TYPE: " + message_type); 
+        if (!node["MSG_TYPE"]) { 
+            throw L1YamlKeyError("In on_foreman_message, forwarder received unknown MSG_TYPE: " + body); 
         } 
         funcptr action = on_foreman_message_actions[message_type];
         (this->*action)(node);
     } 
-    catch (L1YamlError& e) { 
-        cerr << "In on_foreman_message, forwarder received unknown MSG_TYPE: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process message in on_foreman_message: ".c_str() + e.what());  // Error Code 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
-        cerr << "In on_foreman_message, forwarder can't respond to: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process work in on_foreman_message: ".c_str() + e.what()); // Error Code  
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -375,19 +396,19 @@ void Forwarder::on_fetch_message(string body) {
     try { 
         Node node = Load(body);
         string message_type = node["MSG_TYPE"].as<string>();
-        if (on_fetch_message_actions.find(message_type) == on_fetch_message_actions.end()) { 
-            throw L1YamlError("In on_fetch_message, forwarder received unknown MSG_TYPE: " + message_type); 
+        if (!node["MSG_TYPE"]) { 
+            throw L1YamlKeyError("In on_fetch_message, forwarder received unknown MSG_TYPE: " + body); 
         } 
         funcptr action = on_fetch_message_actions[message_type];
         (this->*action)(node);
     } 
-    catch (L1YamlError& e) { 
-        cerr << "In on_fetch_message, forwarder received unknown MSG_TYPE: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process message in on_fetch_message: ".c_str() + e.what());  // Error Code 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
-        cerr << "In on_fetch_message, forwarder can't respond to: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process work in on_fetch_message: ".c_str() + e.what()); // Error Code  
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -397,19 +418,19 @@ void Forwarder::on_format_message(string body) {
     try { 
         Node node = Load(body);
         string message_type = node["MSG_TYPE"].as<string>();
-        if (on_format_message_actions.get(message_type) == on_format_message_actions.end()) { 
-            throw L1YamlError("In on_format_message, forwarder received unknown MSG_TYPE: " + message_type); 
+        if (!node["MSG_TYPE"]) { 
+            throw L1YamlKeyError("In on_format_message, forwarder received unknown MSG_TYPE: " + body); 
         } 
         funcptr action = on_format_message_actions[message_type];
         (this->*action)(node);
     } 
-    catch (L1YamlError& e) { 
-        cerr << "In on_format_message, forwarder received unknown MSG_TYPE: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process message in on_format_message: ".c_str() + e.what());  // Error Code 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
-        cerr << "In on_format_message, forwarder can't respond to: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process work in on_format_message: ".c_str() + e.what()); // Error Code  
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -419,19 +440,19 @@ void Forwarder::on_forward_message(string body) {
     try { 
         Node node = Load(body);
         string message_type = node["MSG_TYPE"].as<string>();
-        if (on_forward_message_actions.get(message_type) == on_forward_message_actions.end()) { 
-            throw L1YamlError("In on_forward_message, forwarder received unknown MSG_TYPE: " + message_type); 
+        if (!node["MSG_TYPE"]) { 
+            throw L1YamlKeyError("In on_forward_message, forwarder received unknown MSG_TYPE: " + body); 
         } 
         funcptr action = on_forward_message_actions[message_type];
         (this->*action)(node);
     } 
-    catch (L1YamlError& e) { 
-        cerr << "In on_forward_message, forwarder received unknown MSG_TYPE: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process message in on_forward_message: ".c_str() + e.what());  // Error Code 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
-        cerr << "In on_forward_message, forwarder can't respond to: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process work in on_forward_message: ".c_str() + e.what()); // Error Code  
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -446,19 +467,19 @@ void Forwarder::on_forwarder_to_fetch_message(string body) {
     try { 
         Node node = Load(body);
         string message_type = node["MSG_TYPE"].as<string>();
-        if (on_forwarder_to_fetch_message_actions.get(message_type) == on_forwarder_to_fetch_message_actions.end()) { 
-            throw L1YamlError("In on_forwarder_to_fetch_message, forwarder received unknown MSG_TYPE: " + message_type); 
+        if (!node["MSG_TYPE"]) { 
+            throw L1YamlKeyError("In on_forwarder_to_fetch_message, forwarder received unknown MSG_TYPE: " + body); 
         } 
         funcptr action = on_forwarder_to_fetch_message_actions[message_type];
         (this->*action)(node);
     } 
-    catch (L1YamlError& e) { 
-        cerr << "In on_forwarder_to_fetch_message, forwarder received unknown MSG_TYPE: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process message in on_forwarder_to_fetch_message: ".c_str() + e.what());  // Error Code 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
-        cerr << "In on_forwarder_to_fetch_message, forwarder can't respond to: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process work in on_forwarder_to_fetch_message: ".c_str() + e.what()); // Error Code  
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -470,19 +491,20 @@ void Forwarder::on_forwarder_to_format_message(string body) {
     try { 
         Node node = Load(body);
         string message_type = node["MSG_TYPE"].as<string>();
-        if (on_forwarder_to_format_message_actions.get(message_type) == on_forwarder_to_format_message_actions.end()) { 
-            throw L1YamlError("In on_forwarder_to_format_message, forwarder received unknown MSG_TYPE: " + message_type); 
+        // if (node["MSG_TYPE"]) { 
+        if (!node["MSG_TYPE"]) { 
+            throw L1YamlKeyError("In on_forwarder_to_format_message, forwarder received unknown MSG_TYPE: " + body); 
         } 
         funcptr action = on_forwarder_to_format_message_actions[message_type];
         (this->*action)(node);
     } 
-    catch (L1YamlError& e) { 
-        cerr << "In on_forwarder_to_format_message, forwarder received unknown MSG_TYPE: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process message in on_forwarder_to_format_message: ".c_str() + e.what());  // Error Code 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
-        cerr << "In on_forwarder_to_format_message, forwarder can't respond to: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process work in on_forwarder_to_format_message: ".c_str() + e.what()); // Error Code  
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -494,47 +516,44 @@ void Forwarder::on_forwarder_to_forward_message(string body) {
     try { 
         Node node = Load(body);
         string message_type = node["MSG_TYPE"].as<string>();
-        if (on_forwarder_to_forward_message_actions.get(message_type) == on_forwarder_to_forward_message_actions.end()) { 
-            throw L1YamlError("In on_forwarder_to_forward_message, forwarder received unknown MSG_TYPE: " + message_type); 
+        if (!node["MSG_TYPE"]) { 
+            throw L1YamlKeyError("In on_forwarder_to_forward_message, forwarder received unknown MSG_TYPE: " + body); 
         } 
         funcptr action = on_forwarder_to_forward_message_actions[message_type];
         (this->*action)(node);
     } 
-    catch (L1YamlError& e) { 
-        cerr << "In on_forwarder_to_forward_message, forwarder received unknown MSG_TYPE: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process message in on_forwarder_to_forward_message: ".c_str() + e.what());  // Error Code 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
-        cerr << "In on_forwarder_to_forward_message, forwarder can't respond to: " << e.what() << endl; 
-        throw L1Error("Forwarder unable to process work in on_forwarder_to_forward_message: ".c_str() + e.what()); // Error Code  
+        cerr << e.what() << endl; 
     } 
 }
 
 void Forwarder::process_header_ready(Node n) { 
     try { 
-        cout << "[x] phr" << endl; 
-        // create header folder
-        // TODO: Should be work_dir? 
-        string main_header_dir = "/tmp/header"; 
-        cout << "[x] header main dir: " << main_header_dir << endl; 
+        string main_header_dir = this->Work_Dir + "/header"; 
         const int dir = mkdir(main_header_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
-        if (dir == -1) { 
-            throw L1CannotCreateDirError("In process_header_ready, forwarder cannot create directory in: " + main_header_dir.c_str()); 
+        if (dir == -1 && errno != 17) { 
+            throw L1CannotCreateDirError("In process_header_ready, forwarder cannot create directory in: " + main_header_dir); 
         } 
 
-        // create header subfolder
+        if (!n["FILENAME"]) { 
+            throw L1YamlKeyError("In process_header_ready, forwarder cannot find message params: FILENAME"); 
+        } 
+
         string path = n["FILENAME"].as<string>(); 
         int img_idx = path.find_last_of("/"); 
         int dot_idx = path.find_last_of("."); 
         int num_char = dot_idx - (img_idx + 1); // offset +1
         string img_id = path.substr(img_idx + 1, num_char); 
-        cout << "XXX img_id: " << img_id << endl;
 
         string sub_dir = main_header_dir + "/" + img_id; 
-        cout << "[x] sub header dir: " << sub_dir << endl; 
         const int dir_cmd = mkdir(sub_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);  
-        if (dir_cmd == -1) { 
-            throw L1CannotCreateDirError("In process_header_ready, forwarder cannot create directory in: " + sub_dir.c_str()); 
+        if (dir_cmd == -1 && errno != 17) { 
+            throw L1CannotCreateDirError("In process_header_ready, forwarder cannot create sub_directory in: " + sub_dir); 
         } 
 
         // scp felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
@@ -544,10 +563,9 @@ void Forwarder::process_header_ready(Node n) {
                << " " 
                << sub_dir
                << "/"; 
-        cout << cp_cmd.str() << endl; 
         int scp_cmd = system(cp_cmd.str().c_str()); 
-        if (scp_cmd == -1) { 
-            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file from: " + path + " to: " + sub_dir); 
+        if (scp_cmd == 256) { 
+            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + cp_cmd.str()); 
         } 
 
         string img_idx_wheader = path.substr(img_idx + 1);  
@@ -559,22 +577,25 @@ void Forwarder::process_header_ready(Node n) {
         msg << Key << "IMAGE_ID" << Value << img_id; 
         msg << Key << "FILENAME" << Value << header_path; 
         msg << EndMap; 
-        cout << "[x] msg: " << msg.c_str() << endl;
-
-        // publish to format thread
         FWDR_to_format_pub->publish_message(this->format_consume_queue, msg.c_str()); 
     } 
-    catch (L1CannotCreateDirError& e) { 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
         cerr << e.what() << endl; 
-        throw L1Error(e.what());  
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+    } 
+    catch (L1CannotCreateDirError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 20; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (L1CannotCopyFileError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
         cerr << e.what() << endl; 
-        throw L1Error(e.what());  
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
-        throw L1Error(e.what()); 
     } 
 } 
 
@@ -586,22 +607,15 @@ void Forwarder::process_new_visit(Node n) {
 
 void Forwarder::process_health_check(Node n) {
     try { 
+        if (!n["ACK_ID"] || !n["REPLY_QUEUE"]) { 
+            throw L1YamlKeyError("In process_health_check, forwarder cannot find key(s) ACK_ID and/or REPLY_QUEUE"); 
+        } 
         string ack_id = n["ACK_ID"].as<string>();
         string reply_queue = n["REPLY_QUEUE"].as<string>();
-
-        if (n.get("ACK_ID") == n.end()) { 
-            throw L1YamlKeyError("In process_health_check, forwarder cannot find ACK_ID in message: " + n.str()); 
-        } 
-
-        if (n.get("REPLY_QUEUE") == n.end()) { 
-            throw L1YamlKeyError("In process_health_check, forwarder cannot find REPLY_QUEUE in message: " + n.str()); 
-        } 
-
         string message_type = "AR_FWDR_HEALTH_CHECK_ACK";
         //string component = "AR";
         string ack_bool = "True";
 
-        ostringstream message;
         Emitter message; 
         message << BeginMap; 
         message << Key << "MSG_TYPE" << Value << message_type; 
@@ -612,16 +626,16 @@ void Forwarder::process_health_check(Node n) {
 
         FWDR_pub->publish_message(reply_queue, message.c_str());
         cout << "Health Check request Message, ACK sent to: " << reply_queue << endl;
+        return;
     } 
     catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
         cerr << e.what() << endl; 
-        throw L1Error(e.what()); 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
-        throw L1Error(e.what()); 
     } 
-    return;
 }
 
 void Forwarder::process_xfer_params(Node n) {
@@ -665,18 +679,18 @@ void Forwarder::process_xfer_params(Node n) {
         //string component = "AR";
         string ack_bool = "false";
 
-        ostringstream message;
-        message << "{ MSG_TYPE: " << message_type
-                << ", COMPONENT: " << this->Component
-                << ", ACK_ID: " << ack_id
-                << ", ACK_BOOL: " << ack_bool << "}";
-
-        FWDR_pub->publish_message(reply_queue, message.str());
+        Emitter message; 
+        message << BeginMap; 
+        message << Key << "MSG_TYPE" << Value << message_type; 
+        message << Key << "COMPONENT" << Value << this->Component; 
+        message << Key << "ACK_ID" << Value << ack_id; 
+        message << Key << "ACK_BOOL" << Value << ack_bool; 
+        message << EndMap; 
+        FWDR_pub->publish_message(reply_queue, message.c_str());
         return;
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -688,8 +702,7 @@ void Forwarder::process_take_images(Node n) {
         return;
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -704,19 +717,17 @@ void Forwarder::process_end_readout(Node n) {
         string image_id = n["IMAGE_ID"].as<string>();
         image_id_list.push_back(image_id);
         string msg_type = "FETCH_END_READOUT";
-        ostringstream message;
         Emitter message; 
         message << BeginMap; 
         message << Key << "MSG_TYPE" << Value << msg_type; 
         message << Key << "IMAGE_ID" << Value << image_id; 
         message << EndMap; 
-
         this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.c_str());
+        return;
     } 
     catch (exception& e) { 
-        
+        cerr << e.what() << endl;     
     } 
-    return;
 }
 
 //From forwarder main thread to fetch thread
@@ -772,14 +783,12 @@ void Forwarder::process_fetch(Node n) {
         }
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 }
 
 void Forwarder::process_take_images_done(Node n) {
     try { 
-        ostringstream msg;
         string new_msg_type = "FETCH_TAKE_IMAGES_DONE";
         string job_num = n["JOB_NUM"].as<string>();
         string ack_id = n["ACK_ID"].as<string>();
@@ -789,15 +798,17 @@ void Forwarder::process_take_images_done(Node n) {
         // 3) Send filename_list of files transferred in report
         // 4) Send checksum_list that corressponds to each file in report
 
-        msg << "{MSG_TYPE: " << new_msg_type 
-            << ", JOB_NUM: " << job_num
-            << ", REPLY_QUEUE: " << reply_queue
-            << ", ACK_ID: " << ack_id << "}";
-        this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.str());
+        Emitter msg; 
+        msg << BeginMap; 
+        msg << Key << "MSG_TYPE" << Value << new_msg_type; 
+        msg << Key << "JOB_NUM" << Value << job_num; 
+        msg << Key << "REPLY_QUEUE" << Value << reply_queue; 
+        msg << Key << "ACK_ID" << Value << ack_id; 
+        msg << EndMap;  
+        this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.c_str());
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -837,8 +848,7 @@ void Forwarder::process_format(Node n) {
         return;
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -888,8 +898,7 @@ void Forwarder::format_process_end_readout(Node node) {
         this->format_look_for_work(); 
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 
@@ -903,8 +912,7 @@ void Forwarder::format_get_header(Node node) {
         this->format_look_for_work(); 
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 
@@ -920,8 +928,7 @@ void Forwarder::format_assemble_img(Node n) {
         format_write_img(img_id, header);
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 }
 
@@ -937,8 +944,7 @@ char* Forwarder::format_read_img_segment(const char *file_path) {
         return buffer;
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 
@@ -959,8 +965,7 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
         return array;
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 
@@ -968,7 +973,7 @@ void Forwarder::format_write_img(string img, string header) {
     cout << "[x] fwi" << endl;
     try { 
         long len = WIDTH * HEIGHT;
-        int bitpix = BYTE_IMG; 
+        int bitpix = LONG_IMG; 
         long naxis = 2;
         long naxes[2] = { WIDTH, HEIGHT }; 
         long fpixel = 1; 
@@ -1015,8 +1020,7 @@ void Forwarder::format_write_img(string img, string header) {
         format_send_completed_msg(img);
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 
@@ -1037,8 +1041,7 @@ vector<string> Forwarder::format_list_files(string path) {
         return file_names; 
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 
@@ -1053,8 +1056,7 @@ void Forwarder::format_send_completed_msg(string image_id) {
         fmt_pub->publish_message(this->forward_consume_queue, msg.c_str()); 
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 ///////////////////////////////////////////////////////////////////////////
@@ -1091,8 +1093,7 @@ void Forwarder::format_look_for_work() {
         } 
     } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 
@@ -1106,32 +1107,45 @@ void Forwarder::forward_process_end_readout(Node n) {
         string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
         string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
       
-        // use bbcp to send file 
+        size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
-        bbcp_cmd << "bbcp "
-               << img_path
-               << " " 
-               << dest_path; 
-        cout << bbcp_cmd.str() << endl; 
-        system(bbcp_cmd.str().c_str()); 
+        if (find_at != string::npos) { 
+            bbcp_cmd << "bbcp "; 
+        } 
+        else { 
+            bbcp_cmd << "cp "; 
+        } 
+        bbcp_cmd << img_path
+                 << " " 
+                 << dest_path; 
+        int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
+        if (bbcp_cmd_status == 256) { 
+            throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
+        } 
         this->finished_image_work_list.push_back(img_id);
         cout << "[X] READOUT COMPLETE." << endl;
     } 
+    catch (L1CannotCopyFileError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+    } 
     catch (exception& e) { 
-        cerr << e.what() << end; 
-        throw L1Error(e.what());
+        cerr << e.what() << endl; 
     } 
 } 
 
 void Forwarder::forward_process_take_images_done(Node n) { 
     try { 
         cout << "get here" << endl;
-        ostringstream message;
+        if (!n["ACK_ID"] || !n["REPLY_QUEUE"]) { 
+            throw L1YamlKeyError("In forward_process_take_images_done, forwarder cannot find required params.");
+        } 
         string ack_id = n["ACK_ID"].as<string>();
         string reply_queue = n["REPLY_QUEUE"].as<string>();
         string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK ";
         string ack_bool = "True";
-      
+
         Emitter msg; 
         msg << BeginMap; 
         msg << Key << "MSG_TYPE" << Value << msg_type; 
@@ -1144,15 +1158,15 @@ void Forwarder::forward_process_take_images_done(Node n) {
             msg << Key << "CHECKSUM_LIST" << Value << Flow << checksum_list;  
             msg << EndMap; 
         msg << EndMap; 
-        cout << "[x] tid msg: " << endl; 
-        cout << msg.c_str() << endl;
-      
         this->fwd_pub->publish_message(reply_queue, msg.c_str());
-        cout << "msg is replied to ..." << reply_queue << endl;
+    } 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
-        throw L1Error(e.what()); 
     } 
 } 
 
@@ -1162,4 +1176,3 @@ int main() {
     while(1) {
     }
 }
-

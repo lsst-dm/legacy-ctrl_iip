@@ -147,7 +147,10 @@ class L1Exception(Exception):
 # 32 - Consumer error
 # 35 - Message Handler error
 #
-#
+# 01 - ForwarderCfg.yaml not found error
+# 02 - YAML Key not found error 
+# 20 - Cannot create directory error
+# 21 - Cannot copy file error 
 
 class L1Error(L1Exception): 
     """ Raise as general exception from main execution layer """

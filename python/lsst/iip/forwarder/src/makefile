@@ -1,4 +1,4 @@
-INCLUDE       = -I../../ocs/include -I../include
+INCLUDE       = -I../../ocs/include -I../include -I./
 LIBPATH       = -L../../ocs/lib -Wl,-rpath,../../ocs/lib -L../lib 
 LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcurl
 OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
