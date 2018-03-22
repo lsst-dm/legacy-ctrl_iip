@@ -962,17 +962,17 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
         cout << "ccds_for_board[x][0] is: " << ccds_for_board[x][0] << endl;
         if (string(1, ccds_for_board[x][0]) == "0") {
             do_ccd0 = true;
-            this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[0], dir_prefix);
+            this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[x], dir_prefix);
         }
 
         if (string(1, ccds_for_board[x][0]) == "1") {
             do_ccd1 = true;
-            this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[0], dir_prefix);
+            this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[x], dir_prefix);
         }
 
         if (string(1, ccds_for_board[x][0]) == "2") {
             do_ccd2 = true;
-            this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[0], dir_prefix);
+            this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[x], dir_prefix);
         }
     }
 
