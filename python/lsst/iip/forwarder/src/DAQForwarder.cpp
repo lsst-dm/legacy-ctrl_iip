@@ -120,9 +120,11 @@ class Forwarder {
     void process_take_images(Node n);
     void process_take_images_done(Node n);
     void process_end_readout(Node n);
+    void process_at_end_readout(Node n);
     void process_header_ready(Node n); 
 
     void process_fetch(Node n);
+    void process_at_fetch(Node n);
     void process_fetch_ack(Node n);
     void process_fetch_end_readout(Node n);
     void process_fetch_health_check(Node n);
@@ -143,7 +145,9 @@ class Forwarder {
     void fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
     void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
+    void fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
+    void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
 
     char* format_read_img_segment(const char*);
@@ -814,7 +818,7 @@ void Forwarder::process_at_fetch(Node n) {
 
 
       
-      this->fetch_reassemble_at_image(this->wfs_raft, image_id, filepath.str());
+      this->fetch_at_reassemble_process(this->wfs_raft, image_id, filepath.str());
 
 
       string new_msg_type = "FORMAT_END_READOUT";
