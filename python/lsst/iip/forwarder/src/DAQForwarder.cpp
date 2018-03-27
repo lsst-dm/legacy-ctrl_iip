@@ -171,23 +171,24 @@ struct arg_struct {
 map<string, funcptr> on_foreman_message_actions = {
     { "AR_NEW_VISIT", &Forwarder::process_new_visit},
     { "PP_NEW_VISIT", &Forwarder::process_new_visit},
-    { "SP_NEW_VISIT", &Forwarder::process_new_visit},
+    { "AT_NEW_VISIT", &Forwarder::process_new_visit},
     { "AR_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "PP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
-    { "SP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
+    { "AT_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "SP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
+    { "AT_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "AR_FWDR_TAKE_IMAGES", &Forwarder::process_take_images},
     { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
-    { "SP_TAKE_IMAGES", &Forwarder::process_take_images},
+    { "AT_TAKE_IMAGES", &Forwarder::process_take_images},
     { "AR_FWDR_END_READOUT", &Forwarder::process_end_readout},
-    { "PP_END_READOUT", &Forwarder::process_end_readout},
-    { "SP_END_READOUT", &Forwarder::process_end_readout},
+    { "PP_FWDR_END_READOUT", &Forwarder::process_end_readout},
+    { "AT_FWDR_END_READOUT", &Forwarder::process_at_end_readout},
     { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
-    { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
+    { "AT_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
     { "AR_FWDR_HEADER_READY", &Forwarder::process_header_ready }, 
+    { "AT_FWDR_HEADER_READY", &Forwarder::process_header_ready } 
 };
 
 //The next three handlers are essentially acks...
@@ -195,7 +196,7 @@ map<string, funcptr> on_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK_ACK", &Forwarder::process_fetch_health_check_ack},
     { "AR_FETCH_ACK", &Forwarder::process_fetch_ack},
     { "PP_FETCH_ACK", &Forwarder::process_fetch_ack},
-    { "SP_FETCH_ACK", &Forwarder::process_fetch_ack}
+    { "AT_FETCH_ACK", &Forwarder::process_fetch_ack}
 
 };
 
@@ -203,7 +204,7 @@ map<string, funcptr> on_format_message_actions = {
     { "FORMAT_HEALTH_CHECK_ACK", &Forwarder::process_format_health_check_ack},
     { "AR_FORMAT_ACK", &Forwarder::process_format_ack},
     { "PP_FORMAT_ACK", &Forwarder::process_format_ack},
-    { "SP_FORMAT_ACK", &Forwarder::process_format_ack}
+    { "AT_FORMAT_ACK", &Forwarder::process_format_ack}
 
 };
 
@@ -211,7 +212,7 @@ map<string, funcptr> on_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
     { "AR_FORWARD_ACK", &Forwarder::process_forward_ack},
     { "PP_FORWARD_ACK", &Forwarder::process_forward_ack},
-    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack}
+    { "AT_FORWARD_ACK", &Forwarder::process_forward_ack}
 
 };
 
@@ -221,10 +222,11 @@ map<string, funcptr> on_forward_message_actions = {
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK", &Forwarder::process_fetch_health_check},
     { "FETCH_END_READOUT", &Forwarder::process_fetch},
+    { "FETCH_AT_END_READOUT", &Forwarder::process_at_fetch},
     { "FETCH_TAKE_IMAGES_DONE", &Forwarder::process_fetch},
     { "AR_FETCH", &Forwarder::process_fetch},
     { "PP_FETCH", &Forwarder::process_fetch},
-    { "SP_FETCH", &Forwarder::process_fetch}
+    { "AT_FETCH", &Forwarder::process_fetch}
 };
 
 //This handler is for messages from Primary Forwarder to format thread
@@ -235,7 +237,7 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "SP_FORMAT", &Forwarder::process_format}, 
     { "FORMAT_END_READOUT", &Forwarder::format_process_end_readout}, 
     { "FORMAT_HEADER_READY", &Forwarder::format_get_header}, 
-    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format},
+    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format}
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
@@ -246,7 +248,7 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}, 
     { "FORWARD_END_READOUT", &Forwarder::forward_process_end_readout}, 
-    { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done},  
+    { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done}  
 };
 
 map<string, int> Board_Layout = {
@@ -713,6 +715,23 @@ void Forwarder::process_end_readout(Node n) {
     return;
 }
 
+void Forwarder::process_at_end_readout(Node n) {
+    cout << "IN PROCESS_AT_END_READOUT" << endl;
+    // Send IMAGE_ID to fetch thread...use message broker queue as work queue
+    //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
+    //else, DAQ val will equal a path where files can be found.
+
+    //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
+    string image_id = n["IMAGE_ID"].as<string>();
+    image_id_list.push_back(image_id);
+    string msg_type = "FETCH_AT_END_READOUT";
+    ostringstream message;
+    message << "{MSG_TYPE: " << msg_type
+            << ", IMAGE_ID: " << image_id << "}";
+    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
+    return;
+}
+
 ///////////////////////////////////////////////////////////////////
 // FETCH THREAD
 ///////////////////////////////////////////////////////////////////
@@ -777,6 +796,132 @@ void Forwarder::process_fetch(Node n) {
     }
 }
 
+void Forwarder::process_at_fetch(Node n) {
+      string image_id = n["IMAGE_ID"].as<string>();
+      ostringstream cmd;
+      ostringstream rmcmd;
+      ostringstream filepath;
+      filepath << this->Work_Dir << "/" << image_id;
+      cmd << "mkdir -p " << filepath.str();
+      rmcmd << "rm  " << filepath.str() << "/*";
+      const std::string tmpstr = cmd.str();
+      const char* cmdstr = tmpstr.c_str();
+      const std::string tmp_rmstr = rmcmd.str();
+      const char* rmcmdstr = tmp_rmstr.c_str();
+      system(cmdstr);
+      //system(rmcmdstr);
+
+
+      
+      this->fetch_reassemble_at_image(this->wfs_raft, image_id, filepath.str());
+
+
+      string new_msg_type = "FORMAT_END_READOUT";
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << new_msg_type
+              << ", IMAGE_ID: " << image_id << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return;
+}
+
+void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
+{
+
+  IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+                                     // such as raft01, raft13, etc.
+
+  IMS::Image image(image_id.c_str(), store);
+
+  //image.synopsis();
+XXXXXXXXXXXXX FIX make into wfs slices
+  DAQ::LocationSet sources = image.sources();
+
+  DAQ::Location location;
+  IMS::Source source(location, image);
+
+  IMS::Science slice(source);
+
+  if(!slice) return;
+
+  // Set up filehandles for this board. There must be a separate filehandle set for each CCD
+  // to be fetched. CCDs to be fetched are listed in the ccds_for_board vector. Each CCD
+  //will then have a set of 16 filehandles...one filehandle for each amp segment.
+
+  uint64_t pixel = 0;
+  uint64_t total_stripes = 0;
+  uint64_t pixel_errors = 0;
+
+  bool do_ccd0 = false;
+  bool do_ccd1 = false;
+  bool do_ccd2 = false;
+
+  std::vector<std::ofstream*> FH0;
+  std::vector<std::ofstream*> FH1;
+  std::vector<std::ofstream*> FH2;
+
+  for (int x = 0; x < ccds_for_board.size(); x++) {
+
+        cout << "ccds_for_board[x] is: " << ccds_for_board[x] << endl;
+        cout << "ccds_for_board[x][0] is: " << ccds_for_board[x][0] << endl;
+        if (string(1, ccds_for_board[x][0]) == "0") {
+            do_ccd0 = true;
+            this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+
+        if (string(1, ccds_for_board[x][0]) == "1") {
+            do_ccd1 = true;
+            this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+
+        if (string(1, ccds_for_board[x][0]) == "2") {
+            do_ccd2 = true;
+            this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+    }
+
+  do
+  {
+    total_stripes += slice.stripes();
+    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+    IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
+    IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
+
+    slice.decode012(ccd0, ccd1, ccd2);
+    int num1, num2, num3;
+
+    for(int s=0; s<slice.stripes(); ++s)
+    {
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd0) {
+          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+        }
+      }
+
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd1) {
+          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 4);
+        }
+      }
+
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd2) {
+          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 4);
+        }
+      }
+
+    }
+    delete [] ccd0;
+    delete [] ccd1;
+    delete [] ccd2;
+
+  }
+  while(slice.advance());
+
+  if (do_ccd0) 
+    this->fetch_close_filehandles(FH0);
 void Forwarder::process_take_images_done(Node n) {
     ostringstream msg;
     string new_msg_type = "FETCH_TAKE_IMAGES_DONE";
