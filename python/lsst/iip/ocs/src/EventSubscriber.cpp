@@ -510,6 +510,7 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
             msg << BeginMap; 
             msg << Key << "MSG_TYPE" << Value << msg_type; 
             msg << Key << "FILENAME" << Value << SALInstance.URL; 
+            msg << Key << "IMAGE_ID" << Value << SALInstance.ID; 
             msg << EndMap; 	
 
 	    cout << "msg is: " << endl; 
