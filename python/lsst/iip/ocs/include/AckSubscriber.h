@@ -3,6 +3,7 @@
 #include "SAL_archiver.h" 
 #include "SAL_catchuparchiver.h" 
 #include "SAL_processingcluster.h" 
+#include "SAL_atArchiver.h"
 
 /** Rabbitmq subscriber class to ack back messages from OCS after processing */ 
 class AckSubscriber : public OCS_Bridge { 
@@ -13,6 +14,7 @@ class AckSubscriber : public OCS_Bridge {
         SAL_archiver ar; 
         SAL_catchuparchiver cu; 
         SAL_processingcluster pp; 
+        SAL_atArchiver atar; 
 
         /** constructor for Rabbitmq ack subscriber to OCS system */ 
 	AckSubscriber(); 
