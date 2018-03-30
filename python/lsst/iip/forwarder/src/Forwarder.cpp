@@ -1,5 +1,4 @@
 /////////////////////////////////////////////////////////////////
-// FIX: Add conditional to process_format for end_readout versus take_images_done.
 //
 
 #include <sys/stat.h> 
@@ -917,8 +916,8 @@ void Forwarder::format_get_header(Node node) {
 } 
 
 void Forwarder::format_assemble_img(Node n) {
+    cout << "[f] fai" << endl; 
     try { 
-        cout << "[f] fai" << endl; 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string header = n["HEADER"].as<string>(); 
         // create dir  /mnt/ram/FITS/IMG_10

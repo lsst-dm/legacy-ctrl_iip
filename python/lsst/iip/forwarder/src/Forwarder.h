@@ -1,4 +1,13 @@
 #include <yaml-cpp/yaml.h>
+#include "daq/Location.hh"
+#include "daq/LocationSet.hh"
+
+#include "ims/Store.hh"
+#include "ims/Image.hh"
+#include "ims/Source.hh"
+#include "ims/Slice.hh"
+#include "ims/Science.hh"
+
 class Forwarder {
     public:
 
@@ -6,6 +15,12 @@ class Forwarder {
     std::vector<string> visit_raft_string_list;
     std::vector<std::vector<string>> visit_ccd_string_lists_by_raft;
     std::vector<string> image_id_list;
+
+    // ---------------------TODO-----------------------------
+    std::vector<string> visit_raft_list; //ask Jim
+    std::vector<std::vector<string>> visit_ccd_list_by_raft;
+    // std::vector<string> image_id_list;
+    // ---------------------------------------------------
 
     std::vector<string> current_image_work_list;
     std::vector<string> finished_image_work_list;
@@ -15,7 +30,8 @@ class Forwarder {
     std::string Session_ID = "";
     std::string Visit_ID = "";
     std::string Job_Num = "";
-    std::string Target_Location = "";
+    // std::string Target_Location = "";
+    std::string Target_Location = "/tmp/target"; // TODO
     std::string Daq_Addr = "";
     std::string Work_Dir = ""; 
     std::string Src_Dir = ""; 
@@ -102,6 +118,14 @@ class Forwarder {
 
     void run();
     static void *run_thread(void *);
+
+    void fetch_readout_image(string image_id, string dir_prefix);
+    void fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
+    void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
+    void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
+    void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
+    void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
+
     char* format_read_img_segment(const char*);
     unsigned char** format_assemble_pixels(char *);
     void format_write_img(std::string, std::string);
