@@ -423,10 +423,10 @@ void *EventSubscriber::run_atcamera_startIntegration(void *args) {
         status = mgr.getEvent_startIntegration(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event AT_START_INTEGRATION received = " << endl;
+            cout << "=== Event DMCS_AT_START_INTEGRATION received = " << endl;
             Emitter msg; 
             msg << BeginMap; 
-            msg << Key << "MSG_TYPE" << Value << "AT_START_INTEGRATION"; 
+            msg << Key << "MSG_TYPE" << Value << "DMCS_AT_START_INTEGRATION"; 
             msg << Key << "IMAGE_ID" << Value << SALInstance.imageName; 
             msg << Key << "IMAGE_INDEX" << Value << SALInstance.imageIndex; 
             msg << Key << "IMAGE_SEQUENCE_NAME" << Value << SALInstance.imageSequenceName; 
@@ -459,10 +459,10 @@ void *EventSubscriber::run_atcamera_endReadout(void *args) {
         status = mgr.getEvent_endReadout(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event AT_END_READOUT received = " << endl;
+            cout << "=== Event DMCS_AT_END_READOUT received = " << endl;
             Emitter msg; 
             msg << BeginMap; 
-            msg << Key << "MSG_TYPE" << Value << "AT_END_READOUT"; 
+            msg << Key << "MSG_TYPE" << Value << "DMCS_AT_END_READOUT"; 
             msg << Key << "IMAGE_ID" << Value << SALInstance.imageName; 
             msg << Key << "IMAGE_INDEX" << Value << SALInstance.imageIndex; 
             msg << Key << "IMAGE_SEQUENCE_NAME" << Value << SALInstance.imageSequenceName; 
@@ -499,7 +499,7 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
             string msg_type; 
             if (device == "AT") { 
                 cout << "=== Event AuxTel HeaderService received = " << endl;
-                msg_type = "AT_HEADER_READY"; 
+                msg_type = "DMCS_AT_HEADER_READY"; 
             } 
             else { 
                 cout << "=== Event Regular HeaderService received = " << endl;
