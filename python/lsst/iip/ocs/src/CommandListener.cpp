@@ -470,7 +470,7 @@ void *CommandListener::run_atar_start(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_startC> atar_start = &SAL_atArchiver::acceptCommand_start;   
-    listenCommand_start(atar, "ATAR", "START", rabbit_publisher, publish_q, consume_q, atar_start);  
+    listenCommand_start(atar, "AT", "START", rabbit_publisher, publish_q, consume_q, atar_start);  
     return 0; 
 } 
 
@@ -482,7 +482,7 @@ void *CommandListener::run_atar_stop(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_stopC> atar_stop = &SAL_atArchiver::acceptCommand_stop;   
-    listenCommand(atar,"ATAR", "STOP", rabbit_publisher, publish_q, consume_q, atar_stop);  
+    listenCommand(atar,"AT", "STOP", rabbit_publisher, publish_q, consume_q, atar_stop);  
     return 0; 
 } 
 
@@ -494,7 +494,7 @@ void *CommandListener::run_atar_enable(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_enableC> atar_enable = &SAL_atArchiver::acceptCommand_enable;   
-    listenCommand(atar,"ATAR", "ENABLE", rabbit_publisher, publish_q, consume_q, atar_enable);  
+    listenCommand(atar,"AT", "ENABLE", rabbit_publisher, publish_q, consume_q, atar_enable);  
     return 0; 
 } 
 
@@ -506,7 +506,7 @@ void *CommandListener::run_atar_disable(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_disableC> atar_disable = &SAL_atArchiver::acceptCommand_disable;   
-    listenCommand(atar,"ATAR", "DISABLE", rabbit_publisher, publish_q, consume_q, atar_disable);  
+    listenCommand(atar,"AT", "DISABLE", rabbit_publisher, publish_q, consume_q, atar_disable);  
     return 0; 
 } 
 
@@ -518,7 +518,7 @@ void *CommandListener::run_atar_standby(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_standbyC> atar_standby = &SAL_atArchiver::acceptCommand_standby;   
-    listenCommand(atar,"ATAR", "STANDBY", rabbit_publisher, publish_q, consume_q, atar_standby);  
+    listenCommand(atar,"AT", "STANDBY", rabbit_publisher, publish_q, consume_q, atar_standby);  
     return 0; 
 } 
 
@@ -530,7 +530,7 @@ void *CommandListener::run_atar_enterControl(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_enterControlC> atar_enterControl = &SAL_atArchiver::acceptCommand_enterControl;   
-    listenCommand(atar,"ATAR", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, atar_enterControl);  
+    listenCommand(atar,"AT", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, atar_enterControl);  
     return 0; 
 } 
 
@@ -542,7 +542,7 @@ void *CommandListener::run_atar_exitControl(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_exitControlC> atar_exitControl = &SAL_atArchiver::acceptCommand_exitControl;   
-    listenCommand(atar,"ATAR", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, atar_exitControl);  
+    listenCommand(atar,"AT", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, atar_exitControl);  
     return 0; 
 } 
 
@@ -554,7 +554,7 @@ void *CommandListener::run_atar_abort(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_abortC> atar_abort = &SAL_atArchiver::acceptCommand_abort;   
-    listenCommand(atar,"ATAR", "ABORT", rabbit_publisher, publish_q, consume_q, atar_abort);  
+    listenCommand(atar,"AT", "ABORT", rabbit_publisher, publish_q, consume_q, atar_abort);  
     return 0; 
 } 
 void CommandListener::setup_resolve_publisher() { 
@@ -588,7 +588,7 @@ string CommandListener::get_device(string name) {
     if (name == "AR") device = "archiver"; 
     else if (name == "CU") device = "catchuparchiver"; 
     else if (name == "PP") device = "processingcluster"; 
-    else if (name == "ATAR") device = "atArchiver"; 
+    else if (name == "AT") device = "atArchiver"; 
     return device; 
 } 
 
