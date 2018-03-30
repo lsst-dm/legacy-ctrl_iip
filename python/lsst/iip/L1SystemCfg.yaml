@@ -140,6 +140,8 @@ ROOT:
     EFD_HOSTNAME: ARCHIE
     EFD_XFER_ROOT: /mnt/lfa/
     CHECKSUM_ENABLED: no
+  ATS:
+    WFS_RAFT: raft02
   OCS: 
     OCS_NAME: OCS
     OCS_PASSWD: OCS

@@ -24,6 +24,7 @@
 #include "ims/Source.hh"
 #include "ims/Slice.hh"
 #include "ims/Science.hh"
+#include "ims/WaveFront.hh"
 
 
 #define SECONDARY_HDU 2
@@ -119,9 +120,11 @@ class Forwarder {
     void process_take_images(Node n);
     void process_take_images_done(Node n);
     void process_end_readout(Node n);
+    void process_at_end_readout(Node n);
     void process_header_ready(Node n); 
 
     void process_fetch(Node n);
+    void process_at_fetch(Node n);
     void process_fetch_ack(Node n);
     void process_fetch_end_readout(Node n);
     void process_fetch_health_check(Node n);
@@ -142,7 +145,9 @@ class Forwarder {
     void fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
     void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
+    void fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
+    void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
 
     char* format_read_img_segment(const char*);
@@ -171,23 +176,24 @@ struct arg_struct {
 map<string, funcptr> on_foreman_message_actions = {
     { "AR_NEW_VISIT", &Forwarder::process_new_visit},
     { "PP_NEW_VISIT", &Forwarder::process_new_visit},
-    { "SP_NEW_VISIT", &Forwarder::process_new_visit},
+    { "AT_NEW_VISIT", &Forwarder::process_new_visit},
     { "AR_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "PP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
-    { "SP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
+    { "AT_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "SP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
+    { "AT_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "AR_FWDR_TAKE_IMAGES", &Forwarder::process_take_images},
     { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
-    { "SP_TAKE_IMAGES", &Forwarder::process_take_images},
+    { "AT_TAKE_IMAGES", &Forwarder::process_take_images},
     { "AR_FWDR_END_READOUT", &Forwarder::process_end_readout},
-    { "PP_END_READOUT", &Forwarder::process_end_readout},
-    { "SP_END_READOUT", &Forwarder::process_end_readout},
+    { "PP_FWDR_END_READOUT", &Forwarder::process_end_readout},
+    { "AT_FWDR_END_READOUT", &Forwarder::process_at_end_readout},
     { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
-    { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
+    { "AT_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
     { "AR_FWDR_HEADER_READY", &Forwarder::process_header_ready }, 
+    { "AT_FWDR_HEADER_READY", &Forwarder::process_header_ready } 
 };
 
 //The next three handlers are essentially acks...
@@ -195,7 +201,7 @@ map<string, funcptr> on_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK_ACK", &Forwarder::process_fetch_health_check_ack},
     { "AR_FETCH_ACK", &Forwarder::process_fetch_ack},
     { "PP_FETCH_ACK", &Forwarder::process_fetch_ack},
-    { "SP_FETCH_ACK", &Forwarder::process_fetch_ack}
+    { "AT_FETCH_ACK", &Forwarder::process_fetch_ack}
 
 };
 
@@ -203,7 +209,7 @@ map<string, funcptr> on_format_message_actions = {
     { "FORMAT_HEALTH_CHECK_ACK", &Forwarder::process_format_health_check_ack},
     { "AR_FORMAT_ACK", &Forwarder::process_format_ack},
     { "PP_FORMAT_ACK", &Forwarder::process_format_ack},
-    { "SP_FORMAT_ACK", &Forwarder::process_format_ack}
+    { "AT_FORMAT_ACK", &Forwarder::process_format_ack}
 
 };
 
@@ -211,7 +217,7 @@ map<string, funcptr> on_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
     { "AR_FORWARD_ACK", &Forwarder::process_forward_ack},
     { "PP_FORWARD_ACK", &Forwarder::process_forward_ack},
-    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack}
+    { "AT_FORWARD_ACK", &Forwarder::process_forward_ack}
 
 };
 
@@ -221,10 +227,11 @@ map<string, funcptr> on_forward_message_actions = {
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK", &Forwarder::process_fetch_health_check},
     { "FETCH_END_READOUT", &Forwarder::process_fetch},
+    { "FETCH_AT_END_READOUT", &Forwarder::process_at_fetch},
     { "FETCH_TAKE_IMAGES_DONE", &Forwarder::process_fetch},
     { "AR_FETCH", &Forwarder::process_fetch},
     { "PP_FETCH", &Forwarder::process_fetch},
-    { "SP_FETCH", &Forwarder::process_fetch}
+    { "AT_FETCH", &Forwarder::process_fetch}
 };
 
 //This handler is for messages from Primary Forwarder to format thread
@@ -235,7 +242,7 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "SP_FORMAT", &Forwarder::process_format}, 
     { "FORMAT_END_READOUT", &Forwarder::format_process_end_readout}, 
     { "FORMAT_HEADER_READY", &Forwarder::format_get_header}, 
-    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format},
+    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format}
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
@@ -246,7 +253,7 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}, 
     { "FORWARD_END_READOUT", &Forwarder::forward_process_end_readout}, 
-    { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done},  
+    { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done}  
 };
 
 map<string, int> Board_Layout = {
@@ -713,7 +720,28 @@ void Forwarder::process_end_readout(Node n) {
     return;
 }
 
-//From forwarder main thread to fetch thread
+void Forwarder::process_at_end_readout(Node n) {
+    cout << "IN PROCESS_AT_END_READOUT" << endl;
+    // Send IMAGE_ID to fetch thread...use message broker queue as work queue
+    //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
+    //else, DAQ val will equal a path where files can be found.
+
+    //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
+    string image_id = n["IMAGE_ID"].as<string>();
+    image_id_list.push_back(image_id);
+    string msg_type = "FETCH_AT_END_READOUT";
+    ostringstream message;
+    message << "{MSG_TYPE: " << msg_type
+            << ", IMAGE_ID: " << image_id << "}";
+    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
+    return;
+}
+
+///////////////////////////////////////////////////////////////////
+// FETCH THREAD
+///////////////////////////////////////////////////////////////////
+
+//From forwarder main thread to fetch thread:
 void Forwarder::process_fetch(Node n) {
     //If message_type FETCH_END_READOUT,
     //  Make dir using image_id as name under work_dir
@@ -773,6 +801,84 @@ void Forwarder::process_fetch(Node n) {
     }
 }
 
+void Forwarder::process_at_fetch(Node n) {
+      string image_id = n["IMAGE_ID"].as<string>();
+      ostringstream cmd;
+      ostringstream rmcmd;
+      ostringstream filepath;
+      filepath << this->Work_Dir << "/" << image_id;
+      cmd << "mkdir -p " << filepath.str();
+      rmcmd << "rm  " << filepath.str() << "/*";
+      const std::string tmpstr = cmd.str();
+      const char* cmdstr = tmpstr.c_str();
+      const std::string tmp_rmstr = rmcmd.str();
+      const char* rmcmdstr = tmp_rmstr.c_str();
+      system(cmdstr);
+      //system(rmcmdstr);
+
+
+      
+      this->fetch_at_reassemble_process(this->wfs_raft, image_id, filepath.str());
+
+
+      string new_msg_type = "FORMAT_END_READOUT";
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << new_msg_type
+              << ", IMAGE_ID: " << image_id << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return;
+}
+
+void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
+{
+
+  IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+                                     // such as raft01, raft13, etc.
+
+  IMS::Image image(image_id.c_str(), store);
+
+  //image.synopsis();
+  DAQ::LocationSet sources = image.sources();
+
+  DAQ::Location location;
+  IMS::Source source(location, image);
+
+  //IMS::Science slice(source);
+  IMS::WaveFront slice(source);
+
+  if(!slice) return;
+
+  // Filehandle set for ATS CCD will then have a set of 
+  // 16 filehandles...one filehandle for each amp segment.
+
+  std::vector<std::ofstream*> FH_ATS;
+  this->fetch_set_up_at_filehandles(FH_ATS, image_id, dir_prefix);
+
+  do
+  {
+    total_stripes += slice.stripes();
+    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+
+    slice.decode(ccd0);
+
+    for(int s=0; s<slice.stripes(); ++s)
+    {
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        FH_ATS[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+      }
+    }
+
+    delete [] ccd0;
+
+  }
+  while(slice.advance());
+
+  this->fetch_close_filehandles(FH_ATS);
+  return;
+}
+
+
 void Forwarder::process_take_images_done(Node n) {
     ostringstream msg;
     string new_msg_type = "FETCH_TAKE_IMAGES_DONE";
@@ -790,6 +896,294 @@ void Forwarder::process_take_images_done(Node n) {
         << ", ACK_ID: " << ack_id << "}";
     this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.str());
 }
+
+void Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
+  // Iterate through raft_list
+  // Foreman divide_work() method might have sent more than one raft,
+  // so here we act upon one raft at a time.
+  // The ccd_list is a vector that holds the ccds desired from this raft.
+  // It might have the string 'ALL'...if so, fetch all ccds for this raft.
+
+  for (int i = 0; i < this->visit_raft_list.size(); i++) {
+    vector<string> ccd_list = this->visit_ccd_list_by_raft[i];
+    fetch_readout_raft(this->visit_raft_list[i], ccd_list, image_id, dir_prefix);
+  }
+
+}
+
+void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix) {
+  // put a map together with raft electronic board (source) for key, and ccd_list as value
+  map<string, vector<string>> source_boards;
+  if (ccd_list[0] == "ALL") {
+    source_boards = All_Boards; //All_Boards is a class visible map
+  }
+  else {
+    for (int i = 0; i < ccd_list.size(); i++) {
+      int brd = Board_Layout[ccd_list[i]]; //Board_Layout is a class visible map
+      string board = std::to_string(brd);
+
+      if (source_boards.count(board)) {
+        //board exists as a key already...
+        source_boards[board].push_back(ccd_list[i]);
+      }
+      else {
+        // Create new map key entry for this board
+        source_boards.insert(pair<string,vector<string>>(board,vector<string>()));
+        source_boards[board].push_back(ccd_list[i]);
+      }
+    }
+  }
+#ifdef DEBUG
+//cout << "In fetch_readout_raft, source_board map is:  " << std::to_string(source_boards) << endl;
+for(auto it = source_boards.cbegin(); it != source_boards.cend(); ++it)
+{
+    std::cout << it->first << ":" << "\n";
+    for (auto i: it->second) {
+        cout << i << " ";
+    }
+    cout << endl;
+}
+#endif
+  // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
+  // but the source_boards map generated above, may not include keys for all 3 source boards.
+  // If ccd list is especially sparse, only one board might be included in map.
+  this->fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
+
+}
+
+void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
+  ostringstream raft_name;
+  raft_name << raft;
+  string rafty = raft_name.str();
+  IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+                                     // such as raft01, raft13, etc.
+
+  IMS::Image image(image_id.c_str(), store);
+
+  image.synopsis();
+
+  DAQ::LocationSet sources = image.sources();
+
+  DAQ::Location location;
+
+  int board = 0; // Only way we know how to access a board is by its integer id.
+
+#ifdef DEBUG
+cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
+#endif
+  //The loop below processes each raft board (an individual source) one at a time.
+  //In order to avoid boards that do not have desired CCDs on them, we check within
+  //this loop; if board is not needed, we skip processing it. This is done by
+  //converting the board counter to a string, and checking within the source_boards map
+  //for a key representing the current board. If it exists, send board(location) to
+  //reassemble process
+  // FOR GREGG T: Is there a way to get a board number directly from API
+  //rather than using the indirect counter method used here?
+  while(sources.remove(location))
+  {
+      string board_str = std::to_string(board);
+
+cout << "XXX fetch_assemble_raft_image -- looking at board: " << board_str << endl;
+
+      if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
+                                           // that we put together in the preceeding method...
+
+cout << "XXX fetch_assemble_raft_image -- source_board.count says YES to board: " << board_str << endl;
+
+        //std::vector<string> ccds_for_board = source_boards[board_str];
+        std::vector<string> ccds_for_board;
+
+        for (auto ii : source_boards[board_str]) {
+
+cout << "XXX fetch_reassemble_raft_image -- Adding " << ii << " to ccds_for_board vector." << endl;
+
+          ccds_for_board.push_back(ii);
+
+cout << "XXX fetch_reassemble_raft_image -- CCD added to ccds_for_board vector." << endl;
+
+        }
+
+#ifdef DEBUG
+cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
+cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
+    for (auto i: ccds_for_board) {
+        cout << i << " ";
+    }
+    cout << endl;
+#endif
+        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
+//        board++;
+      }
+//      else {
+//cout << "XXX fetch_assemble_raft_image -- source_board.count says NO to board: " << board_str << endl;
+//        continue;
+//      }
+    board++;
+  }
+
+  return;
+}
+
+// Above, the source boards are iterated through one at a time.
+// If the requested raft/ccd(s) can be found within the current board, the needed CCD list
+// for the current board is sent to this method along with the board location.
+// These two args are used to extract the correct data.
+// The other two args (raft and image_id) are used in constructing the output filename
+//
+// First, determine the number of CCDs in the ccds_for_board vector arg.
+// the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
+//////////////////////////////////////////////////////////////////////////////////////////////////
+void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
+{
+
+  IMS::Source source(location, image);
+
+  IMS::Science slice(source);
+
+  if(!slice) return;
+
+  // Set up filehandles for this board. There must be a separate filehandle set for each CCD
+  // to be fetched. CCDs to be fetched are listed in the ccds_for_board vector. Each CCD
+  //will then have a set of 16 filehandles...one filehandle for each amp segment.
+
+  uint64_t pixel = 0;
+  uint64_t total_stripes = 0;
+  uint64_t pixel_errors = 0;
+
+  bool do_ccd0 = false;
+  bool do_ccd1 = false;
+  bool do_ccd2 = false;
+
+  std::vector<std::ofstream*> FH0;
+  std::vector<std::ofstream*> FH1;
+  std::vector<std::ofstream*> FH2;
+
+  for (int x = 0; x < ccds_for_board.size(); x++) {
+
+        cout << "ccds_for_board[x] is: " << ccds_for_board[x] << endl;
+        cout << "ccds_for_board[x][0] is: " << ccds_for_board[x][0] << endl;
+        if (string(1, ccds_for_board[x][0]) == "0") {
+            do_ccd0 = true;
+            this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+
+        if (string(1, ccds_for_board[x][0]) == "1") {
+            do_ccd1 = true;
+            this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+
+        if (string(1, ccds_for_board[x][0]) == "2") {
+            do_ccd2 = true;
+            this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+    }
+
+  do
+  {
+    total_stripes += slice.stripes();
+    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+    IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
+    IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
+
+    slice.decode012(ccd0, ccd1, ccd2);
+    int num1, num2, num3;
+
+    for(int s=0; s<slice.stripes(); ++s)
+    {
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd0) {
+          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+        }
+      }
+
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd1) {
+          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 4);
+        }
+      }
+
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd2) {
+          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 4);
+        }
+      }
+
+    }
+    delete [] ccd0;
+    delete [] ccd1;
+    delete [] ccd2;
+
+  }
+  while(slice.advance());
+
+  if (do_ccd0) 
+    this->fetch_close_filehandles(FH0);
+  if (do_ccd1) 
+    this->fetch_close_filehandles(FH1);
+  if (do_ccd2) 
+    this->fetch_close_filehandles(FH2);
+
+  return;
+
+}
+
+void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
+  for (int i=0; i < 16; i++) {
+        std::string seg;
+        if (i < 10) {
+            seg = "0" + to_string(i);
+        }
+        else {
+            seg = to_string(i);
+        }
+        std::ostringstream fns;
+        fns << dir_prefix << "/" \
+                          << image_id \
+                          << "--" << raft \
+                          << "-ccd." << ccd \
+                          << "_segment." << seg;
+cout << "FILENAME:  " << fns.str() << endl;
+
+        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
+        fh_set.push_back(fh); 
+  }
+}
+
+void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix){
+  for (int i=0; i < 16; i++) {
+        std::string seg;
+        if (i < 10) {
+            seg = "0" + to_string(i);
+        }
+        else {
+            seg = to_string(i);
+        }
+        std::ostringstream fns;
+        fns << dir_prefix << "/" \
+                          << image_id \
+                          << "--AUXTEL" \
+                          << "-ccd.ATS_CCD" \
+                          << "_segment." << seg;
+cout << "FILENAME:  " << fns.str() << endl;
+
+        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
+        fh_set.push_back(fh); 
+  }
+}
+
+
+void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
+
+  for (int i = 0; i < 16; i++) {
+    fh_set[i]->close();
+  }
+}
+
+
+
 
 void Forwarder::process_fetch_ack(Node n) {
     cout << "fetch ack being processed" << endl;
@@ -860,7 +1254,7 @@ void Forwarder::process_forward_health_check_ack(Node n) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// F@
+// FORMAT THREAD
 ////////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_process_end_readout(Node node) { 
@@ -1027,7 +1421,7 @@ void Forwarder::format_look_for_work() {
 } 
 
 ///////////////////////////////////////////////////////////////////////////////
-// Forward part 
+// FORWARD THREAD 
 ///////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::forward_process_end_readout(Node n) { 
@@ -1079,319 +1473,6 @@ int main() {
     fwdr->run();
     while(1) {
     }
-}
-
-void Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
-  // Iterate through raft_list
-  // Foreman divide_work() method might have sent more than one raft,
-  // so here we act upon one raft at a time.
-  // The ccd_list is a vector that holds the ccds desired from this raft.
-  // It might have the string 'ALL'...if so, fetch all ccds for this raft.
-
-  for (int i = 0; i < this->visit_raft_list.size(); i++) {
-    vector<string> ccd_list = this->visit_ccd_list_by_raft[i];
-    fetch_readout_raft(this->visit_raft_list[i], ccd_list, image_id, dir_prefix);
-  }
-
-}
-
-void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix) {
-  // put a map together with raft electronic board (source) for key, and ccd_list as value
-  map<string, vector<string>> source_boards;
-  if (ccd_list[0] == "ALL") {
-    source_boards = All_Boards;
-  }
-  else {
-    for (int i = 0; i < ccd_list.size(); i++) {
-      int brd = Board_Layout[ccd_list[i]];
-      string board = std::to_string(brd);
-
-      if (source_boards.count(board)) {
-        //board exists as a key already...
-        source_boards[board].push_back(ccd_list[i]);
-      }
-      else {
-        // Create new map key entry for this board
-        source_boards.insert(pair<string,vector<string>>(board,vector<string>()));
-        source_boards[board].push_back(ccd_list[i]);
-      }
-    }
-  }
-#ifdef DEBUG
-//cout << "In fetch_readout_raft, source_board map is:  " << std::to_string(source_boards) << endl;
-for(auto it = source_boards.cbegin(); it != source_boards.cend(); ++it)
-{
-    std::cout << it->first << ":" << "\n";
-    for (auto i: it->second) {
-        cout << i << " ";
-    }
-    cout << endl;
-}
-#endif
-  // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
-  // but the source_boards map generated above, may not include keys for all 3 source boards.
-  // If ccd list is especially sparse, only one board might be included in map.
-  this->fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
-
-}
-
-void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
-  // Fetch LocationSet for raft.
-  // Examine each source in set...
-  ostringstream raft_name;
-  raft_name << raft;
-  string rafty = raft_name.str();
-  IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
-                                     // such as raft01, raft13, etc.
-
-  IMS::Image image(image_id.c_str(), store);
-
-  image.synopsis();
-
-  DAQ::LocationSet sources = image.sources();
-
-  DAQ::Location location;
-
-  int board = 0; // Only way we know how to access a board is by its integer id.
-
-#ifdef DEBUG
-cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
-#endif
-  //The loop below processes each raft board (an individual source) one at a time.
-  //In order to avoid boards that do not have desired CCDs on them, we check within
-  //this loop; if board is not needed, we skip processing it. This is done by
-  //converting the board counter to a string, and checking within the source_boards map
-  //for a key representing the current board. If it exists, send board(location) to
-  //reassemble process
-  // FOR GREGG T: Is there a way to get a board number directly from API
-  //rather than using the indirect counter method used here?
-  while(sources.remove(location))
-  {
-      string board_str = std::to_string(board);
-
-cout << "XXX fetch_assemble_raft_image -- looking at board: " << board_str << endl;
-
-      if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
-                                           // that we put together in the preceeding method...
-
-cout << "XXX fetch_assemble_raft_image -- source_board.count says YES to board: " << board_str << endl;
-
-        //std::vector<string> ccds_for_board = source_boards[board_str];
-        std::vector<string> ccds_for_board;
-
-        for (auto ii : source_boards[board_str]) {
-
-cout << "XXX fetch_reassemble_raft_image -- Adding " << ii << " to ccds_for_board vector." << endl;
-
-          ccds_for_board.push_back(ii);
-
-cout << "XXX fetch_reassemble_raft_image -- CCD added to ccds_for_board vector." << endl;
-
-        }
-
-#ifdef DEBUG
-cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
-cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
-    for (auto i: ccds_for_board) {
-        cout << i << " ";
-    }
-    cout << endl;
-#endif
-        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
-//        board++;
-      }
-//      else {
-//cout << "XXX fetch_assemble_raft_image -- source_board.count says NO to board: " << board_str << endl;
-//        continue;
-//      }
-    board++;
-  }
-
-  return;
-}
-
-// Above, the source boards are iterated through one at a time.
-// If the requested raft/ccd(s) can be found within the current board, the needed CCD list
-// for the current board is sent to this method along with the board location.
-// These two args are used to extract the correct data.
-// The other two args (raft and image_id) are used in constructing the output filename
-//
-// First, determine the number of CCDs in the ccds_for_board vector arg.
-// the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
-void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
-{
-
-cout << "XXXX fetch_reassemble_process -- Entry into Method..." << endl;
-
-  IMS::Source source(location, image);
-
-  IMS::Science slice(source);
-
-  if(!slice) return;
-
-  // Set up filehandles for this board. There must be a separate filehandle set for each CCD
-  // to be fetched. CCDs to be fetched are listed in the ccds_for_board vector. Each CCD
-  //will then have a set of 16 filehandles...one filehandle for each amp segment.
-
-  uint64_t pixel = 0;
-  uint64_t total_stripes = 0;
-  uint64_t pixel_errors = 0;
-
-  bool do_ccd0 = false;
-  bool do_ccd1 = false;
-  bool do_ccd2 = false;
-
-  std::vector<std::ofstream*> FH0;
-  std::vector<std::ofstream*> FH1;
-  std::vector<std::ofstream*> FH2;
-
-  //std::ofstream FH0[16];
-  //std::ofstream FH1[16];
-  //std::ofstream FH2[16];
-
-  //vector<string>::iterator it=ccds_for_board.begin();
-  //while(it!=ccds_for_board.end()){
-  for (int x = 0; x < ccds_for_board.size(); x++) {
-
-        cout << "ccds_for_board is: " << ccds_for_board[x] << endl;
-        cout << "ccds_for_board[x][0] is: " << ccds_for_board[x][0] << endl;
-        if (string(1, ccds_for_board[x][0]) == "0") {
-        //if(ccds_for_board[x][0] == "0") {
-            do_ccd0 = true;
-#ifdef DEBUG
-cout << "In fetch_reassemble_process, calling setup filehandles for image " << image_id << endl;
-#endif
-            this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[0], dir_prefix);
-#ifdef DEBUG
-cout << "In fetch_reassemble_process, file handles for ccd0 are set up" << endl;
-#endif
-        }
-        //if(ccds_for_board[x][0] == "1") {
-        if (string(1, ccds_for_board[x][0]) == "1") {
-cout << "Yes! We know we are looking at a CCD in board one in the middle position..." << endl;
-            do_ccd1 = true;
-            this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[0], dir_prefix);
-#ifdef DEBUG
-cout << "In fetch_reassemble_process, file handles for ccd1 are set up" << endl;
-#endif
-        }
-        //if(ccds_for_board[x][0] == "2") {
-        if (string(1, ccds_for_board[x][0]) == "2") {
-            do_ccd2 = true;
-            this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[0], dir_prefix);
-#ifdef DEBUG
-cout << "In fetch_reassemble_process, file handles for ccd2 are set up" << endl;
-#endif
-        }
-    }
-cout << "XXXXX fetch_reassemble_process -- Just before do/while loop" << endl;
-if ( do_ccd0) {
-  cout << "do_ccd0 is set to true!" << endl;
-}
-else {
-cout << "do_ccd0 is set to false." << endl;
-}
-
-if ( do_ccd1) {
-  cout << "do_ccd1 is set to true!" << endl;
-}
-else {
-cout << "do_ccd1 is set to false." << endl;
-}
-
-if ( do_ccd2) {
-  cout << "do_ccd2 is set to true!" << endl;
-}
-else {
-cout << "do_ccd2 is set to false." << endl;
-}
-
-  do
-  {
-    total_stripes += slice.stripes();
-    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
-    IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
-    IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
-
-    slice.decode012(ccd0, ccd1, ccd2);
-    int num1, num2, num3;
-
-    for(int s=0; s<slice.stripes(); ++s)
-    {
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd0) {
-          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 1);
-        }
-      }
-
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd1) {
-          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 1);
-        }
-      }
-
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd2) {
-          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 1);
-        }
-      }
-
-    }
-    delete [] ccd0;
-    delete [] ccd1;
-    delete [] ccd2;
-
-  }
-  while(slice.advance());
-
-  if (do_ccd0) 
-    this->fetch_close_filehandles(FH0);
-  if (do_ccd1) 
-    this->fetch_close_filehandles(FH1);
-  if (do_ccd2) 
-    this->fetch_close_filehandles(FH2);
-
-  return;
-
-}
-
-void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
-  for (int i=0; i < 16; i++) {
-        //std::ofstream fh;
-        std::string seg;
-        if (i < 10) {
-            seg = "0" + to_string(i);
-        }
-        else {
-            seg = to_string(i);
-        }
-        std::ostringstream fns;
-        fns << dir_prefix << "/" \
-                          << image_id \
-                          << "--" << raft \
-                          << "-ccd." << ccd \
-                          << "_segment." << seg;
-//cout << "FILENAME:  " << fns.str() << endl;
-
-        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
-        fh_set.push_back(fh); 
-
-        //fh.open(fns.str(), \
-        //        std::ios::out | std::ios::app | std::ios::binary );
-        //fh_set.push_back(std::move(fh));  // The new, cool kid way to deal with smart pointers!
-        //
-  }
-}
-
-void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
-
-  for (int i = 0; i < 16; i++) {
-    fh_set[i]->close();
-  }
-
 }
 
 
