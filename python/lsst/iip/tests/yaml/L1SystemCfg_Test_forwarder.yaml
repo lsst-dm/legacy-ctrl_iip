@@ -127,9 +127,9 @@ ROOT:
     CU: cu_foreman_consume
     SP: sp_foreman_consume
   ARCHIVE:
-    ARCHIVE_NAME: ARCHIE
+    ARCHIVE_NAME: archive
     ARCHIVE_LOGIN: archive
-    ARCHIVE_IP: 141.142.230.15
+    ARCHIVE_IP: 141.142.230.190
     ARCHIVE_HOSTNAME: ARCHIE
     ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
     CHECKSUM_ENABLED: no
