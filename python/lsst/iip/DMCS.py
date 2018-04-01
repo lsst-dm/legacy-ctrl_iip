@@ -101,6 +101,7 @@ class DMCS:
                               'STOP': self.process_stop_command,
                               'NEXT_VISIT': self.process_next_visit_event,
                               'START_INTEGRATION': self.process_start_integration_event,
+                              'DMCS_AT_START_INTEGRATION': self.process_at_start_integration_event,
                               'READOUT': self.process_readout_event,
                               'TELEMETRY': self.process_telemetry, 
 			      ###########################################################
@@ -109,12 +110,14 @@ class DMCS:
                               'CCS_SHUTTER_CLOSE': self.process_ccs_shutter_close_event,
                               'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
                               'DMCS_HEADER_READY': self.process_header_ready_event,
+                              'DMCS_AT_HEADER_READY': self.process_at_header_ready_event,
                               'DMCS_TCS_TARGET': self.process_target_visit_event, 
                               'DMCS_TAKE_IMAGES': self.process_ccs_take_images_event,
 			      'DMCS_TAKE_IMAGES_DONE': self.process_take_images_done, 
 			      'TARGET_VISIT_DONE': self.process_target_visit_done, 
 			      'TARGET_VISIT_ACCEPT': self.process_target_visit_accept, 
-			      'DMCS_END_READOUT': self.process_end_readout} 
+			      'DMCS_END_READOUT': self.process_end_readout, 
+			      'DMCS_AT_END_READOUT': self.process_at_end_readout} 
 
 
         self._foreman_msg_actions = { 'FOREMAN_HEALTH_ACK': self.process_ack,
@@ -601,6 +604,63 @@ class DMCS:
             raise L1Error("DMCS unable to process_start_integration_event: %s" % e.args)
 
  
+    def process_at_start_integration_event(self, params):
+        """ Send start integration message to all enabled devices with details of job,
+            including new job_num and image_id.
+            Send pending_ack message to all enabled devices, expires in 5s.
+
+            :params params: Provide image_id.
+
+            :return: None.
+        """
+        try: 
+            ## FIX - see temp hack below...
+            ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
+            ccd_list = self.CCD_LIST
+            msg_params = {}
+            # visit_id and image_id msg_params *could* be set in one line, BUT: the values are needed again below...
+            visit_id = self.STATE_SCBD.get_current_visit()
+            msg_params[VISIT_ID] = visit_id
+            image_id = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
+            msg_params[IMAGE_ID] = image_id
+            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
+            msg_params['CCD_LIST'] = ccd_list
+            session_id = self.STATE_SCBD.get_current_session()
+            msg_params['SESSION_ID'] = session_id
+
+
+            enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+            acks = []
+            for k in list(enabled_devices.keys()):
+                ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
+                acks.append(ack_id)
+                job_num = self.STATE_SCBD.get_next_job_num( session_id)
+                self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
+                self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
+                self.STATE_SCBD.set_current_device_job(job_num, str(k))
+                self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+                msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
+                msg_params[JOB_NUM] = job_num
+                msg_params[ACK_ID] = ack_id
+                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+
+
+            wait_time = 5  # seconds...
+            self.set_pending_nonblock_acks(acks, wait_time)
+        except L1RedisError as e: 
+            LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+            print("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
+        except L1RabbitConnectionError as e: 
+            LOGGER.error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
+        except Exception as e: 
+            LOGGER.error("DMCS unable to process_start_integration_event: %s" % e.args)
+            print("DMCS unable to process_start_integration_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_start_integration_event: %s" % e.args)
+
+
     def process_readout_event(self, params):
         """ Send readout message to all enabled devices with details of job, including
             new job_num and image_id.
@@ -646,6 +706,53 @@ class DMCS:
             print("DMCS unable to process_readout_event: %s" % e.args)
             raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
         # add in two additional acks for format and transfer complete
+
+    def process_at_readout_event(self, params):
+        """ Send readout message to all enabled devices with details of job, including
+            new job_num and image_id.
+            Send pending_ack message to all enabled devices, expires in 5s.
+
+            :params params: Provide image_id.
+
+            :return: None.
+        """
+        ## FIX - see temp hack below...
+        ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
+        try: 
+            ccd_list = self.CCD_LIST
+
+            msg_params = {}
+            msg_params[VISIT_ID] = self.STATE_SCBD.get_current_visit()
+            msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
+            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
+            session_id = self.STATE_SCBD.get_current_session()
+            msg_params['SESSION_ID'] = session_id
+
+            enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+            acks = []
+            for k in list(enabled_devices.keys()):
+                ack_id = self.get_next_timed_ack_id( str(k) + "_READOUT_ACK")
+                acks.append(ack_id)
+                job_num = self.STATE_SCBD.get_current_device_job(str(k))
+                msg_params[MSG_TYPE] = k + '_READOUT'
+                msg_params[ACK_ID] = ack_id
+                msg_params[JOB_NUM] = job_num
+                self.STATE_SCBD.set_job_state(job_num, "READOUT")
+                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+
+
+            wait_time = 5  # seconds...
+            self.set_pending_nonblock_acks(acks, wait_time)
+        except L1RabbitConnectionError as e: 
+            LOGGER.error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+        except Exception as e: 
+            LOGGER.error("DMCS unable to process_readout_event: %s" % e.args)
+            print("DMCS unable to process_readout_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
+        # add in two additional acks for format and transfer complete
+
 
 
 
@@ -832,6 +939,21 @@ class DMCS:
             msg_params[JOB_NUM] = job_num
             self.STATE_SCBD.set_job_state(job_num, "READOUT")
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+
+
+    def process_at_header_ready_event(self, params):
+        msg_params = {}
+        fname = params['FILENAME']        
+        msg_params['FILENAME'] = self.efd + fname        
+        enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+        for k in list(enabled_devices.keys()):
+            msg_params[MSG_TYPE] = k + '_HEADER_READY'
+            msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
+            job_num = self.STATE_SCBD.get_current_device_job(str(k))
+            msg_params[JOB_NUM] = job_num
+            self.STATE_SCBD.set_job_state(job_num, "READOUT")
+            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+
 
     def process_telemetry(self, msg):
         """ None.
