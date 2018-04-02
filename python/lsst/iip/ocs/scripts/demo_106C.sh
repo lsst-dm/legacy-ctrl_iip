@@ -5,34 +5,37 @@
 #../commands/sacpp_archiver_start_commander Normal
 #sleep 3 
 
-../commands/sacpp_archiver_standby_commander 0
+../commands/sacpp_atArchiver_standby_commander 0
 sleep 1
 echo "[OK] STANDBY COMPLETE." 
 
-../commands/sacpp_archiver_disable_commander 0
+../commands/sacpp_atArchiver_disable_commander 0
 sleep 1
 echo "[OK] DISABLE COMPLETE." 
 
-../commands/sacpp_archiver_enable_commander 0
+../commands/sacpp_atArchiver_enable_commander 0
 sleep 1
 echo "[OK] ENABLE COMPLETE." 
 
-#../events/tcsTarget 1 1 1 1 1 1 1 1 1 1 1 
-#sleep 10
-#echo "[OK] TARGET COMPLETE." 
+# startIntegration
+../events/sacpp_atcamera_startIntegration_send seq_123 2 IMG_100 1 0 0 
+echo "[x] START_INTEGRATION sent."
 
-#/opt/sal/ts_sal/test/dmHeaderService/cpp/src/sacpp_dmHeaderService_LargeFileObjectAvailable_send 1 1 1 1 "felipe@141.142.237.177:/tmp/header/test23.header" 1 1
-#sleep 3
-#echo "[OK] HEADER_READY"
+# efd
+../events/sacpp_efd_LargeFileObjectAvailable_send 0 a AT a dave@141.142.238.176:/tmp/cam.header 0 IMG_100 0 
+echo "[x] HEADER_READY sent."
 
-#/opt/sal/ts_sal/test/camera/cpp/src/sacpp_camera_startIntegration_send test23 0
-#sleep 10 
-#echo "[OK] END READOUT COMPLETE." 
+# endReadout
+../events/sacpp_atcamera_endReadout_send seq_123 2 IMG_100 1 0 0
+echo "[x] END_READOUT sent."
 
-#./emu_NextVisit.sh 1 1
-#sleep 20
-#echo "[OK] NEXT_VISIT SEQUENCE COMPLETE." 
+../events/sacpp_atcamera_startIntegration_send seq_123 2 IMG_101 2 0 0 
+echo "[x] START_INTEGRATION sent."
 
-#./emu_NextVisit.sh 1 5
-#sleep 20 
-#echo "[OK] NEXT_VISIT SEQUENCE COMPLETE." 
+# efd
+../events/sacpp_efd_LargeFileObjectAvailable_send 0 a AT a dave@141.142.238.176:/tmp/cam.header 0 IMG_101 0 
+echo "[x] HEADER_READY sent."
+
+# endReadout
+../events/sacpp_atcamera_endReadout_send seq_123 2 IMG_101 2 0 0
+echo "[x] END_READOUT sent."
