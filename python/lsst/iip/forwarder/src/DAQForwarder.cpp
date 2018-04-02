@@ -60,6 +60,7 @@ class Forwarder {
     std::string Name = ""; //such as FORWARDER_1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
+    std::string WFS_RAFT = "";
     int Num_Images = 0; 
    
     
@@ -328,6 +329,8 @@ Forwarder::Forwarder() {
         this->FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
         this->FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
         this->FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
+
+        this->WFS_RAFT = root["ATS"]["WFS_RAFT"].as<string>();
     }
     catch (YAML::TypedBadConversion<string>& e) {
         cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
@@ -818,7 +821,7 @@ void Forwarder::process_at_fetch(Node n) {
 
 
       
-      this->fetch_at_reassemble_process(this->wfs_raft, image_id, filepath.str());
+      this->fetch_at_reassemble_process(this->WFS_RAFT, image_id, filepath.str());
 
 
       string new_msg_type = "FORMAT_END_READOUT";
@@ -829,7 +832,7 @@ void Forwarder::process_at_fetch(Node n) {
       return;
 }
 
-void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
+void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
 {
 
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
@@ -839,6 +842,8 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, c
 
   //image.synopsis();
   DAQ::LocationSet sources = image.sources();
+
+  uint64_t total_stripes = 0;
 
   DAQ::Location location;
   IMS::Source source(location, image);
