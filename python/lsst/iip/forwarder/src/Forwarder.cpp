@@ -544,10 +544,13 @@ void Forwarder::process_header_ready(Node n) {
         } 
 
         string path = n["FILENAME"].as<string>(); 
+        string img_id = n["IMAGE_ID"].as<string>(); 
         int img_idx = path.find_last_of("/"); 
+        /** 
         int dot_idx = path.find_last_of("."); 
         int num_char = dot_idx - (img_idx + 1); // offset +1
         string img_id = path.substr(img_idx + 1, num_char); 
+        */
 
         string sub_dir = main_header_dir + "/" + img_id; 
         const int dir_cmd = mkdir(sub_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);  
@@ -557,7 +560,7 @@ void Forwarder::process_header_ready(Node n) {
 
         // scp felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
         ostringstream cp_cmd; 
-        cp_cmd << "scp -i ~/.ssh/id_rsa "
+        cp_cmd << "scp -i ~/.ssh/from_efd "
                << path
                << " " 
                << sub_dir
@@ -1109,7 +1112,7 @@ void Forwarder::forward_process_end_readout(Node n) {
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
         if (find_at != string::npos) { 
-            bbcp_cmd << "bbcp "; 
+            bbcp_cmd << "scp -i ~/.ssh/from_efd ";
         } 
         else { 
             bbcp_cmd << "cp "; 
