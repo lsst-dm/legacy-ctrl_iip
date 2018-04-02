@@ -614,9 +614,6 @@ class DMCS:
             :return: None.
         """
         try: 
-            ## FIX - see temp hack below...
-            ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
-            ccd_list = self.CCD_LIST
             msg_params = {}
             # visit_id and image_id msg_params *could* be set in one line, BUT: the values are needed again below...
             visit_id = self.STATE_SCBD.get_current_visit()
@@ -624,18 +621,18 @@ class DMCS:
             msg_params[IMAGE_ID] = image_id
             msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
             msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
+            msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
 
 
             enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
             acks = []
-            ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
+            ack_id = self.get_next_timed_ack_id( "AT_START_INT_ACK")
             acks.append(ack_id)
             #job_num = self.STATE_SCBD.get_next_job_num( session_id)
             #self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
             #self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
             #self.STATE_SCBD.set_current_device_job(job_num, str(k))
             self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
-            msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
             #msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)

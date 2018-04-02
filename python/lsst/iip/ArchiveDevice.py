@@ -479,7 +479,9 @@ class ArchiveDevice:
         for fwdr in fwdrs:
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
             self._publisher.publish_message(route_key, msg)
-        
+
+    #################################################################### 
+    ### XXX FIX, must associate each header with each fwdr raft/ccd_list 
     def process_header_ready_event(self, params):
         fname = params['FILENAME']
         msg = {}
