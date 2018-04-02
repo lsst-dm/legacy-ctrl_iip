@@ -9,7 +9,7 @@ OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
 all: Forwarder
 
 Forwarder: Forwarder.cpp
-	g++ -std=c++11 $(INCLUDE) $(LIBPATH) $(OBJ) -g -o Forwarder Forwarder.cpp $(LIB)
+	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -g -o Forwarder Forwarder.cpp $(LIB) $(DAQ_LIB)
 
 DAQForwarder: test.cpp
 	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -ggdb -o test test.cpp $(LIB) $(DAQ_LIB)

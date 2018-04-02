@@ -37,23 +37,23 @@ struct arg_struct {
 map<string, funcptr> on_foreman_message_actions = {
     { "AR_NEW_VISIT", &Forwarder::process_new_visit},
     { "PP_NEW_VISIT", &Forwarder::process_new_visit},
-    { "SP_NEW_VISIT", &Forwarder::process_new_visit},
+    { "AT_NEW_VISIT", &Forwarder::process_new_visit},
     { "AR_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "PP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
-    { "SP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
+    { "AT_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "SP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
+    { "AT_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "AR_FWDR_TAKE_IMAGES", &Forwarder::process_take_images},
     { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
-    { "SP_TAKE_IMAGES", &Forwarder::process_take_images},
+    { "AT_TAKE_IMAGES", &Forwarder::process_take_images},
     { "AR_FWDR_END_READOUT", &Forwarder::process_end_readout},
     { "PP_END_READOUT", &Forwarder::process_end_readout},
-    { "SP_END_READOUT", &Forwarder::process_end_readout},
+    { "AT_END_READOUT", &Forwarder::process_end_readout},
     { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
-    { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
-    { "HEADER_READY", &Forwarder::process_header_ready }, 
+    { "AT_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
+    { "AT_FWDR_HEADER_READY", &Forwarder::process_header_ready }, 
 };
 
 //The next three handlers are essentially acks...
@@ -61,7 +61,7 @@ map<string, funcptr> on_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK_ACK", &Forwarder::process_fetch_health_check_ack},
     { "AR_FETCH_ACK", &Forwarder::process_fetch_ack},
     { "PP_FETCH_ACK", &Forwarder::process_fetch_ack},
-    { "SP_FETCH_ACK", &Forwarder::process_fetch_ack}
+    { "AT_FETCH_ACK", &Forwarder::process_fetch_ack}
 
 };
 
@@ -69,7 +69,7 @@ map<string, funcptr> on_format_message_actions = {
     { "FORMAT_HEALTH_CHECK_ACK", &Forwarder::process_format_health_check_ack},
     { "AR_FORMAT_ACK", &Forwarder::process_format_ack},
     { "PP_FORMAT_ACK", &Forwarder::process_format_ack},
-    { "SP_FORMAT_ACK", &Forwarder::process_format_ack}
+    { "AT_FORMAT_ACK", &Forwarder::process_format_ack}
 
 };
 
@@ -77,7 +77,7 @@ map<string, funcptr> on_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
     { "AR_FORWARD_ACK", &Forwarder::process_forward_ack},
     { "PP_FORWARD_ACK", &Forwarder::process_forward_ack},
-    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack}
+    { "AT_FORWARD_ACK", &Forwarder::process_forward_ack}
 
 };
 
@@ -90,7 +90,7 @@ map<string, funcptr> on_forwarder_to_fetch_message_actions = {
     { "FETCH_TAKE_IMAGES_DONE", &Forwarder::process_fetch},
     { "AR_FETCH", &Forwarder::process_fetch},
     { "PP_FETCH", &Forwarder::process_fetch},
-    { "SP_FETCH", &Forwarder::process_fetch}
+    { "AT_FETCH", &Forwarder::process_fetch}
 };
 
 //This handler is for messages from Primary Forwarder to format thread
@@ -98,7 +98,7 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "FORMAT_HEALTH_CHECK", &Forwarder::process_format_health_check},
     { "AR_FORMAT", &Forwarder::process_format},
     { "PP_FORMAT", &Forwarder::process_format},
-    { "SP_FORMAT", &Forwarder::process_format}, 
+    { "AT_FORMAT", &Forwarder::process_format}, 
     { "FORMAT_END_READOUT", &Forwarder::format_process_end_readout}, 
     { "FORMAT_HEADER_READY", &Forwarder::format_get_header}, 
     { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format},
@@ -110,7 +110,7 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "AR_FORWARD", &Forwarder::process_forward},
     { "TAKE_IMAGES_DONE", &Forwarder::process_forward},
     { "PP_FORWARD", &Forwarder::process_forward},
-    { "SP_FORWARD", &Forwarder::process_forward}, 
+    { "AT_FORWARD", &Forwarder::process_forward}, 
     { "FORWARD_END_READOUT", &Forwarder::forward_process_end_readout}, 
     { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done},  
 };
