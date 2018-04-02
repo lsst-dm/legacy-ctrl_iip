@@ -76,22 +76,19 @@ class AuxDevice:
 
         self._msg_actions = { 'AT_START_INTEGRATION': self.process_at_start_integration,
                               'AUX_NEW_SESSION': self.set_session,
-                              'AUX_NEXT_VISIT': self.process_target_event,
-                              'AR_READOUT': self.process_dmcs_readout,
+                              #'AR_READOUT': self.process_dmcs_readout,
                               'AUX_FWDR_HEALTH_CHECK_ACK': self.process_ack,
                               'AUX_FWDR_XFER_PARAMS_ACK': self.process_ack,
                               'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
-                              'AUX_TAKE_IMAGES': self.take_images,
+                              #'AUX_TAKE_IMAGES': self.take_images,
                               'AT_END_READOUT': self.process_at_end_readout }
 
 
         self._next_timed_ack_id = 0
 
         self.setup_publishers()
-
-        self.setup_scoreboards()
 
         LOGGER.info('ar foreman consumer setup')
         self.thread_manager = None
@@ -257,7 +254,7 @@ class AuxDevice:
         xfer_params_dict['RAFT_CCD_LIST'] = self.RAFT_CCD_LIST
         xfer_params_dict['AT_FWDR'] = self._current_fwdr
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
-        route_key = self._current_fwdr["CONSUME_QUEUE")
+        route_key = self._current_fwdr["CONSUME_QUEUE"]
         self._publisher.publish_message(route_key, fwdr_new_target_params)
        
 
@@ -304,7 +301,7 @@ class AuxDevice:
         msg_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
 
         forwarders = list(self._forwarder_dict.keys())
-        for x in range (0, len(forwarders):
+        for x in range (0, len(forwarders)):
             route_key = self._forwarder_dict[forwarders[x]]["CONSUME_QUEUE"]
             self._publisher.publish_message(route_key, msg_params)
         return len(forwarders)
@@ -346,7 +343,7 @@ class AuxDevice:
             for k in range (0, num_rafts):
                 FORWARDER_LIST.append(fwdrs_list[k])
                 #little_list.append(ccd_list[k])
-                RAFT_LIST.append(raft_list[k))  # Need a copy here...
+                RAFT_LIST.append(raft_list[k])  # Need a copy here...
                 RAFT_CCD_LIST.append = deepcopy(raft_ccd_list[k]) 
                 schedule['FORWARDER_LIST'] = FORWARDER_LIST
                 schedule['RAFT_LIST'] = RAFT_LIST
@@ -512,7 +509,7 @@ class AuxDevice:
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['ACK_BOOL'] = True
         ack_msg['RESULT_LIST'] = results
-        self._publisher.publish_message(reply_queue), ack_msg)
+        self._publisher.publish_message(reply_queue, ack_msg)
 
         ### FIXME Set state as complete for Job
 
@@ -719,8 +716,8 @@ class AuxDevice:
             sys.exit(101)
 
         try:
-            self._msg_name = cdm[ROOT][AUX_BROKER_NAME]      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT][AUX_BROKER_PASSWD]   
+            self._msg_name = cdm[ROOT]['AUX_BROKER_NAME']      # Message broker user & passwd
+            self._msg_passwd = cdm[ROOT]['AUX_BROKER_PASSWD']   
             self._msg_pub_name = cdm[ROOT]['AUX_BROKER_PUB_NAME']      # Message broker user & passwd
             self._msg_pub_passwd = cdm[ROOT]['AUX_BROKER_PUB_PASSWD']   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
@@ -792,19 +789,6 @@ class AuxDevice:
 
         self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
-
-    def setup_scoreboards(self):
-        """ Create Redis Forwarder table with Forwarder info. Create Job and Ack Scoreboard
-            objects with values retrieved from configuration file.
-
-            :params: None.
-
-            :return: None.
-        """
-        # Create Redis Forwarder table with Forwarder info
-        self.FWD_SCBD = ForwarderScoreboard('AR_FWD_SCBD', self._scbd_dict['AR_FWD_SCBD'], self._forwarder_dict)
-        self.JOB_SCBD = JobScoreboard('AR_JOB_SCBD', self._scbd_dict['AR_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
 
     def shutdown(self):
