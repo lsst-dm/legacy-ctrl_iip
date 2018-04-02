@@ -50,8 +50,10 @@ class Setup:
         self.channel.queue_declare(queue='cu_foreman_consume',durable=True)
         self.channel.queue_bind(queue='cu_foreman_consume', exchange='message', routing_key='cu_foreman_consume' )
         """        
-        self.channel.queue_declare(queue='aux_foreman_consume',durable=True)
-        self.channel.queue_bind(queue='aux_foreman_consume', exchange='message', routing_key='aux_foreman_consume' )
+        self.channel.queue_declare(queue='at_foreman_consume',durable=True)
+        self.channel.queue_bind(queue='at_foreman_consume', exchange='message', routing_key='at_foreman_consume' )
+        #self.channel.queue_declare(queue='aux_foreman_consume',durable=True)
+        #self.channel.queue_bind(queue='aux_foreman_consume', exchange='message', routing_key='aux_foreman_consume' )
         """
         ## DMCS queues
         self.channel.queue_declare(queue='dmcs_fault_queue',durable=True)

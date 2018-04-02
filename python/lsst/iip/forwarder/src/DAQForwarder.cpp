@@ -194,6 +194,7 @@ map<string, funcptr> on_foreman_message_actions = {
     { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "AT_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
     { "AR_FWDR_HEADER_READY", &Forwarder::process_header_ready }, 
+    { "PP_FWDR_HEADER_READY", &Forwarder::process_header_ready }, 
     { "AT_FWDR_HEADER_READY", &Forwarder::process_header_ready } 
 };
 
