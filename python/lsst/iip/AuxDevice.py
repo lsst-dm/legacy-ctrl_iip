@@ -35,11 +35,12 @@ class AuxDevice:
         status change of forwarders, and sends messages accordingly.
     """
     COMPONENT_NAME = 'AUX_FOREMAN'
-    AR_FOREMAN_CONSUME = "aux_foreman_consume"
+    AT_FOREMAN_CONSUME = "at_foreman_consume"
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
-    AUX_FOREMAN_ACK_PUBLISH = "aux_foreman_ack_publish"
+    AT_FOREMAN_ACK_PUBLISH = "at_foreman_ack_publish"
     START_INTEGRATION_XFER_PARAMS = {}
+    ACK_QUEUE = []
     CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
     DP = toolsmod.DP
@@ -75,12 +76,13 @@ class AuxDevice:
 
 
         self._msg_actions = { 'AT_START_INTEGRATION': self.process_at_start_integration,
-                              'AUX_NEW_SESSION': self.set_session,
+                              'AT_NEW_SESSION': self.set_session,
                               #'AR_READOUT': self.process_dmcs_readout,
                               'AUX_FWDR_HEALTH_CHECK_ACK': self.process_ack,
                               'AUX_FWDR_XFER_PARAMS_ACK': self.process_ack,
                               'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
+                              'AT_HEADER_READY': self.process_header_ready_event,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
                               #'AUX_TAKE_IMAGES': self.take_images,
                               'AT_END_READOUT': self.process_at_end_readout }
@@ -128,7 +130,7 @@ class AuxDevice:
         msg_dict = body 
         LOGGER.info('In AUX Foreman message callback')
         LOGGER.info('Message from DMCS to AUX Foreman callback message body is: %s', str(msg_dict))
-
+        print("Incoming AUX msg is: %s" % msg_dict)
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
@@ -181,20 +183,23 @@ class AuxDevice:
         # These next three lines must have WFS and Guide sensor info added
         start_int_ack_id = params[ACK_ID]
 
+        print("Incoming AUX AT_Start Int msg")
         # next, run health check
+        self.ACK_QUEUE = {}
         health_check_ack_id = self.get_next_timed_ack_id('AUX_FWDR_HEALTH_ACK')
         num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
 
         # Add job scbd entry
         self.ack_timer(1.4)
 
-        healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
-        if healthy_fwdrs == None:
-            self.refuse_job(params, "No forwarders available")
-            ### FIX send error code for this...
-            return
+        #healthy_fwdrs = self.ACK_QUEUE.get_components_for_timed_ack(health_check_ack_id)
+        #if healthy_fwdrs == None:
+        #    self.refuse_job(params, "No forwarders available")
+        #    ### FIX send error code for this...
+        #    return
 
-        self._current_fwdr = healthy_fwdrs[0]
+        fwdr_names = list(self._forwarder_dict.keys())
+        self._current_fwdr = self._forwarder_dict[fwdr_names[0]]
 
         # Add archive check when necessary...
         # send new_archive_item msg to archive controller
@@ -246,12 +251,15 @@ class AuxDevice:
         #fwdr_new_target_params[JOB_NUM] = job_number
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
         fwdr_new_target_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
-        target_location = self.archve_name + "@" + self.archive_ip + ":" + target_dir
+        target_location = self.archive_name + "@" + self.archive_ip + ":" + target_dir
         fwdr_new_target_params['TARGET_LOCATION'] = target_location
 
         xfer_params_dict = {}
+        #xfer_params_dict['RAFT_LIST'] = []
         xfer_params_dict['RAFT_LIST'] = self.RAFT_LIST
-        xfer_params_dict['RAFT_CCD_LIST'] = self.RAFT_CCD_LIST
+        xfer_params_dict['RAFT_LIST'].append(self.RAFT_LIST)
+        xfer_params_dict['RAFT_CCD_LIST'] = []
+        xfer_params_dict['RAFT_CCD_LIST'].append(self.RAFT_CCD_LIST)
         xfer_params_dict['AT_FWDR'] = self._current_fwdr
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
@@ -425,6 +433,7 @@ class AuxDevice:
 
             :return: None.
         """
+        print("Incoming AUX AT_END_READOUT msg")
         reply_queue = params['REPLY_QUEUE']
         readout_ack_id = params[ACK_ID]
         #job_number = params[JOB_NUM]
@@ -433,7 +442,7 @@ class AuxDevice:
         #self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT')
         fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
         #work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
-        current_fwdr = self._current_forwarder
+        current_fwdr = self._current_fwdr
         msg = {}
         msg[MSG_TYPE] = 'AT_FWDR_READOUT'
         #msg[JOB_NUM] = job_number
@@ -545,10 +554,8 @@ class AuxDevice:
         msg['FILENAME'] = fname
         msg['IMAGE_ID'] = image_id
 
-        fwdrs = work_sched['FORWARDER_LIST']
-        for fwdr in fwdrs:
-            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
-            self._publisher.publish_message(route_key, msg)
+        route_key = self._current_fwdr['CONSUME_QUEUE']
+        self._publisher.publish_message(route_key, msg)
 
 
 
@@ -580,7 +587,8 @@ class AuxDevice:
 
             :return: None.
         """
-        self.ACK_SCBD.add_timed_ack(params)
+        pass
+        #self.ACK_SCBD.add_timed_ack(params)
         
 
     def get_next_timed_ack_id(self, ack_type):
@@ -596,13 +604,13 @@ class AuxDevice:
 
 
     def set_session(self, params):
+        pass
         """ Record new session in JobScoreboard.
             Send AR_NEW_SESSION_ACK message with ack_bool equals True to specified reply queue.
 
             :params params: Dictionary with info about new session.
 
             :return: None.
-        """
         self.JOB_SCBD.set_session(params['SESSION_ID'])
         ack_id = params['ACK_ID']
         msg = {}
@@ -612,6 +620,7 @@ class AuxDevice:
         msg['ACK_BOOL'] = True
         route_key = params['REPLY_QUEUE'] 
         self._publisher.publish_message(route_key, msg)
+        """
 
 
     def get_current_session(self):
@@ -763,7 +772,7 @@ class AuxDevice:
         md = {}
         md['amqp_url'] = base_broker_url
         md['name'] = 'Thread-aux_foreman_consume'
-        md['queue'] = 'aux_foreman_consume'
+        md['queue'] = 'at_foreman_consume'
         md['callback'] = self.on_aux_foreman_message
         md['format'] = "YAML"
         md['test_val'] = None
@@ -791,6 +800,7 @@ class AuxDevice:
         self.thread_manager.start()
 
 
+
     def shutdown(self):
         LOGGER.info("Shutting down Consumer threads.")
         self.shutdown_event.set()
@@ -802,7 +812,7 @@ class AuxDevice:
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     a_fm = AuxDevice()
-    print("Beginning ArchiveForeman event loop...")
+    print("Beginning AuxForeman event loop...")
     try:
         while 1:
             pass
@@ -811,7 +821,7 @@ def main():
         pass
 
     print("")
-    print("Archive Device Done.")
+    print("Aux Device Done.")
 
 
 

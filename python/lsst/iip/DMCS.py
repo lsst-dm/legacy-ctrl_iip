@@ -220,6 +220,7 @@ class DMCS:
 
             :return: None.
         """
+        print("In On OCS Msg, msg is: %s" % msg_dict)
         try: 
             ch.basic_ack(method.delivery_tag)
             LOGGER.info('Processing message in OCS message callback')
@@ -612,6 +613,7 @@ class DMCS:
 
             :return: None.
         """
+        print("In On at_start_intg, msg is: %s" % params)
         try: 
             msg_params = {}
             # visit_id and image_id msg_params *could* be set in one line, BUT: the values are needed again below...
@@ -623,7 +625,7 @@ class DMCS:
             msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
 
 
-            enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
+            #enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
             acks = []
             ack_id = self.get_next_timed_ack_id( "AT_START_INT_ACK")
             acks.append(ack_id)
@@ -631,9 +633,11 @@ class DMCS:
             #self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
             #self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
             #self.STATE_SCBD.set_current_device_job(job_num, str(k))
-            self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+            #self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
             #msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
+            rkey = self.STATE_SCBD.get_device_consume_queue('AT')
+            print("publishing start_int to: %s" % rkey) 
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 
@@ -717,6 +721,7 @@ class DMCS:
             msg_params = {}
             msg_params[MSG_TYPE] = 'AT_END_READOUT'
             msg_params[IMAGE_ID] = params[IMAGE_ID]  
+            msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']  
             msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
             session_id = self.STATE_SCBD.get_current_session()
             msg_params['SESSION_ID'] = session_id
@@ -728,6 +733,8 @@ class DMCS:
             msg_params[ACK_ID] = ack_id
             #msg_params[JOB_NUM] = job_num
             #self.STATE_SCBD.set_job_state(job_num, "READOUT")
+            rkey = self.STATE_SCBD.get_device_consume_queue('AT')
+            print("publishing end readout to: %s" % rkey) 
             self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 

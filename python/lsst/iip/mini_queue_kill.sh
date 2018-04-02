@@ -69,3 +69,5 @@ rabbitmqctl -p /test purge_queue f99_consume_from_forward
 
 #rm ./logs/*.log
 
+rabbitmqctl -p /test purge_queue ocs_dmcs_consume
+rabbitmqctl -p /test purge_queue dmcs_ocs_publish
