@@ -620,29 +620,25 @@ class DMCS:
             msg_params = {}
             # visit_id and image_id msg_params *could* be set in one line, BUT: the values are needed again below...
             visit_id = self.STATE_SCBD.get_current_visit()
-            msg_params[VISIT_ID] = visit_id
             image_id = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
             msg_params[IMAGE_ID] = image_id
             msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
-            msg_params['CCD_LIST'] = ccd_list
-            session_id = self.STATE_SCBD.get_current_session()
-            msg_params['SESSION_ID'] = session_id
+            msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
 
 
             enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
             acks = []
-            for k in list(enabled_devices.keys()):
-                ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
-                acks.append(ack_id)
-                job_num = self.STATE_SCBD.get_next_job_num( session_id)
-                self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
-                self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
-                self.STATE_SCBD.set_current_device_job(job_num, str(k))
-                self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
-                msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
-                msg_params[JOB_NUM] = job_num
-                msg_params[ACK_ID] = ack_id
-                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+            ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
+            acks.append(ack_id)
+            #job_num = self.STATE_SCBD.get_next_job_num( session_id)
+            #self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
+            #self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
+            #self.STATE_SCBD.set_current_device_job(job_num, str(k))
+            self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+            msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
+            #msg_params[JOB_NUM] = job_num
+            msg_params[ACK_ID] = ack_id
+            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 
             wait_time = 5  # seconds...
@@ -707,6 +703,7 @@ class DMCS:
             raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
         # add in two additional acks for format and transfer complete
 
+
     def process_at_readout_event(self, params):
         """ Send readout message to all enabled devices with details of job, including
             new job_num and image_id.
@@ -722,23 +719,20 @@ class DMCS:
             ccd_list = self.CCD_LIST
 
             msg_params = {}
-            msg_params[VISIT_ID] = self.STATE_SCBD.get_current_visit()
-            msg_params[IMAGE_ID] = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
+            msg_params[MSG_TYPE] = 'AT_END_READOUT'
+            msg_params[IMAGE_ID] = params[IMAGE_ID]  
             msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
             session_id = self.STATE_SCBD.get_current_session()
             msg_params['SESSION_ID'] = session_id
 
-            enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
             acks = []
-            for k in list(enabled_devices.keys()):
-                ack_id = self.get_next_timed_ack_id( str(k) + "_READOUT_ACK")
-                acks.append(ack_id)
-                job_num = self.STATE_SCBD.get_current_device_job(str(k))
-                msg_params[MSG_TYPE] = k + '_READOUT'
-                msg_params[ACK_ID] = ack_id
-                msg_params[JOB_NUM] = job_num
-                self.STATE_SCBD.set_job_state(job_num, "READOUT")
-                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+            ack_id = self.get_next_timed_ack_id("AT_END_READOUT_ACK")
+            acks.append(ack_id)
+            #job_num = self.STATE_SCBD.get_current_device_job(str(k))
+            msg_params[ACK_ID] = ack_id
+            #msg_params[JOB_NUM] = job_num
+            #self.STATE_SCBD.set_job_state(job_num, "READOUT")
+            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 
             wait_time = 5  # seconds...
@@ -945,14 +939,13 @@ class DMCS:
         msg_params = {}
         fname = params['FILENAME']        
         msg_params['FILENAME'] = self.efd + fname        
-        enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
-        for k in list(enabled_devices.keys()):
-            msg_params[MSG_TYPE] = k + '_HEADER_READY'
-            msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
-            job_num = self.STATE_SCBD.get_current_device_job(str(k))
-            msg_params[JOB_NUM] = job_num
-            self.STATE_SCBD.set_job_state(job_num, "READOUT")
-            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+        msg_params[MSG_TYPE] = 'AT_HEADER_READY'
+        msg_params[IMAGE_ID] = params[IMAGE_ID]  
+        msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
+        #job_num = self.STATE_SCBD.get_current_device_job(str(k))
+        #msg_params[JOB_NUM] = job_num
+        #self.STATE_SCBD.set_job_state(job_num, "READOUT")
+        self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 
     def process_telemetry(self, msg):
