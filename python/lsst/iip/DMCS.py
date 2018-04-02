@@ -102,7 +102,6 @@ class DMCS:
                               'NEXT_VISIT': self.process_next_visit_event,
                               'START_INTEGRATION': self.process_start_integration_event,
                               'DMCS_AT_START_INTEGRATION': self.process_at_start_integration_event,
-                              'READOUT': self.process_readout_event,
                               'TELEMETRY': self.process_telemetry, 
 			      ###########################################################
                               'CCS_START_INTEGRATION': self.process_ccs_start_int_event,
@@ -701,7 +700,7 @@ class DMCS:
         # add in two additional acks for format and transfer complete
 
 
-    def process_at_readout_event(self, params):
+    def process_at_end_readout(self, params):
         """ Send readout message to all enabled devices with details of job, including
             new job_num and image_id.
             Send pending_ack message to all enabled devices, expires in 5s.
@@ -1446,7 +1445,7 @@ class DMCS:
             self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
             self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
             self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
-            self.sp_cfg_keys = cdm[ROOT]['SP_CFG_KEYS']
+            self.at_cfg_keys = cdm[ROOT]['AT_CFG_KEYS']
             self.efd_login = cdm[ROOT]['EFD']['EFD_LOGIN']
             self.efd_ip = cdm[ROOT]['EFD']['EFD_IP']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
@@ -1537,7 +1536,7 @@ class DMCS:
 
             self.STATE_SCBD.set_device_state("CU","OFFLINE")
 
-            self.STATE_SCBD.set_device_state("SP","OFFLINE")
+            self.STATE_SCBD.set_device_state("AT","OFFLINE")
 
             self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
             self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
@@ -1548,13 +1547,13 @@ class DMCS:
             self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
             self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
 
-            self.STATE_SCBD.add_device_cfg_keys('SP', self.sp_cfg_keys)
-            self.STATE_SCBD.set_device_cfg_key('SP',self.STATE_SCBD.get_cfg_from_cfgs('SP', 0))
+            self.STATE_SCBD.add_device_cfg_keys('AT', self.at_cfg_keys)
+            self.STATE_SCBD.set_device_cfg_key('AT',self.STATE_SCBD.get_cfg_from_cfgs('AT', 0))
 
             self.send_appropriate_events_by_state('AR', 'OFFLINE')
             self.send_appropriate_events_by_state('PP', 'OFFLINE')
             self.send_appropriate_events_by_state('CU', 'OFFLINE')
-            self.send_appropriate_events_by_state('SP', 'OFFLINE')
+            self.send_appropriate_events_by_state('AT', 'OFFLINE')
         except Exception as e: 
             LOGGER.error("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args)
             print("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args) 

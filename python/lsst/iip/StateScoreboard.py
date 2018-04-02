@@ -46,7 +46,7 @@ class StateScoreboard(Scoreboard):
     AR = "AR"
     PP = "PP"
     CU = "CU"
-    SP = "SP"
+    AT = "AT"
     prp = toolsmod.prp
   
 
@@ -138,8 +138,8 @@ class StateScoreboard(Scoreboard):
             self._redis.hset(self.CU, 'CONSUME_QUEUE', ddict[self.CU])
             self.set_device_state(self.CU, 'STANDBY')
 
-            self._redis.hset(self.SP, 'CONSUME_QUEUE', ddict[self.SP])
-            self.set_device_state(self.SP, 'STANDBY')
+            self._redis.hset(self.AT, 'CONSUME_QUEUE', ddict[self.AT])
+            self.set_device_state(self.AT, 'STANDBY')
 
 
 
@@ -174,12 +174,12 @@ class StateScoreboard(Scoreboard):
 
     def set_spectrograph_state(self, state):
         if self.check_connection():
-            self._redis.hset(self.SP, STATE, state)
+            self._redis.hset(self.AT, STATE, state)
 
 
     def get_spectrograph_state(self):
         if self.check_connection():
-            return self._redis.hget(self.SP, STATE)
+            return self._redis.hget(self.AT, STATE)
 
 
     def get_device_state(self, device):
@@ -189,7 +189,7 @@ class StateScoreboard(Scoreboard):
             return self.get_prompt_process_state()
         if device == "CU":
             return self.get_catchup_archive_state()
-        if device == "SP":
+        if device == "AT":
             return self.get_spectrograph_state()
 
 
@@ -200,7 +200,7 @@ class StateScoreboard(Scoreboard):
             return self.set_prompt_process_state(state)
         if device == "CU":
             return self.set_catchup_archive_state(state)
-        if device == "SP":
+        if device == "AT":
             return self.set_spectrograph_state(state)
 
 
@@ -212,8 +212,8 @@ class StateScoreboard(Scoreboard):
                 return self._redis.hget(self.PP, "CONSUME_QUEUE")
             if device == self.CU:
                 return self._redis.hget(self.CU, "CONSUME_QUEUE")
-            if device == self.SP:
-                return self._redis.hget(self.SP, "CONSUME_QUEUE")
+            if device == self.AT:
+                return self._redis.hget(self.AT, "CONSUME_QUEUE")
 
 
     def get_devices_by_state(self, state):
@@ -223,7 +223,7 @@ class StateScoreboard(Scoreboard):
                 edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
                 edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
                 edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
-                edict[self.SP] = self._redis.hget(self.SP, "CONSUME_QUEUE")
+                edict[self.AT] = self._redis.hget(self.AT, "CONSUME_QUEUE")
             else:
                 if self.get_archive_state() == state:
                     edict[self.AR] = self._redis.hget(self.AR, "CONSUME_QUEUE")
@@ -232,7 +232,7 @@ class StateScoreboard(Scoreboard):
                 if self.get_catchup_archive_state() == state:
                     edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
                 if self.get_spectrograph_state() == state:
-                    edict[self.SP] = self._redis.hget(self.SP, "CONSUME_QUEUE")
+                    edict[self.AT] = self._redis.hget(self.AT, "CONSUME_QUEUE")
         else:
             print("BIG TROUBLE IN LITTLE CHINA")
         return edict
@@ -257,8 +257,8 @@ class StateScoreboard(Scoreboard):
             listname = 'PP_CFG_KEYS'
         elif device == 'CU':
             listname = 'CU_CFG_KEYS'
-        elif device == 'SP':
-            listname = 'SP_CFG_KEYS'
+        elif device == 'AT':
+            listname = 'AT_CFG_KEYS'
 
         self._redis.rpush(listname, keys)
 
@@ -271,8 +271,8 @@ class StateScoreboard(Scoreboard):
             listname = 'PP_CFG_KEYS'
         elif device == 'CU':
             listname = 'CU_CFG_KEYS'
-        elif device == 'SP':
-            listname = 'SP_CFG_KEYS'
+        elif device == 'AT':
+            listname = 'AT_CFG_KEYS'
 
         return self._redis.lindex(listname, index)
 
@@ -284,8 +284,8 @@ class StateScoreboard(Scoreboard):
             listname = 'PP_CFG_KEYS'
         elif device == 'CU':
             listname = 'CU_CFG_KEYS'
-        elif device == 'SP':
-            listname = 'SP_CFG_KEYS'
+        elif device == 'AT':
+            listname = 'AT_CFG_KEYS'
 
         list_len = self._redis.llen(listname)
         if list_len == 0 or list_len == None:
@@ -473,8 +473,8 @@ class StateScoreboard(Scoreboard):
                     self._redis.lpush('PP_JOBS', job_number)
                 if device == self.CU:
                     self._redis.lpush('CU_JOBS', job_number)
-                if device == self.SP:
-                    self._redis.lpush('SP_JOBS', job_number)
+                if device == self.AT:
+                    self._redis.lpush('AT_JOBS', job_number)
         except Exception as e:
             print("EXCEPTION in SET_CURRENT_DEVICE_JOB")
             print("Job Number is %s, Device is %s" % (job_number,device))
@@ -489,8 +489,8 @@ class StateScoreboard(Scoreboard):
                 return self._redis.lindex('PP_JOBS', 0)
             if device == self.CU:
                 return self._redis.lindex('CU_JOBS', 0)
-            if device == self.SP:
-                return self._redis.lindex('SP_JOBS', 0)
+            if device == self.AT:
+                return self._redis.lindex('AT_JOBS', 0)
 
     ### Deprecated
     def set_rafts_for_job(self, job_number, raft_list, raft_ccd_list):

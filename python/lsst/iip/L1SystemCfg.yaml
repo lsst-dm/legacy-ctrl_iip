@@ -88,7 +88,7 @@ ROOT:
   AR_CFG_KEYS: Normal
   PP_CFG_KEYS: Normal
   CU_CFG_KEYS: Normal
-  SP_CFG_KEYS: Normal
+  AT_CFG_KEYS: Normal
   #CU_CFG_KEYS: catchuparchiver-Normal
   DMCS_FAULT_QUEUE: dmcs_fault_queue
   DEFAULT_RAFT_CONFIGURATION:
