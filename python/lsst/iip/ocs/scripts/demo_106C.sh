@@ -26,7 +26,7 @@ sleep 3
 echo -e "[${GREEN}${BOLD}OK${NOCOL}] START_INTEGRATION sent."
 
 # efd
-../events/sacpp_efd_LargeFileObjectAvailable_send 0 a AT a dave@141.142.238.176:/tmp/cam.header 0 IMG_100 0 
+../events/sacpp_efd_LargeFileObjectAvailable_send 0 a AT a dmills@141.142.238.176:/tmp/cam.header 0 IMG_100 0 
 sleep 1
 echo -e "[${GREEN}${BOLD}OK${NOCOL}] HEADER_READY sent."
 
@@ -40,7 +40,7 @@ echo -e "[${GREEN}${BOLD}OK${NOCOL}] END_READOUT sent."
 #echo "[x] START_INTEGRATION sent."
 
 # efd
-#../events/sacpp_efd_LargeFileObjectAvailable_send 0 a AT a dave@141.142.238.176:/tmp/cam.header 0 IMG_101 0 
+#../events/sacpp_efd_LargeFileObjectAvailable_send 0 a AT a dmills@141.142.238.176:/tmp/cam.header 0 IMG_101 0 
 #sleep 1
 #echo "[x] HEADER_READY sent."
 
