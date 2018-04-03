@@ -624,7 +624,6 @@ class DMCS:
             msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
             msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
 
-
             #enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
             acks = []
             ack_id = self.get_next_timed_ack_id( "AT_START_INT_ACK")

@@ -256,10 +256,10 @@ class AuxDevice:
 
         xfer_params_dict = {}
         #xfer_params_dict['RAFT_LIST'] = []
-        xfer_params_dict['RAFT_LIST'] = self.RAFT_LIST
-        xfer_params_dict['RAFT_LIST'].append(self.RAFT_LIST)
-        xfer_params_dict['RAFT_CCD_LIST'] = []
-        xfer_params_dict['RAFT_CCD_LIST'].append(self.RAFT_CCD_LIST)
+        #xfer_params_dict['RAFT_LIST'] = self.RAFT_LIST
+        #xfer_params_dict['RAFT_LIST'].append(self.RAFT_LIST)
+        #xfer_params_dict['RAFT_CCD_LIST'] = []
+        #xfer_params_dict['RAFT_CCD_LIST'].append(self.RAFT_CCD_LIST)
         xfer_params_dict['AT_FWDR'] = self._current_fwdr
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]

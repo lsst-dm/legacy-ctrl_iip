@@ -93,7 +93,7 @@ ROOT:
   DMCS_FAULT_QUEUE: dmcs_fault_queue
   DEFAULT_RAFT_CONFIGURATION:
 #    raft00: ['ALL'] 
-    raft01: ['11'] 
+#    raft01: ['11'] 
 #    raft10: ['11'] 
 #    raft20: ['00','12','22'] 
 #    raft30: ['00','01','02','11','12','22','10']
@@ -103,7 +103,7 @@ ROOT:
 #    raft21: ['ALL'] 
 #    raft31: ['ALL'] 
 #    raft41: ['ALL'] 
-#    raft02: ['ALL'] 
+    raft02: ['00'] 
 #    raft12: ['ALL'] 
 #    raft22: ['ALL'] 
 #    raft32: ['ALL'] 

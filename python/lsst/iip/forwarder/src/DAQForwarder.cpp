@@ -118,6 +118,7 @@ class Forwarder {
     void process_new_visit(Node n);
     void process_health_check(Node n);
     void process_xfer_params(Node n);
+    void process_at_xfer_params(Node n);
     void process_take_images(Node n);
     void process_take_images_done(Node n);
     void process_end_readout(Node n);
@@ -183,7 +184,7 @@ map<string, funcptr> on_foreman_message_actions = {
     { "AT_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "AT_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
+    { "AT_FWDR_XFER_PARAMS", &Forwarder::process_at_xfer_params},
     { "AR_FWDR_TAKE_IMAGES", &Forwarder::process_take_images},
     { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
     { "AT_TAKE_IMAGES", &Forwarder::process_take_images},
@@ -673,6 +674,48 @@ void Forwarder::process_xfer_params(Node n) {
 
     //this->Target_Location = n["TARGET_LOCATION"].as<string>();
     cout << "After setting TARGET_LOCATION" << endl;
+
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    cout << "After extracting REPLY_QUEUE" << endl;
+
+    string ack_id = n["ACK_ID"].as<string>();
+    cout << "After extracting ACK_ID" << endl;
+
+    //this->Daq_Addr = n["DAQ_ADDR"].as<string>();
+    //cout << "After setting DAQ_ADDR" << endl;
+
+    //this->Visit_ID = n["VISIT_ID"].as<string>();
+    //cout << "After setting VISIT_ID" << endl;
+
+    string message_type = "AR_FWDR_XFER_PARAMS_ACK";
+    //string component = "AR";
+    string ack_bool = "false";
+
+    ostringstream message;
+    message << "{ MSG_TYPE: " << message_type
+            << ", COMPONENT: " << this->Component
+            << ", ACK_ID: " << ack_id
+            << ", ACK_BOOL: " << ack_bool << "}";
+
+    FWDR_pub->publish_message(reply_queue, message.str());
+    return;
+}
+
+void Forwarder::process_at_xfer_params(Node n) {
+    cout << "Entering process_xfer_params method" << endl;
+    cout << "Incoming Node n is " << n <<  endl;
+
+    Node p = n["XFER_PARAMS"];
+    cout << "Sub Node p is " << p <<  endl;
+
+    //this->Session_ID = n["SESSION_ID"].as<string>();
+    //cout << "After setting SESSION_ID" << endl;
+
+    //this->Job_Num = n["JOB_NUM"].as<string>();
+    //cout << "After setting JOB_NUM" << endl;
+
+    //this->Target_Location = n["TARGET_LOCATION"].as<string>();
+    //cout << "After setting TARGET_LOCATION" << endl;
 
     string reply_queue = n["REPLY_QUEUE"].as<string>();
     cout << "After extracting REPLY_QUEUE" << endl;
