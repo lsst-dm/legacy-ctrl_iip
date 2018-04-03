@@ -255,7 +255,7 @@ class AuxDevice:
         fwdr_new_target_params['TARGET_LOCATION'] = target_location
 
         xfer_params_dict = {}
-        #xfer_params_dict['RAFT_LIST'] = []
+        xfer_params_dict['RAFT_LIST'] = self._wfs_raft
         #xfer_params_dict['RAFT_LIST'] = self.RAFT_LIST
         #xfer_params_dict['RAFT_LIST'].append(self.RAFT_LIST)
         #xfer_params_dict['RAFT_CCD_LIST'] = []
@@ -444,7 +444,7 @@ class AuxDevice:
         #work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
         current_fwdr = self._current_fwdr
         msg = {}
-        msg[MSG_TYPE] = 'AT_FWDR_READOUT'
+        msg[MSG_TYPE] = 'AT_FWDR_END_READOUT'
         #msg[JOB_NUM] = job_number
         msg[IMAGE_ID] = image_id
         msg['IMAGE_INDEX'] = params['IMAGE_INDEX']
@@ -731,8 +731,7 @@ class AuxDevice:
             self._msg_pub_passwd = cdm[ROOT]['AUX_BROKER_PUB_PASSWD']   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['AUX_FORWARDERS']
-            self._aux_raft = cdm[ROOT]['ATS']['WFS_RAFT']
-            self.RAFT_LIST.append(self._aux_raft)
+            self._wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
 
             # Placeholder until eventually worked out by Data Backbone team
             self.archive_fqn = cdm[ROOT]['ARCHIVE']['ARCHIVE_NAME']
