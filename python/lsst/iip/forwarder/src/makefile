@@ -11,8 +11,8 @@ all: Forwarder
 Forwarder: Forwarder.cpp
 	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -g -o Forwarder Forwarder.cpp $(LIB) $(DAQ_LIB)
 
-DAQForwarder: test.cpp
-	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -ggdb -o test test.cpp $(LIB) $(DAQ_LIB)
+DAQForwarder: DAQForwarder.cpp
+	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -ggdb -o DAQForwarder DAQForwarder.cpp $(LIB) $(DAQ_LIB)
 
 clean: 
 	rm Forwarder
