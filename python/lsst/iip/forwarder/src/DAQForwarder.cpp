@@ -340,6 +340,7 @@ Forwarder::Forwarder() {
         this->FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
 
         this->WFS_RAFT = root["ATS"]["WFS_RAFT"].as<string>();
+        cout << "Setting WFS_RAFT class var to:  " << this->WFS_RAFT << endl << endl << endl;
     }
     catch (YAML::TypedBadConversion<string>& e) {
         cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
@@ -634,7 +635,7 @@ void Forwarder::process_xfer_params(Node n) {
     this->Job_Num = n["JOB_NUM"].as<string>();
     cout << "After setting JOB_NUM" << endl;
 
-    //this->Target_Location = n["TARGET_LOCATION"].as<string>();
+    this->Target_Location = n["TARGET_LOCATION"].as<string>();
     cout << "After setting TARGET_LOCATION" << endl;
 
     string reply_queue = n["REPLY_QUEUE"].as<string>();
@@ -827,15 +828,14 @@ void Forwarder::process_at_fetch(Node n) {
 
 
       
-      //this->fetch_at_reassemble_process(this->WFS_RAFT, image_id, filepath.str());
  
       // COMMENTED OUT FOR HACK AS WFS FETCH DOES NOT WORK THIS MORNING
-             //this->fetch_at_reassemble_process(WFS_RAFT, image_id, filepath.str());
-           string raft = "raft01";
+           string raft = "raft02";
+           this->fetch_at_reassemble_process(raft, image_id, filepath.str());
            map<string, vector<string>> source_boards = {
               {"0", {"00"}}
            };
-      this->fetch_reassemble_raft_image(raft, source_boards, image_id, filepath.str());
+      //this->fetch_reassemble_raft_image(raft, source_boards, image_id, filepath.str());
 
       string new_msg_type = "FORMAT_END_READOUT";
       ostringstream msg;
@@ -847,7 +847,7 @@ void Forwarder::process_at_fetch(Node n) {
 
 void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
 {
-
+  cout << ">>>>>>>>>>>>>> IN fetch_at_reassemble_process -- raft is: " << raft.c_str() << endl;
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
 
@@ -859,40 +859,44 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
   uint64_t total_stripes = 0;
 
   DAQ::Location location;
-  IMS::Source source(location, image);
 
-  //IMS::Science slice(source);
-  IMS::WaveFront slice(source);
-
-  if(!slice) return;
-
-  // Filehandle set for ATS CCD will then have a set of 
-  // 16 filehandles...one filehandle for each amp segment.
-
-  std::vector<std::ofstream*> FH_ATS;
-  this->fetch_set_up_at_filehandles(FH_ATS, image_id, dir_prefix);
-
-  do
-  {
-    total_stripes += slice.stripes();
-    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
-
-    slice.decode(ccd0);
-
-    for(int s=0; s<slice.stripes(); ++s)
-    {
-      for(int amp=0; amp<N_AMPS; ++amp)
+  while(sources.remove(location)) {
+    IMS::Source source(location, image);
+  
+    //IMS::Science slice(source);
+    IMS::WaveFront slice(source);
+  
+  
+    if(!slice) return;
+  
+    // Filehandle set for ATS CCD will then have a set of 
+    // 16 filehandles...one filehandle for each amp segment.
+  
+    std::vector<std::ofstream*> FH_ATS;
+    this->fetch_set_up_at_filehandles(FH_ATS, image_id, dir_prefix);
+  
+      do
       {
-        FH_ATS[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+        total_stripes += slice.stripes();
+        IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+    
+        slice.decode(ccd0);
+    
+        for(int s=0; s<slice.stripes(); ++s)
+        {
+          for(int amp=0; amp<N_AMPS; ++amp)
+          {
+            FH_ATS[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+          }
+        }
+    
+        delete [] ccd0;
+    
       }
-    }
-
-    delete [] ccd0;
-
+      while(slice.advance());
+  
+      this->fetch_close_filehandles(FH_ATS);
   }
-  while(slice.advance());
-
-  this->fetch_close_filehandles(FH_ATS);
   return;
 }
 
@@ -969,6 +973,7 @@ for(auto it = source_boards.cbegin(); it != source_boards.cend(); ++it)
 
 }
 
+//XXX FIX - This method is a mess - hoarder code...
 void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
   ostringstream raft_name;
   raft_name << raft;
@@ -989,6 +994,7 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
 #ifdef DEBUG
 cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
 #endif
+
   //The loop below processes each raft board (an individual source) one at a time.
   //In order to avoid boards that do not have desired CCDs on them, we check within
   //this loop; if board is not needed, we skip processing it. This is done by
@@ -1001,41 +1007,37 @@ cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
   {
       string board_str = std::to_string(board);
 
-cout << "XXX fetch_assemble_raft_image -- looking at board: " << board_str << endl;
+      cout << "XXX fetch_assemble_raft_image -- looking at board: " << board_str << endl;
 
       if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
                                            // that we put together in the preceeding method...
 
-cout << "XXX fetch_assemble_raft_image -- source_board.count says YES to board: " << board_str << endl;
+      cout << "XXX fetch_assemble_raft_image -- source_board.count says YES to board: " << board_str << endl;
 
         //std::vector<string> ccds_for_board = source_boards[board_str];
         std::vector<string> ccds_for_board;
 
         for (auto ii : source_boards[board_str]) {
 
-cout << "XXX fetch_reassemble_raft_image -- Adding " << ii << " to ccds_for_board vector." << endl;
+      cout << "XXX fetch_reassemble_raft_image -- Adding " << ii << " to ccds_for_board vector." << endl;
 
           ccds_for_board.push_back(ii);
 
-cout << "XXX fetch_reassemble_raft_image -- CCD added to ccds_for_board vector." << endl;
+      cout << "XXX fetch_reassemble_raft_image -- CCD added to ccds_for_board vector." << endl;
 
         }
 
-#ifdef DEBUG
-cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
-cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
-    for (auto i: ccds_for_board) {
-        cout << i << " ";
-    }
-    cout << endl;
-#endif
-        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
-//        board++;
+      #ifdef DEBUG
+      cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
+      cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
+        for (auto i: ccds_for_board) {
+          cout << i << " ";
       }
-//      else {
-//cout << "XXX fetch_assemble_raft_image -- source_board.count says NO to board: " << board_str << endl;
-//        continue;
-//      }
+      cout << endl;
+      #endif
+
+        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
+      }
     board++;
   }
 
@@ -1068,6 +1070,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
   uint64_t total_stripes = 0;
   uint64_t pixel_errors = 0;
 
+  //These are for determining if we should skip writing a CCD or not
   bool do_ccd0 = false;
   bool do_ccd1 = false;
   bool do_ccd2 = false;
