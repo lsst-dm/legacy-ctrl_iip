@@ -15,6 +15,11 @@
 #include "Consumer_impl.h"
 #include "SimplePublisher.h"
 #include "fitsio.h"
+#include <sys/stat.h> 
+#include <errno.h>
+#include <dirent.h>
+#include <stdio.h>
+#include "Exceptions.h"
 
 #include "daq/Location.hh"
 #include "daq/LocationSet.hh"
@@ -24,6 +29,7 @@
 #include "ims/Source.hh"
 #include "ims/Slice.hh"
 #include "ims/Science.hh"
+#include "ims/WaveFront.hh"
 
 
 #define SECONDARY_HDU 2
@@ -59,7 +65,9 @@ class Forwarder {
     std::string Name = ""; //such as FORWARDER_1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
+    std::string WFS_RAFT = "";
     int Num_Images = 0; 
+    int ERROR_CODE_PREFIX; 
    
     
     std::string consume_queue = "";
@@ -116,12 +124,15 @@ class Forwarder {
     void process_new_visit(Node n);
     void process_health_check(Node n);
     void process_xfer_params(Node n);
+    void process_at_xfer_params(Node n);
     void process_take_images(Node n);
     void process_take_images_done(Node n);
     void process_end_readout(Node n);
+    void process_at_end_readout(Node n);
     void process_header_ready(Node n); 
 
     void process_fetch(Node n);
+    void process_at_fetch(Node n);
     void process_fetch_ack(Node n);
     void process_fetch_end_readout(Node n);
     void process_fetch_health_check(Node n);
@@ -142,7 +153,9 @@ class Forwarder {
     void fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
     void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
+    void fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
+    void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
 
     char* format_read_img_segment(const char*);
@@ -171,23 +184,25 @@ struct arg_struct {
 map<string, funcptr> on_foreman_message_actions = {
     { "AR_NEW_VISIT", &Forwarder::process_new_visit},
     { "PP_NEW_VISIT", &Forwarder::process_new_visit},
-    { "SP_NEW_VISIT", &Forwarder::process_new_visit},
+    { "AT_NEW_VISIT", &Forwarder::process_new_visit},
     { "AR_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "PP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
-    { "SP_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
+    { "AT_FWDR_HEALTH_CHECK", &Forwarder::process_health_check},
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
-    { "SP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
+    { "AT_FWDR_XFER_PARAMS", &Forwarder::process_at_xfer_params},
     { "AR_FWDR_TAKE_IMAGES", &Forwarder::process_take_images},
     { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
-    { "SP_TAKE_IMAGES", &Forwarder::process_take_images},
+    { "AT_TAKE_IMAGES", &Forwarder::process_take_images},
     { "AR_FWDR_END_READOUT", &Forwarder::process_end_readout},
-    { "PP_END_READOUT", &Forwarder::process_end_readout},
-    { "SP_END_READOUT", &Forwarder::process_end_readout},
+    { "PP_FWDR_END_READOUT", &Forwarder::process_end_readout},
+    { "AT_FWDR_END_READOUT", &Forwarder::process_at_end_readout},
     { "AR_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
     { "PP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done},
-    { "SP_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
+    { "AT_TAKE_IMAGES_DONE", &Forwarder::process_take_images_done}, 
     { "AR_FWDR_HEADER_READY", &Forwarder::process_header_ready }, 
+    { "PP_FWDR_HEADER_READY", &Forwarder::process_header_ready }, 
+    { "AT_FWDR_HEADER_READY", &Forwarder::process_header_ready } 
 };
 
 //The next three handlers are essentially acks...
@@ -195,7 +210,7 @@ map<string, funcptr> on_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK_ACK", &Forwarder::process_fetch_health_check_ack},
     { "AR_FETCH_ACK", &Forwarder::process_fetch_ack},
     { "PP_FETCH_ACK", &Forwarder::process_fetch_ack},
-    { "SP_FETCH_ACK", &Forwarder::process_fetch_ack}
+    { "AT_FETCH_ACK", &Forwarder::process_fetch_ack}
 
 };
 
@@ -203,7 +218,7 @@ map<string, funcptr> on_format_message_actions = {
     { "FORMAT_HEALTH_CHECK_ACK", &Forwarder::process_format_health_check_ack},
     { "AR_FORMAT_ACK", &Forwarder::process_format_ack},
     { "PP_FORMAT_ACK", &Forwarder::process_format_ack},
-    { "SP_FORMAT_ACK", &Forwarder::process_format_ack}
+    { "AT_FORMAT_ACK", &Forwarder::process_format_ack}
 
 };
 
@@ -211,7 +226,7 @@ map<string, funcptr> on_forward_message_actions = {
     { "FORWARD_HEALTH_CHECK_ACK", &Forwarder::process_forward_health_check_ack},
     { "AR_FORWARD_ACK", &Forwarder::process_forward_ack},
     { "PP_FORWARD_ACK", &Forwarder::process_forward_ack},
-    { "SP_FORWARD_ACK", &Forwarder::process_forward_ack}
+    { "AT_FORWARD_ACK", &Forwarder::process_forward_ack}
 
 };
 
@@ -221,10 +236,11 @@ map<string, funcptr> on_forward_message_actions = {
 map<string, funcptr> on_forwarder_to_fetch_message_actions = {
     { "FETCH_HEALTH_CHECK", &Forwarder::process_fetch_health_check},
     { "FETCH_END_READOUT", &Forwarder::process_fetch},
+    { "FETCH_AT_END_READOUT", &Forwarder::process_at_fetch},
     { "FETCH_TAKE_IMAGES_DONE", &Forwarder::process_fetch},
     { "AR_FETCH", &Forwarder::process_fetch},
     { "PP_FETCH", &Forwarder::process_fetch},
-    { "SP_FETCH", &Forwarder::process_fetch}
+    { "AT_FETCH", &Forwarder::process_fetch}
 };
 
 //This handler is for messages from Primary Forwarder to format thread
@@ -235,7 +251,7 @@ map<string, funcptr> on_forwarder_to_format_message_actions = {
     { "SP_FORMAT", &Forwarder::process_format}, 
     { "FORMAT_END_READOUT", &Forwarder::format_process_end_readout}, 
     { "FORMAT_HEADER_READY", &Forwarder::format_get_header}, 
-    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format},
+    { "FORMAT_TAKE_IMAGES_DONE", &Forwarder::process_format}
 };
 
 //This handler is for messages from Primary Forwarder to forward thread
@@ -246,7 +262,7 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
     { "PP_FORWARD", &Forwarder::process_forward},
     { "SP_FORWARD", &Forwarder::process_forward}, 
     { "FORWARD_END_READOUT", &Forwarder::forward_process_end_readout}, 
-    { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done},  
+    { "FORWARD_TAKE_IMAGES_DONE", &Forwarder::forward_process_take_images_done}  
 };
 
 map<string, int> Board_Layout = {
@@ -283,6 +299,7 @@ Forwarder::Forwarder() {
 
     Node root;
     string NAME, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR;
+    ERROR_CODE_PREFIX = 5600; 
     try {
         root = config_file["ROOT"];
         this->Name = root["NAME"].as<string>();
@@ -321,6 +338,9 @@ Forwarder::Forwarder() {
         this->FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
         this->FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
         this->FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
+
+        this->WFS_RAFT = root["ATS"]["WFS_RAFT"].as<string>();
+        cout << "Setting WFS_RAFT class var to:  " << this->WFS_RAFT << endl << endl << endl;
     }
     catch (YAML::TypedBadConversion<string>& e) {
         cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
@@ -568,51 +588,6 @@ void Forwarder::on_forwarder_to_forward_message(string body) {
     (this->*action)(node);
 }
 
-void Forwarder::process_header_ready(Node n) {
-    cout << "[x] phr" << endl;
-    // create header folder
-    // TODO: Should be work_dir?
-     string main_header_dir = "/tmp/header";
-    // TODO: Check if dir exists
-    cout << "[x] header main dir: " << main_header_dir << endl;
-    const int dir = mkdir(main_header_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-  
-    // create header subfolder
-    string path = n["FILENAME"].as<string>();
-    int img_idx = path.find_last_of("/");
-    int dot_idx = path.find_last_of(".");
-    int num_char = dot_idx - (img_idx + 1); // offset +1
-    string img_id = path.substr(img_idx + 1, num_char);
-    cout << "XXX img_id: " << img_id << endl;
-    //
-    string sub_dir = main_header_dir + "/" + img_id;
-    cout << "[x] sub header dir: " << sub_dir << endl;
-    const int dir_cmd = mkdir(sub_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-    
-    // scp felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
-    ostringstream cp_cmd;
-    cp_cmd << "scp -i ~/.ssh/id_rsa "
-           << path
-           << " "
-           << sub_dir
-           << "/";
-     cout << cp_cmd.str() << endl;
-     system(cp_cmd.str().c_str());
-    
-     string img_idx_wheader = path.substr(img_idx + 1);
-     string header_path = sub_dir + "/" + img_idx_wheader;
-    
-     Emitter msg;
-     msg << BeginMap;
-     msg << Key << "MSG_TYPE" << Value << "FORMAT_HEADER_READY";
-     msg << Key << "IMAGE_ID" << Value << img_id;
-     msg << Key << "FILENAME" << Value << header_path;
-     msg << EndMap;
-     cout << "[x] msg: " << msg.c_str() << endl;
-
-     // publish to format thread
-     FWDR_to_format_pub->publish_message(this->format_consume_queue, msg.c_str());
-}
 
 //Message action handler methods...
 void Forwarder::process_new_visit(Node n) {
@@ -660,7 +635,49 @@ void Forwarder::process_xfer_params(Node n) {
     this->Job_Num = n["JOB_NUM"].as<string>();
     cout << "After setting JOB_NUM" << endl;
 
-    //this->Target_Location = n["TARGET_LOCATION"].as<string>();
+    this->Target_Location = n["TARGET_LOCATION"].as<string>();
+    cout << "After setting TARGET_LOCATION" << endl;
+
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    cout << "After extracting REPLY_QUEUE" << endl;
+
+    string ack_id = n["ACK_ID"].as<string>();
+    cout << "After extracting ACK_ID" << endl;
+
+    //this->Daq_Addr = n["DAQ_ADDR"].as<string>();
+    //cout << "After setting DAQ_ADDR" << endl;
+
+    //this->Visit_ID = n["VISIT_ID"].as<string>();
+    //cout << "After setting VISIT_ID" << endl;
+
+    string message_type = "AR_FWDR_XFER_PARAMS_ACK";
+    //string component = "AR";
+    string ack_bool = "false";
+
+    ostringstream message;
+    message << "{ MSG_TYPE: " << message_type
+            << ", COMPONENT: " << this->Component
+            << ", ACK_ID: " << ack_id
+            << ", ACK_BOOL: " << ack_bool << "}";
+
+    FWDR_pub->publish_message(reply_queue, message.str());
+    return;
+}
+
+void Forwarder::process_at_xfer_params(Node n) {
+    cout << "Entering process_xfer_params method" << endl;
+    cout << "Incoming Node n is " << n <<  endl;
+
+    Node p = n["XFER_PARAMS"];
+    cout << "Sub Node p is " << p <<  endl;
+
+    //this->Session_ID = n["SESSION_ID"].as<string>();
+    //cout << "After setting SESSION_ID" << endl;
+
+    //this->Job_Num = n["JOB_NUM"].as<string>();
+    //cout << "After setting JOB_NUM" << endl;
+
+    this->Target_Location = n["TARGET_LOCATION"].as<string>();
     cout << "After setting TARGET_LOCATION" << endl;
 
     string reply_queue = n["REPLY_QUEUE"].as<string>();
@@ -713,7 +730,28 @@ void Forwarder::process_end_readout(Node n) {
     return;
 }
 
-//From forwarder main thread to fetch thread
+void Forwarder::process_at_end_readout(Node n) {
+    cout << "IN PROCESS_AT_END_READOUT" << endl;
+    // Send IMAGE_ID to fetch thread...use message broker queue as work queue
+    //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
+    //else, DAQ val will equal a path where files can be found.
+
+    //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
+    string image_id = n["IMAGE_ID"].as<string>();
+    image_id_list.push_back(image_id);
+    string msg_type = "FETCH_AT_END_READOUT";
+    ostringstream message;
+    message << "{MSG_TYPE: " << msg_type
+            << ", IMAGE_ID: " << image_id << "}";
+    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
+    return;
+}
+
+///////////////////////////////////////////////////////////////////
+// FETCH THREAD
+///////////////////////////////////////////////////////////////////
+
+//From forwarder main thread to fetch thread:
 void Forwarder::process_fetch(Node n) {
     //If message_type FETCH_END_READOUT,
     //  Make dir using image_id as name under work_dir
@@ -773,6 +811,96 @@ void Forwarder::process_fetch(Node n) {
     }
 }
 
+void Forwarder::process_at_fetch(Node n) {
+      string image_id = n["IMAGE_ID"].as<string>();
+      ostringstream cmd;
+      ostringstream rmcmd;
+      ostringstream filepath;
+      filepath << this->Work_Dir << "/" << image_id;
+      cmd << "mkdir -p " << filepath.str();
+      rmcmd << "rm  " << filepath.str() << "/*";
+      const std::string tmpstr = cmd.str();
+      const char* cmdstr = tmpstr.c_str();
+      const std::string tmp_rmstr = rmcmd.str();
+      const char* rmcmdstr = tmp_rmstr.c_str();
+      system(cmdstr);
+      //system(rmcmdstr);
+
+
+      
+ 
+      // COMMENTED OUT FOR HACK AS WFS FETCH DOES NOT WORK THIS MORNING
+           string raft = "raft02";
+           this->fetch_at_reassemble_process(raft, image_id, filepath.str());
+           map<string, vector<string>> source_boards = {
+              {"0", {"00"}}
+           };
+      //this->fetch_reassemble_raft_image(raft, source_boards, image_id, filepath.str());
+
+      string new_msg_type = "FORMAT_END_READOUT";
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << new_msg_type
+              << ", IMAGE_ID: " << image_id << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      return;
+}
+
+void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
+{
+  cout << ">>>>>>>>>>>>>> IN fetch_at_reassemble_process -- raft is: " << raft.c_str() << endl;
+  IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+                                     // such as raft01, raft13, etc.
+
+  IMS::Image image(image_id.c_str(), store);
+
+  //image.synopsis();
+  DAQ::LocationSet sources = image.sources();
+
+  uint64_t total_stripes = 0;
+
+  DAQ::Location location;
+
+  while(sources.remove(location)) {
+    IMS::Source source(location, image);
+  
+    //IMS::Science slice(source);
+    IMS::WaveFront slice(source);
+  
+  
+    if(!slice) return;
+  
+    // Filehandle set for ATS CCD will then have a set of 
+    // 16 filehandles...one filehandle for each amp segment.
+  
+    std::vector<std::ofstream*> FH_ATS;
+    this->fetch_set_up_at_filehandles(FH_ATS, image_id, dir_prefix);
+  
+      do
+      {
+        total_stripes += slice.stripes();
+        IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+    
+        slice.decode(ccd0);
+    
+        for(int s=0; s<slice.stripes(); ++s)
+        {
+          for(int amp=0; amp<N_AMPS; ++amp)
+          {
+            FH_ATS[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+          }
+        }
+    
+        delete [] ccd0;
+    
+      }
+      while(slice.advance());
+  
+      this->fetch_close_filehandles(FH_ATS);
+  }
+  return;
+}
+
+
 void Forwarder::process_take_images_done(Node n) {
     ostringstream msg;
     string new_msg_type = "FETCH_TAKE_IMAGES_DONE";
@@ -790,6 +918,293 @@ void Forwarder::process_take_images_done(Node n) {
         << ", ACK_ID: " << ack_id << "}";
     this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.str());
 }
+
+void Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
+  // Iterate through raft_list
+  // Foreman divide_work() method might have sent more than one raft,
+  // so here we act upon one raft at a time.
+  // The ccd_list is a vector that holds the ccds desired from this raft.
+  // It might have the string 'ALL'...if so, fetch all ccds for this raft.
+
+  for (int i = 0; i < this->visit_raft_list.size(); i++) {
+    vector<string> ccd_list = this->visit_ccd_list_by_raft[i];
+    fetch_readout_raft(this->visit_raft_list[i], ccd_list, image_id, dir_prefix);
+  }
+
+}
+
+void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix) {
+  // put a map together with raft electronic board (source) for key, and ccd_list as value
+  map<string, vector<string>> source_boards;
+  if (ccd_list[0] == "ALL") {
+    source_boards = All_Boards; //All_Boards is a class visible map
+  }
+  else {
+    for (int i = 0; i < ccd_list.size(); i++) {
+      int brd = Board_Layout[ccd_list[i]]; //Board_Layout is a class visible map
+      string board = std::to_string(brd);
+
+      if (source_boards.count(board)) {
+        //board exists as a key already...
+        source_boards[board].push_back(ccd_list[i]);
+      }
+      else {
+        // Create new map key entry for this board
+        source_boards.insert(pair<string,vector<string>>(board,vector<string>()));
+        source_boards[board].push_back(ccd_list[i]);
+      }
+    }
+  }
+#ifdef DEBUG
+//cout << "In fetch_readout_raft, source_board map is:  " << std::to_string(source_boards) << endl;
+for(auto it = source_boards.cbegin(); it != source_boards.cend(); ++it)
+{
+    std::cout << it->first << ":" << "\n";
+    for (auto i: it->second) {
+        cout << i << " ";
+    }
+    cout << endl;
+}
+#endif
+  // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
+  // but the source_boards map generated above, may not include keys for all 3 source boards.
+  // If ccd list is especially sparse, only one board might be included in map.
+  this->fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
+
+}
+
+//XXX FIX - This method is a mess - hoarder code...
+void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
+  ostringstream raft_name;
+  raft_name << raft;
+  string rafty = raft_name.str();
+  IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+                                     // such as raft01, raft13, etc.
+
+  IMS::Image image(image_id.c_str(), store);
+
+  image.synopsis();
+
+  DAQ::LocationSet sources = image.sources();
+
+  DAQ::Location location;
+
+  int board = 0; // Only way we know how to access a board is by its integer id.
+
+#ifdef DEBUG
+cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
+#endif
+
+  //The loop below processes each raft board (an individual source) one at a time.
+  //In order to avoid boards that do not have desired CCDs on them, we check within
+  //this loop; if board is not needed, we skip processing it. This is done by
+  //converting the board counter to a string, and checking within the source_boards map
+  //for a key representing the current board. If it exists, send board(location) to
+  //reassemble process
+  // FOR GREGG T: Is there a way to get a board number directly from API
+  //rather than using the indirect counter method used here?
+  while(sources.remove(location))
+  {
+      string board_str = std::to_string(board);
+
+      cout << "XXX fetch_assemble_raft_image -- looking at board: " << board_str << endl;
+
+      if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
+                                           // that we put together in the preceeding method...
+
+      cout << "XXX fetch_assemble_raft_image -- source_board.count says YES to board: " << board_str << endl;
+
+        //std::vector<string> ccds_for_board = source_boards[board_str];
+        std::vector<string> ccds_for_board;
+
+        for (auto ii : source_boards[board_str]) {
+
+      cout << "XXX fetch_reassemble_raft_image -- Adding " << ii << " to ccds_for_board vector." << endl;
+
+          ccds_for_board.push_back(ii);
+
+      cout << "XXX fetch_reassemble_raft_image -- CCD added to ccds_for_board vector." << endl;
+
+        }
+
+      #ifdef DEBUG
+      cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
+      cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
+        for (auto i: ccds_for_board) {
+          cout << i << " ";
+      }
+      cout << endl;
+      #endif
+
+        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
+      }
+    board++;
+  }
+
+  return;
+}
+
+// Above, the source boards are iterated through one at a time.
+// If the requested raft/ccd(s) can be found within the current board, the needed CCD list
+// for the current board is sent to this method along with the board location.
+// These two args are used to extract the correct data.
+// The other two args (raft and image_id) are used in constructing the output filename
+//
+// First, determine the number of CCDs in the ccds_for_board vector arg.
+// the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
+//////////////////////////////////////////////////////////////////////////////////////////////////
+void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
+{
+
+  IMS::Source source(location, image);
+
+  IMS::Science slice(source);
+
+  if(!slice) return;
+
+  // Set up filehandles for this board. There must be a separate filehandle set for each CCD
+  // to be fetched. CCDs to be fetched are listed in the ccds_for_board vector. Each CCD
+  //will then have a set of 16 filehandles...one filehandle for each amp segment.
+
+  uint64_t pixel = 0;
+  uint64_t total_stripes = 0;
+  uint64_t pixel_errors = 0;
+
+  //These are for determining if we should skip writing a CCD or not
+  bool do_ccd0 = false;
+  bool do_ccd1 = false;
+  bool do_ccd2 = false;
+
+  std::vector<std::ofstream*> FH0;
+  std::vector<std::ofstream*> FH1;
+  std::vector<std::ofstream*> FH2;
+
+  for (int x = 0; x < ccds_for_board.size(); x++) {
+
+        cout << "ccds_for_board[x] is: " << ccds_for_board[x] << endl;
+        cout << "ccds_for_board[x][0] is: " << ccds_for_board[x][0] << endl;
+        if (string(1, ccds_for_board[x][0]) == "0") {
+            do_ccd0 = true;
+            this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+
+        if (string(1, ccds_for_board[x][0]) == "1") {
+            do_ccd1 = true;
+            this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+
+        if (string(1, ccds_for_board[x][0]) == "2") {
+            do_ccd2 = true;
+            this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[x], dir_prefix);
+        }
+    }
+
+  do
+  {
+    total_stripes += slice.stripes();
+    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+    IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
+    IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
+
+    slice.decode012(ccd0, ccd1, ccd2);
+    int num1, num2, num3;
+
+    for(int s=0; s<slice.stripes(); ++s)
+    {
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd0) {
+          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+        }
+      }
+
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd1) {
+          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 4);
+        }
+      }
+
+      for(int amp=0; amp<N_AMPS; ++amp)
+      {
+        if (do_ccd2) {
+          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 4);
+        }
+      }
+
+    }
+    delete [] ccd0;
+    delete [] ccd1;
+    delete [] ccd2;
+
+  }
+  while(slice.advance());
+
+  if (do_ccd0) 
+    this->fetch_close_filehandles(FH0);
+  if (do_ccd1) 
+    this->fetch_close_filehandles(FH1);
+  if (do_ccd2) 
+    this->fetch_close_filehandles(FH2);
+
+  return;
+
+}
+
+void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
+  for (int i=0; i < 16; i++) {
+        std::string seg;
+        if (i < 10) {
+            seg = "0" + to_string(i);
+        }
+        else {
+            seg = to_string(i);
+        }
+        std::ostringstream fns;
+        fns << dir_prefix << "/" \
+                          << image_id \
+                          << "--" << raft \
+                          << "-ccd." << ccd \
+                          << "_segment." << seg;
+cout << "FILENAME:  " << fns.str() << endl;
+
+        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
+        fh_set.push_back(fh); 
+  }
+}
+
+void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix){
+  for (int i=0; i < 16; i++) {
+        std::string seg;
+        if (i < 10) {
+            seg = "0" + to_string(i);
+        }
+        else {
+            seg = to_string(i);
+        }
+        std::ostringstream fns;
+        fns << dir_prefix << "/" \
+                          << image_id \
+                          << "--AUXTEL" \
+                          << "-ccd.ATS_CCD" \
+                          << "_segment." << seg;
+cout << "FILENAME:  " << fns.str() << endl;
+
+        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
+        fh_set.push_back(fh); 
+  }
+}
+
+
+void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
+
+  for (int i = 0; i < 16; i++) {
+    fh_set[i]->close();
+  }
+}
+
+
+
 
 void Forwarder::process_fetch_ack(Node n) {
     cout << "fetch ack being processed" << endl;
@@ -860,169 +1275,287 @@ void Forwarder::process_forward_health_check_ack(Node n) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// FORMAT THREAD
+////////////////////////////////////////////////////////////////////////////////
+void Forwarder::process_header_ready(Node n) { 
+    try { 
+        string main_header_dir = this->Work_Dir + "/header"; 
+        const int dir = mkdir(main_header_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
+        if (dir == -1 && errno != 17) { 
+            throw L1CannotCreateDirError("In process_header_ready, forwarder cannot create directory in: " + main_header_dir); 
+        } 
+
+        if (!n["FILENAME"]) { 
+            throw L1YamlKeyError("In process_header_ready, forwarder cannot find message params: FILENAME"); 
+        } 
+
+        string path = n["FILENAME"].as<string>(); 
+        string img_id = n["IMAGE_ID"].as<string>(); 
+        int img_idx = path.find_last_of("/"); 
+        /** 
+        int dot_idx = path.find_last_of("."); 
+        int num_char = dot_idx - (img_idx + 1); // offset +1
+        string img_id = path.substr(img_idx + 1, num_char); 
+        */
+
+        string sub_dir = main_header_dir + "/" + img_id; 
+        const int dir_cmd = mkdir(sub_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);  
+        if (dir_cmd == -1 && errno != 17) { 
+            throw L1CannotCreateDirError("In process_header_ready, forwarder cannot create sub_directory in: " + sub_dir); 
+        } 
+
+        // scp -i ~/.ssh/from_efd felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
+        ostringstream cp_cmd; 
+        cp_cmd << "scp -i ~/.ssh/from_efd "
+               << path
+               << " " 
+               << sub_dir
+               << "/"; 
+        int scp_cmd = system(cp_cmd.str().c_str()); 
+        if (scp_cmd == 256) { 
+            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + cp_cmd.str()); 
+        } 
+
+        string img_idx_wheader = path.substr(img_idx + 1);  
+        string header_path = sub_dir + "/" + img_idx_wheader;
+
+        Emitter msg; 
+        msg << BeginMap; 
+        msg << Key << "MSG_TYPE" << Value << "FORMAT_HEADER_READY"; 
+        msg << Key << "IMAGE_ID" << Value << img_id; 
+        msg << Key << "FILENAME" << Value << header_path; 
+        msg << EndMap; 
+        FWDR_to_format_pub->publish_message(this->format_consume_queue, msg.c_str()); 
+    } 
+    catch (L1YamlKeyError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+    } 
+    catch (L1CannotCreateDirError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 20; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+    } 
+    catch (L1CannotCopyFileError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
+} 
+
+////////////////////////////////////////////////////////////////////////////////
 // F@
 ////////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_process_end_readout(Node node) { 
     cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
     cout << "[f] fper" << endl;
-    string image_id = node["IMAGE_ID"].as<string>(); 
-    this->readout_img_ids.push_back(image_id); 
-    this->format_look_for_work(); 
+    try { 
+        string image_id = node["IMAGE_ID"].as<string>(); 
+        this->readout_img_ids.push_back(image_id); 
+        this->format_look_for_work(); 
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 } 
 
 void Forwarder::format_get_header(Node node) { 
     cout << "[f] fgh" << endl; 
-    string image_id = node["IMAGE_ID"].as<string>(); 
-    string filename = node["FILENAME"].as<string>(); 
-    cout << "[x] " << image_id << ": " << filename << endl;
-    this->header_info_dict[image_id] = filename; 
-    this->format_look_for_work(); 
+    try { 
+        string image_id = node["IMAGE_ID"].as<string>(); 
+        string filename = node["FILENAME"].as<string>(); 
+        cout << "[x] " << image_id << ": " << filename << endl;
+        this->header_info_dict[image_id] = filename; 
+        this->format_look_for_work(); 
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 } 
 
 void Forwarder::format_assemble_img(Node n) {
     cout << "[f] fai" << endl; 
-    string img_id = n["IMAGE_ID"].as<string>(); 
-    string header = n["HEADER"].as<string>(); 
-    // create dir  /mnt/ram/FITS/IMG_10
-    string fits_dir = Work_Dir + "/FITS"; 
-    cout << "[x] fits_dir: " << fits_dir << endl; 
-    const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
-    format_write_img(img_id, header);
+    try { 
+        string img_id = n["IMAGE_ID"].as<string>(); 
+        string header = n["HEADER"].as<string>(); 
+        // create dir  /mnt/ram/FITS/IMG_10
+        string fits_dir = Work_Dir + "/FITS"; 
+        cout << "[x] fits_dir: " << fits_dir << endl; 
+        const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
+        format_write_img(img_id, header);
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 }
 
 
 char* Forwarder::format_read_img_segment(const char *file_path) { 
-    fstream img_file(file_path, fstream::in | fstream::binary); 
-    long len = WIDTH * HEIGHT; 
-    char *buffer = new char[len]; 
-    img_file.seekg(0, ios::beg); 
-    img_file.read(buffer, len); 
-    img_file.close();
-    return buffer;
+    try { 
+        fstream img_file(file_path, fstream::in | fstream::binary); 
+        long len = WIDTH * HEIGHT; 
+        char *buffer = new char[len]; 
+        img_file.seekg(0, ios::beg); 
+        img_file.read(buffer, len); 
+        img_file.close();
+        return buffer;
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 } 
 
 unsigned char** Forwarder::format_assemble_pixels(char *buffer) { 
-    unsigned char **array = new unsigned char*[HEIGHT]; 
-    array[0] = (unsigned char *) malloc( WIDTH * HEIGHT * sizeof(unsigned char)); 
+    try { 
+        unsigned char **array = new unsigned char*[HEIGHT]; 
+        array[0] = (unsigned char *) malloc( WIDTH * HEIGHT * sizeof(unsigned char)); 
 
-    for (int i = 1; i < HEIGHT; i++) { 
-        array[i] = array[i-1] + WIDTH; 
-    } 
-
-    for (int j = 0; j < HEIGHT; j++) {
-        for (int i = 0; i < WIDTH; i++) {
-            array[j][i]= buffer[i+j]; 
+        for (int i = 1; i < HEIGHT; i++) { 
+            array[i] = array[i-1] + WIDTH; 
         } 
-    }
-    return array;
+
+        for (int j = 0; j < HEIGHT; j++) {
+            for (int i = 0; i < WIDTH; i++) {
+                array[j][i]= buffer[i+j]; 
+            } 
+        }
+        return array;
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 } 
 
 void Forwarder::format_write_img(string img, string header) { 
     cout << "[x] fwi" << endl;
-    long len = WIDTH * HEIGHT;
-    int bitpix = BYTE_IMG; 
-    long naxis = 2;
-    long naxes[2] = { WIDTH, HEIGHT }; 
-    long fpixel = 1; 
-    long nelements = len; 
-    int status = 0; 
-    int hdunum = 2;
-    int nkeys; 
-    char card[FLEN_CARD]; 
-    fitsfile *iptr, *optr; 
+    try { 
+        long len = WIDTH * HEIGHT;
+        int bitpix = LONG_IMG; 
+        long naxis = 2;
+        long naxes[2] = { WIDTH, HEIGHT }; 
+        long fpixel = 1; 
+        long nelements = len; 
+        int status = 0; 
+        int hdunum = 2;
+        int nkeys; 
+        char card[FLEN_CARD]; 
+        fitsfile *iptr, *optr; 
 
-    // /mnt/ram/IMG_31
-    string img_path = Work_Dir + "/" + img;
-    string header_path = header;
-    string destination = Work_Dir + "/FITS/" + img + ".fits";
-    cout << "[x] header: " << header_path << endl; 
-    cout << "[x] destination:" << destination << endl;
+        // /mnt/ram/IMG_31
+        string img_path = Work_Dir + "/" + img;
+        string header_path = header;
+        string destination = Work_Dir + "/FITS/" + img + ".fits";
+        cout << "[x] header: " << header_path << endl; 
+        cout << "[x] destination:" << destination << endl;
 
-    fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
-    fits_create_file(&optr, destination.c_str(), &status); 
-    fits_copy_hdu(iptr, optr, 0, &status); 
+        fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
+        fits_create_file(&optr, destination.c_str(), &status); 
+        fits_copy_hdu(iptr, optr, 0, &status); 
 
-    vector<string> file_names = format_list_files(img_path); 
-    vector<string>::iterator it; 
-    for (it = file_names.begin(); it != file_names.end(); it++) { 
-        string img_segment = img_path + "/" + *it; 
-        char *img_buffer = format_read_img_segment(img_segment.c_str());
-        unsigned char **array = format_assemble_pixels(img_buffer); 
+        vector<string> file_names = format_list_files(img_path); 
+        vector<string>::iterator it; 
+        for (it = file_names.begin(); it != file_names.end(); it++) { 
+            string img_segment = img_path + "/" + *it; 
+            char *img_buffer = format_read_img_segment(img_segment.c_str());
+            unsigned char **array = format_assemble_pixels(img_buffer); 
 
-        fits_movabs_hdu(iptr, hdunum, NULL, &status); 
-        fits_create_img(optr, bitpix, naxis, naxes, &status); 
-        fits_write_img(optr, TBYTE, fpixel, nelements, array[0], &status); 
+            fits_movabs_hdu(iptr, hdunum, NULL, &status); 
+            fits_create_img(optr, bitpix, naxis, naxes, &status); 
+            fits_write_img(optr, TBYTE, fpixel, nelements, array[0], &status); 
 
-        fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
-        for (int i = 1; i <= nkeys; i++) { 
-            fits_read_record(iptr, i, card, &status); 
-            fits_write_record(optr, card, &status); 
-        }
-        hdunum++;
+            fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
+            for (int i = 1; i <= nkeys; i++) { 
+                fits_read_record(iptr, i, card, &status); 
+                fits_write_record(optr, card, &status); 
+            }
+            hdunum++;
+        } 
+        fits_close_file(iptr, &status); 
+        fits_close_file(optr, &status); 
+
+        cout << "end of fwi" << endl;
+        format_send_completed_msg(img);
     } 
-    fits_close_file(iptr, &status); 
-    fits_close_file(optr, &status); 
-
-    cout << "end of fwi" << endl;
-    format_send_completed_msg(img);
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 } 
 
 vector<string> Forwarder::format_list_files(string path) { 
-    struct dirent *entry; 
-    DIR *dir  = opendir(path.c_str()); 
-    vector<string> file_names; 
-    while (entry  = readdir(dir)) { 
-        string name = entry->d_name;
-        if (strcmp(name.c_str(), ".") && strcmp(name.c_str(), "..")) { 
-            file_names.push_back(name); 
-        }
-    } 
+    try { 
+        struct dirent *entry; 
+        DIR *dir  = opendir(path.c_str()); 
+        vector<string> file_names; 
+        while (entry  = readdir(dir)) { 
+            string name = entry->d_name;
+            if (strcmp(name.c_str(), ".") && strcmp(name.c_str(), "..")) { 
+                file_names.push_back(name); 
+            }
+        } 
 
-    sort(file_names.begin(), file_names.end()); 
-    closedir(dir);
-    return file_names; 
+        sort(file_names.begin(), file_names.end()); 
+        closedir(dir);
+        return file_names; 
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 } 
 
 void Forwarder::format_send_completed_msg(string image_id) { 
     cout << "[f] fscm" << endl;
-    Emitter msg; 
-    msg << BeginMap; 
-    msg << Key << "MSG_TYPE" << Value << "FORWARD_END_READOUT"; 
-    msg << Key << "IMAGE_ID" << Value << image_id; 
-    msg << EndMap; 
-    fmt_pub->publish_message(this->forward_consume_queue, msg.c_str()); 
+    try { 
+        Emitter msg; 
+        msg << BeginMap; 
+        msg << Key << "MSG_TYPE" << Value << "FORWARD_END_READOUT"; 
+        msg << Key << "IMAGE_ID" << Value << image_id; 
+        msg << EndMap; 
+        fmt_pub->publish_message(this->forward_consume_queue, msg.c_str()); 
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 } 
 ///////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_look_for_work() { 
     cout << "[f] flfw" << endl;
-    vector<string>::iterator it;
-    map<string, string>::iterator mit;  
-    map<string, string>::iterator tid; 
-    cout << "readout SIZE: " << readout_img_ids.size() << endl;
-    if (this->readout_img_ids.size() != 0 && this->header_info_dict.size() != 0) { 
-        cout << "[x] img data exists" << endl; 
-        for (it = this->readout_img_ids.begin(); it != this->readout_img_ids.end(); ) { 
-            string img_id = *it; 
-            mit = this->header_info_dict.find(img_id); 
-            if (mit != this->header_info_dict.end()) { 
-                this->readout_img_ids.erase(it); 
-                string header_filename = this->header_info_dict[img_id]; 
-                this->header_info_dict.erase(mit); 
+    try { 
+        vector<string>::iterator it;
+        map<string, string>::iterator mit;  
+        map<string, string>::iterator tid; 
+        cout << "readout SIZE: " << readout_img_ids.size() << endl;
+        if (this->readout_img_ids.size() != 0 && this->header_info_dict.size() != 0) { 
+            cout << "[x] img data exists" << endl; 
+            for (it = this->readout_img_ids.begin(); it != this->readout_img_ids.end(); ) { 
+                string img_id = *it; 
+                mit = this->header_info_dict.find(img_id); 
+                if (mit != this->header_info_dict.end()) { 
+                    this->readout_img_ids.erase(it); 
+                    string header_filename = this->header_info_dict[img_id]; 
+                    this->header_info_dict.erase(mit); 
 
-                // do the work 
-                Node n; 
-                n["IMAGE_ID"] = img_id; 
-                n["HEADER"] = header_filename; 
-                format_assemble_img(n); 
+                    // do the work 
+                    Node n; 
+                    n["IMAGE_ID"] = img_id; 
+                    n["HEADER"] = header_filename; 
+                    format_assemble_img(n); 
+                } 
+                else it++; 
             } 
-            else it++; 
+        } 
+        else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
+            cout << "[x] no img data" << endl; 
+            return; 
         } 
     } 
-    else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
-        cout << "[x] no img data" << endl; 
-        return; 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
     } 
 } 
 
@@ -1031,20 +1564,39 @@ void Forwarder::format_look_for_work() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::forward_process_end_readout(Node n) { 
-    string img_id = n["IMAGE_ID"].as<string>(); 
-    string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
-    string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
-  
-    // use bbcp to send file 
-    ostringstream cp_cmd; 
-    cp_cmd << "cp "
-           << img_path
-           << " " 
-           << dest_path; 
-    cout << cp_cmd.str() << endl; 
-    system(cp_cmd.str().c_str()); 
-    this->finished_image_work_list.push_back(img_id);
-    cout << "[X] READOUT COMPLETE." << endl;
+    try { 
+        string img_id = n["IMAGE_ID"].as<string>(); 
+        string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
+        string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
+	cout << "[STATUS] target locations is: " << this->Target_Location << endl; 
+      
+        size_t find_at = dest_path.find("@"); 
+        ostringstream bbcp_cmd; 
+        if (find_at != string::npos) { 
+            bbcp_cmd << "scp -i ~/.ssh/from_efd ";
+        } 
+        else { 
+            bbcp_cmd << "cp "; 
+        } 
+        bbcp_cmd << img_path
+                 << " " 
+                 << dest_path; 
+        int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
+	cout << "[STATUS] file is copied from " << img_path << " to " << dest_path << endl; 
+        if (bbcp_cmd_status == 256) { 
+            throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
+        } 
+        this->finished_image_work_list.push_back(img_id);
+        cout << "[X] READOUT COMPLETE." << endl;
+    } 
+    catch (L1CannotCopyFileError& e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
 } 
 
 void Forwarder::forward_process_take_images_done(Node n) { 
@@ -1079,319 +1631,6 @@ int main() {
     fwdr->run();
     while(1) {
     }
-}
-
-void Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
-  // Iterate through raft_list
-  // Foreman divide_work() method might have sent more than one raft,
-  // so here we act upon one raft at a time.
-  // The ccd_list is a vector that holds the ccds desired from this raft.
-  // It might have the string 'ALL'...if so, fetch all ccds for this raft.
-
-  for (int i = 0; i < this->visit_raft_list.size(); i++) {
-    vector<string> ccd_list = this->visit_ccd_list_by_raft[i];
-    fetch_readout_raft(this->visit_raft_list[i], ccd_list, image_id, dir_prefix);
-  }
-
-}
-
-void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix) {
-  // put a map together with raft electronic board (source) for key, and ccd_list as value
-  map<string, vector<string>> source_boards;
-  if (ccd_list[0] == "ALL") {
-    source_boards = All_Boards;
-  }
-  else {
-    for (int i = 0; i < ccd_list.size(); i++) {
-      int brd = Board_Layout[ccd_list[i]];
-      string board = std::to_string(brd);
-
-      if (source_boards.count(board)) {
-        //board exists as a key already...
-        source_boards[board].push_back(ccd_list[i]);
-      }
-      else {
-        // Create new map key entry for this board
-        source_boards.insert(pair<string,vector<string>>(board,vector<string>()));
-        source_boards[board].push_back(ccd_list[i]);
-      }
-    }
-  }
-#ifdef DEBUG
-//cout << "In fetch_readout_raft, source_board map is:  " << std::to_string(source_boards) << endl;
-for(auto it = source_boards.cbegin(); it != source_boards.cend(); ++it)
-{
-    std::cout << it->first << ":" << "\n";
-    for (auto i: it->second) {
-        cout << i << " ";
-    }
-    cout << endl;
-}
-#endif
-  // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
-  // but the source_boards map generated above, may not include keys for all 3 source boards.
-  // If ccd list is especially sparse, only one board might be included in map.
-  this->fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
-
-}
-
-void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
-  // Fetch LocationSet for raft.
-  // Examine each source in set...
-  ostringstream raft_name;
-  raft_name << raft;
-  string rafty = raft_name.str();
-  IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
-                                     // such as raft01, raft13, etc.
-
-  IMS::Image image(image_id.c_str(), store);
-
-  image.synopsis();
-
-  DAQ::LocationSet sources = image.sources();
-
-  DAQ::Location location;
-
-  int board = 0; // Only way we know how to access a board is by its integer id.
-
-#ifdef DEBUG
-cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
-#endif
-  //The loop below processes each raft board (an individual source) one at a time.
-  //In order to avoid boards that do not have desired CCDs on them, we check within
-  //this loop; if board is not needed, we skip processing it. This is done by
-  //converting the board counter to a string, and checking within the source_boards map
-  //for a key representing the current board. If it exists, send board(location) to
-  //reassemble process
-  // FOR GREGG T: Is there a way to get a board number directly from API
-  //rather than using the indirect counter method used here?
-  while(sources.remove(location))
-  {
-      string board_str = std::to_string(board);
-
-cout << "XXX fetch_assemble_raft_image -- looking at board: " << board_str << endl;
-
-      if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
-                                           // that we put together in the preceeding method...
-
-cout << "XXX fetch_assemble_raft_image -- source_board.count says YES to board: " << board_str << endl;
-
-        //std::vector<string> ccds_for_board = source_boards[board_str];
-        std::vector<string> ccds_for_board;
-
-        for (auto ii : source_boards[board_str]) {
-
-cout << "XXX fetch_reassemble_raft_image -- Adding " << ii << " to ccds_for_board vector." << endl;
-
-          ccds_for_board.push_back(ii);
-
-cout << "XXX fetch_reassemble_raft_image -- CCD added to ccds_for_board vector." << endl;
-
-        }
-
-#ifdef DEBUG
-cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
-cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
-    for (auto i: ccds_for_board) {
-        cout << i << " ";
-    }
-    cout << endl;
-#endif
-        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
-//        board++;
-      }
-//      else {
-//cout << "XXX fetch_assemble_raft_image -- source_board.count says NO to board: " << board_str << endl;
-//        continue;
-//      }
-    board++;
-  }
-
-  return;
-}
-
-// Above, the source boards are iterated through one at a time.
-// If the requested raft/ccd(s) can be found within the current board, the needed CCD list
-// for the current board is sent to this method along with the board location.
-// These two args are used to extract the correct data.
-// The other two args (raft and image_id) are used in constructing the output filename
-//
-// First, determine the number of CCDs in the ccds_for_board vector arg.
-// the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
-void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
-{
-
-cout << "XXXX fetch_reassemble_process -- Entry into Method..." << endl;
-
-  IMS::Source source(location, image);
-
-  IMS::Science slice(source);
-
-  if(!slice) return;
-
-  // Set up filehandles for this board. There must be a separate filehandle set for each CCD
-  // to be fetched. CCDs to be fetched are listed in the ccds_for_board vector. Each CCD
-  //will then have a set of 16 filehandles...one filehandle for each amp segment.
-
-  uint64_t pixel = 0;
-  uint64_t total_stripes = 0;
-  uint64_t pixel_errors = 0;
-
-  bool do_ccd0 = false;
-  bool do_ccd1 = false;
-  bool do_ccd2 = false;
-
-  std::vector<std::ofstream*> FH0;
-  std::vector<std::ofstream*> FH1;
-  std::vector<std::ofstream*> FH2;
-
-  //std::ofstream FH0[16];
-  //std::ofstream FH1[16];
-  //std::ofstream FH2[16];
-
-  //vector<string>::iterator it=ccds_for_board.begin();
-  //while(it!=ccds_for_board.end()){
-  for (int x = 0; x < ccds_for_board.size(); x++) {
-
-        cout << "ccds_for_board is: " << ccds_for_board[x] << endl;
-        cout << "ccds_for_board[x][0] is: " << ccds_for_board[x][0] << endl;
-        if (string(1, ccds_for_board[x][0]) == "0") {
-        //if(ccds_for_board[x][0] == "0") {
-            do_ccd0 = true;
-#ifdef DEBUG
-cout << "In fetch_reassemble_process, calling setup filehandles for image " << image_id << endl;
-#endif
-            this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[0], dir_prefix);
-#ifdef DEBUG
-cout << "In fetch_reassemble_process, file handles for ccd0 are set up" << endl;
-#endif
-        }
-        //if(ccds_for_board[x][0] == "1") {
-        if (string(1, ccds_for_board[x][0]) == "1") {
-cout << "Yes! We know we are looking at a CCD in board one in the middle position..." << endl;
-            do_ccd1 = true;
-            this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[0], dir_prefix);
-#ifdef DEBUG
-cout << "In fetch_reassemble_process, file handles for ccd1 are set up" << endl;
-#endif
-        }
-        //if(ccds_for_board[x][0] == "2") {
-        if (string(1, ccds_for_board[x][0]) == "2") {
-            do_ccd2 = true;
-            this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[0], dir_prefix);
-#ifdef DEBUG
-cout << "In fetch_reassemble_process, file handles for ccd2 are set up" << endl;
-#endif
-        }
-    }
-cout << "XXXXX fetch_reassemble_process -- Just before do/while loop" << endl;
-if ( do_ccd0) {
-  cout << "do_ccd0 is set to true!" << endl;
-}
-else {
-cout << "do_ccd0 is set to false." << endl;
-}
-
-if ( do_ccd1) {
-  cout << "do_ccd1 is set to true!" << endl;
-}
-else {
-cout << "do_ccd1 is set to false." << endl;
-}
-
-if ( do_ccd2) {
-  cout << "do_ccd2 is set to true!" << endl;
-}
-else {
-cout << "do_ccd2 is set to false." << endl;
-}
-
-  do
-  {
-    total_stripes += slice.stripes();
-    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
-    IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
-    IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
-
-    slice.decode012(ccd0, ccd1, ccd2);
-    int num1, num2, num3;
-
-    for(int s=0; s<slice.stripes(); ++s)
-    {
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd0) {
-          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 1);
-        }
-      }
-
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd1) {
-          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 1);
-        }
-      }
-
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd2) {
-          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 1);
-        }
-      }
-
-    }
-    delete [] ccd0;
-    delete [] ccd1;
-    delete [] ccd2;
-
-  }
-  while(slice.advance());
-
-  if (do_ccd0) 
-    this->fetch_close_filehandles(FH0);
-  if (do_ccd1) 
-    this->fetch_close_filehandles(FH1);
-  if (do_ccd2) 
-    this->fetch_close_filehandles(FH2);
-
-  return;
-
-}
-
-void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
-  for (int i=0; i < 16; i++) {
-        //std::ofstream fh;
-        std::string seg;
-        if (i < 10) {
-            seg = "0" + to_string(i);
-        }
-        else {
-            seg = to_string(i);
-        }
-        std::ostringstream fns;
-        fns << dir_prefix << "/" \
-                          << image_id \
-                          << "--" << raft \
-                          << "-ccd." << ccd \
-                          << "_segment." << seg;
-//cout << "FILENAME:  " << fns.str() << endl;
-
-        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
-        fh_set.push_back(fh); 
-
-        //fh.open(fns.str(), \
-        //        std::ios::out | std::ios::app | std::ios::binary );
-        //fh_set.push_back(std::move(fh));  // The new, cool kid way to deal with smart pointers!
-        //
-  }
-}
-
-void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
-
-  for (int i = 0; i < 16; i++) {
-    fh_set[i]->close();
-  }
-
 }
 
 

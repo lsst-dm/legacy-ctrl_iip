@@ -4,7 +4,7 @@
 #rabbitmqctl -p /bunny purge_queue pp_foreman_consume
 #rabbitmqctl -p /bunny purge_queue ar_foreman_consume
 #rabbitmqctl -p /bunny purge_queue cu_foreman_consume
-#rabbitmqctl -p /bunny purge_queue sp_foreman_consume
+#rabbitmqctl -p /bunny purge_queue at_foreman_consume
 #rabbitmqctl -p /bunny purge_queue f_consume
 #rabbitmqctl -p /bunny purge_queue archive_ctrl_consume
 #rabbitmqctl -p /bunny purge_queue archive_ctrl_publish
@@ -26,6 +26,7 @@
 #rabbitmqctl -p /test purge_queue dmcs_ocs_publish
 #rabbitmqctl -p /test purge_queue pp_foreman_consume
 rabbitmqctl -p /test purge_queue ar_foreman_consume
+rabbitmqctl -p /test purge_queue at_foreman_consume
 #rabbitmqctl -p /test purge_queue cu_foreman_consume
 #rabbitmqctl -p /test purge_queue archive_ctrl_consume
 #rabbitmqctl -p /test purge_queue archive_ctrl_publish
@@ -68,3 +69,5 @@ rabbitmqctl -p /test purge_queue f99_consume_from_forward
 
 #rm ./logs/*.log
 
+rabbitmqctl -p /test purge_queue ocs_dmcs_consume
+rabbitmqctl -p /test purge_queue dmcs_ocs_publish

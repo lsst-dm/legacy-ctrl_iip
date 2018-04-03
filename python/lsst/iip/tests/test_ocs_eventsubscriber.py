@@ -16,7 +16,7 @@ from time import sleep
 class TestOCS_EventSubscriber: 
 
     os.chdir("ocs/src")
-    cmd = subprocess.Popen("./Test_EventSubscriber&", shell=True, preexec_fn=os.setsid)
+    cmd = subprocess.Popen("./EventSubscriber&", shell=True, preexec_fn=os.setsid)
     sleep(10) 
 
     EXPECTED_DMCS_MESSAGES = 9

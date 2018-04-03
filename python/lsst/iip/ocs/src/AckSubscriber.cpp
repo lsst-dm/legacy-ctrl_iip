@@ -1,9 +1,6 @@
 #include <string.h>
 #include <iostream> 
 #include <yaml-cpp/yaml.h>
-#include "SAL_archiver.h"
-#include "SAL_catchuparchiver.h" 
-#include "SAL_processingcluster.h"
 #include "OCS_Bridge.h"
 #include "AckSubscriber.h"
 #include "Toolsmod.h"
@@ -62,6 +59,7 @@ void AckSubscriber::setup_consumer() {
     ar = SAL_archiver(); 
     cu = SAL_catchuparchiver(); 
     pp = SAL_processingcluster(); 
+    atar = SAL_atArchiver(); 
 }
 
 void AckSubscriber::run() { 
@@ -107,6 +105,20 @@ void AckSubscriber::run() {
     pp.salEvent(const_cast<char *>("processingcluster_logevent_AppliedSettingsMatchStart")); 
     pp.salEvent(const_cast<char *>("processingcluster_logevent_SettingVersions")); 
     pp.salEvent(const_cast<char *>("processingcluster_logevent_ErrorCode")); 
+
+    atar.salProcessor(const_cast<char *>("atArchiver_command_enable")); 
+    atar.salProcessor(const_cast<char *>("atArchiver_command_disable")); 
+    atar.salProcessor(const_cast<char *>("atArchiver_command_standby")); 
+    atar.salProcessor(const_cast<char *>("atArchiver_command_enterControl")); 
+    atar.salProcessor(const_cast<char *>("atArchiver_command_exitControl")); 
+    atar.salProcessor(const_cast<char *>("atArchiver_command_statArt")); 
+    atar.salProcessor(const_cast<char *>("atArchiver_command_stop")); 
+    atar.salProcessor(const_cast<char *>("atArchiver_command_abort"));
+
+    atar.salEvent(const_cast<char *>("atArchiver_logevent_SummaryState")); 
+    atar.salEvent(const_cast<char *>("atArchiver_logevent_AppliedSettingsMatchStart")); 
+    atar.salEvent(const_cast<char *>("atArchiver_logevent_SettingVersions")); 
+    atar.salEvent(const_cast<char *>("atArchiver_logevent_ErrorCode")); 
 
     cout << "============> running CONSUMER <=============" << endl; 
     callback<AckSubscriber> on_msg = &AckSubscriber::on_message; 
@@ -156,6 +168,11 @@ void AckSubscriber::process_ack(Node n) {
             Command<SAL_processingcluster>::funcptr action = sender.action_handler[message_value]; 
             (pp.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
         }
+        else if (device == "ATAR"){ 
+            Command<SAL_atArchiver> sender; 
+            Command<SAL_atArchiver>::funcptr action = sender.action_handler[message_value]; 
+            (atar.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
+        }
 
 	cout << "=== PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id 
              << "::" << message_value << "::" << ack_statement << endl; 
@@ -178,7 +195,6 @@ void AckSubscriber::process_summary_state(Node n) {
             archiver_logevent_SummaryStateC data; 
             data.SummaryStateValue = summary_state; 
             data.priority = priority; 
-
             ar.logEvent_SummaryState(&data, priority); 
         }
         else if (device == "CU") {
@@ -192,6 +208,12 @@ void AckSubscriber::process_summary_state(Node n) {
             data.SummaryStateValue = summary_state; 
             data.priority = priority; 
             pp.logEvent_SummaryState(&data, priority); 
+        }
+        else if (device == "ATAR") { 
+            atArchiver_logevent_SummaryStateC data; 
+            data.SummaryStateValue = summary_state; 
+            data.priority = priority; 
+            atar.logEvent_SummaryState(&data, priority); 
         }
     } 
     catch (exception& e) { 
@@ -225,6 +247,12 @@ void AckSubscriber::process_recommended_settings_version(Node n) {
             data.priority = priority; 
             pp.logEvent_SettingVersions(&data, priority); 
         }
+        else if (device == "ATAR") { 
+            atArchiver_logevent_SettingVersionsC data; 
+            data.recommendedSettingVersion = recommended_setting; 
+            data.priority = priority; 
+            atar.logEvent_SettingVersions(&data, priority); 
+        }
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In AckSubscriber -- recommended_setting_versions, cannot read fields from message." << endl; 
@@ -256,6 +284,12 @@ void AckSubscriber::process_settings_applied(Node n) {
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
             pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
+        }
+        else if (device == "ATAR") { 
+            atArchiver_logevent_AppliedSettingsMatchStartC data; 
+            data.appliedSettingsMatchStartIsTrue = settings_applied; 
+            data.priority = priority; 
+            atar.logEvent_AppliedSettingsMatchStart(&data, priority); 
         }
     } 
     catch (exception& e) { 
@@ -289,6 +323,12 @@ void AckSubscriber::process_applied_settings_match_start(Node n) {
             data.priority = priority; 
             pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
         }
+        else if (device == "ATAR") { 
+            atArchiver_logevent_AppliedSettingsMatchStartC data; 
+            data.appliedSettingsMatchStartIsTrue = settings_applied; 
+            data.priority = priority; 
+            atar.logEvent_AppliedSettingsMatchStart(&data, priority); 
+        }
     }
     catch (exception& e) { 
 	cout << "WARNING: " << "In AckSubscriber -- applied_settings_match_start, cannot read fields from message." << endl; 
@@ -320,6 +360,12 @@ void AckSubscriber::process_error_code(Node n) {
             data.errorCode = error_code; 
             data.priority = priority; 
             pp.logEvent_ErrorCode(&data, priority); 
+        }
+        else if (device == "ATAR") { 
+            atArchiver_logevent_ErrorCodeC data; 
+            data.errorCode = error_code; 
+            data.priority = priority; 
+            atar.logEvent_ErrorCode(&data, priority); 
         }
     }
     catch (exception& e) { 

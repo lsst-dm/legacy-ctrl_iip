@@ -34,15 +34,18 @@ class AuxDevice:
         It receives jobs and divides and assigns the work to forwarders, records state and
         status change of forwarders, and sends messages accordingly.
     """
-    COMPONENT_NAME = 'SP_FOREMAN'
-    AR_FOREMAN_CONSUME = "sp_foreman_consume"
+    COMPONENT_NAME = 'AUX_FOREMAN'
+    AT_FOREMAN_CONSUME = "at_foreman_consume"
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
-    SP_FOREMAN_ACK_PUBLISH = "sp_foreman_ack_publish"
+    AT_FOREMAN_ACK_PUBLISH = "at_foreman_ack_publish"
     START_INTEGRATION_XFER_PARAMS = {}
+    ACK_QUEUE = []
     CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
     DP = toolsmod.DP
+    RAFT_LIST = []
+    RAFT_CCD_LIST = ['00']
 
 
     def __init__(self, filename=None):
@@ -72,25 +75,22 @@ class AuxDevice:
 
 
 
-        self._msg_actions = { 'AR_START_INTEGRATION': self.process_start_integration,
-                              'SP_NEW_SESSION': self.set_session,
-                              'SP_NEXT_VISIT': self.process_target_event,
-                              'AR_READOUT': self.process_dmcs_readout,
-                              'SP_FWDR_HEALTH_CHECK_ACK': self.process_ack,
-                              'SP_FWDR_XFER_PARAMS_ACK': self.process_ack,
+        self._msg_actions = { 'AT_START_INTEGRATION': self.process_at_start_integration,
+                              'AT_NEW_SESSION': self.set_session,
+                              #'AR_READOUT': self.process_dmcs_readout,
+                              'AUX_FWDR_HEALTH_CHECK_ACK': self.process_ack,
+                              'AUX_FWDR_XFER_PARAMS_ACK': self.process_ack,
                               'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
+                              'AT_HEADER_READY': self.process_header_ready_event,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
-                              'AR_TAKE_IMAGES': self.take_images,
-                              'AR_END_READOUT': self.process_end_readout, 
-                              'AR_TAKE_IMAGES_DONE': self.take_images_done}
+                              #'AUX_TAKE_IMAGES': self.take_images,
+                              'AT_END_READOUT': self.process_at_end_readout }
 
 
         self._next_timed_ack_id = 0
 
         self.setup_publishers()
-
-        self.setup_scoreboards()
 
         LOGGER.info('ar foreman consumer setup')
         self.thread_manager = None
@@ -114,7 +114,7 @@ class AuxDevice:
         self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
 
 
-    def on_ar_foreman_message(self, ch, method, properties, body):
+    def on_aux_foreman_message(self, ch, method, properties, body):
         """ Calls the appropriate AR message action handler according to message type.
 
             :params ch: Channel to message broker, unused unless testing.
@@ -128,9 +128,9 @@ class AuxDevice:
         #msg_dict = yaml.load(body) 
         ch.basic_ack(method.delivery_tag)
         msg_dict = body 
-        LOGGER.info('In AR Foreman message callback')
-        LOGGER.info('Message from DMCS to AR Foreman callback message body is: %s', str(msg_dict))
-
+        LOGGER.info('In AUX Foreman message callback')
+        LOGGER.info('Message from DMCS to AUX Foreman callback message body is: %s', str(msg_dict))
+        print("Incoming AUX msg is: %s" % msg_dict)
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
@@ -173,111 +173,101 @@ class AuxDevice:
     
 
 
-    def process_target_event(self, params):
+    def process_at_start_integration(self, params):
         # When this method is invoked, the following must happen:
         #    1) Health check all forwarders
         #    2) Divide work and generate dict of forwarders and which rafts/ccds they are fetching
         #    3) Inform each forwarder which rafts they are responsible for
-        ra = params['RA']
-        dec = params['DEC']
-        angle = params['ANGLE']
-        visit_id = params['VISIT_ID']
-        self.JOB_SCBD.set_visit_id(params['VISIT_ID'], ra, dec, angle)
         # receive new job_number and image_id; session and visit are current
         # and deep copy it with some additions such as session and visit
-        session_id = self.get_current_session()
-        visit_id = self.get_current_visit()
-        job_number = params[JOB_NUM]
-        raft_list = params['RAFT_LIST']
-        raft_ccd_list = params['RAFT_CCD_LIST']
+        # These next three lines must have WFS and Guide sensor info added
         start_int_ack_id = params[ACK_ID]
 
+        print("Incoming AUX AT_Start Int msg")
         # next, run health check
-        health_check_ack_id = self.get_next_timed_ack_id('AR_FWDR_HEALTH_ACK')
+        self.ACK_QUEUE = {}
+        health_check_ack_id = self.get_next_timed_ack_id('AUX_FWDR_HEALTH_ACK')
         num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
 
         # Add job scbd entry
-        self.JOB_SCBD.add_job(job_number, visit_id, raft_list, raft_ccd_list)
-        self.JOB_SCBD.set_job_value(job_number, 'VISIT_ID', visit_id)
-        self.ack_timer(2.5)
+        self.ack_timer(1.4)
 
-        healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
-        if healthy_fwdrs == None:
-            self.refuse_job(params, "No forwarders available")
-            self.JOB_SCBD.set_job_state(job_number, 'SCRUBBED')
-            self.JOB_SCBD.set_job_status(job_number, 'INACTIVE')
-            ### FIX send error code for this...
-            return
+        #healthy_fwdrs = self.ACK_QUEUE.get_components_for_timed_ack(health_check_ack_id)
+        #if healthy_fwdrs == None:
+        #    self.refuse_job(params, "No forwarders available")
+        #    ### FIX send error code for this...
+        #    return
 
-        for forwarder in healthy_fwdrs:
-            self.FWD_SCBD.set_forwarder_state(forwarder, 'BUSY')
-            self.FWD_SCBD.set_forwarder_status(forwarder, 'HEALTHY')
+        fwdr_names = list(self._forwarder_dict.keys())
+        self._current_fwdr = self._forwarder_dict[fwdr_names[0]]
 
+        # Add archive check when necessary...
         # send new_archive_item msg to archive controller
-        start_int_params = {}
-        ac_timed_ack = self.get_next_timed_ack_id('AR_CTRL_NEW_ITEM')
-        start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
-        start_int_params['ACK_ID'] = ac_timed_ack
-        start_int_params['JOB_NUM'] = job_number
-        start_int_params['SESSION_ID'] = session_id
-        start_int_params['VISIT_ID'] = visit_id
-        start_int_params['IMAGE_ID'] = image_id
-        start_int_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
-        self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
-        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
+        #start_int_params = {}
+        #ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
+        #start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
+        #start_int_params['ACK_ID'] = ac_timed_ack
+        #start_int_params['JOB_NUM'] = job_number
+        #start_int_params['SESSION_ID'] = session_id
+        #start_int_params['VISIT_ID'] = visit_id
+        #start_int_params['IMAGE_ID'] = image_id
+        #start_int_params['REPLY_QUEUE'] = self.AUX_FOREMAN_ACK_PUBLISH
+        #self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
+        #self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
 
-        ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
+        #ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
 
-        if ar_response == None:
-           # FIXME raise L1 exception and bail out
-           print("B-B-BAD Trouble; no ar_response")
+        #if ar_response == None:
+        #   FIXME raise L1 exception and bail out
+        #   print("B-B-BAD Trouble; no ar_response")
            
        
-        target_dir = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
-        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 'TARGET_DIR': dir})
+        #target_dir = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
+        target_dir = self.archive_xfer_root 
+        #self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 'TARGET_DIR': dir})
         
 
         # divide image fetch across forwarders
-        list_of_fwdrs = list(healthy_fwdrs.keys())
-        work_schedule = self.divide_work(list_of_fwdrs, raft_list, raft_ccd_list)
+        #list_of_fwdrs = list(healthy_fwdrs.keys())
+        #work_schedule = self.divide_work(list_of_fwdrs, raft_list, raft_ccd_list)
 
         # send target dir, and job, session,visit and work to do to healthy forwarders
-        self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
-        set_sched_result = self.JOB_SCBD.set_work_schedule_for_job(job_number, work_schedule)
-        if set_sched_result == False:
+        #self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
+        #set_sched_result = self.JOB_SCBD.set_work_schedule_for_job(job_number, work_schedule)
+        #if set_sched_result == False:
             # FIXME Raise L1 exception and bail
-            print("BIG PROBLEM - CANNOT SET WORK SCHED IN SCBD")
+        #    print("BIG PROBLEM - CANNOT SET WORK SCHED IN SCBD")
       
 
-        xfer_params_ack_id = self.get_next_timed_ack_id("AR_FWDR_PARAMS_ACK") 
+        xfer_params_ack_id = self.get_next_timed_ack_id("AT_FWDR_PARAMS_ACK") 
 
         fwdr_new_target_params = {} 
         fwdr_new_target_params['XFER_PARAMS'] = {}
-        fwdr_new_target_params[MSG_TYPE] = 'AR_FWDR_XFER_PARAMS'
-        fwdr_new_target_params[SESSION_ID] = session_id
-        fwdr_new_target_params[VISIT_ID] = visit_id
-        fwdr_new_target_params[JOB_NUM] = job_number
+        fwdr_new_target_params[MSG_TYPE] = 'AT_FWDR_XFER_PARAMS'
+        #fwdr_new_target_params[SESSION_ID] = session_id
+        fwdr_new_target_params[IMAGE_ID] = params[IMAGE_ID]
+        fwdr_new_target_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
+        #fwdr_new_target_params[VISIT_ID] = visit_id
+        #fwdr_new_target_params[JOB_NUM] = job_number
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
-        fwdr_new_target_params[REPLY_QUEUE] = self.AR_FOREMAN_ACK_PUBLISH
-        target_location = self.archve_name + "@" + self.archive_ip + ":" + target_dir
+        fwdr_new_target_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
+        target_location = self.archive_name + "@" + self.archive_ip + ":" + target_dir
         fwdr_new_target_params['TARGET_LOCATION'] = target_location
 
-        len_fwdrs_list = len(work_schedule['FORWARDERS_LIST'])
-        for i in range (0, len_fwdrs_list):
-            fwdr = work_schedule['FORWARDERS_LIST'][i]
-            xfer_params_dict = {}
-            xfer_params_dict['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
-            xfer_params_dict['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
-            # record work order in scoreboard
-            self.FWDR_SCBD.set_work_by_job(fwdr, job_number, xfer_params_dict)
-            xfer_params_dict['AR_FWDR'] = fwdr
-            fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
-            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
-            self._publisher.publish_message(route_key, fwdr_new_target_params)
+        xfer_params_dict = {}
+        xfer_params_dict['RAFT_LIST'] = self._wfs_raft
+        #xfer_params_dict['RAFT_LIST'] = self.RAFT_LIST
+        #xfer_params_dict['RAFT_LIST'].append(self.RAFT_LIST)
+        #xfer_params_dict['RAFT_CCD_LIST'] = []
+        #xfer_params_dict['RAFT_CCD_LIST'].append(self.RAFT_CCD_LIST)
+        xfer_params_dict['AT_FWDR'] = self._current_fwdr
+        fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
+        route_key = self._current_fwdr["CONSUME_QUEUE"]
+        self._publisher.publish_message(route_key, fwdr_new_target_params)
        
 
         
-
+        """
         # receive ack back from forwarders that they have job params
         params_acks = self.progressive_ack_timer(xfer_params_ack_id, len_fwdrs_list, 3.0)
 
@@ -302,7 +292,7 @@ class AuxDevice:
         self.JOB_SCBD.set_value_for_job(job_number, STATE, "JOB_ACCEPTED")
         fscbd_params = {'STATE':'AWAITING_READOUT'}
         self.FWD_SCBD.set_forwarder_params(healthy_fwdrs, fscbd_params)
-
+        """
 
     def fwdr_health_check(self, ack_id):
         """ Send AR_FWDR_HEALTH_CHECK message to ar_foreman_ack_publish queue.
@@ -314,15 +304,14 @@ class AuxDevice:
             :return: Number of health checks sent.
         """
         msg_params = {}
-        msg_params[MSG_TYPE] = 'AR_FWDR_HEALTH_CHECK'
+        msg_params[MSG_TYPE] = 'AT_FWDR_HEALTH_CHECK'
         msg_params[ACK_ID] = ack_id
-        msg_params[REPLY_QUEUE] = self.AR_FOREMAN_ACK_PUBLISH
+        msg_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
 
-        forwarders = self.FWD_SCBD.return_available_forwarders_list()
-        state_status = {"STATE": "HEALTH_CHECK", "STATUS": "UNKNOWN"}
-        self.FWD_SCBD.set_forwarder_params(forwarders, state_status)
-        for forwarder in forwarders:
-            self._publisher.publish_message(self.FWD_SCBD.get_value_for_forwarder(forwarder,"CONSUME_QUEUE"), msg_params)
+        forwarders = list(self._forwarder_dict.keys())
+        for x in range (0, len(forwarders)):
+            route_key = self._forwarder_dict[forwarders[x]]["CONSUME_QUEUE"]
+            self._publisher.publish_message(route_key, msg_params)
         return len(forwarders)
 
 
@@ -362,7 +351,7 @@ class AuxDevice:
             for k in range (0, num_rafts):
                 FORWARDER_LIST.append(fwdrs_list[k])
                 #little_list.append(ccd_list[k])
-                RAFT_LIST.append(raft_list[k))  # Need a copy here...
+                RAFT_LIST.append(raft_list[k])  # Need a copy here...
                 RAFT_CCD_LIST.append = deepcopy(raft_ccd_list[k]) 
                 schedule['FORWARDER_LIST'] = FORWARDER_LIST
                 schedule['RAFT_LIST'] = RAFT_LIST
@@ -434,20 +423,7 @@ class AuxDevice:
         self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
 
 
-    def take_images(self, params):
-        num_images = params['NUM_IMAGES']
-        job_num = params[JOB_NUM]
-        self.JOB_SCBD.set_value_for_job(job_num, 'NUM_IMAGES', num_images)
-        work_sched = self.JOB_SCBD.get_work_schedule_for_job(job_num)
-        fwdrs = work_sched['FORWARDERS_LIST']
-        for fwdr in fwdrs:
-            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdr, 'CONSUME_QUEUE')
-            self._publisher.publish_message(route_key, {'MSG_TYPE': 'AR_FWDR_TAKE_IMAGES'})
-        
-
-
-    ### NOTE: Deprecated...
-    def process_dmcs_readout(self, params):
+    def process_at_end_readout(self, params):
         """ Set job state as PREPARE_READOUT in JobScoreboard.
             Send readout to forwarders.
             Set job state as READOUT_STARTED in JobScoreboard.
@@ -457,54 +433,23 @@ class AuxDevice:
 
             :return: None.
         """
+        print("Incoming AUX AT_END_READOUT msg")
         reply_queue = params['REPLY_QUEUE']
         readout_ack_id = params[ACK_ID]
-        job_number = params[JOB_NUM]
+        #job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
         # send readout to forwarders
-        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'PREPARE_READOUT')
+        #self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT')
         fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
-        work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
-        fwdrs = work_schedule['FORWARDER_LIST']
-
-        self.send_readout(params, fwdrs, fwdr_readout_ack)
-        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT_STARTED')
-
-        readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len(fwdrs), 4.0)
-
-        # if readout_responses == None:
-        #    raise L1 exception 
-
-        self.process_readout_responses(readout_ack_id, reply_queue, image_id, readout_responses)
-
-
-    def process_end_readout(self, params):
-        """ Set job state as PREPARE_READOUT in JobScoreboard.
-            Send readout to forwarders.
-            Set job state as READOUT_STARTED in JobScoreboard.
-            Wait to retrieve and process readout responses.
-
-            :params parmas: A dictionary that stores info of a job.
-
-            :return: None.
-        """
-        reply_queue = params['REPLY_QUEUE']
-        readout_ack_id = params[ACK_ID]
-        job_number = params[JOB_NUM]
-        image_id = params[IMAGE_ID]
-        # send readout to forwarders
-        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT')
-        fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
-        work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
-        fwdrs = work_schedule['FORWARDER_LIST']
-        len_fwdrs = len(fwdrs)
+        #work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
+        current_fwdr = self._current_fwdr
         msg = {}
-        msg[MSG_TYPE] = 'AR_FWDR_READOUT'
-        msg[JOB_NUM] = job_number
+        msg[MSG_TYPE] = 'AT_FWDR_END_READOUT'
+        #msg[JOB_NUM] = job_number
         msg[IMAGE_ID] = image_id
-        for i in range (0, len_fwdrs):
-            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
-            self._publisher.publish_message(route_key, msg)
+        msg['IMAGE_INDEX'] = params['IMAGE_INDEX']
+        route_key = self._current_fwdr['CONSUME_QUEUE']
+        self._publisher.publish_message(route_key, msg)
 
 
         #readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len(fwdrs), 4.0)
@@ -573,7 +518,7 @@ class AuxDevice:
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['ACK_BOOL'] = True
         ack_msg['RESULT_LIST'] = results
-        self._publisher.publish_message(reply_queue), ack_msg)
+        self._publisher.publish_message(reply_queue, ack_msg)
 
         ### FIXME Set state as complete for Job
 
@@ -600,6 +545,18 @@ class AuxDevice:
         for fwdr in fwdrs:
             route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
             self._publisher.publish_message(route_key, ro_params)
+
+    def process_header_ready_event(self, params):
+        fname = params['FILENAME']
+        image_id = params['IMAGE_ID']
+        msg = {}
+        msg['MSG_TYPE'] = 'AT_FWDR_HEADER_READY'
+        msg['FILENAME'] = fname
+        msg['IMAGE_ID'] = image_id
+
+        route_key = self._current_fwdr['CONSUME_QUEUE']
+        self._publisher.publish_message(route_key, msg)
+
 
 
     def take_images_done(self, params):
@@ -630,7 +587,8 @@ class AuxDevice:
 
             :return: None.
         """
-        self.ACK_SCBD.add_timed_ack(params)
+        pass
+        #self.ACK_SCBD.add_timed_ack(params)
         
 
     def get_next_timed_ack_id(self, ack_type):
@@ -646,13 +604,13 @@ class AuxDevice:
 
 
     def set_session(self, params):
+        pass
         """ Record new session in JobScoreboard.
             Send AR_NEW_SESSION_ACK message with ack_bool equals True to specified reply queue.
 
             :params params: Dictionary with info about new session.
 
             :return: None.
-        """
         self.JOB_SCBD.set_session(params['SESSION_ID'])
         ack_id = params['ACK_ID']
         msg = {}
@@ -662,6 +620,7 @@ class AuxDevice:
         msg['ACK_BOOL'] = True
         route_key = params['REPLY_QUEUE'] 
         self._publisher.publish_message(route_key, msg)
+        """
 
 
     def get_current_session(self):
@@ -766,21 +725,19 @@ class AuxDevice:
             sys.exit(101)
 
         try:
-            self._msg_name = cdm[ROOT][AFM_BROKER_NAME]      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT][AFM_BROKER_PASSWD]   
-            self._msg_pub_name = cdm[ROOT]['AFM_BROKER_PUB_NAME']      # Message broker user & passwd
-            self._msg_pub_passwd = cdm[ROOT]['AFM_BROKER_PUB_PASSWD']   
-            self._ncsa_name = cdm[ROOT][NCSA_BROKER_NAME]     
-            self._ncsa_passwd = cdm[ROOT][NCSA_BROKER_PASSWD]   
+            self._msg_name = cdm[ROOT]['AUX_BROKER_NAME']      # Message broker user & passwd
+            self._msg_passwd = cdm[ROOT]['AUX_BROKER_PASSWD']   
+            self._msg_pub_name = cdm[ROOT]['AUX_BROKER_PUB_NAME']      # Message broker user & passwd
+            self._msg_pub_passwd = cdm[ROOT]['AUX_BROKER_PUB_PASSWD']   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            self._ncsa_broker_addr = cdm[ROOT][NCSA_BROKER_ADDR]
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['AUX_FORWARDERS']
-            self._scbd_dict = cdm[ROOT]['SCOREBOARDS']
+            self._wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
 
             # Placeholder until eventually worked out by Data Backbone team
             self.archive_fqn = cdm[ROOT]['ARCHIVE']['ARCHIVE_NAME']
             self.archive_name = cdm[ROOT]['ARCHIVE']['ARCHIVE_LOGIN']
             self.archive_ip = cdm[ROOT]['ARCHIVE']['ARCHIVE_IP']
+            self.archive_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_XFER_ROOT']
         except KeyError as e:
             print("Dictionary error")
             print("Bailing out...")
@@ -813,9 +770,9 @@ class AuxDevice:
         kws = {}
         md = {}
         md['amqp_url'] = base_broker_url
-        md['name'] = 'Thread-ar_foreman_consume'
-        md['queue'] = 'ar_foreman_consume'
-        md['callback'] = self.on_ar_foreman_message
+        md['name'] = 'Thread-aux_foreman_consume'
+        md['queue'] = 'at_foreman_consume'
+        md['callback'] = self.on_aux_foreman_message
         md['format'] = "YAML"
         md['test_val'] = None
         kws[md['name']] = md
@@ -823,7 +780,7 @@ class AuxDevice:
         md = {}
         md['amqp_url'] = base_broker_url
         md['name'] = 'Thread-ar_foreman_ack_publish'
-        md['queue'] = 'ar_foreman_ack_publish'
+        md['queue'] = 'aux_foreman_ack_publish'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
         md['test_val'] = 'test_it'
@@ -841,18 +798,6 @@ class AuxDevice:
         self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
-    def setup_scoreboards(self):
-        """ Create Redis Forwarder table with Forwarder info. Create Job and Ack Scoreboard
-            objects with values retrieved from configuration file.
-
-            :params: None.
-
-            :return: None.
-        """
-        # Create Redis Forwarder table with Forwarder info
-        self.FWD_SCBD = ForwarderScoreboard('AR_FWD_SCBD', self._scbd_dict['AR_FWD_SCBD'], self._forwarder_dict)
-        self.JOB_SCBD = JobScoreboard('AR_JOB_SCBD', self._scbd_dict['AR_JOB_SCBD'])
-        self.ACK_SCBD = AckScoreboard('AR_ACK_SCBD', self._scbd_dict['AR_ACK_SCBD'])
 
 
     def shutdown(self):
@@ -866,7 +811,7 @@ class AuxDevice:
 def main():
     logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
     a_fm = AuxDevice()
-    print("Beginning ArchiveForeman event loop...")
+    print("Beginning AuxForeman event loop...")
     try:
         while 1:
             pass
@@ -875,7 +820,7 @@ def main():
         pass
 
     print("")
-    print("Archive Device Done.")
+    print("Aux Device Done.")
 
 
 

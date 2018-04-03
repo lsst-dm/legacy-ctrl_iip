@@ -3,6 +3,7 @@
 #include <sstream> 
 #include <pthread.h>
 #include <string>
+#include <yaml-cpp/yaml.h>
 #include "SAL_archiver.h" 
 #include "SAL_catchuparchiver.h"
 #include "SAL_processingcluster.h" 
@@ -10,6 +11,7 @@
 #include "CommandListener.h"
 
 using namespace std;
+using namespace YAML;
 
 int next_timed_ack_id = 0; 
 
@@ -29,27 +31,30 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
 	if (cmdId > 0) { 
 	    cout << "== " << device << " " << command_name << " Command" << endl; 
-	    ostringstream ack_msg; 
 	    string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
-	    ack_msg << "{ MSG_TYPE: " << command_name 
-		    << ", DEVICE: " << device 
-		    << ", CMD_ID: " << to_string(cmdId) 
-		    << ", ACK_ID: " << ack_id
-		    << "}"; 
-	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
+            Emitter ack_msg; 
+            ack_msg << BeginMap; 
+            ack_msg << Key << "MSG_TYPE" << Value << command_name; 
+	    ack_msg << Key << "DEVICE" << Value << device;
+            ack_msg << Key << "CMD_ID" << Value << to_string(cmdId); 
+	    ack_msg << Key << "ACK_ID" << Value << ack_id; 
+            ack_msg << EndMap; 
+	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
 
-	    ostringstream book_keeping; 
-	    book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
-                         << ", SUB_TYPE: " << command_name
-			 << ", ACK_ID: " << ack_id 
-			 << ", CHECKBOX: false" 
-			 << ", TIME: " << get_current_time()
-			 << ", CMD_ID: " << to_string(cmdId) 
-			 << ", DEVICE: " << device << "}"; 
-	    cout << "XXX BOOK_KEEPING: " << book_keeping.str() << endl; 
+            Emitter book_keeping; 
+            book_keeping << BeginMap; 
+	    book_keeping << Key << "MSG_TYPE" << Value << "BOOK_KEEPING";
+            book_keeping << Key << "SUB_TYPE" << Value << command_name;
+	    book_keeping << Key << "ACK_ID" << Value << ack_id ;
+	    book_keeping << Key << "CHECKBOX" << Value << "false"; 
+	    book_keeping << Key << "TIME" << Value << get_current_time();
+	    book_keeping << Key << "CMD_ID" << Value << to_string(cmdId); 
+	    book_keeping << Key << "DEVICE" << Value << device; 
+            book_keeping << EndMap; 
+	    cout << "XXX BOOK_KEEPING: " << book_keeping.c_str() << endl; 
 
-	    publisher->publish_message(consume_q, book_keeping.str()); 
-	    publisher->publish_message(publish_q, ack_msg.str());  
+	    publisher->publish_message(consume_q, book_keeping.c_str()); 
+	    publisher->publish_message(publish_q, ack_msg.c_str());  
 	}
 	os_nanoSleep(delay_10ms); 
     } 
@@ -69,28 +74,31 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
 	if (cmdId > 0) { 
 	    cout << "== " << device << " " << command_name << " Command" << endl; 
-	    ostringstream ack_msg; 
 	    string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
-	    ack_msg << "{ MSG_TYPE: " << command_name 
-		    << ", DEVICE: " << device 
-		    << ", CMD_ID: " << to_string(cmdId) 
-		    << ", ACK_ID: " << ack_id
-		    << ", CFG_KEY: " << SALInstance.configuration
-		    << "}"; 
-	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.str() << endl; 
+            Emitter ack_msg; 
+            ack_msg << BeginMap; 
+            ack_msg << Key << "MSG_TYPE" << Value << command_name; 
+	    ack_msg << Key << "DEVICE" << Value << device;
+            ack_msg << Key << "CMD_ID" << Value << to_string(cmdId); 
+	    ack_msg << Key << "ACK_ID" << Value << ack_id; 
+	    ack_msg << Key << "CFG_KEY" << Value << SALInstance.configuration; 
+            ack_msg << EndMap; 
+	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
 
-	    ostringstream book_keeping; 
-	    book_keeping << "{ MSG_TYPE: BOOK_KEEPING"
-                         << ", SUB_TYPE: " << command_name
-			 << ", ACK_ID: " << ack_id 
-			 << ", CHECKBOX: false" 
-			 << ", TIME: " << get_current_time()
-			 << ", CMD_ID: " << to_string(cmdId) 
-			 << ", DEVICE: " << device << "}"; 
-	    cout << "XXX BOOK_KEEPING: " << book_keeping.str() << endl; 
+            Emitter book_keeping; 
+            book_keeping << BeginMap; 
+	    book_keeping << Key << "MSG_TYPE" << Value << "BOOK_KEEPING";
+            book_keeping << Key << "SUB_TYPE" << Value << command_name;
+	    book_keeping << Key << "ACK_ID" << Value << ack_id ;
+	    book_keeping << Key << "CHECKBOX" << Value << "false"; 
+	    book_keeping << Key << "TIME" << Value << get_current_time();
+	    book_keeping << Key << "CMD_ID" << Value << to_string(cmdId); 
+	    book_keeping << Key << "DEVICE" << Value << device; 
+            book_keeping << EndMap; 
+	    cout << "XXX BOOK_KEEPING: " << book_keeping.c_str() << endl; 
 
-	    publisher->publish_message(consume_q, book_keeping.str()); 
-	    publisher->publish_message(publish_q, ack_msg.str());  
+	    publisher->publish_message(consume_q, book_keeping.c_str()); 
+	    publisher->publish_message(publish_q, ack_msg.c_str());  
 	}
 	os_nanoSleep(delay_10ms); 
     } 
@@ -105,10 +113,12 @@ CommandListener::CommandListener() : OCS_Bridge() {
     command_args->ar = SAL_archiver(); 
     command_args->cu = SAL_catchuparchiver(); 
     command_args->pp = SAL_processingcluster(); 
+    command_args->atar = SAL_atArchiver(); 
 
     setup_archiver_listeners();
     setup_catchuparchiver_listeners(); 
     setup_processingcluster_listeners();  
+    setup_atArchiver_listeners();
     setup_resolve_publisher(); 
     cout << "=== dm COMMAND controller ready" << endl; 
 } 
@@ -151,6 +161,18 @@ void CommandListener::setup_processingcluster_listeners() {
     pthread_create(&pp_exitControl, NULL, &CommandListener::run_pp_exitControl, command_args); 
     pthread_create(&pp_abort, NULL, &CommandListener::run_pp_abort, command_args); 
 }
+
+void CommandListener::setup_atArchiver_listeners() { 
+    pthread_t atar_start, atar_stop, atar_enable, atar_disable, atar_standby, atar_enterControl, atar_exitControl, atar_abort; 
+    pthread_create(&atar_start, NULL, &CommandListener::run_atar_start, command_args); 
+    pthread_create(&atar_stop, NULL, &CommandListener::run_atar_stop, command_args); 
+    pthread_create(&atar_enable, NULL, &CommandListener::run_atar_enable, command_args); 
+    pthread_create(&atar_disable, NULL, &CommandListener::run_atar_disable, command_args); 
+    pthread_create(&atar_standby, NULL, &CommandListener::run_atar_standby, command_args); 
+    pthread_create(&atar_enterControl, NULL, &CommandListener::run_atar_enterControl, command_args); 
+    pthread_create(&atar_exitControl, NULL, &CommandListener::run_atar_exitControl, command_args); 
+    pthread_create(&atar_abort, NULL, &CommandListener::run_atar_abort, command_args); 
+} 
 
 void *CommandListener::run_ar_start(void *pargs) {
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
@@ -440,6 +462,101 @@ void *CommandListener::run_pp_abort(void *pargs) {
     return 0; 
 } 
 
+void *CommandListener::run_atar_start(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_startC> atar_start = &SAL_atArchiver::acceptCommand_start;   
+    listenCommand_start(atar, "AT", "START", rabbit_publisher, publish_q, consume_q, atar_start);  
+    return 0; 
+} 
+
+void *CommandListener::run_atar_stop(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_stopC> atar_stop = &SAL_atArchiver::acceptCommand_stop;   
+    listenCommand(atar,"AT", "STOP", rabbit_publisher, publish_q, consume_q, atar_stop);  
+    return 0; 
+} 
+
+void *CommandListener::run_atar_enable(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_enableC> atar_enable = &SAL_atArchiver::acceptCommand_enable;   
+    listenCommand(atar,"AT", "ENABLE", rabbit_publisher, publish_q, consume_q, atar_enable);  
+    return 0; 
+} 
+
+void *CommandListener::run_atar_disable(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_disableC> atar_disable = &SAL_atArchiver::acceptCommand_disable;   
+    listenCommand(atar,"AT", "DISABLE", rabbit_publisher, publish_q, consume_q, atar_disable);  
+    return 0; 
+} 
+
+void *CommandListener::run_atar_standby(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_standbyC> atar_standby = &SAL_atArchiver::acceptCommand_standby;   
+    listenCommand(atar,"AT", "STANDBY", rabbit_publisher, publish_q, consume_q, atar_standby);  
+    return 0; 
+} 
+
+void *CommandListener::run_atar_enterControl(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_enterControlC> atar_enterControl = &SAL_atArchiver::acceptCommand_enterControl;   
+    listenCommand(atar,"AT", "ENTER_CONTROL", rabbit_publisher, publish_q, consume_q, atar_enterControl);  
+    return 0; 
+} 
+
+void *CommandListener::run_atar_exitControl(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_exitControlC> atar_exitControl = &SAL_atArchiver::acceptCommand_exitControl;   
+    listenCommand(atar,"AT", "EXIT_CONTROL", rabbit_publisher, publish_q, consume_q, atar_exitControl);  
+    return 0; 
+} 
+
+void *CommandListener::run_atar_abort(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_abortC> atar_abort = &SAL_atArchiver::acceptCommand_abort;   
+    listenCommand(atar,"AT", "ABORT", rabbit_publisher, publish_q, consume_q, atar_abort);  
+    return 0; 
+} 
 void CommandListener::setup_resolve_publisher() { 
     cout << "Setting up OCS RESOLVE publisher" << endl; 
     pthread_t resolvethread; 
@@ -453,7 +570,7 @@ void *CommandListener::run_resolve_publisher(void *pargs) {
     string consume_q = params->consume_queue; 
     while (1) { 
 	rabbit_publisher->publish_message(consume_q, "{MSG_TYPE: RESOLVE_ACK}"); 
-	usleep(10000000);
+	usleep(100000000);
     }  
     return 0; 
 } 
@@ -471,6 +588,7 @@ string CommandListener::get_device(string name) {
     if (name == "AR") device = "archiver"; 
     else if (name == "CU") device = "catchuparchiver"; 
     else if (name == "PP") device = "processingcluster"; 
+    else if (name == "AT") device = "atArchiver"; 
     return device; 
 } 
 

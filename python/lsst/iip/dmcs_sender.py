@@ -15,12 +15,13 @@ class Premium:
     #os.system('rabbitmqctl -p /tester purge_queue firehose')
     #os.system('rabbitmqctl -p /tester purge_queue ack_publish')
     #broker_url = 'amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?heartbeat=300'
-    broker_url = 'amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny'
+    broker_url = 'amqp://BASE:BASE@141.142.238.10:5672/%2Ftest'
     #pub_broker_url = 'amqp://BASE_PUB:BASE_PUB@141.142.238.160:5672/%2Fbunny'
     #broker_url = 'amqp://NCSA:NCSA@141.142.208.191:5672/%2Ftester'
     #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
     #self._cons = FirehoseConsumer(broker_url, 'firehose', "YAML")
 
+    """
     self._cons = Consumer(broker_url, 'ar_foreman_consume', "YAML")
     try:
       _thread.start_new_thread( self.do_it, ("thread-1", 2,)  )
@@ -34,7 +35,7 @@ class Premium:
     except e:
       print("Cannot start thread")
       print(e)
-
+    """
     cdm = toolsmod.intake_yaml_file("L1SystemCfg.yaml")
     self.ccd_list = cdm['ROOT']['CCD_LIST']
     
@@ -73,7 +74,7 @@ class Premium:
 def main():
   premium = Premium()
   #sp1 = SimplePublisher('amqp://BASE_PUB:BASE_PUB@141.142.238.160:5672/%2Fbunny?heartbeat=300', "YAML")
-  sp1 = SimplePublisher('amqp://BASE_PUB:BASE_PUB@141.142.238.160:5672/%2Fbunny', "YAML")
+  sp1 = SimplePublisher('amqp://BASE_PUB:BASE_PUB@141.142.238.10:5672/%2Ftest', "YAML")
   #sp2 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
   #broker_url = 'amqp://FM:FM@141.142.238.160:5672/%2Fbunny'
   #cons = Consumer(broker_url, 'dmcs_ocs_publish')
@@ -87,13 +88,12 @@ def main():
 
   msg = {}
   msg['MSG_TYPE'] = "STANDBY"
-  msg['DEVICE'] = 'AR'
-  msg['CFG_KEY'] = "2C16"
-  msg['ACK_ID'] = 'AR_4'
-  msg['ACK_DELAY'] = 2
+  msg['DEVICE'] = 'AT'
+  #msg['CFG_KEY'] = "2C16"
+  msg['ACK_ID'] = 'AT_4'
   msg['CMD_ID'] = '4434278812'
   time.sleep(3)
-  print("AR STANDBY")
+  print("AT STANDBY")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
 #  msg = {}
@@ -117,12 +117,11 @@ def main():
 
   msg = {}
   msg['MSG_TYPE'] = "DISABLE"
-  msg['DEVICE'] = 'AR'
-  msg['ACK_ID'] = 'AR_6'
-  msg['ACK_DELAY'] = 2
+  msg['DEVICE'] = 'AT'
+  msg['ACK_ID'] = 'AT_6'
   msg['CMD_ID'] = '4434278814'
   time.sleep(3)
-  print("AR DISABLE")
+  print("AT DISABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
 #  msg = {}
@@ -137,12 +136,11 @@ def main():
 
   msg = {}
   msg['MSG_TYPE'] = "ENABLE"
-  msg['DEVICE'] = 'AR'
-  msg['ACK_ID'] = 'AR_11'
-  msg['ACK_DELAY'] = 2
+  msg['DEVICE'] = 'AT'
+  msg['ACK_ID'] = 'AT_11'
   msg['CMD_ID'] = '4434278816'
   time.sleep(3)
-  print("AR ENABLE")
+  print("AT ENABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
 #  msg = {}
@@ -183,30 +181,38 @@ def main():
   time.sleep(5)
   print("Next Visit Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
-
+  """
   msg = {}
-  msg['MSG_TYPE'] = "START_INTEGRATION"
-  msg['IMAGE_ID'] = 'IMG_4276'
-  msg['IMAGE_SRC'] = 'MAIN'
+  msg['MSG_TYPE'] = "DMCS_AT_START_INTEGRATION"
+  msg['IMAGE_ID'] = 'LSSTTEST-01'
+  msg['IMAGE_INDEX'] = 'MAIN'
   msg['VISIT_ID'] = 'V_1443'
   msg['ACK_ID'] = 'START_INT_ACK_76'
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['CCD_LIST'] = premium.ccd_list
-  time.sleep(5)
+  time.sleep(8)
   print("Start Integration Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
-  msg['MSG_TYPE'] = "READOUT"
+  msg['MSG_TYPE'] = "DMCS_AT_END_READOUT"
   msg['VISIT_ID'] = 'V_1443'
-  msg['IMAGE_ID'] = 'IMG_4276'
-  msg['IMAGE_SRC'] = 'MAIN'
+  msg['IMAGE_ID'] = 'LSSTTEST-01'
+  msg['IMAGE_INDEX'] = 'N'
   msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
   msg['ACK_ID'] = 'READOUT_ACK_77'
   time.sleep(5)
   print("READOUT Message")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
+  print("Sending HEADER1 information")
+  msg = {}
+  msg["MSG_TYPE"] = "DMCS_AT_HEADER_READY"
+  msg["FILENAME"] = "felipe@141.142.238.177:/tmp/header/test23.header"
+  time.sleep(4)
+  sp1.publish_message("f99_consume", msg)
+
+  """
   msg = {}
   msg['MSG_TYPE'] = "START_INTEGRATION"
   msg['IMAGE_ID'] = 'IMG_4277'

@@ -1,6 +1,7 @@
 #include "SAL_archiver.h" 
 #include "SAL_catchuparchiver.h" 
 #include "SAL_processingcluster.h" 
+#include "SAL_atArchiver.h"
 
 
 extern int next_timed_ack_id; 
@@ -16,6 +17,7 @@ class CommandListener : public OCS_Bridge {
             SAL_archiver ar; 
             SAL_catchuparchiver cu; 
             SAL_processingcluster pp; 
+            SAL_atArchiver atar;
 	}; 
 
 	ocs_thread_args *command_args;
@@ -29,6 +31,7 @@ class CommandListener : public OCS_Bridge {
 	void setup_archiver_listeners(); 
 	void setup_catchuparchiver_listeners(); 
 	void setup_processingcluster_listeners(); 
+	void setup_atArchiver_listeners(); 
 
 	static void *run_resolve_publisher(void *); 
 	static string get_next_timed_ack_id(string ack_type); 
@@ -60,4 +63,13 @@ class CommandListener : public OCS_Bridge {
 	static void *run_pp_enterControl(void *); 
 	static void *run_pp_exitControl(void *); 
 	static void *run_pp_abort(void *); 
+
+	static void *run_atar_start(void *); 
+	static void *run_atar_stop(void *); 
+	static void *run_atar_enable(void *); 
+	static void *run_atar_disable(void *); 
+	static void *run_atar_standby(void *); 
+	static void *run_atar_enterControl(void *); 
+	static void *run_atar_exitControl(void *); 
+	static void *run_atar_abort(void *); 
 };
