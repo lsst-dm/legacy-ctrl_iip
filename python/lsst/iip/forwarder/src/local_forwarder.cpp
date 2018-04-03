@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include "Exceptions.h"
 
+////////////////////////////////////////////////////////////////////////////////
+// @ FORMAT THREAD
+////////////////////////////////////////////////////////////////////////////////
 void Forwarder::process_header_ready(Node n) { 
     try { 
         string main_header_dir = this->Work_Dir + "/header"; 
@@ -56,6 +59,7 @@ void Forwarder::process_header_ready(Node n) {
         msg << Key << "FILENAME" << Value << header_path; 
         msg << EndMap; 
         FWDR_to_format_pub->publish_message(this->format_consume_queue, msg.c_str()); 
+        cout << "[STATUS] Finished copying header file from " << path << " . File is in " << sub_dir << endl; 
     } 
     catch (L1YamlKeyError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
@@ -76,10 +80,6 @@ void Forwarder::process_header_ready(Node n) {
         cerr << e.what() << endl; 
     } 
 } 
-
-////////////////////////////////////////////////////////////////////////////////
-// F@
-////////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_process_end_readout(Node node) { 
     cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
@@ -182,6 +182,7 @@ void Forwarder::format_write_img(string img, string header) {
         string destination = Work_Dir + "/FITS/" + img + ".fits";
         cout << "[x] header: " << header_path << endl; 
         cout << "[x] destination:" << destination << endl;
+        cout << "[x] Image files are in: " << img_path << endl; 
 
         fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
         fits_create_file(&optr, destination.c_str(), &status); 
@@ -251,7 +252,6 @@ void Forwarder::format_send_completed_msg(string image_id) {
         cerr << e.what() << endl; 
     } 
 } 
-///////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_look_for_work() { 
     cout << "[f] flfw" << endl;
@@ -289,15 +289,16 @@ void Forwarder::format_look_for_work() {
     } 
 } 
 
-///////////////////////////////////////////////////////////////////////////////
-// Forward part 
-///////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////////////
+// FORWARD THREAD 
+///////////////////////////////////////////////////////////////////////////////
 void Forwarder::forward_process_end_readout(Node n) { 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
         string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
+        cout << "[STATUS] file is copied from " << img_path << " to " << dest_path << endl; 
       
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
@@ -326,3 +327,43 @@ void Forwarder::forward_process_end_readout(Node n) {
         cerr << e.what() << endl; 
     } 
 } 
+
+void Forwarder::forward_process_take_images_done(Node n) { 
+    cout << "get here" << endl;
+    ostringstream message;
+    string ack_id = n["ACK_ID"].as<string>();
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK ";
+    string ack_bool = "True";
+  
+    Emitter msg; 
+    msg << BeginMap; 
+    msg << Key << "MSG_TYPE" << Value << msg_type; 
+    msg << Key << "COMPONENT" << Value << this->Component; 
+    msg << Key << "ACK_ID" << Value << ack_id; 
+    msg << Key << "ACK_BOOL" << Value << ack_bool; 
+    msg << Key << "RESULT_SET" << Value << Flow; 
+        msg << BeginMap; 
+        msg << Key << "FILENAME_LIST" << Value << Flow << finished_image_work_list; 
+        msg << Key << "CHECKSUM_LIST" << Value << Flow << checksum_list;  
+        msg << EndMap; 
+    msg << EndMap; 
+    cout << "[x] tid msg: " << endl; 
+    cout << msg.c_str() << endl;
+  
+    this->fwd_pub->publish_message(reply_queue, msg.c_str());
+    cout << "msg is replied to ..." << reply_queue << endl;
+} 
+
+///////////////////////////////////////////////////////////////////////////////
+// Forward part  done
+///////////////////////////////////////////////////////////////////////////////
+
+int main() {
+    Forwarder *fwdr = new Forwarder();
+    fwdr->run();
+    while(1) {
+    }
+}
+
+
