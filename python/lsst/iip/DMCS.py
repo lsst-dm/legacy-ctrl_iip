@@ -940,7 +940,8 @@ class DMCS:
     def process_at_header_ready_event(self, params):
         msg_params = {}
         fname = params['FILENAME']        
-        msg_params['FILENAME'] = self.efd + fname        
+        msg_params['FILENAME'] = fname        
+        #msg_params['FILENAME'] = self.efd + fname        
         msg_params[MSG_TYPE] = 'AT_HEADER_READY'
         msg_params[IMAGE_ID] = params[IMAGE_ID]  
         msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
