@@ -62,7 +62,7 @@ def main():
 
   print("Begin Send Messages...")
 
-  print("Sending AR_FWDR_HEALTH_CHECK message")
+  print("Sending AT_FWDR_HEALTH_CHECK message")
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_HEALTH_CHECK"
   msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
@@ -72,7 +72,7 @@ def main():
 
   print("Sending AR_FWDR_XFER_PARAMS message")
   msg = {}
-  msg['MSG_TYPE'] = "AR_FWDR_XFER_PARAMS"
+  msg['MSG_TYPE'] = "AT_FWDR_XFER_PARAMS"
   msg['JOB_NUM'] = 'j42'
   msg['TARGET_LOCATION'] = '/tmp/target'
   msg['SESSION_ID'] = 'sess77'
@@ -84,7 +84,8 @@ def main():
   msg["XFER_PARAMS"] = {}
   msg['XFER_PARAMS']['AR_FWDR'] = 'FORWARDER_F99'
   msg['XFER_PARAMS']['RAFT_LIST'] = ['raft01']
-  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['11']]
+  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['11','10','21','20','02','00']]
+  #msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['11']]
   time.sleep(2)
   sp1.publish_message("f99_consume", msg)
 
@@ -98,11 +99,11 @@ def main():
   time.sleep(4)
   sp1.publish_message("f99_consume", msg)
 
-  print("Sending AR_FWDR_END_READOUT message")
+  print("Sending AT_FWDR_END_READOUT message")
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
   #msg['IMAGE_ID'] = 'test23'
-  msg['IMAGE_ID'] = 'LSSTTEST_01'
+  msg['IMAGE_ID'] = 'visit-7700'
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
@@ -111,25 +112,25 @@ def main():
   time.sleep(4)
   sp1.publish_message("f99_consume", msg)
 
-  print("Sending HEADER1 information") 
-  msg = {} 
-  msg["MSG_TYPE"] = "AR_FWDR_HEADER_READY"
-  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
-  time.sleep(4)
-  sp1.publish_message("f99_consume", msg) 
-
-  print("Sending HEADER2 information") 
-  msg = {} 
-  msg["MSG_TYPE"] = "AR_FWDR_HEADER_READY"
-  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/IMG_101.header"
-  time.sleep(4)
-  sp1.publish_message("f99_consume", msg) 
+  #print("Sending HEADER1 information") 
+  #msg = {} 
+  #msg["MSG_TYPE"] = "AT_FWDR_HEADER_READY"
+  #msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
+  #time.sleep(4)
+  #sp1.publish_message("f99_consume", msg) 
+#
+#  print("Sending HEADER2 information") 
+#  msg = {} 
+#  msg["MSG_TYPE"] = "AR_FWDR_HEADER_READY"
+#  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/IMG_101.header"
+#  time.sleep(4)
+#  sp1.publish_message("f99_consume", msg) 
 
   print("Sending AR_FWDR_END_READOUT message")
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
   #msg['IMAGE_ID'] = 'test25'
-  msg['IMAGE_ID'] = 'LSSTTEST_02'
+  msg['IMAGE_ID'] = 'visit-7710'
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
