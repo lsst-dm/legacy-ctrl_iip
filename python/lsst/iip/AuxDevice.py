@@ -173,6 +173,10 @@ class AuxDevice:
         print("")
         print("")
         print("")
+
+        # XXX FIX Ignoring all log messages
+        return
+
         LOGGER.info('In ACK message callback')
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
@@ -794,7 +798,7 @@ class AuxDevice:
 
         md = {}
         md['amqp_url'] = base_broker_url
-        md['name'] = 'Thread-ar_foreman_ack_publish'
+        md['name'] = 'Thread-at_foreman_ack_publish'
         md['queue'] = 'at_foreman_ack_publish'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"

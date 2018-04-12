@@ -1299,6 +1299,7 @@ void Forwarder::process_header_ready(Node n) {
         */
 
         string sub_dir = main_header_dir + "/" + img_id; 
+	cout << "SUB_DIR " << sub_dir << endl; 
         const int dir_cmd = mkdir(sub_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);  
         if (dir_cmd == -1 && errno != 17) { 
             throw L1CannotCreateDirError("In process_header_ready, forwarder cannot create sub_directory in: " + sub_dir); 
@@ -1306,12 +1307,29 @@ void Forwarder::process_header_ready(Node n) {
 
         // scp -i ~/.ssh/from_efd felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
         ostringstream cp_cmd; 
+	/** 
         cp_cmd << "scp -i ~/.ssh/from_efd "
                << path
                << " " 
                << sub_dir
                << "/"; 
+	*/ 
+	cp_cmd << "wget -P "<< sub_dir << "/ "  << path; 
         int scp_cmd = system(cp_cmd.str().c_str()); 
+
+	/** 
+	ostringstream move_cmd; 
+	int move_idx = path.find_last_of("/"); 
+	int dot_idx = path.find_last_of("."); 
+        int num_char = dot_idx - (move_idx + 1); // offset +1
+	string move_str = path.substr(move_idx + 1, num_char); 
+
+	move_cmd << "mv " << move_str << " " << sub_dir << "/"; 
+	cout << "[STATUS] " << move_cmd.str() << endl; 
+	int move_cmd_exec = system(move_cmd.str().c_str()); 
+	cout << "Moved file to " << sub_dir << endl; 
+	*/ 
+
         if (scp_cmd == 256) { 
             throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + cp_cmd.str()); 
         } 
