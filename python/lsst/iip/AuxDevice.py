@@ -165,6 +165,18 @@ class AuxDevice:
         """
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
+        print("")
+        print("")
+        print("")
+        print( "RECEIVING ack MESSAGE:")
+        print(msg_dict)
+        print("")
+        print("")
+        print("")
+
+        # XXX FIX Ignoring all log messages
+        return
+
         LOGGER.info('In ACK message callback')
         LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
 
@@ -554,7 +566,9 @@ class AuxDevice:
         msg['FILENAME'] = fname
         msg['IMAGE_ID'] = image_id
 
-        route_key = self._current_fwdr['CONSUME_QUEUE']
+        #XXX FIX remove hard code queue
+        #route_key = self._current_fwdr['CONSUME_QUEUE']
+        route_key = "f99_consume"
         self._publisher.publish_message(route_key, msg)
 
 
@@ -779,8 +793,8 @@ class AuxDevice:
 
         md = {}
         md['amqp_url'] = base_broker_url
-        md['name'] = 'Thread-ar_foreman_ack_publish'
-        md['queue'] = 'aux_foreman_ack_publish'
+        md['name'] = 'Thread-at_foreman_ack_publish'
+        md['queue'] = 'at_foreman_ack_publish'
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
         md['test_val'] = 'test_it'

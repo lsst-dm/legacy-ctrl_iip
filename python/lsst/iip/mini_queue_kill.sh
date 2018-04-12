@@ -32,6 +32,7 @@ rabbitmqctl -p /test purge_queue at_foreman_consume
 #rabbitmqctl -p /test purge_queue archive_ctrl_publish
 rabbitmqctl -p /test purge_queue ar_forwarder_publish
 rabbitmqctl -p /test purge_queue ar_foreman_ack_publish
+rabbitmqctl -p /test purge_queue at_foreman_ack_publish
 #rabbitmqctl -p /test purge_queue pp_foreman_ack_publish
 #rabbitmqctl -p /test purge_queue audit_consume
 rabbitmqctl -p /test purge_queue f1_consume
