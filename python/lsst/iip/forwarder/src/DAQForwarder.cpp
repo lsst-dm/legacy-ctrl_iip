@@ -33,7 +33,12 @@
 
 
 #define SECONDARY_HDU 2
-#define HEIGHT 512
+// Htut Khine, please notice:
+// // These values are set right now for testing. They will become event params soon...
+// // Gregg's test image uses:
+// // NAXIS1 = 576, NAXIS2 = 2048
+// //#define HEIGHT 512
+#define HEIGHT 576
 #define WIDTH 2048
 #define N_AMPS 16
 #define PIX_MASK 0x3FFFF
