@@ -88,6 +88,7 @@ def main():
   time.sleep(2)
   sp1.publish_message("f99_consume", msg)
 
+  """
   print("Sending AR_FWDR_TAKE_IMAGES message")
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_TAKE_IMAGES"
@@ -97,12 +98,12 @@ def main():
   msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
   time.sleep(4)
   sp1.publish_message("f99_consume", msg)
-
+  """
   print("Sending AR_FWDR_END_READOUT message")
   msg = {}
   msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
   #msg['IMAGE_ID'] = 'test23'
-  msg['IMAGE_ID'] = 'LSSTTEST_01'
+  msg['IMAGE_ID'] = 'luckyme'
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
@@ -113,11 +114,15 @@ def main():
 
   print("Sending HEADER1 information") 
   msg = {} 
-  msg["MSG_TYPE"] = "AR_FWDR_HEADER_READY"
-  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
+  msg["MSG_TYPE"] = "FORMAT_HEADER_READY"
+  msg['IMAGE_ID'] = 'luckyme'
+  #msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
+  msg["FILENAME"] = "/tmp/source/header/luckyme/luckyme.header"
   time.sleep(4)
-  sp1.publish_message("f99_consume", msg) 
+  #sp1.publish_message("f99_consume", msg) 
+  sp1.publish_message("format_consume_from_f99", msg) 
 
+  """
   print("Sending HEADER2 information") 
   msg = {} 
   msg["MSG_TYPE"] = "AR_FWDR_HEADER_READY"
@@ -146,8 +151,9 @@ def main():
   msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
   time.sleep(6)
   sp1.publish_message("f99_consume", msg)
-
+  """
   print("Sender done")
+  
 
 
 if __name__ == "__main__":  main()

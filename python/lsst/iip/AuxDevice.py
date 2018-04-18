@@ -78,7 +78,7 @@ class AuxDevice:
         self._msg_actions = { 'AT_START_INTEGRATION': self.process_at_start_integration,
                               'AT_NEW_SESSION': self.set_session,
                               #'AR_READOUT': self.process_dmcs_readout,
-                              'AUX_FWDR_HEALTH_CHECK_ACK': self.process_ack,
+                              'AUX_FWDR_HEALTH_CHECK_ACK': self.process_health_check_ack,
                               'AUX_FWDR_XFER_PARAMS_ACK': self.process_ack,
                               'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
@@ -125,11 +125,10 @@ class AuxDevice:
 
             :return: None.
         """
-        #msg_dict = yaml.load(body) 
         ch.basic_ack(method.delivery_tag)
         msg_dict = body 
-        LOGGER.info('In AUX Foreman message callback')
-        LOGGER.info('Message from DMCS to AUX Foreman callback message body is: %s', str(msg_dict))
+        LOGGER.info('Msg received in AUX Foreman message callback')
+        LOGGER.debug('Message from DMCS to AUX Foreman callback message body is: %s', str(msg_dict))
         print("Incoming AUX msg is: %s" % msg_dict)
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -147,7 +146,7 @@ class AuxDevice:
             :return: None.
         """
         ch.basic_ack(method.delivery_tag)
-        LOGGER.info('AR CTRL callback msg body is: %s', str(body))
+        LOGGER.debug('AR CTRL callback msg body is: %s', str(body))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -165,20 +164,14 @@ class AuxDevice:
         """
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
-        print("")
-        print("")
-        print("")
         print( "RECEIVING ack MESSAGE:")
         print(msg_dict)
-        print("")
-        print("")
-        print("")
 
         # XXX FIX Ignoring all log messages
         return
 
         LOGGER.info('In ACK message callback')
-        LOGGER.info('Message from ACK callback message body is: %s', str(msg_dict))
+        LOGGER.debug('Message from ACK callback message body is: %s', str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -198,13 +191,18 @@ class AuxDevice:
         print("Incoming AUX AT_Start Int msg")
         # next, run health check
         self.ACK_QUEUE = {}
+        
         health_check_ack_id = self.get_next_timed_ack_id('AUX_FWDR_HEALTH_ACK')
+        self.clear_fwdr_state()
         num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
 
         # Add job scbd entry
         self.ack_timer(1.4)
 
         #healthy_fwdrs = self.ACK_QUEUE.get_components_for_timed_ack(health_check_ack_id)
+        if (self.set_current_forwarder == False):
+            ## FIX - Throw a big fault and bail, because we have no Forwarders...
+            pass
         #if healthy_fwdrs == None:
         #    self.refuse_job(params, "No forwarders available")
         #    ### FIX send error code for this...
@@ -592,7 +590,33 @@ class AuxDevice:
 
         ### FIX Add Final Response to DMCS
 
+    def clear_fwdr_state(self):
+        fwdrs = list(self._fwdr_state_dict.keys())
+        for fwdr in fwdrs:
+            self._fwdr_state_dict[fwdr] = UNKNOWN
+
+
+    def setup_fwdr_state_dict(self):
+        self._fwdr_state_dict = {}
+        fwdrs = list(self._forwarder_dict.keys())
+        for fwdr in fwdrs:
+            self._fwdr_state_dict[fwdr] = UNKNOWN
+
  
+    def set_fwdr_state(self, component):
+        self.fwdr_state_dict[component] = HEALTHY
+
+
+    def set_current_fwdr(self):
+        fwdrs = list(self._fwdr_state_dict.keys())
+        for fwdr in fwdrs:
+            if self._fwdr_state_dict[fwdr] == HEALTHY:
+                self._current_fwdr[fwdr] = self._forwarder_dict[fwdr]
+                return True
+
+        return False  #Could not find a HEALTHY forwarder to use...:(
+
+
     def process_ack(self, params):
         """ Add new ACKS for a particular ACK_ID to the Ack Scoreboards
             where they are collated.
@@ -603,6 +627,18 @@ class AuxDevice:
         """
         pass
         #self.ACK_SCBD.add_timed_ack(params)
+        
+
+    def process_health_check_ack(self, params):
+        """ Add new Health Check ACKS to self._fwdr_state_dict
+            where they are collated.
+
+            :params: New ack to be checked in.
+
+            :return: None.
+        """
+        component = params[COMPONENT]  # The component is the name of the fwdr responding
+        self.set_fwdr_state(component)
         
 
     def get_next_timed_ack_id(self, ack_type):
@@ -745,6 +781,7 @@ class AuxDevice:
             self._msg_pub_passwd = cdm[ROOT]['AUX_BROKER_PUB_PASSWD']   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['AUX_FORWARDERS']
+            self.setup_fwdr_state_dict()
             self._wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
 
             # Placeholder until eventually worked out by Data Backbone team
