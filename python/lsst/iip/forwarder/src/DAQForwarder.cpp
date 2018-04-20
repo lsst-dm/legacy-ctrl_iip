@@ -603,9 +603,8 @@ void Forwarder::process_new_visit(Node n) {
 void Forwarder::process_health_check(Node n) {
     string ack_id = n["ACK_ID"].as<string>();
     string reply_queue = n["REPLY_QUEUE"].as<string>();
-
-    string message_type = "AR_FWDR_HEALTH_CHECK_ACK";
-    //string component = "AR";
+    string message_type = n["MSG_TYPE"].as<string>();
+    message_type.push_back('_ACK'); //Add _ACK to end of msg_type and not worry about dev type
     string ack_bool = "True";
 
     ostringstream message;
@@ -1458,7 +1457,8 @@ void Forwarder::format_write_img(string img, string header) {
     cout << "[x] fwi" << endl;
     try { 
         long len = WIDTH * HEIGHT;
-        int bitpix = LONG_IMG; 
+        // int bitpix = LONG_IMG; 
+        int bitpix = 32; 
         long naxis = 2;
         long naxes[2] = { WIDTH, HEIGHT }; 
         long fpixel = 1; 
@@ -1482,6 +1482,8 @@ void Forwarder::format_write_img(string img, string header) {
 
         vector<string> file_names = format_list_files(img_path); 
         vector<string>::iterator it; 
+	vector<string> exclude_keywords = {"BITPIX", "NAXIS"}; 
+	vector<string>::iterator eit; 
         for (it = file_names.begin(); it != file_names.end(); it++) { 
             string img_segment = img_path + "/" + *it; 
             char *img_buffer = format_read_img_segment(img_segment.c_str());
@@ -1494,7 +1496,18 @@ void Forwarder::format_write_img(string img, string header) {
             fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
             for (int i = 1; i <= nkeys; i++) { 
                 fits_read_record(iptr, i, card, &status); 
-                fits_write_record(optr, card, &status); 
+	        string card_str = string(card); 
+	        cout << "[x] " << card  << endl; 
+                if (card_str.find("BITPIX") == 0) {} 
+                else if (card_str.find("NAXIS") == 0) {} 
+                else if (card_str.find("PCOUNT") == 0) {} 
+                else if (card_str.find("GCOUNT") == 0) {} 
+                else if (card_str.find("XTENSION") == 0) {} 
+                else { 
+                    cout << "[WRITTEN] " << card << endl; 
+		    fits_write_record(optr, card, &status); 
+                } 
+		cout << "XXXXXXXXXXXXXXXXXXXXXXX" << endl; 
             }
             hdunum++;
         } 
