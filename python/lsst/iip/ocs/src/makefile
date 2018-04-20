@@ -13,7 +13,7 @@ INCLUDE  = -I../include
 SALPATH	 = /opt/sal/ts_opensplice/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux
 LIBSAL	 = /opt/sal/ts_sal/lsstsal/lib
 CC	 = g++
-LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config -L../lib -Wl,-rpath,../lib
+LDFLAGS  = -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config 
 LDLIBS	 = -lsacpp_archiver_types -lsacpp_catchuparchiver_types -lsacpp_processingcluster_types\
 -lsacpp_camera_types -lsacpp_atcamera_types -lsacpp_efd_types -lsacpp_atArchiver_types\
 -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
