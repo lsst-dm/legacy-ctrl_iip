@@ -496,8 +496,8 @@ ROOT:
         ACK_ID: seq. num
 
 
-    AR_FWDR_READOUT_ACK:
-        MSG_TYPE: AR_FWDR_READOUT_ACK
+    AR_FWDR_END_READOUT_ACK:
+        MSG_TYPE: AR_FWDR_END_READOUT_ACK
         COMPONENT:
         JOB_NUM:
         IMAGE_ID:

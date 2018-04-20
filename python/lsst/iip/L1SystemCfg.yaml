@@ -127,12 +127,13 @@ ROOT:
     CU: cu_foreman_consume
     AT: at_foreman_consume
   ARCHIVE:
+    USE_ARCHIVE_CTRL: False
     ARCHIVE_NAME: ARCHIE
     ARCHIVE_LOGIN: ARCHIE
     ARCHIVE_IP: 141.142.238.15
     ARCHIVE_HOSTNAME: ARCHIE
     ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
-    CHECKSUM_ENABLED: no
+    CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
   EFD:
     EFD_NAME: LFA
     EFD_LOGIN: felipe
@@ -142,6 +143,7 @@ ROOT:
     CHECKSUM_ENABLED: no
   ATS:
     WFS_RAFT: raft02
+    WFS_CCD: wfs_ccd
   OCS: 
     OCS_NAME: OCS
     OCS_PASSWD: OCS
@@ -220,6 +222,14 @@ ROOT:
         IP_ADDR: 141.142.238.74
         STATE: IDLE
         CONSUME_QUEUE: f99_consume
+        PUBLISH_QUEUE: ar_foreman_ack_publish
+
+      FORWARDER_100:
+        NAME: F100
+        HOSTNAME: lsst-daq.ncsa.illinois.edu  
+        IP_ADDR: 141.142.238.74
+        STATE: IDLE
+        CONSUME_QUEUE: 100_consume
         PUBLISH_QUEUE: ar_foreman_ack_publish
 
 #      FORWARDER_10:
