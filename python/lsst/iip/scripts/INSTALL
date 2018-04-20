@@ -1,0 +1,32 @@
+# Installing Dependency software packages for L1
+
+## Pre-requisites
+* python3 
+* pip install -r iip/requirements.txt 
+
+## Install Redis-server
+wget http://download.redis.io/releases/redis-4.0.9.tar.gz
+tar zxvf redis-4.0.9.tar.gz 
+make 
+make install 
+
+## Install Rabbitmq-Server
+### Install zero-dependency erlang
+wget -O erlang.zip https://github.com/rabbitmq/erlang-rpm/archive/master.zip
+unzip erlang.zip 
+sudo make 
+cd RPMS/x86_64
+yum install -y erlang-20.3-1.el7.centos.x86_64.rpm
+
+### Install rabbitmq-server 
+wget https://dl.bintray.com/rabbitmq/all/rabbitmq-server/3.7.4/rabbitmq-server-3.7.4-1.el7.noarch.rpm
+rpm --import https://dl.bintray.com/rabbitmq/Keys/rabbitmq-release-signing-key.asc
+yum install rabbitmq-server-3.7.4-1.el7.noarch.rpm
+
+## Setup Rabbitmq Users and Queues 
+./at_rmq_user_init.sh 
+python Setup.py 
+
+## Run Redis-server as daemon
+./redis_setup/setup_redis.sh 
+./redis_setup/start_redis.sh 
