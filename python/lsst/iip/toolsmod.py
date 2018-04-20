@@ -112,10 +112,6 @@ state_matrix[4][4] = True
 state_matrix[5][5] = True
 state_matrix[6][6] = True
 
-""" Exception classes 
-""" 
-class L1Exception(Exception): 
-    pass 
 
 # Error codes are 4 digit numbers
 # Most Significant digit is 5 for DM Errors
@@ -125,9 +121,10 @@ class L1Exception(Exception):
 # 3 ArchiveDevice
 # 4 Archive Controller
 # 5 PromptProcess Device
-# 6 Forwarder
-# 7 NCSA Foreman
-# 8 Distributor
+# 6 AuxDevice
+# 7 Forwarder
+# 8 NCSA Foreman
+# 9 Distributor
 #
 # The two least significant digits are specific errors
 # So, Error Code 5371 is a DM Error originating in the Archive Device. Error is #71
@@ -141,16 +138,30 @@ class L1Exception(Exception):
 # 12 - Redis Connection Error
 #
 # 20 - Component Configuration Setup
+# 21 - ForwarderCfg.yaml not found error
+# 22 - YAML Key not found error 
+# 23 - Cannot create directory error
+# 24 - Cannot copy file error 
+# 
 #
 # 30 - General Message error
 # 31 - Publisher error
 # 32 - Consumer error
 # 35 - Message Handler error
 #
-# 01 - ForwarderCfg.yaml not found error
-# 02 - YAML Key not found error 
-# 20 - Cannot create directory error
-# 21 - Cannot copy file error 
+# 50 - General ACK Error
+# 51 - No Response to HEALTH_CHECK message
+# 52 - No Response to XFER_PARAMS message
+# 53 - No Start Integration Response from Device
+# 54 - No Response to END_READOUT message
+# 55 - No New Session Response
+# 56 - No Next Visit Response
+
+
+""" Exception classes 
+""" 
+class L1Exception(Exception): 
+    pass 
 
 class L1Error(L1Exception): 
     """ Raise as general exception from main execution layer """
