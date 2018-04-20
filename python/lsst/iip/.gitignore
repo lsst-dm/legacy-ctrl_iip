@@ -7,3 +7,5 @@ logs
 forwarder/src/*.o
 forwarder/src/Forwarder
 ospl-info.log
+*_cache/
+env
