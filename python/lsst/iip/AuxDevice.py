@@ -194,7 +194,7 @@ class AuxDevice:
         # next, run health check
         self.ACK_QUEUE = {}
         
-        health_check_ack_id = self.get_next_timed_ack_id('AUX_FWDR_HEALTH_ACK')
+        health_check_ack_id = self.get_next_timed_ack_id('AT_FWDR_HEALTH_CHECK_ACK')
         self.clear_fwdr_state()
         num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
@@ -207,7 +207,7 @@ class AuxDevice:
             return
 
         # Add archive check when necessary...
-        if self.use_archive_ctrl:
+        if self.use_archive_ctrl == False:
             pass
         # send new_archive_item msg to archive controller
         #start_int_params = {}
@@ -228,15 +228,16 @@ class AuxDevice:
         #   FIXME raise L1 exception and bail out
         #   print("B-B-BAD Trouble; no ar_response")
         #self.archive_xfer_root = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
-           
+          
+ 
         target_dir = self.archive_xfer_root 
         
-        xfer_params_ack_id = self.get_next_timed_ack_id("AT_FWDR_PARAMS_ACK") 
+        xfer_params_ack_id = self.get_next_timed_ack_id("AT_FWDR_XFER_PARAMS_ACK") 
 
         fwdr_new_target_params = {} 
         fwdr_new_target_params['XFER_PARAMS'] = {}
         fwdr_new_target_params[MSG_TYPE] = 'AT_FWDR_XFER_PARAMS'
-        fwdr_new_target_params[SESSION_ID] = parsms['SESSION_ID']
+        fwdr_new_target_params[SESSION_ID] = params['SESSION_ID']
         fwdr_new_target_params[IMAGE_ID] = params[IMAGE_ID]
         fwdr_new_target_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
         #fwdr_new_target_params[VISIT_ID] = params['VISIT_ID']
@@ -350,26 +351,32 @@ class AuxDevice:
             :return: None.
         """
         print("Incoming AUX AT_END_READOUT msg")
+        LOGGER.info('process_at_end_readout: RECEIVING END_READOUT MESSAGE')
+        LOGGER.debug('Incoming message to procoss_at_end_readout is: %s', pformat(str(params)))
+
         reply_queue = params['REPLY_QUEUE']
         readout_ack_id = params[ACK_ID]
-        #job_number = params[JOB_NUM]
+        job_number = params[JOB_NUM]
         image_id = params[IMAGE_ID]
-        # send readout to forwarders
-        #self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'READOUT')
-        fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_READOUT_ACK")
-        #work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
+
+        self.clear_fwdr_state()
+
+        # send readout to forwarder
+        fwdr_readout_ack = self.get_next_timed_ack_id("AT_FWDR_END_READOUT_ACK")
         msg = {}
         msg[MSG_TYPE] = 'AT_FWDR_END_READOUT'
         #msg[JOB_NUM] = job_number
         msg[IMAGE_ID] = image_id
+        msg[ACK_ID] = fwdr_readout_ack
         msg['IMAGE_INDEX'] = params['IMAGE_INDEX']
         route_key = self._current_fwdr['CONSUME_QUEUE']
         self._publisher.publish_message(route_key, msg)
 
 
-        #readout_responses = self.progressive_ack_timer(fwdr_readout_ack, len(fwdrs), 4.0)
+        readout_response = self.simple_progressive_ack_timer(4.0)
 
-        # if readout_responses == None:
+        #### FIX FIX Still must do: 4-21
+        if readout_responses == False:
         #    raise L1 exception 
 
         #self.process_readout_responses(readout_ack_id, reply_queue, image_id, readout_responses)
@@ -427,7 +434,7 @@ class AuxDevice:
         results = xfer_check_responses['ARCHIVE_CTRL']['RESULT_LIST']
 
         ack_msg = {}
-        ack_msg['MSG_TYPE'] = 'AR_READOUT_ACK'
+        ack_msg['MSG_TYPE'] = 'AT_READOUT_ACK'
         ack_msg['JOB_NUM'] = job_number
         ack_msg['COMPONENT'] = self.COMPONENT_NAME
         ack_msg['ACK_ID'] = readout_ack_id
@@ -437,29 +444,6 @@ class AuxDevice:
 
         ### FIXME Set state as complete for Job
 
-
-                   
-    def send_readout(self, params, fwdrs, readout_ack):
-        """ Send AR_FWDR_READOUT message to each forwarder working on the job with
-            ar_foreman_ack_publish queue as reply queue.
-
-            :params params: A dictionary that stores info of a job.
-            :params readout_ack: Ack id for AR_FWDR_READOUT message.
-
-            :return: None.
-        """
-        ro_params = {}
-        job_number = params['JOB_NUM']
-        ro_params['MSG_TYPE'] = 'AR_FWDR_READOUT'
-        ro_params['JOB_NUM'] = job_number
-        ro_params['SESSION_ID'] = self.get_current_session()
-        ro_params['VISIT_ID'] = self.get_current_visit()
-        ro_params['IMAGE_ID'] = params['IMAGE_ID']
-        ro_params['ACK_ID'] = readout_ack
-        ro_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH 
-        for fwdr in fwdrs:
-            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
-            self._publisher.publish_message(route_key, ro_params)
 
     def process_header_ready_event(self, params):
         fname = params['FILENAME']
@@ -593,8 +577,11 @@ class AuxDevice:
 
             :return retval: String with ack type followed by next ack id.
         """
+        datestring = os.system(self.date_format)
         self._next_timed_ack_id = self._next_timed_ack_id + 1
-        return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
+        return (ack_type + "_" + datestring + str(self._next_timed_ack_id).zfill(6))
+        #self._next_timed_ack_id = self._next_timed_ack_id + 1
+        #return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
 
 
     def set_session(self, params):
@@ -701,6 +688,22 @@ class AuxDevice:
             return response
         else:
             return None
+
+
+    def simple_progressive_ack_timer(self, seconds):
+        counter = 0.0
+        while (counter < seconds):
+            counter = counter + 0.5
+            sleep(0.3)
+            if self.did_current_fwdr_respond(): 
+                return True
+
+        ## Try one final time
+        if self,did_current_fwdr_respond()::
+            return True
+        else:
+            return False
+
 
     def send_fault_state_event(ecode):
         error_code = 'ERR_' + str(ecode)
