@@ -10,7 +10,7 @@ import yaml
 import sys
 import os
 from copy import deepcopy
-import pprint, pformat
+from pprint import pprint, pformat
 import time
 from time import sleep
 import threading
@@ -40,6 +40,7 @@ class AuxDevice:
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
     AT_FOREMAN_ACK_PUBLISH = "at_foreman_ack_publish"
+    DMCS_ACK_CONSUME = "dmcs_ack_consume"
     START_INTEGRATION_XFER_PARAMS = {}
     ACK_QUEUE = []
     CFG_FILE = 'L1SystemCfg.yaml'
@@ -80,15 +81,13 @@ class AuxDevice:
 
         self._msg_actions = { 'AT_START_INTEGRATION': self.process_at_start_integration,
                               'AT_NEW_SESSION': self.set_session,
-                              #'AR_READOUT': self.process_dmcs_readout,
                               'AT_FWDR_HEALTH_CHECK_ACK': self.process_health_check_ack,
                               'AT_FWDR_XFER_PARAMS_ACK': self.process_xfer_params_ack,
-                              'AT_FWDR_END_READOUT_ACK': self.process_end_readout_ack,
-                              'AR_ITEMS_XFERD_ACK': self.process_ack,
+                              'AT_FWDR_END_READOUT_ACK': self.process_at_fwdr_end_readout_ack,
+                              'AT_ITEMS_XFERD_ACK': self.process_at_items_xferd_ack,
                               'AT_HEADER_READY': self.process_header_ready_event,
                               'AT_FWDR_HEADER_READY_ACK': self.process_header_ready_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
-                              #'AUX_TAKE_IMAGES': self.take_images,
                               'AT_END_READOUT': self.process_at_end_readout }
 
 
@@ -264,7 +263,8 @@ class AuxDevice:
         self.ack_timer(1.4)
 
         if self.did_current_fwdr_respond() == False:
-            LOGGER.critical("No xfer_params response from fwdr. Setting FAULT state, 5752")
+            name = self._current_fwdr['FQN']
+            LOGGER.critical("No xfer_params response from fwdr. Setting FAULT state, 5752" % name)
             self.send_fault_state_event(5752)  # error code for 'no health check response from any fwdrs'
             return
 
@@ -312,7 +312,7 @@ class AuxDevice:
 
             :return: None.
         """
-        self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
+        self._publisher.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
 
 
     def refuse_job(self, params, fail_details):
@@ -337,7 +337,7 @@ class AuxDevice:
         dmcs_message[ACK_BOOL] = False 
         dmcs_message['COMPONENT'] = self.COMPONENT_NAME
         self.JOB_SCBD.set_value_for_job(params[JOB_NUM], STATE, "JOB_REFUSED")
-        self._publisher.publish_message("dmcs_ack_consume", dmcs_message)
+        self._publisher.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
 
 
     def process_at_end_readout(self, params):
@@ -368,18 +368,30 @@ class AuxDevice:
         #msg[JOB_NUM] = job_number
         msg[IMAGE_ID] = image_id
         msg[ACK_ID] = fwdr_readout_ack
+        msg['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
         msg['IMAGE_INDEX'] = params['IMAGE_INDEX']
         route_key = self._current_fwdr['CONSUME_QUEUE']
         self._publisher.publish_message(route_key, msg)
 
 
-        readout_response = self.simple_progressive_ack_timer(4.0)
+        readout_response = self.simple_progressive_ack_timer(20.0)
 
-        #### FIX FIX Still must do: 4-21
-        if readout_responses == False:
-        #    raise L1 exception 
+        if self.did_current_fwdr_respond() == False:
+            name = self._current_fwdr['FQN']
+            LOGGER.critical("No AT_FWDR_END_READOUT response from %s. Setting FAULT state, 5752" % name)
+            self.send_fault_state_event(5752)  # error code for 'no health check response from any fwdrs'
+            return
 
-        #self.process_readout_responses(readout_ack_id, reply_queue, image_id, readout_responses)
+        #### FIX FIX HERE - send dmcs acks accordingly
+        result_set = self.did_current_fwdr_send_result_set()
+        if result_set == None:
+            send ACK to DMCS with ack_bool = False - no files confirmed xferd
+        else:
+            if self.use_archive_ctrl == False:
+                # send ACK to DMCS with ack_bool = True and result set of ack
+                return
+            else:
+                self.process_readout_responses(readout_ack_id, reply_queue, image_id, readout_responses)
 
 
     def process_readout_responses(self, readout_ack_id, reply_queue, image_id, readout_responses):
@@ -480,7 +492,8 @@ class AuxDevice:
     def clear_fwdr_state(self):
         fwdrs = list(self._fwdr_state_dict.keys())
         for fwdr in fwdrs:
-            self._fwdr_state_dict[fwdr] = UNKNOWN
+            self._fwdr_state_dict[fwdr] = {}
+            self._fwdr_state_dict[fwdr]['RESPONSE'] = UNKNOWN
 
 
     def setup_fwdr_state_dict(self):
@@ -496,18 +509,18 @@ class AuxDevice:
         self._fwdr_state_dict = {}
         fwdrs = list(self._forwarder_dict.keys())
         for fwdr in fwdrs:
-            self._fwdr_state_dict[fwdr] = UNKNOWN
+            self._fwdr_state_dict[fwdr]['RESPONSE'] = UNKNOWN
 
  
     def set_fwdr_state(self, component, state):
-        self.fwdr_state_dict[component] = state
+        self.fwdr_state_dict[component]['RESPONSE'] = state
 
 
     def set_current_fwdr(self):
         self._current_fwdr = {}
         fwdrs = list(self._fwdr_state_dict.keys())
         for fwdr in fwdrs:   # Choose the first healthy forwarder encountered
-            if self._fwdr_state_dict[fwdr] == HEALTHY:
+            if self._fwdr_state_dict[fwdr]['RESPONSE'] == HEALTHY:
                 tmp_forwarder_dict = deepcopy(self._forwarder_dict[fwdr])
                 tmp_forwarder_dict['FQN'] = fwdr
                 self._current_fwdr[fwdr] = tmp_forwarder_dict
@@ -517,14 +530,21 @@ class AuxDevice:
 
 
     def did_current_fwdr_respond(self):
-        if self._fwdr_state_dict[self._current_fwdr['FQN']] == 'RESPONSIVE':
+        if self._fwdr_state_dict[self._current_fwdr['FQN']]['RESPONSE'] == 'RESPONSIVE':
             return True
 
         return False
 
 
+    def did_current_fwdr_send_result_set(self):
+        if self._fwdr_state_dict[self._current_fwdr['FQN']]['ACK_BOOL'] == True:
+            return self._fwdr_state_dict[self._current_fwdr['FQN']['RESULT_SET']
+
+        return None
+
+
     def confim_fwdr_state_dict_entry(self, component):
-        if(self.fwdr_state_dict[component] == HEALTHY):
+        if(self.fwdr_state_dict[component]['RESPONSE'] == HEALTHY):
             return True
 
         return False
@@ -559,11 +579,23 @@ class AuxDevice:
         self.set_fwdr_state(component, RESPONSIVE)
     
     
-    def process_xfer_end_readout_ack(self, params):
+    def process_at_fwdr_end_readout_ack(self, params):
+        component = params[COMPONENT]  # The component is the name of the fwdr responding
+        self.set_fwdr_state(component, RESPONSIVE)
+        ack_bool = params[ACK_BOOL]  # The component is the name of the fwdr responding
+        if ack_bool == True:
+            self.fwdr_state_dict[component]['ACK_BOOL'] = True
+            self.fwdr_state_dict[component]['RESULT_SET'] = params[component]['RESULT_SET']
+        else
+            self.fwdr_state_dict[component]['ACK_BOOL'] = False
+            self.fwdr_state_dict[component]['RESULT_SET'] = None
+    
+    
+    def process_at_items_xferd_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, params[component]['RESULT_SET'])
-    
-    
+   
+ 
     def process_header_ready_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
@@ -699,7 +731,7 @@ class AuxDevice:
                 return True
 
         ## Try one final time
-        if self,did_current_fwdr_respond()::
+        if self.did_current_fwdr_respond():
             return True
         else:
             return False
@@ -712,7 +744,7 @@ class AuxDevice:
         msg_params['COMPONENT'] = self.COMPONENT
         msg_params['DEVICE'] = self.DEVICE
         msg_params['ERROR_CODE'] = error_code
-        self._publisher.publish_message("dmcs_ack_consume", msg_params)
+        self._publisher.publish_message(self.DMCS_ACK_CONSUME, msg_params)
 
 
     def extract_config_values(self):
