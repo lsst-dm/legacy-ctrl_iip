@@ -1,0 +1,16 @@
+[Unit]
+Description=L1 EventSubscriber Service
+Requires=ctrl_dependency.target
+After=multi-user.target ctrl_dependency.target DMCS.service
+BindsTo=ctrl_iip.target
+
+[Service]
+Type=simple
+User=centos
+WorkingDirectory=/home/centos/src/git/ctrl_iip/python/lsst/iip
+ExecStart=/usr/bin/bash /home/centos/src/git/ctrl_iip/python/lsst/iip/scripts/services/run_EventSubscriber.sh
+ExecStop=/usr/bin/bash /home/centos/src/git/ctrl_iip/python/lsst/iip/scripts/services/stop_services.sh
+Restart=always
+
+[Install]
+WantedBy=ctrl_iip.target

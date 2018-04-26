@@ -1,0 +1,8 @@
+[Unit]
+Description=L1 Image Ingest and Processing Dependency Softwares
+Requires=multi-user.target 
+After=multi-user.target
+Wants=rabbitmq.service redis.service
+
+[Install]
+WantedBy=multi-user.target
