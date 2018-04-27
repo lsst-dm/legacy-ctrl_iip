@@ -8,7 +8,7 @@ BindsTo=ctrl_iip.target
 Type=simple
 User=ATS
 WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip
-ExecStart=/usr/bin/python3.6 DMCS.py
+ExecStart=/opt/rh/rh-python36/root/usr/bin/python3 DMCS.py
 Restart=always
 
 [Install]

@@ -8,7 +8,7 @@ BindsTo=ctrl_dependency.target
 User=root
 Type=forking
 WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip
-ExecStart=/usr/local/bin/redis-server ./scripts/services/redis.conf
+ExecStart=/usr/bin/redis-server ./start_up/redis.conf
 Restart=always
 
 [Install]
