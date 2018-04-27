@@ -75,8 +75,8 @@ ROOT:
   #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny?heartbeat=30
   #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
   #NCSA_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
-  BASE_BROKER_ADDR: 141.142.208.160:5672/%2ftest_at
-  NCSA_BROKER_ADDR: 141.142.238.160:5672/%2ftest_at
+  BASE_BROKER_ADDR: 141.142.238.10:5672/%2ftest
+  NCSA_BROKER_ADDR: 141.142.238.10:5672/%2ftest
   INFLUX_DB: L1_Test
   SESSION_ID_FILE: "/var/session_id"
   DMCS_ACK_ID_FILE: "/var/dmcs_ack_id"
@@ -222,16 +222,16 @@ ROOT:
         IP_ADDR: 141.142.238.74
         STATE: IDLE
         CONSUME_QUEUE: f99_consume
-        PUBLISH_QUEUE: ar_foreman_ack_publish
+        PUBLISH_QUEUE: at_foreman_ack_publish
 
-      FORWARDER_100:
-        NAME: F100
-        HOSTNAME: lsst-daq.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.74
-        STATE: IDLE
-        CONSUME_QUEUE: 100_consume
-        PUBLISH_QUEUE: ar_foreman_ack_publish
-
+#      FORWARDER_100:
+#        NAME: F100
+#        HOSTNAME: lsst-daq.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.238.74
+#        STATE: IDLE
+#        CONSUME_QUEUE: 100_consume
+#        PUBLISH_QUEUE: ar_foreman_ack_publish
+#
 #      FORWARDER_10:
 #        NAME: F10
 #        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
