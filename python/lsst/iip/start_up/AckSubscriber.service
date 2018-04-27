@@ -9,7 +9,6 @@ Type=simple
 User=ATS
 WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip
 ExecStart=/usr/bin/bash ./start_up/run_AckSubscriber.sh
-ExecStop=/usr/bin/bash ./scripts/at_rmq_purge_queues.sh
 Restart=always
 
 [Install]

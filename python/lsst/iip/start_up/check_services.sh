@@ -15,7 +15,6 @@ while true; do
                 echo "${sv} is active." 
                 ;;
             *)
-                echo "${sv} is not active." 
                 /usr/bin/bash ./scripts/at_rmq_purge_queues.sh
                 systemctl restart ctrl_iip.target
                 sleep 10
