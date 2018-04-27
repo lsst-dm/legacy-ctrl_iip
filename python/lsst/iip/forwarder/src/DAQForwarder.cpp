@@ -1293,6 +1293,20 @@ void Forwarder::process_header_ready(Node n) {
             throw L1YamlKeyError("In process_header_ready, forwarder cannot find message params: FILENAME"); 
         } 
 
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    string ack_id = n["ACK_ID"].as<string>();
+    string message_type = "AT_FWDR_HEADER_READY_ACK";
+    string ack_bool = "True";
+
+    ostringstream message;
+    message << "{ MSG_TYPE: " << message_type
+            << ", COMPONENT: " << this->Component
+            << ", ACK_ID: " << ack_id
+            << ", ACK_BOOL: " << ack_bool << "}";
+
+    // Inform AuxDevice message was received.
+    FWDR_pub->publish_message(reply_queue, message.str());
+
         string path = n["FILENAME"].as<string>(); 
         string img_id = n["IMAGE_ID"].as<string>(); 
         int img_idx = path.find_last_of("/"); 
@@ -1593,6 +1607,7 @@ void Forwarder::format_look_for_work() {
     catch (exception& e) { 
         cerr << e.what() << endl; 
     } 
+// ADD RESULT SET CODE HERE...
 } 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1661,6 +1676,33 @@ void Forwarder::forward_process_take_images_done(Node n) {
     this->fwd_pub->publish_message(reply_queue, msg.c_str());
     cout << "msg is replied to ..." << reply_queue << endl;
 } 
+
+//void Forwarder::forward_process_end_readout_done(Node n) { 
+//    cout << "get here" << endl;
+//    ostringstream message;
+//    string ack_id = n["ACK_ID"].as<string>();
+//    string reply_queue = n["REPLY_QUEUE"].as<string>();
+//    string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK ";
+//    string ack_bool = "True";
+// 
+//    Emitter msg; 
+//    msg << BeginMap; 
+//    msg << Key << "MSG_TYPE" << Value << msg_type; 
+//    msg << Key << "COMPONENT" << Value << this->Component; 
+//    msg << Key << "ACK_ID" << Value << ack_id; 
+//    msg << Key << "ACK_BOOL" << Value << ack_bool; 
+//    msg << Key << "RESULT_SET" << Value << Flow; 
+//        msg << BeginMap; 
+//        msg << Key << "FILENAME_LIST" << Value << Flow << finished_image_work_list; 
+//        msg << Key << "CHECKSUM_LIST" << Value << Flow << checksum_list;  
+//        msg << EndMap; 
+//    msg << EndMap; 
+//    cout << "[x] tid msg: " << endl; 
+//    cout << msg.c_str() << endl;
+//  
+//    this->fwd_pub->publish_message(reply_queue, msg.c_str());
+//    cout << "msg is replied to ..." << reply_queue << endl;
+//} 
 
 int main() {
     Forwarder *fwdr = new Forwarder();
