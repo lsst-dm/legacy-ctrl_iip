@@ -7,7 +7,8 @@ BindsTo=ctrl_dependency.target
 [Service]
 User=root
 Type=forking
-ExecStart=/usr/local/bin/redis-server /home/centos/src/git/ctrl_iip/python/lsst/iip/scripts/services/redis.conf
+WorkingDirectory=/home/AT/src/git/ctrl_iip/python/lsst/iip
+ExecStart=/usr/local/bin/redis-server ./scripts/services/redis.conf
 Restart=always
 
 [Install]

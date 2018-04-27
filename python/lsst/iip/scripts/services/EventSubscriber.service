@@ -1,15 +1,15 @@
 [Unit]
 Description=L1 EventSubscriber Service
 Requires=ctrl_dependency.target
-After=multi-user.target ctrl_dependency.target DMCS.service
+After=DMCS.service
 BindsTo=ctrl_iip.target
 
 [Service]
 Type=simple
-User=centos
-WorkingDirectory=/home/centos/src/git/ctrl_iip/python/lsst/iip
-ExecStart=/usr/bin/bash /home/centos/src/git/ctrl_iip/python/lsst/iip/scripts/services/run_EventSubscriber.sh
-ExecStop=/usr/bin/bash /home/centos/src/git/ctrl_iip/python/lsst/iip/scripts/services/stop_services.sh
+User=AT
+WorkingDirectory=/home/AT/src/git/ctrl_iip/python/lsst/iip
+ExecStart=/usr/bin/bash ./scripts/services/run_EventSubscriber.sh
+ExecStop=/usr/bin/bash ./scripts/at_rmq_purge_queues.sh
 Restart=always
 
 [Install]

@@ -1,7 +1,6 @@
 [Unit]
 Description=L1 Image Ingest and Processing
-Requires=multi-user.target rabbitmq.service redis.service 
-After=multi-user.target rabbitmq.service redis.service
+Requires=multi-user.target ctrl_dependency.target 
 Wants=DMCS.service CommandListener.service AckSubscriber.service EventSubscriber.service AuxDevice.service
 
 [Install]

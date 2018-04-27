@@ -1,15 +1,14 @@
 [Unit]
 Description=L1 AuxDevice Service
 Requires=ctrl_dependency.target
-After=multi-user.target ctrl_dependency.target
 BindsTo=ctrl_iip.target
 
 [Service]
 Type=simple
-User=centos
-WorkingDirectory=/home/centos/src/git/ctrl_iip/python/lsst/iip
-ExecStart=/usr/bin/python3.6 /home/centos/src/git/ctrl_iip/python/lsst/iip/AuxDevice.py
-ExecStop=/usr/bin/bash /home/centos/src/git/ctrl_iip/python/lsst/iip/scripts/services/stop_services.sh
+User=AT
+WorkingDirectory=/home/AT/src/git/ctrl_iip/python/lsst/iip
+ExecStart=/usr/bin/python3.6 AuxDevice.py
+ExecStop=/usr/bin/bash ./scripts/at_rmq_purge_queues.sh
 Restart=always
 
 [Install]
