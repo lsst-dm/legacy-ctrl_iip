@@ -8,7 +8,7 @@ BindsTo=ctrl_iip.target
 Type=simple
 User=AT
 WorkingDirectory=/home/AT/src/git/ctrl_iip/python/lsst/iip
-ExecStart=/usr/bin/bash ./scripts/services/run_AckSubscriber.sh
+ExecStart=/usr/bin/bash ./start_up/run_AckSubscriber.sh
 ExecStop=/usr/bin/bash ./scripts/at_rmq_purge_queues.sh
 Restart=always
 
