@@ -57,7 +57,6 @@ class TestAtDev:
     EXPECTED_AR_CTRL_MESSAGES = 1
     EXPECTED_DMCS_MESSAGES = 1
     EXPECTED_F99_MESSAGES = 1
-    NUM_READOUTS = 0
 
     ccd_list = [14,17,21.86]
     prp = toolsmod.prp
@@ -168,11 +167,11 @@ class TestAtDev:
 
         LOGGER.warning('In on_f99_message handler')
         print("Starting send_messages")
-        # Tests only an AR device
+        # Tests only an AT device
         
         self.EXPECTED_AR_CTRL_MESSAGES = 2
-        self.EXPECTED_DMCS_MESSAGES = 1
-        self.EXPECTED_F99_MESSAGES = 2
+        self.EXPECTED_DMCS_MESSAGES = 2
+        self.EXPECTED_F99_MESSAGES = 4
 
         """
         msg = {}
@@ -184,8 +183,8 @@ class TestAtDev:
         time.sleep(12)
         print("New Session Message")
         self.dmcs_publisher.publish_message("at_foreman_consume", msg)
-        """
 
+        """
         LOGGER.warning('About to send start_int')
         msg = {}
         msg['MSG_TYPE'] = "AT_START_INTEGRATION"
@@ -195,38 +194,42 @@ class TestAtDev:
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['RAFT_LIST'] = ['WFS_RAFT']
         msg['RAFT_CCD_LIST'] = [['WFS_CCD']]
-        time.sleep(2)
+        #time.sleep(2)
         LOGGER.warning('Here comes start_int message')
         print("Start Integration Message")
         self.dmcs_publisher.publish_message("at_foreman_consume", msg)
         LOGGER.warning('Just after publishing start_int message')
 
+        #time.sleep(3)
+        time.sleep(8)
         msg = {}
         msg['MSG_TYPE'] = "AT_END_READOUT"
         msg['JOB_NUM'] = '4xx72'
+        msg['SESSION_ID'] = 'SI_469976'
         msg['IMAGE_ID'] = 'IMG_444245'
         msg['IMAGE_INDEX'] = 2
-        msg['IMAGE_SEQUENCE_NAME'] + 'XX_seq'
-        msg['IMAGES_IN_SEQUENCE'] + 8
+        msg['IMAGE_SEQUENCE_NAME'] = 'XX_seq'
+        msg['IMAGES_IN_SEQUENCE'] = 8
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'AR_ACK_94671'
-        time.sleep(11)
+        msg['ACK_ID'] = 'AT_ACK_94671'
+        #time.sleep(11)
         #time.sleep(3)
         print("AT END READOUT Message")
         self.dmcs_publisher.publish_message("at_foreman_consume", msg)
-      
-        """  
+
+        time.sleep(5)
+
+
         msg = {}
         msg['MSG_TYPE'] = "AT_HEADER_READY"
         msg['IMAGE_ID'] = 'IMG_444245'
         msg['FILENAME'] = '/mnt/headers'
+        msg['ACK_ID'] = 'AT_ACK_1444'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        #time.sleep(2)
-        time.sleep(12)
-        print("AR Take Images Done Message")
+        print("AT HEADER_READY Message")
         self.dmcs_publisher.publish_message("at_foreman_consume", msg)
-        """
-        #time.sleep(9)
+        time.sleep(2)
+
         print("Message Sender done")
 
 
@@ -269,16 +272,7 @@ class TestAtDev:
    
 
     def verify_F99_messages(self):
-        print(" ")
-        print(" ")
-        print(" ")
-        print("In verify F99 messages...here is what came in:")
-        self.prp.pprint(self.f99_consumer_msg_list)
-        print(" ")
-        print(" ")
-        print(" ")
         len_list = len(self.f99_consumer_msg_list)
-        print("F99 RECEIVED %s MESSAGES" % len_list)
         if len_list != self.EXPECTED_F99_MESSAGES:
             print("Incorrect number of F99 messages received")
             pytest.fail('F99 simulator received incorrect number of messages.\nExpected %s but received %s'\
@@ -334,6 +328,7 @@ class TestAtDev:
             pytest.fail("The following unknown message was received by the Archive CTRL: %s" % body)
 
     def on_f99_message(self, ch, method, properties, body):
+        LOGGER.debug("Inside on_f99_message......")
         ch.basic_ack(method.delivery_tag)
         self.f99_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'AT_FWDR_HEALTH_CHECK':
@@ -343,9 +338,6 @@ class TestAtDev:
             msg['COMPONENT'] = 'FORWARDER_99'
             msg['ACK_BOOL'] = True 
             msg['ACK_ID'] = body['ACK_ID']
-            print("This is the at_fwdr_health_chech_ack being sent:")
-            self.prp.pprint(msg)
-            print("at_fwdr_health_check_ack msg dump finished.")
             self.F99_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AT_FWDR_XFER_PARAMS':
@@ -356,25 +348,22 @@ class TestAtDev:
             msg['ACK_ID'] = body['ACK_ID']
             self.F99_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
-        elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
-            # This message handler is not necessary as it does nothing
-            # But it is explanatory in nature for understanding/maintaining the file.
-            #
-            # No ack necessary - but NUM_IMAGES param will be 
-            # needed in AR_FWDR_TAKE_IMAGES_DONE message handler below
+        elif body['MSG_TYPE'] == 'AT_FWDR_HEADER_READY':
+            # No need to ACK
             pass
 
         elif body['MSG_TYPE'] == 'AT_FWDR_END_READOUT':
-            self.NUM_READOUTS = self.NUM_READOUTS + 1
+            LOGGER.warning("Inside on_f99_message AT_FWDR_END_READOUT case...")
 
             xfer_msg = None
             image_id = body['IMAGE_ID']
             for msg in self.f99_consumer_msg_list:
-                if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
+                if msg['MSG_TYPE'] == 'AT_FWDR_XFER_PARAMS':
                     xfer_msg = msg
             if xfer_msg == None:
-                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
-
+                LOGGER.warning("The AT_FWDR_XFER_PARAMS message was not received before AT_FWDR_READOUT in F99")
+                fail_msg = "The AT_FWDR_XFER_PARAMS message was not received before AT_FWDR_READOUT in F99"
+                pytest.fail("\n".join(fail_msg), pytrace=True)
             # use message to build response
             msg = {}
             msg['MSG_TYPE'] = 'AT_FWDR_END_READOUT_ACK'

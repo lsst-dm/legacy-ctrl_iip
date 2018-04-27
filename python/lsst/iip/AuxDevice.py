@@ -67,6 +67,7 @@ class AuxDevice:
         toolsmod.singleton(self)
 
         self._fwdr_state_dict = {}  # Used for ACK analysis...
+        self._archive_ack = {}  # Used to determine archive response
         self._current_fwdr = {}
 
         self._config_file = self.CFG_FILE
@@ -172,7 +173,6 @@ class AuxDevice:
         """
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
         LOGGER.info('In ACK message callback: RECEIVING ACK MESSAGE')
         LOGGER.debug('Message from ACK callback message body is: %s', pformat(str(msg_dict)))
 
@@ -202,24 +202,19 @@ class AuxDevice:
         
         health_check_ack_id = self.get_next_timed_ack_id('AT_FWDR_HEALTH_CHECK_ACK')
         self.clear_fwdr_state()
-        print("Right after call to clear fwdr state...just before health check is sent out")
         num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
-        print("num_fwdrs_checked is %s...should be 1" % num_fwdrs_checked)
 
         # Give fwdrs enough time to respond...
         #self.ack_timer(1.4)
         sleep(1)
 
-        print("AfTeR AcK TiMeR FoR hEaLtH ChEcK")
 
         if (self.set_current_fwdr() == False):
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
-            print("%&%!%&%!%&%!%&%!%&%!%&%!%&%!%&%!57515751575157515751%&%!%&%!%&%!%&%!")
             self.send_fault_state_event(5751, job_number) # error code for 'no health check response any fwdrs'
             return
 
-        print("PAST Health Timer AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA Passed Health Timer")
 
         # Add archive check when necessary...
         #if self.use_archive_ctrl == False:
@@ -274,10 +269,6 @@ class AuxDevice:
         CCD_LIST = []
         CCD_LIST.append(self._wfs_ccd)
         xfer_params_dict['RAFT_CCD_LIST'].append(CCD_LIST)
-        print(" ")
-        print("Printing out self._current_fwdr...")
-        self.prp.pprint(self._current_fwdr)
-        print(" ")
         xfer_params_dict['AT_FWDR'] = self._current_fwdr['FQN']
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
@@ -322,14 +313,10 @@ class AuxDevice:
         msg_params[ACK_ID] = ack_id
         msg_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
 
-        print("Outgoing health check msg is:")
-        self.prp.pprint(msg_params)
 
         forwarders = list(self._forwarder_dict.keys())
         for x in range (0, len(forwarders)):
-            print("Forwarder x value is: %s" % x)
             route_key = self._forwarder_dict[forwarders[x]]["CONSUME_QUEUE"]
-            print("In do_fwdr_health_check...sending health check message to %s" % route_key)
             self._publisher.publish_message(route_key, msg_params)
         return len(forwarders)
 
@@ -380,14 +367,13 @@ class AuxDevice:
 
             :return: None.
         """
-        print("Incoming AUX AT_END_READOUT msg")
         LOGGER.info('process_at_end_readout: RECEIVING END_READOUT MESSAGE')
         LOGGER.debug('Incoming message to procoss_at_end_readout is: %s', pformat(str(params)))
 
         reply_queue = params['REPLY_QUEUE']
         readout_ack_id = params[ACK_ID]
         job_number = params[JOB_NUM]
-        image_id = params[IMAGE_ID]
+        image_id = params['IMAGE_ID']
         msgtype = params[MSG_TYPE]
 
         self.clear_fwdr_state()
@@ -396,8 +382,9 @@ class AuxDevice:
         fwdr_readout_ack = self.get_next_timed_ack_id("AT_FWDR_END_READOUT_ACK")
         msg = {}
         msg[MSG_TYPE] = 'AT_FWDR_END_READOUT'
-        #msg[JOB_NUM] = job_number
-        msg[IMAGE_ID] = image_id
+        msg[JOB_NUM] = job_number
+        msg[SESSION_ID] = params[SESSION_ID]
+        msg['IMAGE_ID'] = image_id
         msg[ACK_ID] = fwdr_readout_ack
         msg['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
         msg['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
@@ -416,13 +403,19 @@ class AuxDevice:
             return
 
         result_set = self.did_current_fwdr_send_result_set()
-        if result_set == None:
+        if result_set == None:  #fail, ack_bool is false, and filename_list is None
             final_msg = {}
             final_msg['MSG_TYPE'] = msgtype + "_ACK"
             final_msg['ACK_ID'] = readout_ack_id
             final_msg['ACK_BOOL'] = False
-            final_msg['JOB_ NUM'] = job_number
+            final_msg['JOB_NUM'] = job_number
             final_msg[IMAGE_ID] = image_id
+            final_msg['COMPONENT'] = self.COMPONENT
+            final_msg['RESULT_SET'] = {}
+            flist = []
+            rlist = []
+            final_msg['RESULT_SET']['FILENAME_LIST'] = flist
+            final_msg['RESULT_SET']['RECEIPT_LIST'] = rlist
             self._publisher.publish_message(reply_queue, final_msg)
         else:
             if self.use_archive_ctrl == False:
@@ -430,9 +423,13 @@ class AuxDevice:
                 final_msg['MSG_TYPE'] = msgtype + "_ACK"
                 final_msg['ACK_ID'] = readout_ack_id
                 final_msg['ACK_BOOL'] = True
-                final_msg['JOB_ NUM'] = job_number
+                final_msg['JOB_NUM'] = job_number
+                final_msg['COMPONENT'] = self.COMPONENT
                 final_msg[IMAGE_ID] = image_id
-                final_msg['RESULT_SET'] = result_set
+                rlist = []
+                final_msg['RESULT_SET'] = {}
+                final_msg['RESULT_SET']['FILENAME_LIST'] = result_set['FILENAME_LIST']
+                final_msg['RESULT_SET']['RECEIPT_LIST'] = rlist  #no arch_ctrl, no receipts
                 self._publisher.publish_message(reply_queue, final_msg)
                 return
             else:
@@ -445,20 +442,25 @@ class AuxDevice:
         xferd_list_msg = {}
         xferd_list_msg[MSG_TYPE] = 'AT_ITEMS_XFERD'
         xferd_list_msg[ACK_ID] = archive_readout_ack
-        xferd_list_msg['IMAGE_ID'] = image_id
         xferd_list_msg['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
         xferd_list_msg['RESULT_SET'] = result_set
         self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, xferd_list_msg) 
            
-        xferd_responses = self.simple_progressive_ack_timer(self.ARCHIVE, 4.0) 
+        xferd_responses = self.simple_progressive_ack_timer(self.ARCHIVE, 8.0) 
 
         if xferd_responses == False:
             final_msg = {}
             final_msg['MSG_TYPE'] = msgtype + "_ACK"
+            final_msg['COMPONENT'] = self.COMPONENT
             final_msg['ACK_ID'] = readout_ack_id
             final_msg['ACK_BOOL'] = False
-            final_msg['JOB_ NUM'] = job_number
+            final_msg['JOB_NUM'] = job_number
             final_msg[IMAGE_ID] = image_id
+            final_msg['RESULT_SET'] = {}
+            flist = []
+            rlist = []
+            final_msg['RESULT_SET']['FILENAME_LIST'] = flist
+            final_msg['RESULT_SET']['RECEIPT_LIST'] = rlist
             self._publisher.publish_message(reply_queue, final_msg)
 
             return
@@ -532,9 +534,6 @@ class AuxDevice:
 
 
     def set_current_fwdr(self):
-        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-        print("In set_current_fwdr check...")
-        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
         self._current_fwdr = {}
         fwdrs = list(self._fwdr_state_dict.keys())
         for fwdr in fwdrs:   # Choose the first healthy forwarder encountered
@@ -543,9 +542,7 @@ class AuxDevice:
                 tmp_forwarder_dict['FQN'] = fwdr
                 #self._current_fwdr[fwdr] = tmp_forwarder_dict
                 self._current_fwdr = tmp_forwarder_dict
-                print("Found ACK after Health Check - returning True")
                 return True
-        print("CANNOT see an ACK yet - returning FALSE from set_current_fwdr")
         return False  #Could not find a HEALTHY forwarder to use...:(
 
 
@@ -570,8 +567,8 @@ class AuxDevice:
         return None
 
 
-    def confim_fwdr_state_dict_entry(self, component):
-        if(self.fwdr_state_dict[component]['RESPONSE'] == HEALTHY):
+    def confirm_fwdr_state_dict_entry(self, component):
+        if(self._fwdr_state_dict[component]['RESPONSE'] == HEALTHY):
             return True
 
         return False
@@ -599,12 +596,8 @@ class AuxDevice:
         """
         LOGGER.debug('In top of process_health_check_ack')
         LOGGER.debug('Message from process_health_chech_ack is: %s', pformat(str(params)))
-        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, HEALTHY)
-        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
-        print("Self.fwdr_state_dict is: %s" % self._fwdr_state_dict)
-        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
        
  
     def process_xfer_params_ack(self, params):
@@ -617,11 +610,11 @@ class AuxDevice:
         self.set_fwdr_state(component, RESPONSIVE)
         ack_bool = params[ACK_BOOL]  # The component is the name of the fwdr responding
         if ack_bool == True:
-            self.fwdr_state_dict[component]['ACK_BOOL'] = True
-            self.fwdr_state_dict[component]['RESULT_SET'] = params[component]['RESULT_SET']
+            self._fwdr_state_dict[component]['ACK_BOOL'] = True
+            self._fwdr_state_dict[component]['RESULT_SET'] = params['RESULT_SET']
         else:
-            self.fwdr_state_dict[component]['ACK_BOOL'] = False
-            self.fwdr_state_dict[component]['RESULT_SET'] = None
+            self._fwdr_state_dict[component]['ACK_BOOL'] = False
+            self._fwdr_state_dict[component]['RESULT_SET'] = None
     
     
     def process_at_items_xferd_ack(self, params):
