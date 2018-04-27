@@ -7,7 +7,7 @@ import redis
 import yaml
 import sys
 import os
-import pprint
+from pprint import pprint, pformat
 from time import sleep
 #import _thread
 import threading
@@ -16,7 +16,7 @@ import random
 import logging
 sys.path.insert(1, '../iip')
 sys.path.insert(1, '../')
-import DMCS
+#import DMCS
 import toolsmod
 from toolsmod import get_timestamp
 from Consumer import Consumer
@@ -25,7 +25,11 @@ from MessageAuthority import MessageAuthority
 from const import *
 from AuxDevice import *
 
-logging.basicConfig(filename='logs/AT_TEST.log', level=logging.INFO, format=LOG_FORMAT)
+#LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %'
+LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
+              '-35s %(lineno) -5d: %(message)s')
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(filename='logs/AT_TEST.log', level=logging.DEBUG, format=LOG_FORMAT)
 
 @pytest.fixture(scope='session')
 def Atdev(request):
@@ -50,15 +54,9 @@ class TestAtDev:
     F99_consumer = None
     f99_consumer_msg_list = []
 
-    F2_pub_broker_url = None
-    F2_publisher = None
-    F2_consumer = None
-    f2_consumer_msg_list = []
-
     EXPECTED_AR_CTRL_MESSAGES = 1
     EXPECTED_DMCS_MESSAGES = 1
-    EXPECTED_F1_MESSAGES = 1
-    EXPECTED_F2_MESSAGES = 1
+    EXPECTED_F99_MESSAGES = 1
     NUM_READOUTS = 0
 
     ccd_list = [14,17,21.86]
@@ -105,31 +103,18 @@ class TestAtDev:
         print("Opening publisher with this URL string: %s" % ar_ctrl_pub_broker_url)
         self.ar_ctrl_publisher = SimplePublisher(ar_ctrl_pub_broker_url, "YAML")
     
-        F1_name = 'F1'
-        F1_passwd = 'F1'
-        F1_pub_name = 'F1_PUB'
-        F1_pub_passwd = 'F1_PUB'
-        F1_broker_url = "amqp://" + F1_name + ":" + \
-                                F1_passwd + "@" + \
+        F99_name = 'F99'
+        F99_passwd = 'F99'
+        F99_pub_name = 'F99_PUB'
+        F99_pub_passwd = 'F99_PUB'
+        F99_broker_url = "amqp://" + F99_name + ":" + \
+                                F99_passwd + "@" + \
                                 broker_addr
-        F1_pub_broker_url = "amqp://" + F1_pub_name + ":" + \
-                                    F1_pub_passwd + "@" + \
+        F99_pub_broker_url = "amqp://" + F99_pub_name + ":" + \
+                                    F99_pub_passwd + "@" + \
                                     broker_addr
-        print("Opening publisher with this URL string: %s" % F1_pub_broker_url)
-        self.F1_publisher = SimplePublisher(F1_pub_broker_url, "YAML")
-   
-        F2_name = 'F2'
-        F2_passwd = 'F2'
-        F2_pub_name = 'F2_PUB'
-        F2_pub_passwd = 'F2_PUB'
-        F2_broker_url = "amqp://" + F2_name + ":" + \
-                                F2_passwd + "@" + \
-                                broker_addr
-        F2_pub_broker_url = "amqp://" + F2_pub_name + ":" + \
-                                    F2_pub_passwd + "@" + \
-                                    broker_addr
-        print("Opening publisher with this URL string: %s" % F2_pub_broker_url)
-        self.F2_publisher = SimplePublisher(F2_pub_broker_url, "YAML")
+        print("Opening publisher with this URL string: %s" % F99_pub_broker_url)
+        self.F99_publisher = SimplePublisher(F99_pub_broker_url, "YAML")
    
         print("All publishers are running...")
  
@@ -150,17 +135,12 @@ class TestAtDev:
 
         print("ar_ctrl Consumer running...")
 
-        self.F1_consumer = Consumer(F1_broker_url,'f1_consume', 'thread-f1', 
-                                    self.on_f1_message,'YAML')
-        self.F1_consumer.start()
+        self.F99_consumer = Consumer(F99_broker_url,'f99_consume', 'thread-f99', 
+                                    self.on_f99_message,'YAML')
+        self.F99_consumer.start()
 
-        print("F1 Consumer running...")
+        print("F99 Consumer running...")
 
-        self.F2_consumer = Consumer(F2_broker_url,'f2_consume', 'thread-f2', 
-                                    self.on_f2_message,'YAML')
-        self.F2_consumer.start()
-
-        print("F2 Consumer running...")
 
         sleep(3)
         print("Test Setup Complete. Commencing Messages...")
@@ -168,9 +148,8 @@ class TestAtDev:
         self.send_messages()
         sleep(8)
         self.verify_dmcs_messages()
-        self.verify_ar_ctrl_messages()
-        self.verify_F1_messages()
-        self.verify_F2_messages()
+        self.verify_F99_messages()
+        #self.verify_ar_ctrl_messages()
 
         sleep(3)
 
@@ -179,109 +158,75 @@ class TestAtDev:
         self.dmcs_consumer.join()
         self.ar_ctrl_consumer.stop()
         self.ar_ctrl_consumer.join()
-        self.F1_consumer.stop()
-        self.F1_consumer.join()
-        self.F2_consumer.stop()
-        self.F2_consumer.join()
+        self.F99_consumer.stop()
+        self.F99_consumer.join()
         if self.DP:
-            print("Finished with AR tests.")
+            print("Finished with AT tests.")
 
 
     def send_messages(self):
 
+        LOGGER.warning('In on_f99_message handler')
         print("Starting send_messages")
         # Tests only an AR device
         
         self.EXPECTED_AR_CTRL_MESSAGES = 2
-        self.EXPECTED_DMCS_MESSAGES = 2
-        self.EXPECTED_F1_MESSAGES = 3
-        self.EXPECTED_F2_MESSAGES = 3
+        self.EXPECTED_DMCS_MESSAGES = 1
+        self.EXPECTED_F99_MESSAGES = 2
 
+        """
         msg = {}
-        msg['MSG_TYPE'] = "AR_NEW_SESSION"
+        msg['MSG_TYPE'] = "AT_NEW_SESSION"
         msg['SESSION_ID'] = 'SI_469976'
-        msg['ACK_ID'] = 'NEW_SESSION_ACK_44221'
+        msg['ACK_ID'] = 'AT_NEW_SESSION_ACK_44221'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        time.sleep(2)
+        #time.sleep(2)
+        time.sleep(12)
         print("New Session Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+        self.dmcs_publisher.publish_message("at_foreman_consume", msg)
+        """
 
+        LOGGER.warning('About to send start_int')
         msg = {}
-        msg['MSG_TYPE'] = "AR_NEXT_VISIT"
-        msg['VISIT_ID'] = 'XX_28272' 
+        msg['MSG_TYPE'] = "AT_START_INTEGRATION"
         msg['JOB_NUM'] = '4xx72'
         msg['SESSION_ID'] = 'SI_469976'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
-        msg['RA'] = "231.221"
-        msg['DEC'] = "-45.34"
-        msg['ANGLE'] = "120.0"
-        msg['RAFT_LIST'] = ['10','32','41','42','43']
-        msg['RAFT_CCD_LIST'] = [['ALL'],['02','11','12'],['00','02'],['02','12','11','22','00'],['ALL']]
+        msg['RAFT_LIST'] = ['WFS_RAFT']
+        msg['RAFT_CCD_LIST'] = [['WFS_CCD']]
         time.sleep(2)
-        print("Next Visit Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
-          
-        msg = {}
-        msg['MSG_TYPE'] = "AR_TAKE_IMAGES"
-        msg['JOB_NUM'] = '4xx72'
-        msg['NUM_IMAGES'] = '4'
-        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'ACK_44221'
-        time.sleep(2)
-        print("AR Take Images Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+        LOGGER.warning('Here comes start_int message')
+        print("Start Integration Message")
+        self.dmcs_publisher.publish_message("at_foreman_consume", msg)
+        LOGGER.warning('Just after publishing start_int message')
 
         msg = {}
-        msg['MSG_TYPE'] = "AR_END_READOUT"
+        msg['MSG_TYPE'] = "AT_END_READOUT"
         msg['JOB_NUM'] = '4xx72'
         msg['IMAGE_ID'] = 'IMG_444245'
+        msg['IMAGE_INDEX'] = 2
+        msg['IMAGE_SEQUENCE_NAME'] + 'XX_seq'
+        msg['IMAGES_IN_SEQUENCE'] + 8
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'AR_ACK_94671'
-        time.sleep(2)
-        print("AR END READOUT Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
+        time.sleep(11)
+        #time.sleep(3)
+        print("AT END READOUT Message")
+        self.dmcs_publisher.publish_message("at_foreman_consume", msg)
       
+        """  
         msg = {}
-        msg['MSG_TYPE'] = "AR_END_READOUT"
-        msg['JOB_NUM'] = '4xx72'
-        msg['IMAGE_ID'] = 'IMG_444246'
+        msg['MSG_TYPE'] = "AT_HEADER_READY"
+        msg['IMAGE_ID'] = 'IMG_444245'
+        msg['FILENAME'] = '/mnt/headers'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'AR_ACK_94673'
-        time.sleep(2)
-        print("AR END READOUT Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
-
-        msg = {}
-        msg['MSG_TYPE'] = "AR_END_READOUT"
-        msg['JOB_NUM'] = '4xx72'
-        msg['IMAGE_ID'] = 'IMG_444247'
-        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'AR_ACK_94676'
-        time.sleep(2)
-        print("AR END READOUT Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
-
-        msg = {}
-        msg['MSG_TYPE'] = "AR_END_READOUT"
-        msg['JOB_NUM'] = '4xx72'
-        msg['IMAGE_ID'] = 'IMG_444248'
-        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'AR_ACK_94677'
-        time.sleep(2)
-        print("AR END READOUT Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
-
-        msg = {}
-        msg['MSG_TYPE'] = "AR_TAKE_IMAGES_DONE"
-        msg['JOB_NUM'] = '4xx72'
-        msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg['ACK_ID'] = 'ACK_44221'
-        time.sleep(2)
+        #time.sleep(2)
+        time.sleep(12)
         print("AR Take Images Done Message")
-        self.dmcs_publisher.publish_message("ar_foreman_consume", msg)
-
-        time.sleep(9)
+        self.dmcs_publisher.publish_message("at_foreman_consume", msg)
+        """
+        #time.sleep(9)
         print("Message Sender done")
 
 
@@ -323,46 +268,34 @@ class TestAtDev:
         print("Messages to the AR CTRL pass verification.")
    
 
-    def verify_F1_messages(self):
-        len_list = len(self.f1_consumer_msg_list)
-        print("F1 RECEIVED %s MESSAGES" % len_list)
-        if len_list != self.EXPECTED_F1_MESSAGES:
-            print("Incorrect number of F1 messages received")
-            pytest.fail('F1 simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_F1_MESSAGES, len_list))
+    def verify_F99_messages(self):
+        print(" ")
+        print(" ")
+        print(" ")
+        print("In verify F99 messages...here is what came in:")
+        self.prp.pprint(self.f99_consumer_msg_list)
+        print(" ")
+        print(" ")
+        print(" ")
+        len_list = len(self.f99_consumer_msg_list)
+        print("F99 RECEIVED %s MESSAGES" % len_list)
+        if len_list != self.EXPECTED_F99_MESSAGES:
+            print("Incorrect number of F99 messages received")
+            pytest.fail('F99 simulator received incorrect number of messages.\nExpected %s but received %s'\
+                        % (self.EXPECTED_F99_MESSAGES, len_list))
 
         # Now check num keys in each message first, then check for key errors
         for i in range(0, len_list):
-            msg = self.f1_consumer_msg_list[i]
+            msg = self.f99_consumer_msg_list[i]
             result = self._msg_auth.check_message_shape(msg)
             if result == False:
-                print("This F1 message failed verification: ")
+                print("This F99 message failed verification: ")
                 self.prp.pprint(msg)
-                pytest.fail("The following message to F1 failed when compared with the sovereign example: %s" % msg)
+                pytest.fail("The following message to F99 failed when compared with the sovereign example: %s" % msg)
 
-        print("Messages to F1 pass verification.")
+        print("Messages to F99 pass verification.")
   
    
-    def verify_F2_messages(self):
-        len_list = len(self.f2_consumer_msg_list)
-        print("F2 RECEIVED %s MESSAGES" % len_list)
-        if len_list != self.EXPECTED_F2_MESSAGES:
-            print("Incorrect number of F2 messages received")
-            pytest.fail('F2 simulator received incorrect number of messages.\nExpected %s but received %s'\
-                        % (self.EXPECTED_F2_MESSAGES, len_list))
-
-        # Now check num keys in each message first, then check for key errors
-        for i in range(0, len_list):
-            msg = self.f2_consumer_msg_list[i]
-            result = self._msg_auth.check_message_shape(msg)
-            if result == False:
-                print("This F2 message failed verification: ")
-                self.prp.pprint(msg)
-                pytest.fail("The following message to F2 failed when compared with the sovereign example: %s" % msg)
-
-        print("Messages to F2 pass verification.")
-  
- 
     def on_dmcs_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
         self.dmcs_consumer_msg_list.append(body)
@@ -400,24 +333,28 @@ class TestAtDev:
         else:
             pytest.fail("The following unknown message was received by the Archive CTRL: %s" % body)
 
-    def on_f1_message(self, ch, method, properties, body):
+    def on_f99_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag)
-        self.f1_consumer_msg_list.append(body)
-        if body['MSG_TYPE'] == 'AR_FWDR_HEALTH_CHECK':
+        self.f99_consumer_msg_list.append(body)
+        if body['MSG_TYPE'] == 'AT_FWDR_HEALTH_CHECK':
+            LOGGER.debug('Message received by health check test code.  body is: %s', pformat(str(body)))
             msg = {}
-            msg['MSG_TYPE'] = 'AR_FWDR_HEALTH_CHECK_ACK'
-            msg['COMPONENT'] = 'FORWARDER_1'
+            msg['MSG_TYPE'] = 'AT_FWDR_HEALTH_CHECK_ACK'
+            msg['COMPONENT'] = 'FORWARDER_99'
             msg['ACK_BOOL'] = True 
             msg['ACK_ID'] = body['ACK_ID']
-            self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            print("This is the at_fwdr_health_chech_ack being sent:")
+            self.prp.pprint(msg)
+            print("at_fwdr_health_check_ack msg dump finished.")
+            self.F99_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
-        elif body['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
+        elif body['MSG_TYPE'] == 'AT_FWDR_XFER_PARAMS':
             msg = {}
-            msg['MSG_TYPE'] = 'AR_FWDR_XFER_PARAMS_ACK'
-            msg['COMPONENT'] = 'FORWARDER_1'
+            msg['MSG_TYPE'] = 'AT_FWDR_XFER_PARAMS_ACK'
+            msg['COMPONENT'] = 'FORWARDER_99'
             msg['ACK_BOOL'] = True 
             msg['ACK_ID'] = body['ACK_ID']
-            self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F99_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
             # This message handler is not necessary as it does nothing
@@ -427,139 +364,41 @@ class TestAtDev:
             # needed in AR_FWDR_TAKE_IMAGES_DONE message handler below
             pass
 
-        elif body['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
+        elif body['MSG_TYPE'] == 'AT_FWDR_END_READOUT':
             self.NUM_READOUTS = self.NUM_READOUTS + 1
 
-        elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES_DONE':
-            # Find message in message list for xfer_params
             xfer_msg = None
-            image_id_list = []
-            num_images = 0
-            for msg in self.f1_consumer_msg_list:
-                if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-                    image_id_list.append(msg['IMAGE_ID'])
+            image_id = body['IMAGE_ID']
+            for msg in self.f99_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
                     xfer_msg = msg
-                if msg['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
-                    num_images = int(msg['NUM_IMAGES'])
             if xfer_msg == None:
                 pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
 
             # use message to build response
             msg = {}
-            msg['MSG_TYPE'] = 'AR_FWDR_TAKE_IMAGES_DONE_ACK'
-            msg['COMPONENT'] = 'FORWARDER_1'
-            msg['JOB_NUM'] = xfer_msg['JOB_NUM']
-            msg['ACK_ID'] = body['ACK_ID']
-            raft_list = xfer_msg['XFER_PARAMS']['RAFT_LIST']
-            raft_ccd_list = xfer_msg['XFER_PARAMS']['RAFT_CCD_LIST']
-            msg['RESULT_SET'] = {}
-            msg['RESULT_SET']['RAFT_LIST'] = raft_list
-            msg['RESULT_SET']['RAFT_CCD_LIST'] = raft_ccd_list
-            msg['RESULT_SET']['RAFT_PLUS_CCD_LIST'] = []
-            msg['RESULT_SET']['FILENAME_LIST'] = []
-            msg['RESULT_SET']['CHECKSUM_LIST'] = []
-            RAFT_PLUS_CCD_LIST = []
-            FILENAME_LIST = []
-            CHECKSUM_LIST = []
-            target_location = xfer_msg['TARGET_LOCATION']
-            raft_plus_ccd_list = self.convert_raft_and_ccd_list_to_name_list(raft_list, raft_ccd_list)
-            for ccd in raft_plus_ccd_list:
-                RAFT_PLUS_CCD_LIST.append(ccd)
-                ### XXX ADD IMAGE_ID from IMAGE_ID_LIST to target_dir and ccd name
-                FILENAME_LIST.append(target_location + "/" + str(ccd))
-                CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
-            msg['RESULT_SET']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
-            msg['RESULT_SET']['FILENAME_LIST'] = FILENAME_LIST
-            msg['RESULT_SET']['CHECKSUM_LIST'] = CHECKSUM_LIST
-            if num_images == self.NUM_READOUTS:
-                msg['ACK_BOOL'] = True
-            else:
-                msg['ACK_BOOL'] = False
-            self.F1_publisher.publish_message(body['REPLY_QUEUE'], msg)
-
-        else:
-            pytest.fail("The following unknown message was received by FWDR F1: %s" % body)
-
-
-    def on_f2_message(self, ch, method, properties, body):
-        ch.basic_ack(method.delivery_tag)
-        self.f2_consumer_msg_list.append(body)
-        if body['MSG_TYPE'] == 'AR_FWDR_HEALTH_CHECK':
-            msg = {}
-            msg['MSG_TYPE'] = 'AR_FWDR_HEALTH_CHECK_ACK'
-            msg['COMPONENT'] = 'FORWARDER_2'
-            msg['ACK_BOOL'] = True 
-            msg['ACK_ID'] = body['ACK_ID']
-            self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
-
-        elif body['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
-            msg = {}
-            msg['MSG_TYPE'] = 'AR_FWDR_XFER_PARAMS_ACK'
-            msg['COMPONENT'] = 'FORWARDER_2'
-            msg['ACK_BOOL'] = True 
-            msg['ACK_ID'] = body['ACK_ID']
-            self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
-
-        elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
-            # This message handler is not necessary as it does nothing
-            # But it is explanatory in nature for understanding/maintaining the file.
-            #
-            # No ack necessary - but NUM_IMAGES param will be 
-            # needed in AR_FWDR_TAKE_IMAGES_DONE message handler below
-            pass
-
-
-        elif body['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-            pass
-
-        elif body['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES_DONE':
-            # Find message in message list for xfer_params
-            xfer_msg = None
-            image_id_list = []
-            num_images = 0;
-            for msg in self.f2_consumer_msg_list:
-                if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-                    image_id_list.append(msg['IMAGE_ID'])
-                if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
-                    xfer_msg = msg
-                if msg['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
-                    num_images = msg['NUM_IMAGES']
-            if xfer_msg == None:
-                pytest.fail("The AR_FWDR_XFER_PARAMS message was not received before AR_FWDR_READOUT in F1")
-
-            # use message to build response
-            msg = {}
-            msg['MSG_TYPE'] = 'AR_FWDR_TAKE_IMAGES_DONE_ACK'
-            msg['COMPONENT'] = 'FORWARDER_2'
-            msg['JOB_NUM'] = xfer_msg['JOB_NUM']
+            msg['MSG_TYPE'] = 'AT_FWDR_END_READOUT_ACK'
+            msg['COMPONENT'] = 'FORWARDER_99'
+            msg['JOB_NUM'] = body['JOB_NUM']
+            msg['SESSION_ID'] = body['SESSION_ID']
             msg['ACK_ID'] = body['ACK_ID']
             msg['ACK_BOOL'] = True
-            raft_list = xfer_msg['XFER_PARAMS']['RAFT_LIST']
-            raft_ccd_list = xfer_msg['XFER_PARAMS']['RAFT_CCD_LIST']
+            
             msg['RESULT_SET'] = {}
-            msg['RESULT_SET']['RAFT_LIST'] = raft_list
-            msg['RESULT_SET']['RAFT_CCD_LIST'] = raft_ccd_list
-            msg['RESULT_SET']['RAFT_PLUS_CCD_LIST'] = []
             msg['RESULT_SET']['FILENAME_LIST'] = []
             msg['RESULT_SET']['CHECKSUM_LIST'] = []
             RAFT_PLUS_CCD_LIST = []
             FILENAME_LIST = []
             CHECKSUM_LIST = []
             target_location = xfer_msg['TARGET_LOCATION']
-            raft_plus_ccd_list = self.convert_raft_and_ccd_list_to_name_list(raft_list, raft_ccd_list)
-            for ccd in raft_plus_ccd_list:
-                RAFT_PLUS_CCD_LIST.append(ccd)
-                ### XXX ADD IMAGE_ID from IMAGE_ID_LIST to target_location and ccd name
-                FILENAME_LIST.append(target_location + "/" + str(ccd))
-                CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
-            msg['RESULT_SET']['RAFT_PLUS_CCD_LIST'] = RAFT_PLUS_CCD_LIST
+            FILENAME_LIST.append(target_location + "/" + image_id + ".fits")
+            CHECKSUM_LIST.append('XXXXFFFF4444$$$$')
             msg['RESULT_SET']['FILENAME_LIST'] = FILENAME_LIST
             msg['RESULT_SET']['CHECKSUM_LIST'] = CHECKSUM_LIST
-            self.F2_publisher.publish_message(body['REPLY_QUEUE'], msg)
+            self.F99_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         else:
-            pytest.fail("The following unknown message was received by FWDR F2: %s" % body)
+            pytest.fail("The following unknown message was received by FWDR F99: %s" % body)
 
 
     def convert_raftdict_to_name_list(self, rdict):

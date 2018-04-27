@@ -1,6 +1,3 @@
-### FIX MOVE NEW_ARCHIVE_ITEM message publish to NEW_VISIT/NEW_TARGET and remove unneeded params from message body.
-### JOB SCOREBOARD should store te ARCHIVE file destination/path and resend to each forwarder for readout.
-
 import toolsmod
 from toolsmod import get_timestamp
 import logging
@@ -35,6 +32,7 @@ class AuxDevice:
         status change of forwarders, and sends messages accordingly.
     """
     COMPONENT_NAME = 'AUX_FOREMAN'
+    COMPONENT = 'AUX_FOREMAN'
     DEVICE = 'AT'
     ARCHIVE = 'ARCHIVE'
     FWDR = 'FWDR'
@@ -50,6 +48,7 @@ class AuxDevice:
     DP = toolsmod.DP
     RAFT_LIST = []
     RAFT_CCD_LIST = ['00']
+    date_format='date +%F_%H_%R:%S-'  # Used to generate unique ack_ids
 
 
     def __init__(self, filename=None):
@@ -68,6 +67,7 @@ class AuxDevice:
         toolsmod.singleton(self)
 
         self._fwdr_state_dict = {}  # Used for ACK analysis...
+        self._current_fwdr = {}
 
         self._config_file = self.CFG_FILE
         if filename != None:
@@ -172,7 +172,7 @@ class AuxDevice:
         """
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
-
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
         LOGGER.info('In ACK message callback: RECEIVING ACK MESSAGE')
         LOGGER.debug('Message from ACK callback message body is: %s', pformat(str(msg_dict)))
 
@@ -189,7 +189,11 @@ class AuxDevice:
         # receive new job_number and image_id; session and visit are current
         # and deep copy it with some additions such as session and visit
         # These next three lines must have WFS and Guide sensor info added
+        LOGGER.warning('In top of Start_Int message handler: RECEIVING START_INT MESSAGE')
+        LOGGER.warning('Message from Start_Int handler message body is: %s', pformat(str(params)))
+
         start_int_ack_id = params[ACK_ID]
+        session_id = params['SESSION_ID']
         job_number = params['JOB_NUM']
 
         if self.DP: print("Incoming AUX AT_Start Int msg")
@@ -198,19 +202,28 @@ class AuxDevice:
         
         health_check_ack_id = self.get_next_timed_ack_id('AT_FWDR_HEALTH_CHECK_ACK')
         self.clear_fwdr_state()
+        print("Right after call to clear fwdr state...just before health check is sent out")
         num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
-        # Give fwdrs enough time to respond...
-        self.ack_timer(1.4)
+        print("num_fwdrs_checked is %s...should be 1" % num_fwdrs_checked)
 
-        if (self.set_current_forwarder() == False):
+        # Give fwdrs enough time to respond...
+        #self.ack_timer(1.4)
+        sleep(1)
+
+        print("AfTeR AcK TiMeR FoR hEaLtH ChEcK")
+
+        if (self.set_current_fwdr() == False):
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
+            print("%&%!%&%!%&%!%&%!%&%!%&%!%&%!%&%!57515751575157515751%&%!%&%!%&%!%&%!")
             self.send_fault_state_event(5751, job_number) # error code for 'no health check response any fwdrs'
             return
 
+        print("PAST Health Timer AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA Passed Health Timer")
+
         # Add archive check when necessary...
-        if self.use_archive_ctrl == False:
-            pass
+        #if self.use_archive_ctrl == False:
+        #    pass
         #self.clear_archive_ack()
         # send new_archive_item msg to archive controller
         #start_int_params = {}
@@ -241,20 +254,30 @@ class AuxDevice:
         fwdr_new_target_params['XFER_PARAMS'] = {}
         fwdr_new_target_params[MSG_TYPE] = 'AT_FWDR_XFER_PARAMS'
         fwdr_new_target_params[SESSION_ID] = params['SESSION_ID']
-        fwdr_new_target_params[IMAGE_ID] = params[IMAGE_ID]
-        fwdr_new_target_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
-        #fwdr_new_target_params[VISIT_ID] = params['VISIT_ID']
-        #fwdr_new_target_params[JOB_NUM] = params[JOB_NUM]
+        fwdr_new_target_params[JOB_NUM] = params[JOB_NUM]
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
         fwdr_new_target_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
         target_location = self.archive_name + "@" + self.archive_ip + ":" + target_dir
         fwdr_new_target_params['TARGET_LOCATION'] = target_location
 
+        # This may look curious, but in the other devices, a raft_list is a list of rafts,
+        # but a raft_ccd_list is a list of lists, where each ccd sublist refers to 
+        # a raft by the same list index
+        #This business is really so that unit tests can compare messages to 
+        # the canonical versions...as dicts are open ended and can correctly
+        # contain more keys than the canonical example and hence fail incorrectly,
+        # using lists eliminates this likely possibility.
         xfer_params_dict = {}
-        xfer_params_dict['RAFT_LIST'] = {}
+        xfer_params_dict['RAFT_LIST'] = []
         xfer_params_dict['RAFT_LIST'].append(self._wfs_raft)
         xfer_params_dict['RAFT_CCD_LIST'] = []
-        xfer_params_dict['RAFT_CCD_LIST'].append(self._wfs_ccd)
+        CCD_LIST = []
+        CCD_LIST.append(self._wfs_ccd)
+        xfer_params_dict['RAFT_CCD_LIST'].append(CCD_LIST)
+        print(" ")
+        print("Printing out self._current_fwdr...")
+        self.prp.pprint(self._current_fwdr)
+        print(" ")
         xfer_params_dict['AT_FWDR'] = self._current_fwdr['FQN']
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
@@ -275,13 +298,11 @@ class AuxDevice:
 
         # accept job by Ack'ing True
         st_int_params_ack = {}
-        st_int_params_ack['MSG_TYPE'] = 'AR_START_INTEGRATION_ACK'
+        st_int_params_ack['MSG_TYPE'] = 'AT_START_INTEGRATION_ACK'
         st_int_params_ack['ACK_ID'] = start_int_ack_id
         st_int_params_ack['ACK_BOOL'] = True
         st_int_params_ack['JOB_NUM'] = job_number
         st_int_params_ack['SESSION_ID'] = session_id
-        st_int_params_ack['IMAGE_ID'] = image_id
-        st_int_params_ack['VISIT_ID'] = visit_id
         st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
         self.accept_job(st_int_params_ack)
 
@@ -301,9 +322,14 @@ class AuxDevice:
         msg_params[ACK_ID] = ack_id
         msg_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
 
+        print("Outgoing health check msg is:")
+        self.prp.pprint(msg_params)
+
         forwarders = list(self._forwarder_dict.keys())
         for x in range (0, len(forwarders)):
+            print("Forwarder x value is: %s" % x)
             route_key = self._forwarder_dict[forwarders[x]]["CONSUME_QUEUE"]
+            print("In do_fwdr_health_check...sending health check message to %s" % route_key)
             self._publisher.publish_message(route_key, msg_params)
         return len(forwarders)
 
@@ -374,6 +400,8 @@ class AuxDevice:
         msg[IMAGE_ID] = image_id
         msg[ACK_ID] = fwdr_readout_ack
         msg['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
+        msg['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
+        msg['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']
         msg['IMAGE_INDEX'] = params['IMAGE_INDEX']
         route_key = self._current_fwdr['CONSUME_QUEUE']
         self._publisher.publish_message(route_key, msg)
@@ -448,36 +476,24 @@ class AuxDevice:
 
 
     def process_header_ready_event(self, params):
+        hr_ack_id = self.get_next_timed_ack_id('AT_FWDR_HEADER_READY_ACK')
+        self.clear_fwdr_state()
+
         fname = params['FILENAME']
         image_id = params['IMAGE_ID']
         msg = {}
         msg['MSG_TYPE'] = 'AT_FWDR_HEADER_READY'
         msg['FILENAME'] = fname
         msg['IMAGE_ID'] = image_id
+        msg['ACK_ID'] = hr_ack_id
+        msg[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
 
         route_key = self._current_fwdr['CONSUME_QUEUE']
         self._publisher.publish_message(route_key, msg)
 
+        # Uncomment if it is desired to confirm header ready msg reached fwdr
+        #hr_response = self.simple_progressive_ack_timer(self.FWDR, 6.0)
 
-
-    def take_images_done(self, params):
-        reply_queue = params['REPLY_QUEUE']
-        readout_ack_id = params[ACK_ID]
-        job_number = params[JOB_NUM]
-        self.JOB_SCBD.set_value_for_job(job_number, 'STATE', 'TAKE_IMAGES_DONE')
-        fwdr_readout_ack = self.get_next_timed_ack_id("AR_FWDR_TAKE_IMAGES_DONE_ACK")
-        work_schedule = self.JOB_SCBD.get_work_schedule_for_job(job_number)
-        fwdrs = work_schedule['FORWARDER_LIST']
-        len_fwdrs = len(fwdrs)
-        msg = {}
-        msg[MSG_TYPE] = 'AR_FWDR_TAKE_IMAGES_DONE'
-        msg[JOB_NUM] = job_number
-        msg[ACK_ID] = fwdr_readout_ack
-        for i in range (0, len_fwdrs):
-            route_key = self.FWDR_SCBD.get_value_for_forwarder(fwdrs[i], 'CONSUME_QUEUE')
-            self._publisher.publish_message(route_key, msg)
-
-        ### FIX Add Final Response to DMCS
 
     def clear_fwdr_state(self):
         fwdrs = list(self._fwdr_state_dict.keys())
@@ -512,19 +528,24 @@ class AuxDevice:
 
  
     def set_fwdr_state(self, component, state):
-        self.fwdr_state_dict[component]['RESPONSE'] = state
+        self._fwdr_state_dict[component]['RESPONSE'] = state
 
 
     def set_current_fwdr(self):
+        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+        print("In set_current_fwdr check...")
+        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
         self._current_fwdr = {}
         fwdrs = list(self._fwdr_state_dict.keys())
         for fwdr in fwdrs:   # Choose the first healthy forwarder encountered
             if self._fwdr_state_dict[fwdr]['RESPONSE'] == HEALTHY:
                 tmp_forwarder_dict = deepcopy(self._forwarder_dict[fwdr])
                 tmp_forwarder_dict['FQN'] = fwdr
-                self._current_fwdr[fwdr] = tmp_forwarder_dict
+                #self._current_fwdr[fwdr] = tmp_forwarder_dict
+                self._current_fwdr = tmp_forwarder_dict
+                print("Found ACK after Health Check - returning True")
                 return True
-
+        print("CANNOT see an ACK yet - returning FALSE from set_current_fwdr")
         return False  #Could not find a HEALTHY forwarder to use...:(
 
 
@@ -576,8 +597,14 @@ class AuxDevice:
 
             :return: None.
         """
+        LOGGER.debug('In top of process_health_check_ack')
+        LOGGER.debug('Message from process_health_chech_ack is: %s', pformat(str(params)))
+        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, HEALTHY)
+        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+        print("Self.fwdr_state_dict is: %s" % self._fwdr_state_dict)
+        print("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
        
  
     def process_xfer_params_ack(self, params):
@@ -617,9 +644,8 @@ class AuxDevice:
         """
         datestring = os.system(self.date_format)
         self._next_timed_ack_id = self._next_timed_ack_id + 1
-        return (ack_type + "_" + datestring + str(self._next_timed_ack_id).zfill(6))
-        #self._next_timed_ack_id = self._next_timed_ack_id + 1
-        #return (ack_type + "_" + str(self._next_timed_ack_id).zfill(6))
+        #return (ack_type + "_" + datestring + str(self._next_timed_ack_id.zfill(6)))
+        return (ack_type + "_" + str(datestring) + str(self._next_timed_ack_id).zfill(6))
 
 
     def set_session(self, params):
@@ -752,6 +778,9 @@ class AuxDevice:
 
 
     def send_fault_state_event(self, ecode, job_num):
+        print(">>>>>>>>>>>>>> Sending Fault State <<<<<<<<<<<<<<<<")
+        # XXXXX FIX
+        return
         error_code = 'ERR_' + str(ecode)
         msg_params = {}
         msg_params[MSG_TYPE] = "FAULT"
@@ -785,6 +814,7 @@ class AuxDevice:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['AUX_FORWARDERS']
             self._wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
+            self._wfs_ccd = cdm[ROOT]['ATS']['WFS_CCD']
 
             # Placeholder until eventually worked out by Data Backbone team
             self.use_archive_ctrl = cdm[ROOT]['ARCHIVE']['USE_ARCHIVE_CTRL']
