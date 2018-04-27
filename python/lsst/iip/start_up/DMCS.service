@@ -6,8 +6,8 @@ BindsTo=ctrl_iip.target
 
 [Service]
 Type=simple
-User=AT
-WorkingDirectory=/home/AT/src/git/ctrl_iip/python/lsst/iip
+User=ATS
+WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip
 ExecStart=/usr/bin/python3.6 DMCS.py
 ExecStop=/usr/bin/bash ./scripts/at_rmq_purge_queues.sh
 Restart=always

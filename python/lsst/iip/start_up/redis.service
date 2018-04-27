@@ -7,7 +7,7 @@ BindsTo=ctrl_dependency.target
 [Service]
 User=root
 Type=forking
-WorkingDirectory=/home/AT/src/git/ctrl_iip/python/lsst/iip
+WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip
 ExecStart=/usr/local/bin/redis-server ./scripts/services/redis.conf
 Restart=always
 
