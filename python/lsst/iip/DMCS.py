@@ -105,10 +105,6 @@ class DMCS:
                               'DMCS_AT_START_INTEGRATION': self.process_at_start_integration_event,
                               'TELEMETRY': self.process_telemetry, 
 			      ###########################################################
-                              'CCS_START_INTEGRATION': self.process_ccs_start_int_event,
-                              'CCS_START_READOUT': self.process_ccs_readout_event,
-                              'CCS_SHUTTER_CLOSE': self.process_ccs_shutter_close_event,
-                              'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
                               'DMCS_HEADER_READY': self.process_header_ready_event,
                               'DMCS_AT_HEADER_READY': self.process_at_header_ready_event,
                               'DMCS_TCS_TARGET': self.process_target_visit_event, 
@@ -133,6 +129,9 @@ class DMCS:
                               'PP_READOUT_ACK': self.process_readout_results_ack,
                               'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
+
+        self._fault_actions = { 'FAULT': self.process_fault }
+
 
 
         LOGGER.info('DMCS publisher setup')
@@ -194,11 +193,16 @@ class DMCS:
                                             self._pub_passwd + "@" + \
                                             str(self._base_broker_addr)
 
+        self.pub_fault_base_broker_url = "amqp://" + self._pub_fault_name + ":" + \
+                                            self._pub_fault_passwd + "@" + \
+                                            str(self._base_broker_addr)
+
         LOGGER.info('Building publishing pub_base_broker_url. Result is %s', self.pub_base_broker_url)        
 
         LOGGER.info('Setting up Base publisher ')
         try: 
             self._publisher = SimplePublisher(self.pub_base_broker_url, YAML)
+            self._fault_publisher = SimplePublisher(self.pub_fault_base_broker_url, YAML)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to setup_publishers: %s" % e.args) 
             print("DMCS unable to setup_publishers: %s" % e.args) 
@@ -273,6 +277,24 @@ class DMCS:
             LOGGER.error("DMCS unable to on_ack_message: %s" % e.args) 
             print("DMCS unable to on_ack_message: %s" % e.args) 
             raise L1Error("DMCS unable to on_ack_message: %s" % e.args) 
+
+
+    def on_fault_message(self, ch, method, properties, msg_dict):
+        try: 
+            ch.basic_ack(method.delivery_tag) 
+            LOGGER.info('Processing message in FAULT message callback')
+            LOGGER.debug('Message and properties from FAULT callback message body is: %s', 
+                         (str(msg_dict),properties))
+
+            handler = self._fault_actions.get(msg_dict[MSG_TYPE])
+            if handler == None:
+                raise KeyError("In on_fault_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
+            result = handler(msg_dict)
+        except KeyError as e:
+            LOGGER.error("DMCS received unrecognized message type in on_fault_message: %s" % e.args)
+            if self.DP: 
+                print("DMCS received unrecognized message type: %s" % e.args)
+            raise L1Error("DMCS encountering Error Code %s. %s" % (str(self.ERROR_CODE_PREFIX + 35), e.args))
 
 
 
@@ -750,32 +772,6 @@ class DMCS:
             raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
         # add in two additional acks for format and transfer complete
 
-
-
-
-    def process_ccs_start_int_event(self, params):
-        print("Incoming message to process_ccs_start_int_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
-
-    def process_ccs_readout_event(self, params):
-        print("Incoming message to process_ccs_readout_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
-
-       
-
-
-    def process_ccs_shutter_close_event(self, params):
-        print("Incoming message to process_ccs_shutter_close_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
-
-    def process_ccs_shutter_open_event(self, params):
-        print("Incoming message to process_ccs_shutter_open_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
-
     def process_target_visit_event(self, params):
         try:
             msg = {}
@@ -950,6 +946,37 @@ class DMCS:
         #msg_params[JOB_NUM] = job_num
         #self.STATE_SCBD.set_job_state(job_num, "READOUT")
         self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+
+
+    def process_fault(self, params):
+        device = params['DEVICE']
+        fault_type = params-['FAULT_TYPE']
+        error_code = params['ERROR_CODE']
+        if fault_type == 'FAULT':
+            self.set_device_to_fault_state(device, params['ERROR_CODE'])
+            LOGGER.error("DMCS seeing a FAULT state from %s device with error code: %s" % (device, error_code))
+            LOGGER.error("Description string is:  %s." % params['DESCRIPTION'])
+        else:
+            LOGGER.critical("DMCS seeing a %s state from %s device...error code is %s and description is %s" % \
+                 (device, fault_type, error_code, params['DESCRIPTION']))
+
+        msg_params = {}
+        msg_params[MSG_TYPE] = FAULT
+        msg_params['COMPONENT'] = params['COMPONENT']
+        msg_params['DEVICE'] = device 
+        msg_params['ERROR_CODE'] = error_code
+        msg_params['FAULT_TYPE'] = fault_type
+        msg_params['DESCRIPTION'] = params['DESCRIPTION']
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
+
+
+    def set_device_to_fault_state(self, device, params):
+        # set state to FAULT for device
+        # associate err_code with fault
+        # There should be a 'Fault_History' list that yaml dumps all params of the fault and assoiates it with
+        #a date
+        self.STATE_SCBD.set_device_state(device, FAULT)
+        self.STATE_SCBD.append_new_fault_to_fault_history(params)
 
 
     def process_telemetry(self, msg):
@@ -1443,6 +1470,8 @@ class DMCS:
             self._msg_passwd = cdm[ROOT]['DMCS_BROKER_PASSWD']
             self._pub_name = cdm[ROOT]['DMCS_BROKER_PUB_NAME']
             self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
+            self._pub_fault_name = cdm[ROOT]['DMCS_FAULT_PUB_NAME']
+            self._pub_fault_passwd = cdm[ROOT]['DMCS_FAULT_PUB_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self.ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
             self.rdict = cdm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
@@ -1503,7 +1532,17 @@ class DMCS:
             md['test_val'] = None
             kws[md['name']] = md
 
+            md = {}
+            md['amqp_url'] = base_broker_url
+            md['name'] = 'Thread-dmcs_fault_consume'
+            md['queue'] = 'dmcs_fault_consume'
+            md['callback'] = self.on_fault_message
+            md['format'] = "YAML"
+            md['test_val'] = None
+            kws[md['name']] = md
+
             self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
+
         except ThreadError as e:
             LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
             print("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
@@ -1609,6 +1648,9 @@ class DMCS:
 
     def process_target_visit_accept(self, params):
         print("[x] TARGET_VISIT_ACCEPT")
+
+    def dmcs_finalize(self):
+        self.STATE_SCBD.scbd_finalize()
 
 
 def main():

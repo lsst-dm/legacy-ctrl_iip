@@ -219,7 +219,6 @@ class TestAtDev:
 
         time.sleep(5)
 
-
         msg = {}
         msg['MSG_TYPE'] = "AT_HEADER_READY"
         msg['IMAGE_ID'] = 'IMG_444245'

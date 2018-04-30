@@ -11,15 +11,15 @@ class Setup:
 
         #Choose a connection...
 #        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2fbunny'))
-#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
-        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
+        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
+#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
         #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
         #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2ftester'))
 
         self.channel = self.connection.channel()
         ## Bind signature details
         ## queue_bind(callback, queue, exchange, routing_key=None, nowait=False, arguments=None)
-        """ 
+        """ IN
         ### Exchange Declares - message' is primary exchange for lsst 
         self.channel.exchange_declare(exchange='message', exchange_type='direct', durable=True)
         #self.channel.exchange_delete(exchange='message')
@@ -29,12 +29,13 @@ class Setup:
         ## start with pool of queues for 40 forwarders and 24 distributors
         #self.delete_forwarder_queues(30)
         #self.delete_distributor_queues(24)
-        """
+        """ 
         #self.setup_forwarders(30)        
         #self.setup_distributors(24)        
-        """ 
+        """ IN
         ### Queue Declares and Bindings
-        
+        """ 
+        """ IN        
         ## Queue for foreman test suite
         self.channel.queue_declare(queue='f_consume',durable=True)
         self.channel.queue_bind(queue='f_consume', exchange='message', routing_key='f_consume' )
@@ -49,16 +50,16 @@ class Setup:
         
         self.channel.queue_declare(queue='cu_foreman_consume',durable=True)
         self.channel.queue_bind(queue='cu_foreman_consume', exchange='message', routing_key='cu_foreman_consume' )
-        """        
+        """ 
         #self.channel.queue_declare(queue='at_foreman_consume',durable=True)
         #self.channel.queue_bind(queue='at_foreman_consume', exchange='message', routing_key='at_foreman_consume' )
         #self.channel.queue_declare(queue='aux_foreman_consume',durable=True)
         #self.channel.queue_bind(queue='aux_foreman_consume', exchange='message', routing_key='aux_foreman_consume' )
-        """
         ## DMCS queues
-        self.channel.queue_declare(queue='dmcs_fault_queue',durable=True)
-        self.channel.queue_bind(queue='dmcs_fault_queue', exchange='message', routing_key='dmcs_fault_queue' )
+        self.channel.queue_declare(queue='dmcs_fault_consume',durable=True)
+        self.channel.queue_bind(queue='dmcs_fault_consume', exchange='message', routing_key='dmcs_fault_consume' )
 
+        """ IN
         self.channel.queue_declare(queue='dmcs_consume',durable=True)
         self.channel.queue_bind(queue='dmcs_consume', exchange='message', routing_key='dmcs_consume' )
         
@@ -71,7 +72,8 @@ class Setup:
         self.channel.queue_declare(queue='event_dmcs_consume',durable=True)
         self.channel.queue_bind(queue='event_dmcs_consume', exchange='message', routing_key='event_dmcs_consume' )
         
-        
+        """ 
+        """ IN
         ## Catch all queues for forwarders messaging non-ack info to foremen
         self.channel.queue_declare(queue='ar_forwarder_publish',durable=True)
         self.channel.queue_bind(queue='ar_forwarder_publish', exchange='message',routing_key='ar_forwarder_publish')
@@ -92,12 +94,12 @@ class Setup:
         
         self.channel.queue_declare(queue='cu_foreman_ack_publish',durable=True)
         self.channel.queue_bind(queue='cu_foreman_ack_publish', exchange='message', routing_key='cu_foreman_ack_publish' )
-        """        
         #self.channel.queue_declare(queue='aux_foreman_ack_publish',durable=True)
         #self.channel.queue_bind(queue='aux_foreman_ack_publish', exchange='message', routing_key='aux_foreman_ack_publish' )
         self.channel.queue_declare(queue='at_foreman_ack_publish',durable=True)
         self.channel.queue_bind(queue='at_foreman_ack_publish', exchange='message', routing_key='at_foreman_ack_publish' )
-        """
+        """ 
+        """ IN
         ## Queues for Archive Controller and Auditor
         self.channel.queue_declare(queue='audit_consume',durable=True)
         self.channel.queue_bind(queue='audit_consume', exchange='message', routing_key='audit_consume' )
@@ -112,7 +114,7 @@ class Setup:
         self.channel.queue_bind(queue='dmcs_ocs_publish', exchange='message', routing_key='dmcs_ocs_publish' )
         self.channel.queue_declare(queue='ncsa_consume',durable=True)
         self.channel.queue_bind(queue='ncsa_consume', exchange='message',routing_key='ncsa_consume')
-        """
+        """ 
         self.connection.close()
 
 
