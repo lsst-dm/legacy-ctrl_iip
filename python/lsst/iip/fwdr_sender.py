@@ -105,7 +105,7 @@ def main():
   msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
   #msg['IMAGE_ID'] = 'test23'
   #msg['IMAGE_ID'] = 'luckyme'
-  msg['IMAGE_ID'] = 'LSSTTEST-1'
+  msg['IMAGE_ID'] = 'RG'
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
@@ -117,10 +117,10 @@ def main():
   print("Sending HEADER1 information") 
   msg = {} 
   msg["MSG_TYPE"] = "FORMAT_HEADER_READY"
-  msg['IMAGE_ID'] = 'luckyme'
+  msg['IMAGE_ID'] = 'RG'
   #msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
   #msg["FILENAME"] = "/tmp/source/header/luckyme/luckyme.header"
-  msg["FILENAME"] = "/tmp/source/header/YahYahs/YahYahs.header"
+  msg["FILENAME"] = "/tmp/source/header/RG/RG.header"
   time.sleep(4)
   #sp1.publish_message("f99_consume", msg) 
   sp1.publish_message("format_consume_from_f99", msg) 

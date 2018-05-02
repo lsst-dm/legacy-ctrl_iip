@@ -950,7 +950,7 @@ class DMCS:
 
     def process_fault(self, params):
         device = params['DEVICE']
-        fault_type = params-['FAULT_TYPE']
+        fault_type = params['FAULT_TYPE']
         error_code = params['ERROR_CODE']
         if fault_type == 'FAULT':
             self.set_device_to_fault_state(device, params['ERROR_CODE'])
