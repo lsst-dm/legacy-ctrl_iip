@@ -1,7 +1,7 @@
 [Unit]
 Description=L1 Ctrl Check Service
-Requires=ctrl_dependency.target
-BindsTo=ctrl_iip.target
+Requires=l1d-ctrl_dependency.target
+BindsTo=l1d-ctrl_iip.target
 
 [Service]
 Type=simple
@@ -10,4 +10,4 @@ ExecStart=/usr/bin/bash ./start_up/check_services.sh
 Restart=always
 
 [Install]
-WantedBy=ctrl_iip.target
+WantedBy=l1d-ctrl_iip.target

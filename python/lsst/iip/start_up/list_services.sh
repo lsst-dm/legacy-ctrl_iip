@@ -1,8 +1,9 @@
-systemctl status redis.service
-systemctl status rabbitmq.service
-systemctl status AuxDevice.service
-systemctl status DMCS.service
-systemctl status CommandListener.service
-systemctl status EventSubscriber.service
-systemctl status AckSubscriber.service
-systemctl status ctrl_check.service
+systemctl status l1d-ctrl_dependency.target
+systemctl status l1d-redis.service
+systemctl status l1d-rabbitmq.service
+systemctl status l1d-AuxDevice.service
+systemctl status l1d-DMCS.service
+systemctl status l1d-CommandListener.service
+systemctl status l1d-EventSubscriber.service
+systemctl status l1d-AckSubscriber.service
+systemctl status l1d-ctrl_check.service

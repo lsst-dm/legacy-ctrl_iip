@@ -1,8 +1,8 @@
 [Unit]
 Description=L1 CommandListener Service
-Requires=ctrl_dependency.target
-After=DMCS.service
-BindsTo=ctrl_iip.target
+Requires=l1d-ctrl_dependency.target
+After=l1d-DMCS.service
+BindsTo=l1d-ctrl_iip.target
 
 [Service]
 Type=simple
@@ -12,4 +12,4 @@ ExecStart=/usr/bin/bash ./start_up/run_CommandListener.sh
 Restart=always
 
 [Install]
-WantedBy=ctrl_iip.target
+WantedBy=l1d-ctrl_iip.target

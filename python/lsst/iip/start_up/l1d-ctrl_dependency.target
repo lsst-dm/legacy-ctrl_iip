@@ -2,7 +2,7 @@
 Description=L1 Image Ingest and Processing Dependency Softwares
 Requires=multi-user.target 
 After=multi-user.target
-Wants=rabbitmq.service redis.service
+Wants=l1d-rabbitmq.service l1d-redis.service
 
 [Install]
 WantedBy=multi-user.target

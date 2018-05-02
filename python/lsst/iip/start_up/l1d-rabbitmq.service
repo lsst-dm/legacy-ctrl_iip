@@ -2,10 +2,11 @@
 Description=L1 Rabbitmq Service
 Requires=multi-user.target
 After=multi-user.target
-BindsTo=ctrl_dependency.target
+BindsTo=l1d-ctrl_dependency.target
 
 [Service]
-User=root
+User=rabbitmq
+Group=rabbitmq
 Type=simple
 ExecStart=/usr/sbin/rabbitmq-server
 Restart=always

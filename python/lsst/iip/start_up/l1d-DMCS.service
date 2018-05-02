@@ -1,8 +1,8 @@
 [Unit]
 Description=L1 DMCS Service
-Requires=ctrl_dependency.target
-After=AuxDevice.service
-BindsTo=ctrl_iip.target
+Requires=l1d-ctrl_dependency.target
+After=l1d-AuxDevice.service
+BindsTo=l1d-ctrl_iip.target
 
 [Service]
 Type=simple
@@ -12,4 +12,4 @@ ExecStart=/opt/rh/rh-python36/root/usr/bin/python3 DMCS.py
 Restart=always
 
 [Install]
-WantedBy=ctrl_iip.target
+WantedBy=l1d-ctrl_iip.target
