@@ -636,47 +636,43 @@ class DMCS:
 
             :return: None.
         """
-        print("In On at_start_intg, msg is: %s" % params)
-        try: 
-            msg_params = {}
-            # visit_id and image_id msg_params *could* be set in one line, BUT: the values are needed again below...
-            visit_id = self.STATE_SCBD.get_current_visit()
-            image_id = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
-            msg_params[IMAGE_ID] = image_id
-            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
-            msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
-            msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
+        LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
+        raft_ccd_list = []
+        ccds = []
+        ccds.append(self.wfs_ccd)
+        raft_ccd_list.append(ccds)
+        raft_list = []
+        raft_list.append(self.wfs_raft)
+        image_id = params[IMAGE_ID]
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
+        msg_params['IMAGE_ID'] = image_id
+        msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
+        msg_params['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
+        msg_params['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']
+        session_id = self.STATE_SCBD.get_current_session()
+        msg_params['SESSION_ID'] = session_id
+        msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
+        msg_params['RAFT_LIST'] = raft_list
+        msg_params['RAFT_CCD_LIST'] = raft_ccd_list
 
-            #enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
-            acks = []
-            ack_id = self.get_next_timed_ack_id( "AT_START_INT_ACK")
-            acks.append(ack_id)
-            #job_num = self.STATE_SCBD.get_next_job_num( session_id)
-            #self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
-            #self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
-            #self.STATE_SCBD.set_current_device_job(job_num, str(k))
-            #self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
-            #msg_params[JOB_NUM] = job_num
-            msg_params[ACK_ID] = ack_id
-            rkey = self.STATE_SCBD.get_device_consume_queue('AT')
-            print("publishing start_int to: %s" % rkey) 
-            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+        acks = []
+        ack_id = self.get_next_timed_ack_id( "AT_START_INT_ACK")
+        acks.append(ack_id)
+        job_num = self.STATE_SCBD.get_next_job_num( session_id)
+        self.STATE_SCBD.add_job(job_num, image_id, "visit_0", raft_ccd_list)
+        self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', "AT")
+        self.STATE_SCBD.set_current_device_job(job_num, "AT")
+        self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+        msg_params[JOB_NUM] = job_num
+        msg_params[ACK_ID] = ack_id
+        rkey = self.STATE_SCBD.get_device_consume_queue('AT')
+        print("publishing start_int to: %s" % rkey) 
+        self._publisher.publish_message(rkey, msg_params)
 
-
-            wait_time = 5  # seconds...
-            self.set_pending_nonblock_acks(acks, wait_time)
-        except L1RedisError as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-            print("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-        except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
-            print("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
-        except Exception as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event: %s" % e.args)
-            print("DMCS unable to process_start_integration_event: %s" % e.args)
-            raise L1Error("DMCS unable to process_start_integration_event: %s" % e.args)
+        #### FIX replace non-pending acks with regular ack timer
+        wait_time = 5  # seconds...
+        self.set_pending_nonblock_acks(acks, wait_time)
 
 
     def process_readout_event(self, params):
@@ -735,15 +731,13 @@ class DMCS:
 
             :return: None.
         """
-        ## FIX - see temp hack below...
-        ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         try: 
-            ccd_list = self.CCD_LIST
-
             msg_params = {}
             msg_params[MSG_TYPE] = 'AT_END_READOUT'
             msg_params[IMAGE_ID] = params[IMAGE_ID]  
             msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']  
+            msg_params['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']  
+            msg_params['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']  
             msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
             session_id = self.STATE_SCBD.get_current_session()
             msg_params['SESSION_ID'] = session_id
@@ -751,13 +745,15 @@ class DMCS:
             acks = []
             ack_id = self.get_next_timed_ack_id("AT_END_READOUT_ACK")
             acks.append(ack_id)
-            #job_num = self.STATE_SCBD.get_current_device_job(str(k))
             msg_params[ACK_ID] = ack_id
-            #msg_params[JOB_NUM] = job_num
-            #self.STATE_SCBD.set_job_state(job_num, "READOUT")
+            job_num = self.STATE_SCBD.get_current_device_job('AT')
+            msg_params[JOB_NUM] = job_num
+            self.STATE_SCBD.set_job_state(job_num, "READOUT")
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
+            LOGGER.info("Publishing end readout to: %s" % rkey) 
+            LOGGER.debug("Publishing end readout message %s to: %s" % (pformat(msg_params), rkey))
             print("publishing end readout to: %s" % rkey) 
-            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+            self._publisher.publish_message(rkey, msg_params)
 
 
             wait_time = 5  # seconds...
@@ -935,16 +931,16 @@ class DMCS:
 
 
     def process_at_header_ready_event(self, params):
+        ack_id = self.get_next_timed_ack_id( 'AT_HEADER_READY_ACK')
         msg_params = {}
         fname = params['FILENAME']        
         msg_params['FILENAME'] = fname        
-        #msg_params['FILENAME'] = self.efd + fname        
         msg_params[MSG_TYPE] = 'AT_HEADER_READY'
         msg_params[IMAGE_ID] = params[IMAGE_ID]  
-        msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
-        #job_num = self.STATE_SCBD.get_current_device_job(str(k))
-        #msg_params[JOB_NUM] = job_num
-        #self.STATE_SCBD.set_job_state(job_num, "READOUT")
+        msg_params["REPLY_QUEUE"] = "at_foreman_ack_publish"
+        msg_params[ACK_ID] = ack_id
+        job_num = self.STATE_SCBD.get_current_device_job('AT')
+        self.STATE_SCBD.set_job_state(job_num, "HEADER_READY")
         self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 
@@ -1485,6 +1481,8 @@ class DMCS:
             self.at_cfg_keys = cdm[ROOT]['AT_CFG_KEYS']
             self.efd_login = cdm[ROOT]['EFD']['EFD_LOGIN']
             self.efd_ip = cdm[ROOT]['EFD']['EFD_IP']
+            self.wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
+            self.wfs_ccd = cdm[ROOT]['ATS']['WFS_CCD']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']

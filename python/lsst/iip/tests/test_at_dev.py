@@ -189,6 +189,10 @@ class TestAtDev:
         msg = {}
         msg['MSG_TYPE'] = "AT_START_INTEGRATION"
         msg['JOB_NUM'] = '4xx72'
+        msg['IMAGE_ID'] = 'IMG_444245'
+        msg['IMAGE_INDEX'] = 2
+        msg['IMAGE_SEQUENCE_NAME'] = 'XX_seq'
+        msg['IMAGES_IN_SEQUENCE'] = 8
         msg['SESSION_ID'] = 'SI_469976'
         msg['REPLY_QUEUE'] = 'dmcs_ack_consume'
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
