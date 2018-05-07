@@ -7,7 +7,7 @@ BindsTo=l1d-ctrl_iip.target
 [Service]
 Type=simple
 User=ATS
-WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip
+WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip/ocs/src
 ExecStart=/usr/bin/bash ./start_up/run_EventSubscriber.sh
 Restart=always
 
