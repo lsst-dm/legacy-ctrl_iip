@@ -8,7 +8,7 @@ BindsTo=l1d-ctrl_iip.target
 Type=simple
 User=ATS
 WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip/ocs/src
-ExecStart=/usr/bin/bash ./start_up/run_CommandListener.sh
+ExecStart=/usr/bin/bash ../../start_up/run_CommandListener.sh
 Restart=always
 
 [Install]
