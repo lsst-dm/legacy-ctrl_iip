@@ -33,8 +33,10 @@ declare -a queues=( "at_foreman_consume"
 
 for i in ${queues[@]}
 do
-    /usr/bin/python ./scripts/rabbitmqadmin purge queue --vhost=/bunny_at -u DMCS -p DMCS name=$i
-    /usr/bin/python ./scripts/rabbitmqadmin purge queue --vhost=/test_at -u DMCS -p DMCS name=$i
+    #rabbitmqctl purge_queue --vhost=/bunny_at -u DMCS -p DMCS name=$i
+    #rabbitmqctl purge_queue --vhost=/test_at -u DMCS -p DMCS name=$i
+    rabbitmqctl purge_queue -p /bunny_at $i
+    rabbitmqctl purge_queue -p /test_at $i
 done
 
 echo -e "[${GREEN}${BOLD}  OK  ${NORM}] COMPLETE." 
