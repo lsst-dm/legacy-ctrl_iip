@@ -11,7 +11,7 @@ using namespace YAML;
 OCS_Bridge::OCS_Bridge() { 
     Node config_file; 
     try { 
-	config_file = LoadFile("./L1SystemCfg.yaml");
+	config_file = LoadFile("../../L1SystemCfg.yaml");
     }
     catch (YAML::BadFile& e) { 
 	cout << "ERROR: L1SystemCfg file not found." << endl; 
