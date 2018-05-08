@@ -10,7 +10,7 @@
 ##                                                             #
 ## dmcs2ar  DMCS to archive device and back                    #
 ## ar2fwdr  Archive device to Forwarder and back               #
-## ar2 arc  Archive Device to Archive Controller and back      #
+## ar2arc   Archive Device to Archive Controller and back      #
 ##                                                             #
 ## dmcs2at  DMCS to Auxiliary Telescope device and back        #
 ## at2fwdr  Auxiliary Telescope device to Forwarder and back   #
@@ -513,7 +513,7 @@ ROOT:
         ACK_ID: seq. num
         REPLY_QUEUE:
         RESULT_SET:
-            IMAGE_ID_LIST: Index shared in corrospondence with lists below
+            IMAGE_ID_LIST: Index shared in correspondence with lists below
             FILENAME_LIST: Path plus filename used for the transfer
             CHECKSUM_LIST: File checksum values
 
@@ -525,7 +525,7 @@ ROOT:
         ACK_BOOL:
         REPLY_QUEUE:
         RESULT_SET:
-          IMAGE_ID_LIST: Index shared in corrospondence with lists below
+          IMAGE_ID_LIST: Index shared in correspondence with lists below
           RECEIPT_LIST: Alphanumeric receipt or 'none' for failure
           FILENAME_LIST:
 

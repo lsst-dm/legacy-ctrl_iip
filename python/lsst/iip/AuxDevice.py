@@ -11,6 +11,7 @@ from pprint import pprint, pformat
 import time
 from time import sleep
 import threading
+from threading import Lock
 from const import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
@@ -76,6 +77,8 @@ class AuxDevice:
 
         LOGGER.info('Extracting values from Config dictionary')
         self.extract_config_values()
+        if self._use_mutex:
+            self.my_mutex_lock = threading.Lock()
 
 
         #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
@@ -561,8 +564,14 @@ class AuxDevice:
 
 
     def did_current_fwdr_send_result_set(self):
-        if self._fwdr_state_dict[self._current_fwdr['FQN']]['ACK_BOOL'] == True:
-            return self._fwdr_state_dict[self._current_fwdr['FQN']]['RESULT_SET']
+        if self._use_mutex:
+            self.my_mutex_lock.acquire()
+        try:
+            if self._fwdr_state_dict[self._current_fwdr['FQN']]['ACK_BOOL'] == True:
+                return self._fwdr_state_dict[self._current_fwdr['FQN']]['RESULT_SET']
+        finally:
+            if self._use_mutex:
+                self.my_mutex_lock.release()
 
         return None
 
@@ -607,14 +616,25 @@ class AuxDevice:
     
     def process_at_fwdr_end_readout_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
-        self.set_fwdr_state(component, RESPONSIVE)
-        ack_bool = params[ACK_BOOL]  # The component is the name of the fwdr responding
-        if ack_bool == True:
-            self._fwdr_state_dict[component]['ACK_BOOL'] = True
-            self._fwdr_state_dict[component]['RESULT_SET'] = params['RESULT_SET']
-        else:
-            self._fwdr_state_dict[component]['ACK_BOOL'] = False
-            self._fwdr_state_dict[component]['RESULT_SET'] = None
+        if self._use_mutex:
+            LOGGER.debug('Acquireing mutex in process fwdr end readout...')
+            self.my_mutex_lock.acquire()
+        try:
+            self.set_fwdr_state(component, RESPONSIVE)
+            ack_bool = params[ACK_BOOL]  # The component is the name of the fwdr responding
+            if ack_bool == True:
+                self._fwdr_state_dict[component]['ACK_BOOL'] = True
+                self._fwdr_state_dict[component]['RESULT_SET'] = params['RESULT_SET']
+            else:
+                self._fwdr_state_dict[component]['ACK_BOOL'] = False
+                self._fwdr_state_dict[component]['RESULT_SET'] = None
+        finally:
+            LOGGER.debug('At end of critical section of process at fwdr end readout ack')
+            # Then just pass for now...
+
+            if self._use_mutex:
+                LOGGER.debug('Releasing mutex...')
+                self.my_mutex_lock.release()
     
     
     def process_at_items_xferd_ack(self, params):
@@ -808,6 +828,9 @@ class AuxDevice:
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['AUX_FORWARDERS']
             self._wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
             self._wfs_ccd = cdm[ROOT]['ATS']['WFS_CCD']
+            self._use_mutex = False
+            if cdm[ROOT]['USE_MUTEX'] == "YES":
+                self._use_mutex = True
 
             # Placeholder until eventually worked out by Data Backbone team
             self.use_archive_ctrl = cdm[ROOT]['ARCHIVE']['USE_ARCHIVE_CTRL']
@@ -818,6 +841,8 @@ class AuxDevice:
         except KeyError as e:
             print("Dictionary error: %s" % e)
             print("Bailing out...")
+            LOGGER.critical("CFG dictionary key error: %s" % e)
+            LOGGER.critical("Bailing out...")
             sys.exit(99)
 
         self.setup_fwdr_state_dict()
