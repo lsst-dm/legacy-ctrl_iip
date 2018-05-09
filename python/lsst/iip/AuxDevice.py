@@ -215,7 +215,9 @@ class AuxDevice:
 
         if (self.set_current_fwdr() == False):
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
-            self.send_fault_state_event(5751, job_number) # error code for 'no health check response any fwdrs'
+            desc = "No health check response from ANY fwdr"
+            type = 'FAULT'
+            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 'no health check response any fwdrs'
             return
 
 
@@ -285,8 +287,10 @@ class AuxDevice:
 
         if self.did_current_fwdr_respond() == False:
             name = self._current_fwdr['FQN']
+            type = "FAULT"
+            desc = "No xfer_params response from fwdr."
             LOGGER.critical("No xfer_params response from fwdr. Setting FAULT state, 5752" % name)
-            self.send_fault_state_event(5752, job_number)  # error code 'no health check response current fwdr'
+            self.send_fault_state_event("5752", desc, type, name) 
             return
 
 
@@ -401,9 +405,14 @@ class AuxDevice:
 
         if readout_response == False:
             name = self._current_fwdr['FQN']
-            LOGGER.critical("No AT_FWDR_END_READOUT response from %s for job %s. Setting FAULT state, 5752" % name,job_number)
-            self.send_fault_state_event(5752, job_number) #error codefor 'no readout response current fwdr'
+            desc = "No AT_FWDR_END_READOUT response from " + str(name)
+            type = "FAULT"
+            LOGGER.critical("No AT_FWDR_END_READOUT response from %s for job %s. Setting FAULT state, 5752" % \ 
+                           (name,job_number))
+            self.send_fault_state_event(5752, desc, type, name)
+
             return
+
 
         result_set = self.did_current_fwdr_send_result_set()
         if result_set == None:  #fail, ack_bool is false, and filename_list is None
@@ -790,17 +799,14 @@ class AuxDevice:
             return False
 
 
-    def send_fault_state_event(self, ecode, job_num):
-        print(">>>>>>>>>>>>>> Sending Fault State <<<<<<<<<<<<<<<<")
-        # XXXXX FIX
-        return
-        error_code = 'ERR_' + str(ecode)
+    def send_fault_state_event(self, ecode, desc, type, comp):
         msg_params = {}
         msg_params[MSG_TYPE] = "FAULT"
-        msg_params['COMPONENT'] = self.COMPONENT
+        msg_params['COMPONENT'] = comp
         msg_params['DEVICE'] = self.DEVICE
-        msg_params['JOB_NUM'] = job_num
+        msg_params['FAULT_TYPE'] = type
         msg_params['ERROR_CODE'] = error_code
+        msg_params['DESCRIPTION'] = desc
         self._publisher.publish_message(self.DMCS_ACK_CONSUME, msg_params)
 
 

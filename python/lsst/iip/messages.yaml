@@ -244,8 +244,11 @@ ROOT:
 
     FAULT:
         MSG_TYPE: FAULT
+        FAULT_TYPE: FAULT, ERROR, or WARNING
         DEVICE:
+        COMPONENT:
         ERROR_CODE:  (4 character string)
+        DESCRIPTION:
 
     SYSTEM_HEALTH:
         MSG_TYPE: SYSTEM_HEALTH

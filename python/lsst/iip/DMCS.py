@@ -96,7 +96,6 @@ class DMCS:
                               'DISABLE': self.process_disable_command,
                               'ENABLE': self.process_enable_command,
                               'SET_VALUE': self.process_set_value_command,
-                              'FAULT': self.process_fault_command,
                               'EXIT_CONTROL': self.process_exit_control_command,
                               'ABORT': self.process_abort_command,
                               'STOP': self.process_stop_command,
@@ -280,21 +279,19 @@ class DMCS:
 
 
     def on_fault_message(self, ch, method, properties, msg_dict):
-        try: 
+        try:
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in FAULT message callback')
-            LOGGER.debug('Message and properties from FAULT callback message body is: %s', 
-                         (str(msg_dict),properties))
-
-            handler = self._fault_actions.get(msg_dict[MSG_TYPE])
-            if handler == None:
-                raise KeyError("In on_fault_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
-            result = handler(msg_dict)
-        except KeyError as e:
-            LOGGER.error("DMCS received unrecognized message type in on_fault_message: %s" % e.args)
+            LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s' % 
+                         (pformat(str(msg_dict)), pformat(properties)))
+    
+            err_code = msg_dict['ERR_CODE']
+            desc = msg_dict['DESCRIPTION']
+            LOGGER.critical("DMCS received fault message with error code %s -- %s" % (err_code,desc))
             if self.DP: 
-                print("DMCS received unrecognized message type: %s" % e.args)
-            raise L1Error("DMCS encountering Error Code %s. %s" % (str(self.ERROR_CODE_PREFIX + 35), e.args))
+                print("DMCS received fault message, error code type: %s and description %s" % (err_code,desc))
+        finally:
+            self.process_fault(msg_dict)
 
 
 
@@ -439,16 +436,6 @@ class DMCS:
             print("DMCS unable to process_set_value_command: %s" % e.args) 
             raise L1Error("DMCS unable to process_set_value_command: %s" % e.args) 
 
-
-
-    def process_fault_command(self, msg):
-        """ None.
-
-           :params: None.
-
-           :return: None.
-        """
-        pass
 
 
     def process_exit_control_command(self, msg):
