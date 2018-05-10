@@ -1,6 +1,7 @@
 import toolsmod
 from toolsmod import get_timestamp
 import logging
+from logging.handlers import RotatingFileHandler
 import pika
 import redis
 import yaml
@@ -29,7 +30,10 @@ from toolsmod import L1RabbitConnectionError
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FORMAT)
+LOGGER.setLevel(logging.DEBUG)
+#logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FORMAT)
+handler = RotatingFileHandler('logs/DMCS.log', maxBytes=200000, backupCount = 10, format=LOG_FORMAT)
+LOGGER.addHandler(handler)
 
 
 class DMCS:
