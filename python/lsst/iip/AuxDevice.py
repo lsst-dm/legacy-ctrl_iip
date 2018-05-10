@@ -11,6 +11,7 @@ from pprint import pprint, pformat
 import time
 from time import sleep
 import threading
+from threading import Lock
 from const import *
 from Scoreboard import Scoreboard
 from ForwarderScoreboard import ForwarderScoreboard
@@ -76,6 +77,8 @@ class AuxDevice:
 
         LOGGER.info('Extracting values from Config dictionary')
         self.extract_config_values()
+        if self._use_mutex:
+            self.my_mutex_lock = threading.Lock()
 
 
         #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
@@ -212,7 +215,9 @@ class AuxDevice:
 
         if (self.set_current_fwdr() == False):
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
-            self.send_fault_state_event(5751, job_number) # error code for 'no health check response any fwdrs'
+            desc = "No health check response from ANY fwdr"
+            type = 'FAULT'
+            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 'no health check response any fwdrs'
             return
 
 
@@ -282,8 +287,10 @@ class AuxDevice:
 
         if self.did_current_fwdr_respond() == False:
             name = self._current_fwdr['FQN']
+            type = "FAULT"
+            desc = "No xfer_params response from fwdr."
             LOGGER.critical("No xfer_params response from fwdr. Setting FAULT state, 5752" % name)
-            self.send_fault_state_event(5752, job_number)  # error code 'no health check response current fwdr'
+            self.send_fault_state_event("5752", desc, type, name) 
             return
 
 
@@ -398,9 +405,14 @@ class AuxDevice:
 
         if readout_response == False:
             name = self._current_fwdr['FQN']
-            LOGGER.critical("No AT_FWDR_END_READOUT response from %s for job %s. Setting FAULT state, 5752" % name,job_number)
-            self.send_fault_state_event(5752, job_number) #error codefor 'no readout response current fwdr'
+            desc = "No AT_FWDR_END_READOUT response from " + str(name)
+            type = "FAULT"
+            LOGGER.critical("No AT_FWDR_END_READOUT response from %s for job %s. Setting FAULT state, 5752" % \ 
+                           (name,job_number))
+            self.send_fault_state_event(5752, desc, type, name)
+
             return
+
 
         result_set = self.did_current_fwdr_send_result_set()
         if result_set == None:  #fail, ack_bool is false, and filename_list is None
@@ -561,8 +573,14 @@ class AuxDevice:
 
 
     def did_current_fwdr_send_result_set(self):
-        if self._fwdr_state_dict[self._current_fwdr['FQN']]['ACK_BOOL'] == True:
-            return self._fwdr_state_dict[self._current_fwdr['FQN']]['RESULT_SET']
+        if self._use_mutex:
+            self.my_mutex_lock.acquire()
+        try:
+            if self._fwdr_state_dict[self._current_fwdr['FQN']]['ACK_BOOL'] == True:
+                return self._fwdr_state_dict[self._current_fwdr['FQN']]['RESULT_SET']
+        finally:
+            if self._use_mutex:
+                self.my_mutex_lock.release()
 
         return None
 
@@ -607,14 +625,25 @@ class AuxDevice:
     
     def process_at_fwdr_end_readout_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
-        self.set_fwdr_state(component, RESPONSIVE)
-        ack_bool = params[ACK_BOOL]  # The component is the name of the fwdr responding
-        if ack_bool == True:
-            self._fwdr_state_dict[component]['ACK_BOOL'] = True
-            self._fwdr_state_dict[component]['RESULT_SET'] = params['RESULT_SET']
-        else:
-            self._fwdr_state_dict[component]['ACK_BOOL'] = False
-            self._fwdr_state_dict[component]['RESULT_SET'] = None
+        if self._use_mutex:
+            LOGGER.debug('Acquireing mutex in process fwdr end readout...')
+            self.my_mutex_lock.acquire()
+        try:
+            self.set_fwdr_state(component, RESPONSIVE)
+            ack_bool = params[ACK_BOOL]  # The component is the name of the fwdr responding
+            if ack_bool == True:
+                self._fwdr_state_dict[component]['ACK_BOOL'] = True
+                self._fwdr_state_dict[component]['RESULT_SET'] = params['RESULT_SET']
+            else:
+                self._fwdr_state_dict[component]['ACK_BOOL'] = False
+                self._fwdr_state_dict[component]['RESULT_SET'] = None
+        finally:
+            LOGGER.debug('At end of critical section of process at fwdr end readout ack')
+            # Then just pass for now...
+
+            if self._use_mutex:
+                LOGGER.debug('Releasing mutex...')
+                self.my_mutex_lock.release()
     
     
     def process_at_items_xferd_ack(self, params):
@@ -770,17 +799,14 @@ class AuxDevice:
             return False
 
 
-    def send_fault_state_event(self, ecode, job_num):
-        print(">>>>>>>>>>>>>> Sending Fault State <<<<<<<<<<<<<<<<")
-        # XXXXX FIX
-        return
-        error_code = 'ERR_' + str(ecode)
+    def send_fault_state_event(self, ecode, desc, type, comp):
         msg_params = {}
         msg_params[MSG_TYPE] = "FAULT"
-        msg_params['COMPONENT'] = self.COMPONENT
+        msg_params['COMPONENT'] = comp
         msg_params['DEVICE'] = self.DEVICE
-        msg_params['JOB_NUM'] = job_num
+        msg_params['FAULT_TYPE'] = type
         msg_params['ERROR_CODE'] = error_code
+        msg_params['DESCRIPTION'] = desc
         self._publisher.publish_message(self.DMCS_ACK_CONSUME, msg_params)
 
 
@@ -808,6 +834,9 @@ class AuxDevice:
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['AUX_FORWARDERS']
             self._wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
             self._wfs_ccd = cdm[ROOT]['ATS']['WFS_CCD']
+            self._use_mutex = False
+            if cdm[ROOT]['USE_MUTEX'] == "YES":
+                self._use_mutex = True
 
             # Placeholder until eventually worked out by Data Backbone team
             self.use_archive_ctrl = cdm[ROOT]['ARCHIVE']['USE_ARCHIVE_CTRL']
@@ -818,6 +847,8 @@ class AuxDevice:
         except KeyError as e:
             print("Dictionary error: %s" % e)
             print("Bailing out...")
+            LOGGER.critical("CFG dictionary key error: %s" % e)
+            LOGGER.critical("Bailing out...")
             sys.exit(99)
 
         self.setup_fwdr_state_dict()
