@@ -38,8 +38,10 @@
 // // Gregg's test image uses:
 // // NAXIS1 = 576, NAXIS2 = 2048
 // //#define HEIGHT 512
-#define HEIGHT 576
-#define WIDTH 2048
+#define NAXIS1 576
+#define NAXIS2 2048
+#define STRING(s) STRING_EXPAND(s)
+#define STRING_EXPAND(s) #s 
 #define N_AMPS 16
 #define PIX_MASK 0x3FFFF
 #define DEBUG 1
@@ -163,7 +165,7 @@ class Forwarder {
     void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
 
-    char* format_read_img_segment(const char*);
+    long* format_read_img_segment(const char*);
     unsigned char** format_assemble_pixels(char *);
     void format_write_img(std::string, std::string);
     void format_assemble_img(Node);
@@ -1293,19 +1295,19 @@ void Forwarder::process_header_ready(Node n) {
             throw L1YamlKeyError("In process_header_ready, forwarder cannot find message params: FILENAME"); 
         } 
 
-    string reply_queue = n["REPLY_QUEUE"].as<string>();
-    string ack_id = n["ACK_ID"].as<string>();
-    string message_type = "AT_FWDR_HEADER_READY_ACK";
-    string ack_bool = "True";
+        string reply_queue = n["REPLY_QUEUE"].as<string>();
+        string ack_id = n["ACK_ID"].as<string>();
+        string message_type = "AT_FWDR_HEADER_READY_ACK";
+        string ack_bool = "True";
 
-    ostringstream message;
-    message << "{ MSG_TYPE: " << message_type
-            << ", COMPONENT: " << this->Component
-            << ", ACK_ID: " << ack_id
-            << ", ACK_BOOL: " << ack_bool << "}";
+        ostringstream message;
+        message << "{ MSG_TYPE: " << message_type
+                << ", COMPONENT: " << this->Component
+                << ", ACK_ID: " << ack_id
+                << ", ACK_BOOL: " << ack_bool << "}";
 
-    // Inform AuxDevice message was received.
-    FWDR_pub->publish_message(reply_queue, message.str());
+        // Inform AuxDevice message was received.
+        FWDR_pub->publish_message(reply_queue, message.str());
 
         string path = n["FILENAME"].as<string>(); 
         string img_id = n["IMAGE_ID"].as<string>(); 
@@ -1332,7 +1334,7 @@ void Forwarder::process_header_ready(Node n) {
                << sub_dir
                << "/"; 
 	*/ 
-	cp_cmd << "wget -P "<< sub_dir << "/ "  << path; 
+	cp_cmd << "wget -P " << sub_dir << "/ " << path; 
         int scp_cmd = system(cp_cmd.str().c_str()); 
 
 	/** 
@@ -1431,13 +1433,13 @@ void Forwarder::format_assemble_img(Node n) {
 }
 
 
-char* Forwarder::format_read_img_segment(const char *file_path) { 
+long* Forwarder::format_read_img_segment(const char *file_path) { 
     try { 
         fstream img_file(file_path, fstream::in | fstream::binary); 
-        long len = WIDTH * HEIGHT; 
-        char *buffer = new char[len]; 
+        long len = NAXIS2 * NAXIS1; 
+        long *buffer = new long[len]; 
         img_file.seekg(0, ios::beg); 
-        img_file.read(buffer, len); 
+        img_file.read((char *)buffer, len); 
         img_file.close();
         return buffer;
     } 
@@ -1448,15 +1450,15 @@ char* Forwarder::format_read_img_segment(const char *file_path) {
 
 unsigned char** Forwarder::format_assemble_pixels(char *buffer) { 
     try { 
-        unsigned char **array = new unsigned char*[HEIGHT]; 
-        array[0] = (unsigned char *) malloc( WIDTH * HEIGHT * sizeof(unsigned char)); 
+        unsigned char **array = new unsigned char*[NAXIS1]; 
+        array[0] = (unsigned char *) malloc( NAXIS2 * NAXIS1 * sizeof(unsigned char)); 
 
-        for (int i = 1; i < HEIGHT; i++) { 
-            array[i] = array[i-1] + WIDTH; 
+        for (int i = 1; i < NAXIS1; i++) { 
+            array[i] = array[i-1] + NAXIS2; 
         } 
 
-        for (int j = 0; j < HEIGHT; j++) {
-            for (int i = 0; i < WIDTH; i++) {
+        for (int j = 0; j < NAXIS1; j++) {
+            for (int i = 0; i < NAXIS2; i++) {
                 array[j][i]= buffer[i+j]; 
             } 
         }
@@ -1470,13 +1472,12 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
 void Forwarder::format_write_img(string img, string header) { 
     cout << "[x] fwi" << endl;
     try { 
-        long len = WIDTH * HEIGHT;
+        long len = NAXIS2 * NAXIS1;
         // int bitpix = LONG_IMG; 
         int bitpix = 32; 
         long naxis = 2;
-        long naxes[2] = { WIDTH, HEIGHT }; 
+        long naxes[2] = { NAXIS1, NAXIS2 }; 
         long fpixel = 1; 
-        long nelements = len; 
         int status = 0; 
         int hdunum = 2;
         int nkeys; 
@@ -1487,8 +1488,6 @@ void Forwarder::format_write_img(string img, string header) {
         string img_path = Work_Dir + "/" + img;
         string header_path = header;
         string destination = Work_Dir + "/FITS/" + img + ".fits";
-        cout << "[x] header: " << header_path << endl; 
-        cout << "[x] destination:" << destination << endl;
 
         fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
         fits_create_file(&optr, destination.c_str(), &status); 
@@ -1496,46 +1495,56 @@ void Forwarder::format_write_img(string img, string header) {
 
         vector<string> file_names = format_list_files(img_path); 
         vector<string>::iterator it; 
-	vector<string> exclude_keywords = {"BITPIX", "NAXIS"}; 
-	vector<string>::iterator eit; 
+        vector<string> exclude_keywords = {"BITPIX", "NAXIS"}; 
+        vector<string>::iterator eit; 
         for (it = file_names.begin(); it != file_names.end(); it++) { 
-            string img_segment = img_path + "/" + *it; 
-            char *img_buffer = format_read_img_segment(img_segment.c_str());
-            unsigned char **array = format_assemble_pixels(img_buffer); 
+            string img_segment = img_path + "/" + *it + "[jb" + STRING(NAXIS1) 
+                                 + "," + STRING(NAXIS2) + "]"; 
+            cout << "FMT: img_segment: " << img_segment << endl; 
+            
+            // read img pixels
+            long *img_buffer = new long[len];
+            fitsfile *pix_file_ptr; 
+            fits_open_file(&pix_file_ptr, img_segment.c_str(), READONLY, &status); 
+            cout << status << endl; 
+
+            fits_read_img(pix_file_ptr, TLONG, fpixel, len, NULL, img_buffer, 0, &status); 
+            // unsigned char **array = format_assemble_pixels(img_buffer); 
 
             fits_movabs_hdu(iptr, hdunum, NULL, &status); 
             fits_create_img(optr, bitpix, naxis, naxes, &status); 
-            fits_write_img(optr, TBYTE, fpixel, nelements, array[0], &status); 
+            if (fits_write_img(optr, TLONG, fpixel, len, img_buffer, &status)) { 
+                cout << "status: " << status << endl; 
+            } 
 
             fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
             for (int i = 1; i <= nkeys; i++) { 
                 fits_read_record(iptr, i, card, &status); 
-	        string card_str = string(card); 
-	        cout << "[x] " << card  << endl; 
+                string card_str = string(card); 
                 if (card_str.find("BITPIX") == 0) {} 
                 else if (card_str.find("NAXIS") == 0) {} 
                 else if (card_str.find("PCOUNT") == 0) {} 
                 else if (card_str.find("GCOUNT") == 0) {} 
                 else if (card_str.find("XTENSION") == 0) {} 
                 else { 
-                    cout << "[WRITTEN] " << card << endl; 
-		    fits_write_record(optr, card, &status); 
+                    fits_write_record(optr, card, &status); 
                 } 
-		cout << "XXXXXXXXXXXXXXXXXXXXXXX" << endl; 
             }
             hdunum++;
+
+            // clean up 
+            fits_close_file(pix_file_ptr, &status); 
+            delete img_buffer; 
         } 
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
 
-        cout << "end of fwi" << endl;
         format_send_completed_msg(img);
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
     } 
 } 
-
 vector<string> Forwarder::format_list_files(string path) { 
     try { 
         struct dirent *entry; 
