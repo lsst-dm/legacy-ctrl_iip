@@ -27,6 +27,7 @@ class Setup:
                   "archive_ctrl_publish",
                   "dmcs_consume",
                   "dmcs_ack_consume",
+                  "dmcs_fault_consume", 
                   "ocs_dmcs_consume",
                   "dmcs_ocs_publish",
                   "at_forwarder_publish",
