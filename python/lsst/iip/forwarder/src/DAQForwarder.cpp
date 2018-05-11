@@ -1,6 +1,5 @@
 /////////////////////////////////////////////////////////////////
 //
-
 #include <sys/stat.h> 
 #include <dirent.h>
 #include <stdio.h>
@@ -42,6 +41,9 @@
 #define NAXIS2 2048
 #define STRING(s) STRING_EXPAND(s)
 #define STRING_EXPAND(s) #s 
+// Gregg T's test image uses these two values:
+#define NAXIS1 576
+#define NAXIS2 2048
 #define N_AMPS 16
 #define PIX_MASK 0x3FFFF
 #define DEBUG 1
@@ -75,6 +77,8 @@ class Forwarder {
     std::string WFS_RAFT = "";
     int Num_Images = 0; 
     int ERROR_CODE_PREFIX; 
+    std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
+                                         "10","11","12","13","14","15","16","17"};
    
     
     std::string consume_queue = "";
@@ -606,11 +610,11 @@ void Forwarder::process_health_check(Node n) {
     string ack_id = n["ACK_ID"].as<string>();
     string reply_queue = n["REPLY_QUEUE"].as<string>();
     string message_type = n["MSG_TYPE"].as<string>();
-    message_type.push_back('_ACK'); //Add _ACK to end of msg_type and not worry about dev type
+    string msg_type = message_type + "_ACK"; //Add _ACK to end of msg_type and not worry about dev type
     string ack_bool = "True";
 
     ostringstream message;
-    message << "{ MSG_TYPE: " << message_type
+    message << "{ MSG_TYPE: " << msg_type
             << ", COMPONENT: " << this->Component
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
@@ -1059,6 +1063,7 @@ cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
 // First, determine the number of CCDs in the ccds_for_board vector arg.
 // the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
 //////////////////////////////////////////////////////////////////////////////////////////////////
+
 void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
 {
 
@@ -1159,6 +1164,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
 
 void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
   for (int i=0; i < 16; i++) {
+        /*
         std::string seg;
         if (i < 10) {
             seg = "0" + to_string(i);
@@ -1166,12 +1172,14 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, s
         else {
             seg = to_string(i);
         }
+        /**/
         std::ostringstream fns;
         fns << dir_prefix << "/" \
                           << image_id \
                           << "--" << raft \
                           << "-ccd." << ccd \
-                          << "_segment." << seg;
+                          //<< "_segment." << seg;
+                          << "_segment." << this->Segment_Names[i];
 cout << "FILENAME:  " << fns.str() << endl;
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
@@ -1181,6 +1189,7 @@ cout << "FILENAME:  " << fns.str() << endl;
 
 void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix){
   for (int i=0; i < 16; i++) {
+        /*
         std::string seg;
         if (i < 10) {
             seg = "0" + to_string(i);
@@ -1188,12 +1197,13 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
         else {
             seg = to_string(i);
         }
+        /**/
         std::ostringstream fns;
         fns << dir_prefix << "/" \
                           << image_id \
                           << "--AUXTEL" \
                           << "-ccd.ATS_CCD" \
-                          << "_segment." << seg;
+                          << "_segment." << this->Segment_Names[i];
 cout << "FILENAME:  " << fns.str() << endl;
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
@@ -1390,8 +1400,6 @@ void Forwarder::process_header_ready(Node n) {
 ////////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_process_end_readout(Node node) { 
-    cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl; 
-    cout << "[f] fper" << endl;
     try { 
         string image_id = node["IMAGE_ID"].as<string>(); 
         this->readout_img_ids.push_back(image_id); 
@@ -1403,7 +1411,6 @@ void Forwarder::format_process_end_readout(Node node) {
 } 
 
 void Forwarder::format_get_header(Node node) { 
-    cout << "[f] fgh" << endl; 
     try { 
         string image_id = node["IMAGE_ID"].as<string>(); 
         string filename = node["FILENAME"].as<string>(); 
@@ -1417,13 +1424,11 @@ void Forwarder::format_get_header(Node node) {
 } 
 
 void Forwarder::format_assemble_img(Node n) {
-    cout << "[f] fai" << endl; 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string header = n["HEADER"].as<string>(); 
         // create dir  /mnt/ram/FITS/IMG_10
         string fits_dir = Work_Dir + "/FITS"; 
-        cout << "[x] fits_dir: " << fits_dir << endl; 
         const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
         format_write_img(img_id, header);
     } 
@@ -1520,14 +1525,14 @@ void Forwarder::format_write_img(string img, string header) {
             fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
             for (int i = 1; i <= nkeys; i++) { 
                 fits_read_record(iptr, i, card, &status); 
-                string card_str = string(card); 
+	        string card_str = string(card); 
                 if (card_str.find("BITPIX") == 0) {} 
                 else if (card_str.find("NAXIS") == 0) {} 
                 else if (card_str.find("PCOUNT") == 0) {} 
                 else if (card_str.find("GCOUNT") == 0) {} 
                 else if (card_str.find("XTENSION") == 0) {} 
                 else { 
-                    fits_write_record(optr, card, &status); 
+		    fits_write_record(optr, card, &status); 
                 } 
             }
             hdunum++;
@@ -1588,9 +1593,7 @@ void Forwarder::format_look_for_work() {
         vector<string>::iterator it;
         map<string, string>::iterator mit;  
         map<string, string>::iterator tid; 
-        cout << "readout SIZE: " << readout_img_ids.size() << endl;
         if (this->readout_img_ids.size() != 0 && this->header_info_dict.size() != 0) { 
-            cout << "[x] img data exists" << endl; 
             for (it = this->readout_img_ids.begin(); it != this->readout_img_ids.end(); ) { 
                 string img_id = *it; 
                 mit = this->header_info_dict.find(img_id); 

@@ -1,6 +1,7 @@
 import toolsmod
 from toolsmod import get_timestamp
 import logging
+from logging.handlers import RotatingFileHandler
 import pika
 import redis
 import yaml
@@ -29,7 +30,10 @@ from toolsmod import L1RabbitConnectionError
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FORMAT)
+LOGGER.setLevel(logging.DEBUG)
+#logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FORMAT)
+handler = RotatingFileHandler('logs/DMCS.log', maxBytes=200000, backupCount = 10, format=LOG_FORMAT)
+LOGGER.addHandler(handler)
 
 
 class DMCS:
@@ -96,7 +100,6 @@ class DMCS:
                               'DISABLE': self.process_disable_command,
                               'ENABLE': self.process_enable_command,
                               'SET_VALUE': self.process_set_value_command,
-                              'FAULT': self.process_fault_command,
                               'EXIT_CONTROL': self.process_exit_control_command,
                               'ABORT': self.process_abort_command,
                               'STOP': self.process_stop_command,
@@ -105,10 +108,6 @@ class DMCS:
                               'DMCS_AT_START_INTEGRATION': self.process_at_start_integration_event,
                               'TELEMETRY': self.process_telemetry, 
 			      ###########################################################
-                              'CCS_START_INTEGRATION': self.process_ccs_start_int_event,
-                              'CCS_START_READOUT': self.process_ccs_readout_event,
-                              'CCS_SHUTTER_CLOSE': self.process_ccs_shutter_close_event,
-                              'CCS_SHUTTER_OPEN': self.process_ccs_shutter_open_event,
                               'DMCS_HEADER_READY': self.process_header_ready_event,
                               'DMCS_AT_HEADER_READY': self.process_at_header_ready_event,
                               'DMCS_TCS_TARGET': self.process_target_visit_event, 
@@ -133,6 +132,9 @@ class DMCS:
                               'PP_READOUT_ACK': self.process_readout_results_ack,
                               'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
+
+        self._fault_actions = { 'FAULT': self.process_fault }
+
 
 
         LOGGER.info('DMCS publisher setup')
@@ -194,11 +196,16 @@ class DMCS:
                                             self._pub_passwd + "@" + \
                                             str(self._base_broker_addr)
 
+        self.pub_fault_base_broker_url = "amqp://" + self._pub_fault_name + ":" + \
+                                            self._pub_fault_passwd + "@" + \
+                                            str(self._base_broker_addr)
+
         LOGGER.info('Building publishing pub_base_broker_url. Result is %s', self.pub_base_broker_url)        
 
         LOGGER.info('Setting up Base publisher ')
         try: 
             self._publisher = SimplePublisher(self.pub_base_broker_url, YAML)
+            self._fault_publisher = SimplePublisher(self.pub_fault_base_broker_url, YAML)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to setup_publishers: %s" % e.args) 
             print("DMCS unable to setup_publishers: %s" % e.args) 
@@ -273,6 +280,22 @@ class DMCS:
             LOGGER.error("DMCS unable to on_ack_message: %s" % e.args) 
             print("DMCS unable to on_ack_message: %s" % e.args) 
             raise L1Error("DMCS unable to on_ack_message: %s" % e.args) 
+
+
+    def on_fault_message(self, ch, method, properties, msg_dict):
+        try:
+            ch.basic_ack(method.delivery_tag) 
+            LOGGER.info('Processing message in FAULT message callback')
+            LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s' % 
+                         (pformat(str(msg_dict)), pformat(properties)))
+    
+            err_code = msg_dict['ERR_CODE']
+            desc = msg_dict['DESCRIPTION']
+            LOGGER.critical("DMCS received fault message with error code %s -- %s" % (err_code,desc))
+            if self.DP: 
+                print("DMCS received fault message, error code type: %s and description %s" % (err_code,desc))
+        finally:
+            self.process_fault(msg_dict)
 
 
 
@@ -417,16 +440,6 @@ class DMCS:
             print("DMCS unable to process_set_value_command: %s" % e.args) 
             raise L1Error("DMCS unable to process_set_value_command: %s" % e.args) 
 
-
-
-    def process_fault_command(self, msg):
-        """ None.
-
-           :params: None.
-
-           :return: None.
-        """
-        pass
 
 
     def process_exit_control_command(self, msg):
@@ -614,47 +627,43 @@ class DMCS:
 
             :return: None.
         """
-        print("In On at_start_intg, msg is: %s" % params)
-        try: 
-            msg_params = {}
-            # visit_id and image_id msg_params *could* be set in one line, BUT: the values are needed again below...
-            visit_id = self.STATE_SCBD.get_current_visit()
-            image_id = params[IMAGE_ID]  # NOTE: Assumes same image_id for all devices readout
-            msg_params[IMAGE_ID] = image_id
-            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
-            msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
-            msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
+        LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
+        raft_ccd_list = []
+        ccds = []
+        ccds.append(self.wfs_ccd)
+        raft_ccd_list.append(ccds)
+        raft_list = []
+        raft_list.append(self.wfs_raft)
+        image_id = params[IMAGE_ID]
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
+        msg_params['IMAGE_ID'] = image_id
+        msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
+        msg_params['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
+        msg_params['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']
+        session_id = self.STATE_SCBD.get_current_session()
+        msg_params['SESSION_ID'] = session_id
+        msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
+        msg_params['RAFT_LIST'] = raft_list
+        msg_params['RAFT_CCD_LIST'] = raft_ccd_list
 
-            #enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
-            acks = []
-            ack_id = self.get_next_timed_ack_id( "AT_START_INT_ACK")
-            acks.append(ack_id)
-            #job_num = self.STATE_SCBD.get_next_job_num( session_id)
-            #self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
-            #self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
-            #self.STATE_SCBD.set_current_device_job(job_num, str(k))
-            #self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
-            #msg_params[JOB_NUM] = job_num
-            msg_params[ACK_ID] = ack_id
-            rkey = self.STATE_SCBD.get_device_consume_queue('AT')
-            print("publishing start_int to: %s" % rkey) 
-            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+        acks = []
+        ack_id = self.get_next_timed_ack_id( "AT_START_INT_ACK")
+        acks.append(ack_id)
+        job_num = self.STATE_SCBD.get_next_job_num( session_id)
+        self.STATE_SCBD.add_job(job_num, image_id, "visit_0", raft_ccd_list)
+        self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', "AT")
+        self.STATE_SCBD.set_current_device_job(job_num, "AT")
+        self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+        msg_params[JOB_NUM] = job_num
+        msg_params[ACK_ID] = ack_id
+        rkey = self.STATE_SCBD.get_device_consume_queue('AT')
+        print("publishing start_int to: %s" % rkey) 
+        self._publisher.publish_message(rkey, msg_params)
 
-
-            wait_time = 5  # seconds...
-            self.set_pending_nonblock_acks(acks, wait_time)
-        except L1RedisError as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-            print("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-        except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
-            print("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_start_integration_event - No rabbit connection: %s" % e.args)
-        except Exception as e: 
-            LOGGER.error("DMCS unable to process_start_integration_event: %s" % e.args)
-            print("DMCS unable to process_start_integration_event: %s" % e.args)
-            raise L1Error("DMCS unable to process_start_integration_event: %s" % e.args)
+        #### FIX replace non-pending acks with regular ack timer
+        wait_time = 5  # seconds...
+        self.set_pending_nonblock_acks(acks, wait_time)
 
 
     def process_readout_event(self, params):
@@ -713,15 +722,13 @@ class DMCS:
 
             :return: None.
         """
-        ## FIX - see temp hack below...
-        ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         try: 
-            ccd_list = self.CCD_LIST
-
             msg_params = {}
             msg_params[MSG_TYPE] = 'AT_END_READOUT'
             msg_params[IMAGE_ID] = params[IMAGE_ID]  
             msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']  
+            msg_params['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']  
+            msg_params['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']  
             msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
             session_id = self.STATE_SCBD.get_current_session()
             msg_params['SESSION_ID'] = session_id
@@ -729,13 +736,15 @@ class DMCS:
             acks = []
             ack_id = self.get_next_timed_ack_id("AT_END_READOUT_ACK")
             acks.append(ack_id)
-            #job_num = self.STATE_SCBD.get_current_device_job(str(k))
             msg_params[ACK_ID] = ack_id
-            #msg_params[JOB_NUM] = job_num
-            #self.STATE_SCBD.set_job_state(job_num, "READOUT")
+            job_num = self.STATE_SCBD.get_current_device_job('AT')
+            msg_params[JOB_NUM] = job_num
+            self.STATE_SCBD.set_job_state(job_num, "READOUT")
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
+            LOGGER.info("Publishing end readout to: %s" % rkey) 
+            LOGGER.debug("Publishing end readout message %s to: %s" % (pformat(msg_params), rkey))
             print("publishing end readout to: %s" % rkey) 
-            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+            self._publisher.publish_message(rkey, msg_params)
 
 
             wait_time = 5  # seconds...
@@ -749,32 +758,6 @@ class DMCS:
             print("DMCS unable to process_readout_event: %s" % e.args)
             raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
         # add in two additional acks for format and transfer complete
-
-
-
-
-    def process_ccs_start_int_event(self, params):
-        print("Incoming message to process_ccs_start_int_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
-
-    def process_ccs_readout_event(self, params):
-        print("Incoming message to process_ccs_readout_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
-
-       
-
-
-    def process_ccs_shutter_close_event(self, params):
-        print("Incoming message to process_ccs_shutter_close_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
-
-    def process_ccs_shutter_open_event(self, params):
-        print("Incoming message to process_ccs_shutter_open_event: ")
-        self.prp.pprint(params) 
-        print("------------------------------\n\n")
 
     def process_target_visit_event(self, params):
         try:
@@ -939,17 +922,48 @@ class DMCS:
 
 
     def process_at_header_ready_event(self, params):
+        ack_id = self.get_next_timed_ack_id( 'AT_HEADER_READY_ACK')
         msg_params = {}
         fname = params['FILENAME']        
         msg_params['FILENAME'] = fname        
-        #msg_params['FILENAME'] = self.efd + fname        
         msg_params[MSG_TYPE] = 'AT_HEADER_READY'
         msg_params[IMAGE_ID] = params[IMAGE_ID]  
-        msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
-        #job_num = self.STATE_SCBD.get_current_device_job(str(k))
-        #msg_params[JOB_NUM] = job_num
-        #self.STATE_SCBD.set_job_state(job_num, "READOUT")
+        msg_params["REPLY_QUEUE"] = "at_foreman_ack_publish"
+        msg_params[ACK_ID] = ack_id
+        job_num = self.STATE_SCBD.get_current_device_job('AT')
+        self.STATE_SCBD.set_job_state(job_num, "HEADER_READY")
         self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+
+
+    def process_fault(self, params):
+        device = params['DEVICE']
+        fault_type = params['FAULT_TYPE']
+        error_code = params['ERROR_CODE']
+        if fault_type == 'FAULT':
+            self.set_device_to_fault_state(device, params['ERROR_CODE'])
+            LOGGER.error("DMCS seeing a FAULT state from %s device with error code: %s" % (device, error_code))
+            LOGGER.error("Description string is:  %s." % params['DESCRIPTION'])
+        else:
+            LOGGER.critical("DMCS seeing a %s state from %s device...error code is %s and description is %s" % \
+                 (device, fault_type, error_code, params['DESCRIPTION']))
+
+        msg_params = {}
+        msg_params[MSG_TYPE] = FAULT
+        msg_params['COMPONENT'] = params['COMPONENT']
+        msg_params['DEVICE'] = device 
+        msg_params['ERROR_CODE'] = error_code
+        msg_params['FAULT_TYPE'] = fault_type
+        msg_params['DESCRIPTION'] = params['DESCRIPTION']
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
+
+
+    def set_device_to_fault_state(self, device, params):
+        # set state to FAULT for device
+        # associate err_code with fault
+        # There should be a 'Fault_History' list that yaml dumps all params of the fault and assoiates it with
+        #a date
+        self.STATE_SCBD.set_device_state(device, FAULT)
+        self.STATE_SCBD.append_new_fault_to_fault_history(params)
 
 
     def process_telemetry(self, msg):
@@ -1443,6 +1457,8 @@ class DMCS:
             self._msg_passwd = cdm[ROOT]['DMCS_BROKER_PASSWD']
             self._pub_name = cdm[ROOT]['DMCS_BROKER_PUB_NAME']
             self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
+            self._pub_fault_name = cdm[ROOT]['DMCS_FAULT_PUB_NAME']
+            self._pub_fault_passwd = cdm[ROOT]['DMCS_FAULT_PUB_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self.ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
             self.rdict = cdm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
@@ -1456,6 +1472,8 @@ class DMCS:
             self.at_cfg_keys = cdm[ROOT]['AT_CFG_KEYS']
             self.efd_login = cdm[ROOT]['EFD']['EFD_LOGIN']
             self.efd_ip = cdm[ROOT]['EFD']['EFD_IP']
+            self.wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
+            self.wfs_ccd = cdm[ROOT]['ATS']['WFS_CCD']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
@@ -1503,7 +1521,17 @@ class DMCS:
             md['test_val'] = None
             kws[md['name']] = md
 
+            md = {}
+            md['amqp_url'] = base_broker_url
+            md['name'] = 'Thread-dmcs_fault_consume'
+            md['queue'] = 'dmcs_fault_consume'
+            md['callback'] = self.on_fault_message
+            md['format'] = "YAML"
+            md['test_val'] = None
+            kws[md['name']] = md
+
             self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
+
         except ThreadError as e:
             LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
             print("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
@@ -1609,6 +1637,9 @@ class DMCS:
 
     def process_target_visit_accept(self, params):
         print("[x] TARGET_VISIT_ACCEPT")
+
+    def dmcs_finalize(self):
+        self.STATE_SCBD.scbd_finalize()
 
 
 def main():

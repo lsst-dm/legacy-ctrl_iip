@@ -41,6 +41,7 @@ class StateScoreboard(Scoreboard):
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM'
     CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
+    FAULT_HISTORY = 'FAULT_HISTORY'
     DB_INSTANCE = None
     DB_TYPE = ""
     AR = "AR"
@@ -172,12 +173,12 @@ class StateScoreboard(Scoreboard):
             return self._redis.hget(self.CU, STATE)
 
 
-    def set_spectrograph_state(self, state):
+    def set_auxtel_state(self, state):
         if self.check_connection():
             self._redis.hset(self.AT, STATE, state)
 
 
-    def get_spectrograph_state(self):
+    def get_auxtel_state(self):
         if self.check_connection():
             return self._redis.hget(self.AT, STATE)
 
@@ -190,7 +191,7 @@ class StateScoreboard(Scoreboard):
         if device == "CU":
             return self.get_catchup_archive_state()
         if device == "AT":
-            return self.get_spectrograph_state()
+            return self.get_auxtel_state()
 
 
     def set_device_state(self, device, state):
@@ -201,7 +202,7 @@ class StateScoreboard(Scoreboard):
         if device == "CU":
             return self.set_catchup_archive_state(state)
         if device == "AT":
-            return self.set_spectrograph_state(state)
+            return self.set_auxtel_state(state)
 
 
     def get_device_consume_queue(self, device):
@@ -231,11 +232,28 @@ class StateScoreboard(Scoreboard):
                     edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
                 if self.get_catchup_archive_state() == state:
                     edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
-                if self.get_spectrograph_state() == state:
+                if self.get_auxtel_state() == state:
                     edict[self.AT] = self._redis.hget(self.AT, "CONSUME_QUEUE")
         else:
             print("BIG TROUBLE IN LITTLE CHINA")
         return edict
+
+    def append_new_fault_to_fault_history(self, params):
+        prms = deepcopy(params)
+        prms['DATETIME'] = str(datetime.datetime)
+        self._redis.rpush('FAULT_HISTORY',yaml.dump(prms))
+
+
+    def report_fault_history(self):
+        fault_list = []
+        tmp_dict = {}
+        len = self._redis.llen('FAULT_HISTORY')
+        if len == 0:
+            return None
+        for i in range(0, len):
+            tmp_dict = yaml.load(self._redis.lindex('FAULT_HISTORY', i))
+            fault_list.append(deepcopy(tmp_dict)) 
+        
 
 
     def get_devices(self):
@@ -533,7 +551,12 @@ class StateScoreboard(Scoreboard):
             return False
 
 
-
+    def scbd_finalize(self):
+        report = self.report_fault_history() 
+        if report != None:
+            LOGGER.debug("Fault history is: %s" % pformat(report))
+            return str(report)
+        self._redis.save()
 
 
     def build_monitor_data(self, params):

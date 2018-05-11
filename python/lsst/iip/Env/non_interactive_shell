@@ -1,0 +1,7 @@
+#
+#
+#Don't run this script when scp'ing in (non-interactive shell...
+case "$-" in
+*i*) source /opt/sal/ts_sal/setup.env;;
+esac
+
