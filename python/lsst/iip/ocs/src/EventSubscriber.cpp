@@ -12,7 +12,7 @@
 #include <yaml-cpp/yaml.h>
 #include <stdlib.h>
 
-#include "SimplePublisher.h"
+#include "OCS_Bridge.h"
 #include "EventSubscriber.h"
 
 using namespace DDS;
@@ -23,11 +23,8 @@ using namespace YAML;
 
 typedef void* (*funcptr)(void *args);  
 
-EventSubscriber::EventSubscriber() { 
-    Node config_file = LoadFile("../../L1SystemCfg.yaml"); 
-    Node root = config_file["ROOT"]; 
-    base_broker_addr = root["BASE_BROKER_ADDR"].as<string>(); 
-    queue_name = root["OCS"]["OCS_PUBLISH"].as<string>(); 
+EventSubscriber::EventSubscriber() : OCS_Bridge() { 
+    base_addr = root["BASE_BROKER_ADDR"].as<string>(); 
     total_events = 9;
 
     setup_events_listeners(); 
@@ -50,13 +47,13 @@ void EventSubscriber::setup_events_listeners() {
     
     for (int i = 0; i < total_events; i++) { 
         ostringstream rmq_url; 
-        rmq_url << "amqp://EVN_" << (i+1) << ":EVN_" << (i+1) << "@" << base_broker_addr; 
+        rmq_url << "amqp://EVN_" << (i+1) << ":EVN_" << (i+1) << "@" << base_addr; 
     
         cout << rmq_url.str() << endl; 
         pthread_t thread; 
         
         thread_args = new event_args; 
-        thread_args->publish_queue = queue_name; 
+        thread_args->publish_queue = OCS_PUBLISH; 
         thread_args->broker_addr = rmq_url.str(); 
         
         pthread_create(&thread, NULL, thread_funcs[i], thread_args); 
@@ -305,8 +302,8 @@ void *EventSubscriber::run_tcs_target(void *args) {
         os_nanoSleep(delay_10ms);
     }
     mgr.salShutdown();
-    return 0;
     */ 
+    return 0;
 } 
 
 void *EventSubscriber::run_takeImageDone(void *args) { 
@@ -335,8 +332,8 @@ void *EventSubscriber::run_takeImageDone(void *args) {
         os_nanoSleep(delay_10ms);
     }  
     mgr.salShutdown(); 
-    return 0;
     */ 
+    return 0;
 } 
             
 void *EventSubscriber::run_getHeaderService(void *args) { 

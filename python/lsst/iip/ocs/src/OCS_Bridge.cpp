@@ -2,7 +2,6 @@
 #include <stdio.h> 
 #include <string.h>
 #include <iostream>
-#include <yaml-cpp/yaml.h>
 #include "OCS_Bridge.h"
 
 using namespace std; 
@@ -18,7 +17,6 @@ OCS_Bridge::OCS_Bridge() {
 	exit(EXIT_FAILURE); 
     } 
 
-    Node root; 
     string base_name, base_passwd, base_addr; 
     try {  
 	root = config_file["ROOT"]; 

@@ -1,4 +1,4 @@
-class EventSubscriber { 
+class EventSubscriber : public OCS_Bridge { 
     public: 
         struct event_args { 
             string publish_queue; 
@@ -10,8 +10,8 @@ class EventSubscriber {
         EventSubscriber(); 
         ~EventSubscriber();
 
-        string base_broker_addr; 
-        string queue_name; 
+        string base_addr; 
+        // string queue_name; 
         int total_events;
 
         void setup_events_listeners(); 

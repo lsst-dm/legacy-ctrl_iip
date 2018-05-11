@@ -31,7 +31,7 @@ ATCAMERA = /opt/sal/ts_sal/test/atcamera/cpp
 CFLAGS   = -g -Wall -c 
 COMPVERS = -std=c++11
 
-all: CommandListener AckSubscriber EventSubscriber SimplePublisher Consumer
+all: CommandListener AckSubscriber EventSubscriber SimplePublisher Consumer Test_CommandListener Test_EventSubscriber Test_AckSubscriber
 
 OCS_Bridge: OCS_Bridge.cpp SimplePublisher
 	$(CC) $(COMPVERS) $(INCLUDE) -Wl,-rpath,../lib -L../lib ../obj/SimplePublisher.o -c -o ../obj/OCS_Bridge.o OCS_Bridge.cpp -lSimpleAmqpClient -lyaml-cpp 
@@ -42,8 +42,8 @@ CommandListener: CommandListener.cpp OCS_Bridge Toolsmod
 AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod
 	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ATARCHIVE)/src/.obj/SAL_atArchiver.o $(ARCHIVE)/src/.obj/CheckStatus.o ../obj/OCS_Bridge.o ../obj/Consumer.o ../obj/SimplePublisher.o ../obj/Toolsmod.o -Wall -g -o AckSubscriber AckSubscriber.cpp $(LDLIBS) 
 
-EventSubscriber: EventSubscriber.cpp SimplePublisher
-	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(CAMERA)/src/.obj/CheckStatus.o ../obj/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(LDLIBS) 
+EventSubscriber: EventSubscriber.cpp OCS_Bridge SimplePublisher
+	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(CAMERA)/src/.obj/CheckStatus.o ../obj/OCS_Bridge.o ../obj/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(LDLIBS) 
 
 SimplePublisher: SimplePublisher.cpp
 	$(CC) $(COMPVERS) $(INCLUDE) -Wl,-rpath,../lib -L../lib -c -o ../obj/SimplePublisher.o SimplePublisher.cpp -lSimpleAmqpClient 
@@ -53,6 +53,18 @@ Consumer: Consumer.cpp
 
 Toolsmod: Toolsmod.cpp
 	$(CC) $(COMPVERS) $(INCLUDE) -c -o ../obj/Toolsmod.o Toolsmod.cpp
+
+Test_OCS_Bridge: OCS_Bridge.cpp SimplePublisher
+	$(CC) $(COMPVERS) $(INCLUDE) -Wl,-rpath,../lib -L../lib ../obj/SimplePublisher.o -c -o ../../tests/ocs/OCS_Bridge.o ../../tests/ocs/OCS_Bridge.cpp -lSimpleAmqpClient -lyaml-cpp 
+
+Test_CommandListener: CommandListener.cpp Test_OCS_Bridge Toolsmod
+	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ATARCHIVE)/src/.obj/SAL_atArchiver.o $(ARCHIVE)/src/.obj/CheckStatus.o ../../tests/ocs/OCS_Bridge.o ../obj/SimplePublisher.o ../obj/Toolsmod.o -Wall -o ../../tests/ocs/Test_CommandListener CommandListener.cpp $(LDLIBS) 
+
+Test_AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher Test_OCS_Bridge Toolsmod
+	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ATARCHIVE)/src/.obj/SAL_atArchiver.o $(ARCHIVE)/src/.obj/CheckStatus.o ../../tests/ocs/OCS_Bridge.o ../obj/Consumer.o ../obj/SimplePublisher.o ../obj/Toolsmod.o -Wall -g -o ../../tests/ocs/Test_AckSubscriber AckSubscriber.cpp $(LDLIBS) 
+
+Test_EventSubscriber: EventSubscriber.cpp Test_OCS_Bridge SimplePublisher
+	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LDFLAGS) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(CAMERA)/src/.obj/CheckStatus.o ../../tests/ocs/OCS_Bridge.o ../obj/SimplePublisher.o -Wall -g -o ../../tests/ocs/Test_EventSubscriber EventSubscriber.cpp $(LDLIBS) 
 
 clean:
 	rm -i *.o CommandListener EventSubscriber AckSubscriber Test_CommandListener Test_AckSubscriber Test_EventSubscriber

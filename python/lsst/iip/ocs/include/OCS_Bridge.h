@@ -1,9 +1,14 @@
+#include <yaml-cpp/yaml.h>
 #include <string.h>
 #include "SimplePublisher.h"
 
 /** OCS_Bridge handles configuration file opening and setting up publisher for rabbitmq */ 
 class OCS_Bridge { 
     public: 
+        
+        /* root node of L1SystemCfg.yml */ 
+        YAML::Node root; 
+
         /** base broker address where rabbitmq server resides in */ 
 	std::string base_broker_addr; 
       

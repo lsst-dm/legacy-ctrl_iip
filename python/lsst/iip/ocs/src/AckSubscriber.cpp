@@ -27,7 +27,8 @@ map<string, ack_funcptr> action_handler = {
     {"APPLIED_SETTINGS_MATCH_START_EVENT", &AckSubscriber::process_applied_settings_match_start}, 
     {"ERROR_CODE_EVENT", &AckSubscriber::process_error_code}, 
     {"BOOK_KEEPING", &AckSubscriber::process_book_keeping}, 
-    {"RESOLVE_ACK", &AckSubscriber::process_resolve_ack}
+    {"RESOLVE_ACK", &AckSubscriber::process_resolve_ack}, 
+    {"FAULT", &AckSubscriber::process_fault},  
 }; 
 
 template<typename T> 
@@ -59,7 +60,7 @@ void AckSubscriber::setup_consumer() {
     ar = SAL_archiver(); 
     cu = SAL_catchuparchiver(); 
     pp = SAL_processingcluster(); 
-    atar = SAL_atArchiver(); 
+    at = SAL_atArchiver(); 
 }
 
 void AckSubscriber::run() { 
@@ -106,19 +107,19 @@ void AckSubscriber::run() {
     pp.salEvent(const_cast<char *>("processingcluster_logevent_SettingVersions")); 
     pp.salEvent(const_cast<char *>("processingcluster_logevent_ErrorCode")); 
 
-    atar.salProcessor(const_cast<char *>("atArchiver_command_enable")); 
-    atar.salProcessor(const_cast<char *>("atArchiver_command_disable")); 
-    atar.salProcessor(const_cast<char *>("atArchiver_command_standby")); 
-    atar.salProcessor(const_cast<char *>("atArchiver_command_enterControl")); 
-    atar.salProcessor(const_cast<char *>("atArchiver_command_exitControl")); 
-    atar.salProcessor(const_cast<char *>("atArchiver_command_statArt")); 
-    atar.salProcessor(const_cast<char *>("atArchiver_command_stop")); 
-    atar.salProcessor(const_cast<char *>("atArchiver_command_abort"));
+    at.salProcessor(const_cast<char *>("atArchiver_command_enable")); 
+    at.salProcessor(const_cast<char *>("atArchiver_command_disable")); 
+    at.salProcessor(const_cast<char *>("atArchiver_command_standby")); 
+    at.salProcessor(const_cast<char *>("atArchiver_command_enterControl")); 
+    at.salProcessor(const_cast<char *>("atArchiver_command_exitControl")); 
+    at.salProcessor(const_cast<char *>("atArchiver_command_statArt")); 
+    at.salProcessor(const_cast<char *>("atArchiver_command_stop")); 
+    at.salProcessor(const_cast<char *>("atArchiver_command_abort"));
 
-    atar.salEvent(const_cast<char *>("atArchiver_logevent_SummaryState")); 
-    atar.salEvent(const_cast<char *>("atArchiver_logevent_AppliedSettingsMatchStart")); 
-    atar.salEvent(const_cast<char *>("atArchiver_logevent_SettingVersions")); 
-    atar.salEvent(const_cast<char *>("atArchiver_logevent_ErrorCode")); 
+    at.salEvent(const_cast<char *>("atArchiver_logevent_SummaryState")); 
+    at.salEvent(const_cast<char *>("atArchiver_logevent_AppliedSettingsMatchStart")); 
+    at.salEvent(const_cast<char *>("atArchiver_logevent_SettingVersions")); 
+    at.salEvent(const_cast<char *>("atArchiver_logevent_ErrorCode")); 
 
     cout << "============> running CONSUMER <=============" << endl; 
     callback<AckSubscriber> on_msg = &AckSubscriber::on_message; 
@@ -168,10 +169,10 @@ void AckSubscriber::process_ack(Node n) {
             Command<SAL_processingcluster>::funcptr action = sender.action_handler[message_value]; 
             (pp.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
         }
-        else if (device == "ATAR"){ 
+        else if (device == "AT"){ 
             Command<SAL_atArchiver> sender; 
             Command<SAL_atArchiver>::funcptr action = sender.action_handler[message_value]; 
-            (atar.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
+            (at.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
         }
 
 	cout << "=== PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id 
@@ -209,11 +210,11 @@ void AckSubscriber::process_summary_state(Node n) {
             data.priority = priority; 
             pp.logEvent_SummaryState(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_SummaryStateC data; 
             data.SummaryStateValue = summary_state; 
             data.priority = priority; 
-            atar.logEvent_SummaryState(&data, priority); 
+            at.logEvent_SummaryState(&data, priority); 
         }
     } 
     catch (exception& e) { 
@@ -247,11 +248,11 @@ void AckSubscriber::process_recommended_settings_version(Node n) {
             data.priority = priority; 
             pp.logEvent_SettingVersions(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_SettingVersionsC data; 
             data.recommendedSettingVersion = recommended_setting; 
             data.priority = priority; 
-            atar.logEvent_SettingVersions(&data, priority); 
+            at.logEvent_SettingVersions(&data, priority); 
         }
     } 
     catch (exception& e) { 
@@ -285,11 +286,11 @@ void AckSubscriber::process_settings_applied(Node n) {
             data.priority = priority; 
             pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_AppliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
-            atar.logEvent_AppliedSettingsMatchStart(&data, priority); 
+            at.logEvent_AppliedSettingsMatchStart(&data, priority); 
         }
     } 
     catch (exception& e) { 
@@ -323,11 +324,11 @@ void AckSubscriber::process_applied_settings_match_start(Node n) {
             data.priority = priority; 
             pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_AppliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
-            atar.logEvent_AppliedSettingsMatchStart(&data, priority); 
+            at.logEvent_AppliedSettingsMatchStart(&data, priority); 
         }
     }
     catch (exception& e) { 
@@ -361,11 +362,11 @@ void AckSubscriber::process_error_code(Node n) {
             data.priority = priority; 
             pp.logEvent_ErrorCode(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_ErrorCodeC data; 
             data.errorCode = error_code; 
             data.priority = priority; 
-            atar.logEvent_ErrorCode(&data, priority); 
+            at.logEvent_ErrorCode(&data, priority); 
         }
     }
     catch (exception& e) { 
@@ -433,6 +434,65 @@ void AckSubscriber::process_resolve_ack(Node n) {
 	}  
     }
 }
+
+void AckSubscriber::process_fault(Node n) { 
+    try { 
+        string message_value = n["MSG_TYPE"].as<string>(); 
+        string device = n["DEVICE"].as<string>(); 
+        int error_code = n["ERROR_CODE"].as<int>(); // error code 
+
+        long summary_state = n["FAULT_TYPE"].as<long>(); // current state = fault sate == -1?? 
+        long priority = 0; 
+
+        if (device == "AR") { 
+            archiver_logevent_SummaryStateC data; 
+            data.SummaryStateValue = summary_state; 
+            data.priority = priority; 
+            ar.logEvent_SummaryState(&data, priority); 
+            
+            archiver_logevent_ErrorCodeC eData; 
+            eData.errorCode = error_code; 
+            eData.priority = priority; 
+            ar.logEvent_ErrorCode(&eData, priority);   
+        }
+        else if (device == "CU") {
+            catchuparchiver_logevent_SummaryStateC data; 
+            data.SummaryStateValue = summary_state; 
+            data.priority = priority; 
+            cu.logEvent_SummaryState(&data, priority); 
+
+            catchuparchiver_logevent_ErrorCodeC eData; 
+            eData.errorCode = error_code; 
+            eData.priority = priority; 
+            cu.logEvent_ErrorCode(&eData, priority);   
+        }
+        else if (device == "PP") { 
+            processingcluster_logevent_SummaryStateC data; 
+            data.SummaryStateValue = summary_state; 
+            data.priority = priority; 
+            pp.logEvent_SummaryState(&data, priority); 
+
+            processingcluster_logevent_ErrorCodeC eData; 
+            eData.errorCode = error_code; 
+            eData.priority = priority; 
+            pp.logEvent_ErrorCode(&eData, priority);   
+        }
+        else if (device == "AT") { 
+            atArchiver_logevent_SummaryStateC data; 
+            data.SummaryStateValue = summary_state; 
+            data.priority = priority; 
+            at.logEvent_SummaryState(&data, priority); 
+
+            atArchiver_logevent_ErrorCodeC eData; 
+            eData.errorCode = error_code; 
+            eData.priority = priority; 
+            at.logEvent_ErrorCode(&eData, priority);   
+        }
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+    } 
+} 
 
 int main() { 
     AckSubscriber ack; 

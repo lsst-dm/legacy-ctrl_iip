@@ -1,11 +1,11 @@
 #include "Consumer_impl.h"
-#include <boost/variant.hpp> 
+// #include <boost/variant.hpp> 
 #include "SAL_archiver.h" 
 #include "SAL_catchuparchiver.h" 
 #include "SAL_processingcluster.h" 
 #include "SAL_atArchiver.h"
 
-/** Rabbitmq subscriber class to ack back messages from OCS after processing */ 
+/* Rabbitmq subscriber class to ack back messages from OCS after processing */ 
 class AckSubscriber : public OCS_Bridge { 
     public: 
 
@@ -14,7 +14,7 @@ class AckSubscriber : public OCS_Bridge {
         SAL_archiver ar; 
         SAL_catchuparchiver cu; 
         SAL_processingcluster pp; 
-        SAL_atArchiver atar; 
+        SAL_atArchiver at; 
 
         /** constructor for Rabbitmq ack subscriber to OCS system */ 
 	AckSubscriber(); 
@@ -41,5 +41,6 @@ class AckSubscriber : public OCS_Bridge {
         void process_error_code(YAML::Node); 
 	void process_book_keeping(YAML::Node); 
 	void process_resolve_ack(YAML::Node); 
+	void process_fault(YAML::Node); 
 }; 
 
