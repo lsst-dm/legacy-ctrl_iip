@@ -14,10 +14,7 @@
 #include "Consumer_impl.h"
 #include "SimplePublisher.h"
 #include "fitsio.h"
-#include <sys/stat.h> 
 #include <errno.h>
-#include <dirent.h>
-#include <stdio.h>
 #include "Exceptions.h"
 
 #include "daq/Location.hh"
@@ -37,8 +34,6 @@
 // // Gregg's test image uses:
 // // NAXIS1 = 576, NAXIS2 = 2048
 // //#define HEIGHT 512
-#define NAXIS1 576
-#define NAXIS2 2048
 #define STRING(s) STRING_EXPAND(s)
 #define STRING_EXPAND(s) #s 
 // Gregg T's test image uses these two values:
@@ -1477,9 +1472,8 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
 void Forwarder::format_write_img(string img, string header) { 
     cout << "[x] fwi" << endl;
     try { 
-        long len = NAXIS2 * NAXIS1;
-        // int bitpix = LONG_IMG; 
-        int bitpix = 32; 
+        long len = NAXIS1 * NAXIS2;
+        int bitpix = LONG_IMG; 
         long naxis = 2;
         long naxes[2] = { NAXIS1, NAXIS2 }; 
         long fpixel = 1; 
@@ -1494,6 +1488,17 @@ void Forwarder::format_write_img(string img, string header) {
         string header_path = header;
         string destination = Work_Dir + "/FITS/" + img + ".fits";
 
+        if (FILE *file = fopen(destination.c_str(), "r")) { 
+            // file exists
+            fclose(file); 
+            cout << "File exists!" << endl; 
+            ostringstream rm_cmd; 
+            rm_cmd << "rm " << destination; 
+            
+            cout << rm_cmd.str() << endl; 
+            system(rm_cmd.str().c_str()); 
+        } 
+
         fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
         fits_create_file(&optr, destination.c_str(), &status); 
         fits_copy_hdu(iptr, optr, 0, &status); 
@@ -1503,25 +1508,20 @@ void Forwarder::format_write_img(string img, string header) {
         vector<string> exclude_keywords = {"BITPIX", "NAXIS"}; 
         vector<string>::iterator eit; 
         for (it = file_names.begin(); it != file_names.end(); it++) { 
-            string img_segment = img_path + "/" + *it + "[jb" + STRING(NAXIS1) 
-                                 + "," + STRING(NAXIS2) + "]"; 
-            cout << "FMT: img_segment: " << img_segment << endl; 
-            
-            // read img pixels
-            long *img_buffer = new long[len];
             fitsfile *pix_file_ptr; 
-            fits_open_file(&pix_file_ptr, img_segment.c_str(), READONLY, &status); 
-            cout << status << endl; 
-
-            fits_read_img(pix_file_ptr, TLONG, fpixel, len, NULL, img_buffer, 0, &status); 
-            // unsigned char **array = format_assemble_pixels(img_buffer); 
-
-            fits_movabs_hdu(iptr, hdunum, NULL, &status); 
+            int *img_buffer = new int[len];
+            string img_segment_name = img_path + "/" + *it 
+                                      + "[jL" + STRING(NAXIS1) 
+                                      + "," + STRING(NAXIS2) + "]"; 
+            
+            // get img pixels
+            fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status); 
+            fits_read_img(pix_file_ptr, TINT, 1, len, NULL, img_buffer, 0, &status); 
             fits_create_img(optr, bitpix, naxis, naxes, &status); 
-            if (fits_write_img(optr, TLONG, fpixel, len, img_buffer, &status)) { 
-                cout << "status: " << status << endl; 
-            } 
+            fits_write_img(optr, TINT, 1, len, img_buffer, &status);
 
+            // get header 
+            fits_movabs_hdu(iptr, hdunum, NULL, &status); 
             fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
             for (int i = 1; i <= nkeys; i++) { 
                 fits_read_record(iptr, i, card, &status); 
@@ -1539,7 +1539,7 @@ void Forwarder::format_write_img(string img, string header) {
 
             // clean up 
             fits_close_file(pix_file_ptr, &status); 
-            delete img_buffer; 
+            delete[] img_buffer; 
         } 
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
