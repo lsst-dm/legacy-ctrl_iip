@@ -182,6 +182,13 @@ class StateScoreboard(Scoreboard):
         if self.check_connection():
             return self._redis.hget(self.AT, STATE)
 
+    def at_device_is_enabled(self):
+        state = self.get_auxtel_state()
+        if state == "ENABLED":
+            return True
+
+        return False
+
 
     def get_device_state(self, device):
         if device == "AR":
@@ -344,6 +351,12 @@ class StateScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
+
+    def set_current_session(self, session):
+        if self.check_connection():
+            self._redis.set(self.CURRENT_SESSION_ID, session)
+        else:
+            LOGGER.error('Unable to set current session ID due to lack of redis connection')
 
 
     def set_rafts_for_current_session(self, session_id):
