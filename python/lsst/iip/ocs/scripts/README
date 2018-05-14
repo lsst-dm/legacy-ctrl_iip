@@ -1,0 +1,8 @@
+-- Test Scripts --
+The run_overnight.sh script runs the overnight_demo.sh n the background as a NOHUP
+with stdout and stderr sent to /dev/null
+
+overnight_demo.sh can be run directly and instrumented with echo statements in order
+to monitor progress. Note, however, that the script takes a LONG time to complete...as in 4000 minutes plus
+some random sleep times of usually less that 40 seconds; so it should run for about 52 hours straight.
+
