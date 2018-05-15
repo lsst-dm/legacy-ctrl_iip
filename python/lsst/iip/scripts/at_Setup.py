@@ -47,6 +47,9 @@ class Setup:
                   "forward_consume_from_f92",
                   "forward_consume_from_f93",
                   "forward_consume_from_f99",
+                  "f99_consume_from_fetch",
+                  "f99_consume_from_format",
+                  "f99_consume_from_forward",
                   "ar_foreman_ack_publish",
                   "test_dmcs_ocs_publish"] # optional test queue for dmcs_ocs test ,
 
