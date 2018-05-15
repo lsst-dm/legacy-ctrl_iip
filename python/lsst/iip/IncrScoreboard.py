@@ -91,15 +91,17 @@ class IncrScoreboard(Scoreboard):
             self._redis.incr(self.JOB_SEQUENCE_NUM)
             job_num = self._redis.get(self.JOB_SEQUENCE_NUM)
             job = str(session) + "_" + str(job_num)
+            print("In INCR scbd, next_job_num is %s" % job)
             return job
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
 
-    def get_next_timed_ack_id(self, type):
+    def get_next_timed_ack_id(self, ack):
         if self.check_connection():
             self._redis.incr(self.ACK_SEQUENCE_NUM)
             ack_id = self._redis.get(self.ACK_SEQUENCE_NUM)
-            id = str(type) + "_" + str(ack_id).zfill(6)
+            id = str(ack) + "_" + str(ack_id).zfill(6)
+            print("In INCR scbd, new ack_id is %s" % id)
             return id
         else:
             LOGGER.error('Unable to increment ACK_ID due to lack of redis connection')

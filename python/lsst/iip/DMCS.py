@@ -631,6 +631,7 @@ class DMCS:
 
             :return: None.
         """
+        x = self.STATE_SCBD.at_device_is_enabled()
         if self.STATE_SCBD.at_device_is_enabled():
             LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
             raft_ccd_list = []
@@ -663,7 +664,6 @@ class DMCS:
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
-            print("publishing start_int to: %s" % rkey) 
             self._publisher.publish_message(rkey, msg_params)
     
             #### FIX replace non-pending acks with regular ack timer
@@ -748,7 +748,6 @@ class DMCS:
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
             LOGGER.info("Publishing end readout to: %s" % rkey) 
             LOGGER.debug("Publishing end readout message %s to: %s" % (pformat(msg_params), rkey))
-            print("publishing end readout to: %s" % rkey) 
             self._publisher.publish_message(rkey, msg_params)
 
 
@@ -1156,6 +1155,7 @@ class DMCS:
                 response = response + cfg_response
                 self.send_ocs_ack(transition_is_valid, response, msg_in)
             else:
+                LOGGER.error("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
                 print("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
                 response = "Invalid transition: " + str(current_state) + " to " + new_state
                 #response = response + ". Device remaining in " + current_state + " state."
@@ -1378,7 +1378,7 @@ class DMCS:
             sys.exit(self.ERROR_CODE_PREFIX + 10)
         
 
-    def get_next_timed_ack_id(self, ack_type):
+    def get_next_timed_ack_id(self, ack):
         """ Increment ack by 1, and persist latest value between starts.
             Return ack id merged with ack type string.
 
@@ -1387,7 +1387,7 @@ class DMCS:
             :return retval: String with ack type followed by next ack id.
         """
         try: 
-            new_val = self.INCR_SCBD.get_next_timed_ack_id(type)
+            new_val = self.INCR_SCBD.get_next_timed_ack_id(ack)
         except Exception as e: 
             LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.args)
             print("DMCS unable to get_next_timed_ack_id: %s" % e.args)

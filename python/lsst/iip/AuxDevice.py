@@ -407,7 +407,7 @@ class AuxDevice:
             name = self._current_fwdr['FQN']
             desc = "No AT_FWDR_END_READOUT response from " + str(name)
             type = "FAULT"
-            LOGGER.critical("No AT_FWDR_END_READOUT response from %s for job %s. Setting FAULT state, 5752" % \ 
+            LOGGER.critical("No AT_FWDR_END_READOUT response from %s for job %s. Setting FAULT state, 5752" % 
                            (name,job_number))
             self.send_fault_state_event(5752, desc, type, name)
 
