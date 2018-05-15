@@ -29,6 +29,7 @@ class Setup:
                   "dmcs_ack_consume",
                   "ocs_dmcs_consume",
                   "dmcs_ocs_publish",
+                  "dmcs_fault_consume",
                   "at_forwarder_publish",
                   "f91_consume",
                   "f92_consume",
