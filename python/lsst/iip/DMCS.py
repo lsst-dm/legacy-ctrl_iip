@@ -32,8 +32,7 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
-#logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FORMAT)
-handler = RotatingFileHandler('logs/DMCS.log', maxBytes=200000, backupCount = 10)
+handler = RotatingFileHandler('logs/DMCS.log', maxBytes=2000000, backupCount = 10)
 handler.setFormatter(LOG_FORMAT)
 LOGGER.addHandler(handler)
 
@@ -108,15 +107,11 @@ class DMCS:
                               'NEXT_VISIT': self.process_next_visit_event,
                               'START_INTEGRATION': self.process_start_integration_event,
                               'DMCS_AT_START_INTEGRATION': self.process_at_start_integration_event,
-                              'TELEMETRY': self.process_telemetry, 
 			      ###########################################################
                               'DMCS_HEADER_READY': self.process_header_ready_event,
                               'DMCS_AT_HEADER_READY': self.process_at_header_ready_event,
                               'DMCS_TCS_TARGET': self.process_target_visit_event, 
                               'DMCS_TAKE_IMAGES': self.process_ccs_take_images_event,
-			      'DMCS_TAKE_IMAGES_DONE': self.process_take_images_done, 
-			      'TARGET_VISIT_DONE': self.process_target_visit_done, 
-			      'TARGET_VISIT_ACCEPT': self.process_target_visit_accept, 
 			      'DMCS_END_READOUT': self.process_end_readout, 
 			      'DMCS_AT_END_READOUT': self.process_at_end_readout} 
 
@@ -970,16 +965,6 @@ class DMCS:
         self.STATE_SCBD.append_new_fault_to_fault_history(params)
 
 
-    def process_telemetry(self, msg):
-        """ None.
-
-           :params: None.
-
-           :return: None.
-        """
-        pass
-
-
     def process_ack(self, params):
         """ Add new ack message to AckScoreboard. 
 
@@ -1622,17 +1607,6 @@ class DMCS:
         #sys.exit(0)
         print("\n")
         os._exit(0)
-
-    def process_take_image_done(self, params):
-        print("xxxxxxxxxxxxxxxxxxxxx")
-        print("[x] TAKE_IMAGE_DONE") 
-        print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-
-    def process_target_visit_done(self, params): 
-        print("[x] TARGET_VISIT_DONE")
-
-    def process_target_visit_accept(self, params):
-        print("[x] TARGET_VISIT_ACCEPT")
 
     def dmcs_finalize(self):
         self.STATE_SCBD.scbd_finalize()

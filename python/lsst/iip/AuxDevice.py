@@ -799,7 +799,7 @@ class AuxDevice:
             return False
 
 
-    def send_fault_state_event(self, ecode, desc, type, comp):
+    def send_fault_state_event(self, error_code, desc, type, comp):
         msg_params = {}
         msg_params[MSG_TYPE] = "FAULT"
         msg_params['COMPONENT'] = comp
