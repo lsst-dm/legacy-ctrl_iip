@@ -7,15 +7,6 @@
 #############################################
 
 ACTIVE="active"
-VAR1="$(systemctl is-active rabbitmq-server.service)"
-if [ "$VAR1" == "$ACTIVE" ]
-then
-    echo "rabbitmq-server is working"
-else
-    echo "rabbitmq-server is NOT working"
-    exit
-fi
-
 
 VAR2="$(systemctl is-active l1d-rabbitmq.service)"
 if [ "$VAR2" = "active" ]
