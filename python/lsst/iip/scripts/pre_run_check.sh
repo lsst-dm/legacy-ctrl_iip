@@ -1,4 +1,11 @@
 #!/bin/bash
+
+##############################################
+## This script checks to be sure all of the 
+## necessary CTRL_IIP service management
+## services are running.
+#############################################
+
 ACTIVE="active"
 VAR1="$(systemctl is-active rabbitmq-server.service)"
 if [ "$VAR1" == "$ACTIVE" ]
@@ -81,6 +88,6 @@ fi
 
 
 
-echo "A bunch of stuff"
+echo "CTRL_IIP service management system is up and running."
 
 
