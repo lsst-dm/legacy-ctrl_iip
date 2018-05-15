@@ -232,6 +232,10 @@ class DMCS:
             LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
                         (str(msg_dict),properties))
 
+            print('Processing message in OCS message callback')
+            print('Message and properties from DMCS callback message body is: %s', 
+                        (str(msg_dict),properties))
+
             handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
             if handler == None:
                 raise KeyError("In on_ocs_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
@@ -262,6 +266,10 @@ class DMCS:
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in ACK message callback')
             LOGGER.debug('Message and properties from ACK callback message body is: %s', 
+                         (str(msg_dict),properties))
+
+            print('Processing message in ACK message callback')
+            print('Message and properties from ACK callback message body is: %s', 
                          (str(msg_dict),properties))
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
@@ -627,6 +635,7 @@ class DMCS:
             :return: None.
         """
         x = self.STATE_SCBD.at_device_is_enabled()
+        print("MY OH MY -- x value to determine if AT is enabled is set to: %s" % x)
         if self.STATE_SCBD.at_device_is_enabled():
             LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
             raft_ccd_list = []
