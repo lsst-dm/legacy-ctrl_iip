@@ -255,6 +255,7 @@ class StateScoreboard(Scoreboard):
         for i in range(0, len):
             tmp_dict = yaml.load(self._redis.lindex('FAULT_HISTORY', i))
             fault_list.append(deepcopy(tmp_dict)) 
+        return fault_list
         
 
 

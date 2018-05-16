@@ -289,7 +289,7 @@ class AuxDevice:
             name = self._current_fwdr['FQN']
             type = "FAULT"
             desc = "No xfer_params response from fwdr."
-            LOGGER.critical("No xfer_params response from fwdr. Setting FAULT state, 5752" % name)
+            LOGGER.critical("No xfer_params response from fwdr.. Setting FAULT state, 5752")
             self.send_fault_state_event("5752", desc, type, name) 
             return
 
@@ -578,6 +578,10 @@ class AuxDevice:
         try:
             if self._fwdr_state_dict[self._current_fwdr['FQN']]['ACK_BOOL'] == True:
                 return self._fwdr_state_dict[self._current_fwdr['FQN']]['RESULT_SET']
+        except KeyError e:
+            LOGGER.error("The message stored in self._fwdr_state_dict does not have an ACK_BOOL field.")
+            LOGGER.error("KeyError exception is %s" % e)
+            return None
         finally:
             if self._use_mutex:
                 self.my_mutex_lock.release()
@@ -690,16 +694,6 @@ class AuxDevice:
         """
 
 
-    def get_current_session(self):
-        """ Retreive current session from JobSocreboard.
-
-            :params: None.
-
-            :return: Current session returned by JobSocreboard.
-        """
-        return self.JOB_SCBD.get_current_session()
-
-
     def set_visit(self, params):
         """ Set current visit_id in JobScoreboard.
             Send AR_NEXT_VISIT_ACK message with ack_bool equals True to specified reply queue.
@@ -794,6 +788,7 @@ class AuxDevice:
                 return True
         elif type == self.ARCHIVE:
             if self.did_archive_respond(): 
+                sleep(0.3) # Some time for ack thread to finish writing...
                 return True
         else:
             return False
