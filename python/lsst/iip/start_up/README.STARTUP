@@ -79,15 +79,13 @@ Exit back to root
 
 # SAL setup
 
- # cp /home/ATS/src/git/ctrl_iip/python/lsst/iip/Env/SAL/sal.tar.z /opt/
-
-Put SAL tar file in /opt and untar
+Put SAL tar file sal.tar.z in /opt and untar
 
 cd /opt/
 
 tar-xvzf sal.tar.z
 
-chown -r /opt/sal/
+chown -R /opt/sal/ ATS
 
 Add user ATS to /etc/sudoers to allow execute  /usr/sbin/rabbitmqctl  # NOTE: This may not 
 work, as I think rabbitmqctl requests user name of calling user and checks as 'root'. 

@@ -59,7 +59,7 @@ declare -a users=("BASE"
                   "FORWARD_F99"
                   "FORWARD_F91_PUB"
                   "FORWARD_F92_PUB"
-                  "FORWARD_F93_PUB") 
+                  "FORWARD_F93_PUB"
                   "FORWARD_F99_PUB") 
 
 echo -e "[${GREEN}${BOLD}STATUS${NORM}] Creating forwarder users." 
