@@ -4,6 +4,10 @@
 ## This script checks to be sure all of the 
 ## necessary CTRL_IIP service management
 ## services are running.
+##
+## If user wants to stop these services, 
+## run `systemctl stop l1d-ctrl_iip.target`
+## Above command must be run as root.
 #############################################
 
 ACTIVE="active"
