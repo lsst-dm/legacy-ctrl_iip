@@ -578,7 +578,7 @@ class AuxDevice:
         try:
             if self._fwdr_state_dict[self._current_fwdr['FQN']]['ACK_BOOL'] == True:
                 return self._fwdr_state_dict[self._current_fwdr['FQN']]['RESULT_SET']
-        except KeyError e:
+        except KeyError as e:
             LOGGER.error("The message stored in self._fwdr_state_dict does not have an ACK_BOOL field.")
             LOGGER.error("KeyError exception is %s" % e)
             return None
