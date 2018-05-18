@@ -1,0 +1,131 @@
+#############################################################################################
+## This is a file for listing the procedure for doing a bare metal install of the ATS system.
+## It is not a script, of course, but the description of the procedure.
+##
+
+
+Install OS
+
+Install C++ 11   ``````````4.8.5-16
+
+Install C++ Yaml-cpp == 0.5.3
+
+Install C++ Rabbitmq-c == 0.8.0 
+
+Install C++ SimpleAmqpClient == 2.4.0
+
+Install Boost
+
+Install cfitsio latest
+
+Install python3.6
+
+Install rabbitmq 3.6.14 - Do not start yet
+
+Install Redis 3.2.10 - Do not start yet
+
+pip install pika 0.11.0
+
+pip install redis
+
+pip install yaml
+
+pip install lxml
+
+Install Java 7
+
+Install git
+
+mkdir /data/landing_zone
+
+useradd ARC
+
+allow user ARC read and write access to /data/access  (This area will be on the raid 
+array and is for archiving files) set up keys between the ARC user and the forwarder 
+user (probably F99 - TBD when in Tucson) so that files from the Forwarder can be sent 
+to the /data/landing_zone area.
+
+useradd ATS
+
+mkdir /var/log/ and touch ats.log
+
+Permissions to allow ATS user to write to the ats.log
+
+su - ATS
+
+cd /home/ATS/
+
+mkdir /home/ATS/src/git/
+
+cd /home/ATS/src/git/
+
+git clone git://github.com/lsst/ctrl_iip
+
+cd /home/ATS/src/git/ctrl_iip
+
+git checkout [ ats_turnkey system ]
+
+cat /home/ATS/src/git/ctrl_iip/python/lsst/iip/Env/aliases >> /home/ATS/.bashrc
+
+cat /home/ATS/src/git/ctrl_iip/python/lsst/iip/Env/non_interactive_shell >> /home/ATS/.bashrc
+
+echo "/opt/sal/ts_sal/setup.env" >> /home/ATS/.bashrc
+
+cp  /home/ATS/src/git/ctrl_iip/python/lsst/iip/Env/vimrc > /home/ATS/.vimrc   #Note not hidden in Env directory, but must become hidden in target location
+
+mkdir  /home/ATS/src/git/ctrl_iip/python/lsst/iip/logs
+
+Exit back to root
+
+# SAL setup
+
+ # cp /home/ATS/src/git/ctrl_iip/python/lsst/iip/Env/SAL/sal.tar.z /opt/
+
+Put SAL tar file in /opt and untar
+
+cd /opt/
+
+tar-xvzf sal.tar.z
+
+chown -r /opt/sal/
+
+Add user ATS to /etc/sudoers to allow execute  /usr/sbin/rabbitmqctl  # NOTE: This may not 
+work, as I think rabbitmqctl requests user name of calling user and checks as 'root'. 
+Need to check... Perhaps you know a way to get around this without giving ATS root perms?  
+
+An alternative to the above is to create then become user 'rabbitmq', as app rabbitmqctl 
+will allow user rabbitmq to run it...and user rabbitmq cannot become root.
+
+/usr/sbin/rabbitmq-server &   # Starts rabbit for application of setup scripts
+
+/usr/sbin/rabbitmqctl add_vhost /bunny_at
+
+/usr/sbin/rabbitmqctl add_vhost /test_at
+
+./home/ATS/src/git/ctrl_iip/python/lsst/iip/scripts/at_rmq_user_init.sh
+
+python /home/ATS/src/git/ctrl_iip/python/lsst/iip/scripts/at_Setup.py
+
+cp /home/ATS/src/git/ctrl_iip/python/lsst/iip/Env/redis.conf /etc/redis.conf
+
+cp /home/ATS/src/git/ctrl_iip/python/lsst/iip/start_up/l1d-* /etc/systemd/system
+
+systemctl enable l1d-ctrl_iip.target
+
+systemctl enable l1d-ctrl_dependency.target
+
+systemctl start l1d-ctrl_dependency.target
+
+systemctl start l1d-ctrl_iip.target
+
+sync; reboot
+
+Log in or become user ATS
+
+Optional: Manually run /home/ATS/src/git/ctrl_iip/python/lsst/iip/tests/pre_run_check.sh    
+This script should return "Ready To Go". If there is a problem, it will echo the description 
+of the issue to the screen
+
+Optional: Manually run all unit tests
+
+

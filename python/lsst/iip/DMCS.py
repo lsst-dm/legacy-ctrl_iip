@@ -21,6 +21,7 @@ from JobScoreboard import JobScoreboard
 from AckScoreboard import AckScoreboard
 from StateScoreboard import StateScoreboard
 from BacklogScoreboard import BacklogScoreboard
+from IncrScoreboard import IncrScoreboard
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from toolsmod import L1Error
@@ -31,8 +32,8 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
-#logging.basicConfig(filename='logs/DMCS.log', level=logging.DEBUG, format=LOG_FORMAT)
-handler = RotatingFileHandler('logs/DMCS.log', maxBytes=200000, backupCount = 10, format=LOG_FORMAT)
+handler = RotatingFileHandler('logs/DMCS.log', maxBytes=2000000, backupCount = 10)
+handler.setFormatter(LOG_FORMAT)
 LOGGER.addHandler(handler)
 
 
@@ -106,15 +107,11 @@ class DMCS:
                               'NEXT_VISIT': self.process_next_visit_event,
                               'START_INTEGRATION': self.process_start_integration_event,
                               'DMCS_AT_START_INTEGRATION': self.process_at_start_integration_event,
-                              'TELEMETRY': self.process_telemetry, 
 			      ###########################################################
                               'DMCS_HEADER_READY': self.process_header_ready_event,
                               'DMCS_AT_HEADER_READY': self.process_at_header_ready_event,
                               'DMCS_TCS_TARGET': self.process_target_visit_event, 
                               'DMCS_TAKE_IMAGES': self.process_ccs_take_images_event,
-			      'DMCS_TAKE_IMAGES_DONE': self.process_take_images_done, 
-			      'TARGET_VISIT_DONE': self.process_target_visit_done, 
-			      'TARGET_VISIT_ACCEPT': self.process_target_visit_accept, 
 			      'DMCS_END_READOUT': self.process_end_readout, 
 			      'DMCS_AT_END_READOUT': self.process_at_end_readout} 
 
@@ -127,6 +124,7 @@ class DMCS:
                               'AR_NEXT_VISIT_ACK': self.process_ack,
                               'PP_NEXT_VISIT_ACK': self.process_ack,
                               'AR_START_INTEGRATION_ACK': self.process_ack,
+                              'AT_START_INTEGRATION_ACK': self.process_ack,
                               'PP_START_INTEGRATION_ACK': self.process_ack,
                               'AR_READOUT_ACK': self.process_readout_results_ack,
                               'PP_READOUT_ACK': self.process_readout_results_ack,
@@ -235,6 +233,10 @@ class DMCS:
             LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
                         (str(msg_dict),properties))
 
+            print('Processing message in OCS message callback')
+            print('Message and properties from DMCS callback message body is: %s', 
+                        (str(msg_dict),properties))
+
             handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
             if handler == None:
                 raise KeyError("In on_ocs_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
@@ -265,6 +267,10 @@ class DMCS:
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in ACK message callback')
             LOGGER.debug('Message and properties from ACK callback message body is: %s', 
+                         (str(msg_dict),properties))
+
+            print('Processing message in ACK message callback')
+            print('Message and properties from ACK callback message body is: %s', 
                          (str(msg_dict),properties))
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
@@ -350,7 +356,9 @@ class DMCS:
 
             if transition_check:
                 # send new session id to all
-                session_id = self.STATE_SCBD.get_next_session_id()
+                session_id = self.INCR_SCBD.get_next_session_id()
+                self.STATE_SCBD.set_current_session(session_id)
+                self.STATE_SCBD.set_rafts_for_current_session(session_id)
                 self.send_new_session_msg(session_id)
         except L1RedisError as e: 
             LOGGER.error("DMCS unable to process_standby_command - No redis connection: %s" % e.args) 
@@ -520,7 +528,7 @@ class DMCS:
                   print("Consume queue for device %s is %s" % (enabled_devices[k], consume_queue)) 
                 ## FIXME - Must each enabled device use its own ack_id? Or
                 ## can we use the same method for broadcasting Forwarder messages?  
-                ack = self.get_next_timed_ack_id(k + "_NEXT_VISIT_ACK")
+                ack = self.INCR_SCBD.get_next_timed_ack_id(k + "_NEXT_VISIT_ACK")
                 acks.append(ack)
                 msg = {}
                 msg[MSG_TYPE] = k + '_NEXT_VISIT'
@@ -589,9 +597,9 @@ class DMCS:
             enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
             acks = []
             for k in list(enabled_devices.keys()):
-                ack_id = self.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
+                ack_id = self.INCR_SCBD.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
                 acks.append(ack_id)
-                job_num = self.STATE_SCBD.get_next_job_num( session_id)
+                job_num = self.INCR_SCBD.get_next_job_num( "job_" + session_id)
                 self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
                 self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
                 self.STATE_SCBD.set_current_device_job(job_num, str(k))
@@ -627,43 +635,47 @@ class DMCS:
 
             :return: None.
         """
-        LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
-        raft_ccd_list = []
-        ccds = []
-        ccds.append(self.wfs_ccd)
-        raft_ccd_list.append(ccds)
-        raft_list = []
-        raft_list.append(self.wfs_raft)
-        image_id = params[IMAGE_ID]
-        msg_params = {}
-        msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
-        msg_params['IMAGE_ID'] = image_id
-        msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
-        msg_params['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
-        msg_params['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']
-        session_id = self.STATE_SCBD.get_current_session()
-        msg_params['SESSION_ID'] = session_id
-        msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
-        msg_params['RAFT_LIST'] = raft_list
-        msg_params['RAFT_CCD_LIST'] = raft_ccd_list
-
-        acks = []
-        ack_id = self.get_next_timed_ack_id( "AT_START_INT_ACK")
-        acks.append(ack_id)
-        job_num = self.STATE_SCBD.get_next_job_num( session_id)
-        self.STATE_SCBD.add_job(job_num, image_id, "visit_0", raft_ccd_list)
-        self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', "AT")
-        self.STATE_SCBD.set_current_device_job(job_num, "AT")
-        self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
-        msg_params[JOB_NUM] = job_num
-        msg_params[ACK_ID] = ack_id
-        rkey = self.STATE_SCBD.get_device_consume_queue('AT')
-        print("publishing start_int to: %s" % rkey) 
-        self._publisher.publish_message(rkey, msg_params)
-
-        #### FIX replace non-pending acks with regular ack timer
-        wait_time = 5  # seconds...
-        self.set_pending_nonblock_acks(acks, wait_time)
+        x = self.STATE_SCBD.at_device_is_enabled()
+        print("MY OH MY -- x value to determine if AT is enabled is set to: %s" % x)
+        if self.STATE_SCBD.at_device_is_enabled():
+            LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
+            raft_ccd_list = []
+            ccds = []
+            ccds.append(self.wfs_ccd)
+            raft_ccd_list.append(ccds)
+            raft_list = []
+            raft_list.append(self.wfs_raft)
+            image_id = params[IMAGE_ID]
+            msg_params = {}
+            msg_params[MSG_TYPE] = 'AT_START_INTEGRATION'
+            msg_params['IMAGE_ID'] = image_id
+            msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
+            msg_params['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
+            msg_params['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']
+            session_id = self.STATE_SCBD.get_current_session()
+            msg_params['SESSION_ID'] = session_id
+            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
+            msg_params['RAFT_LIST'] = raft_list
+            msg_params['RAFT_CCD_LIST'] = raft_ccd_list
+    
+            acks = []
+            ack_id = self.INCR_SCBD.get_next_timed_ack_id( "AT_START_INT_ACK")
+            acks.append(ack_id)
+            job_num = self.INCR_SCBD.get_next_job_num( session_id)
+            self.STATE_SCBD.add_job(job_num, image_id, "visit_0", raft_ccd_list)
+            self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', "AT")
+            self.STATE_SCBD.set_current_device_job(job_num, "AT")
+            self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+            msg_params[JOB_NUM] = job_num
+            msg_params[ACK_ID] = ack_id
+            rkey = self.STATE_SCBD.get_device_consume_queue('AT')
+            self._publisher.publish_message(rkey, msg_params)
+    
+            #### FIX replace non-pending acks with regular ack timer
+            wait_time = 5  # seconds...
+            self.set_pending_nonblock_acks(acks, wait_time)
+        else:
+            LOGGER.debug("Big Trouble in Little China - start_int msg for AT, but it is not enabled!")
 
 
     def process_readout_event(self, params):
@@ -675,8 +687,6 @@ class DMCS:
 
             :return: None.
         """
-        ## FIX - see temp hack below...
-        ## CCD List will eventually be derived from config key. For now, using a list set in top of this class
         try: 
             ccd_list = self.CCD_LIST
 
@@ -734,7 +744,7 @@ class DMCS:
             msg_params['SESSION_ID'] = session_id
 
             acks = []
-            ack_id = self.get_next_timed_ack_id("AT_END_READOUT_ACK")
+            ack_id = self.INCR_SCBD.get_next_timed_ack_id("AT_END_READOUT_ACK")
             acks.append(ack_id)
             msg_params[ACK_ID] = ack_id
             job_num = self.STATE_SCBD.get_current_device_job('AT')
@@ -743,7 +753,6 @@ class DMCS:
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
             LOGGER.info("Publishing end readout to: %s" % rkey) 
             LOGGER.debug("Publishing end readout message %s to: %s" % (pformat(msg_params), rkey))
-            print("publishing end readout to: %s" % rkey) 
             self._publisher.publish_message(rkey, msg_params)
 
 
@@ -866,7 +875,7 @@ class DMCS:
             enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
             acks = []
             for k in list(enabled_devices.keys()):
-                ack_id = self.get_next_timed_ack_id( str(k) + "_END_READOUT_ACK")
+                ack_id = self.INCR_SCBD.get_next_timed_ack_id( str(k) + "_END_READOUT_ACK")
                 acks.append(ack_id)
                 job_num = self.STATE_SCBD.get_current_device_job(str(k))
                 msg_params[MSG_TYPE] = k + '_END_READOUT'
@@ -964,16 +973,6 @@ class DMCS:
         #a date
         self.STATE_SCBD.set_device_state(device, FAULT)
         self.STATE_SCBD.append_new_fault_to_fault_history(params)
-
-
-    def process_telemetry(self, msg):
-        """ None.
-
-           :params: None.
-
-           :return: None.
-        """
-        pass
 
 
     def process_ack(self, params):
@@ -1151,6 +1150,7 @@ class DMCS:
                 response = response + cfg_response
                 self.send_ocs_ack(transition_is_valid, response, msg_in)
             else:
+                LOGGER.error("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
                 print("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
                 response = "Invalid transition: " + str(current_state) + " to " + new_state
                 #response = response + ". Device remaining in " + current_state + " state."
@@ -1373,7 +1373,7 @@ class DMCS:
             sys.exit(self.ERROR_CODE_PREFIX + 10)
         
 
-    def get_next_timed_ack_id(self, ack_type):
+    def get_next_timed_ack_id(self, ack):
         """ Increment ack by 1, and persist latest value between starts.
             Return ack id merged with ack type string.
 
@@ -1382,21 +1382,13 @@ class DMCS:
             :return retval: String with ack type followed by next ack id.
         """
         try: 
-            self._next_timed_ack_id = self._next_timed_ack_id + 1
-            val = {}
-            val['CURRENT_ACK_ID'] = self._next_timed_ack_id
-            toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
-            retval = ack_type + "_" + str(self._next_timed_ack_id).zfill(6)
-        except KeyError as e: 
-            LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.args)
-            print("DMCS unable to get_next_timed_ack_id: %s" % e.args)
-            sys.exit(self.ERROR_CODE_PREFIX + 2); 
+            new_val = self.INCR_SCBD.get_next_timed_ack_id(ack)
         except Exception as e: 
             LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.args)
             print("DMCS unable to get_next_timed_ack_id: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 3); 
 
-        return retval 
+        return new_val 
 
 
     def ack_timer(self, seconds):
@@ -1464,6 +1456,7 @@ class DMCS:
             self.rdict = cdm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
             self.state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
             self.ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
+            self.incr_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_INCR_SCBD']
             self.backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
             self.CCD_LIST = cdm[ROOT]['CCD_LIST']
             self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
@@ -1549,9 +1542,7 @@ class DMCS:
             LOGGER.info('Setting up DMCS Scoreboards')
             self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', self.backlog_db_instance)
             self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance)
-            print("In init of DMCS, rdict fresh from CFG file is: ")
-            self.prp.pprint(self.rdict)
-            print("Done in init")
+            self.INCR_SCBD = IncrScoreboard('DMCS_INCR_SCBD', self.incr_db_instance)
             self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict, self.rdict)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to complete setup_scoreboards - No Rabbit Connect: %s" % e.args)
@@ -1626,17 +1617,6 @@ class DMCS:
         #sys.exit(0)
         print("\n")
         os._exit(0)
-
-    def process_take_image_done(self, params):
-        print("xxxxxxxxxxxxxxxxxxxxx")
-        print("[x] TAKE_IMAGE_DONE") 
-        print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-
-    def process_target_visit_done(self, params): 
-        print("[x] TARGET_VISIT_DONE")
-
-    def process_target_visit_accept(self, params):
-        print("[x] TARGET_VISIT_ACCEPT")
 
     def dmcs_finalize(self):
         self.STATE_SCBD.scbd_finalize()

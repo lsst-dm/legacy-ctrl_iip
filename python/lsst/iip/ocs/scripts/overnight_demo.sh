@@ -78,7 +78,7 @@ sleep $NAPTIME
 /opt/sal/ts_sal/test/camera/cpp/src/sacpp_camera_endReadout_send "$SEQ" 1 "on-$IMG" 1 4.0 1.0 1
 sleep $NAPTIME
 
-/opt/sal/ts_sal/test/dmHeaderService/cpp/src/sacpp_dmHeaderService_LargeFileObjectAvailable_send 1 1 1 1 "http://lsst-daq:8000/on-$IMG/""on-$IMG.header" 1 1
+/opt/sal/ts_sal/test/dmHeaderService/cpp/src/sacpp_efd_LargeFileObjectAvailable_send 1 1 1 1 "http://lsst-daq:8000/on-$IMG/""on-$IMG.header" 1 1
 sleep $NAPTIME
 
 sleep 10

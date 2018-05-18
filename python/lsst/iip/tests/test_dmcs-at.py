@@ -191,7 +191,7 @@ class TestDMCS_AT:
         msg['IMAGES_IN_SEQUENCE'] = 8
         time.sleep(5)
         if self.DP:
-            print("Sending READOUT Message")
+            print("Sending Start Integration Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
      
         msg = {}

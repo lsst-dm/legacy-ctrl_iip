@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
 //
 #include <sys/stat.h> 
 #include <dirent.h>
@@ -697,9 +697,9 @@ void Forwarder::process_at_xfer_params(Node n) {
     //this->Visit_ID = n["VISIT_ID"].as<string>();
     //cout << "After setting VISIT_ID" << endl;
 
-    string message_type = "AR_FWDR_XFER_PARAMS_ACK";
+    string message_type = "AT_FWDR_XFER_PARAMS_ACK";
     //string component = "AR";
-    string ack_bool = "false";
+    string ack_bool = "true";
 
     ostringstream message;
     message << "{ MSG_TYPE: " << message_type

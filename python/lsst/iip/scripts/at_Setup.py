@@ -30,6 +30,7 @@ class Setup:
                   "dmcs_fault_consume", 
                   "ocs_dmcs_consume",
                   "dmcs_ocs_publish",
+                  "dmcs_fault_consume",
                   "at_forwarder_publish",
                   "f91_consume",
                   "f92_consume",
@@ -47,6 +48,9 @@ class Setup:
                   "forward_consume_from_f92",
                   "forward_consume_from_f93",
                   "forward_consume_from_f99",
+                  "f99_consume_from_fetch",
+                  "f99_consume_from_format",
+                  "f99_consume_from_forward",
                   "ar_foreman_ack_publish",
                   "test_dmcs_ocs_publish"] # optional test queue for dmcs_ocs test ,
 

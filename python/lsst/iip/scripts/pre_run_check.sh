@@ -1,14 +1,16 @@
 #!/bin/bash
-ACTIVE="active"
-VAR1="$(systemctl is-active rabbitmq-server.service)"
-if [ "$VAR1" == "$ACTIVE" ]
-then
-    echo "rabbitmq-server is working"
-else
-    echo "rabbitmq-server is NOT working"
-    exit
-fi
 
+##############################################
+## This script checks to be sure all of the 
+## necessary CTRL_IIP service management
+## services are running.
+##
+## If user wants to stop these services, 
+## run `systemctl stop l1d-ctrl_iip.target`
+## Above command must be run as root.
+#############################################
+
+ACTIVE="active"
 
 VAR2="$(systemctl is-active l1d-rabbitmq.service)"
 if [ "$VAR2" = "active" ]
@@ -81,6 +83,6 @@ fi
 
 
 
-echo "A bunch of stuff"
+echo "CTRL_IIP service management system is up and running."
 
 

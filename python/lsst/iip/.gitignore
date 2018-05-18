@@ -8,6 +8,12 @@ logs
 forwarder/src/*.o
 forwarder/src/Forwarder
 forwarder/src/old
+forwarder/src/DAQForwarder
+ocs/include/gmock
+ocs/include/gtest
+ocs/examples/Subscriber2
+dmcs_sender_base.py
+chk.sh
 ospl-info.log
 *_cache/
 env

@@ -83,11 +83,6 @@ class StateScoreboard(Scoreboard):
         #self.set_current_raft_configuration(rdict)
         self.set_current_configured_rafts(rdict)
 
-        dd = self.get_current_configured_rafts()
-        print("In SSCBD Init - after inserting rafts then pullin it out once again...")
-        self.prp.pprint(dd)
-        print("Done printing init rafts\n====================\n")
-    
 
     def connect(self):
         #pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
@@ -182,6 +177,13 @@ class StateScoreboard(Scoreboard):
         if self.check_connection():
             return self._redis.hget(self.AT, STATE)
 
+    def at_device_is_enabled(self):
+        state = self.get_auxtel_state()
+        if state == "ENABLE":
+            return True
+
+        return False
+
 
     def get_device_state(self, device):
         if device == "AR":
@@ -253,6 +255,7 @@ class StateScoreboard(Scoreboard):
         for i in range(0, len):
             tmp_dict = yaml.load(self._redis.lindex('FAULT_HISTORY', i))
             fault_list.append(deepcopy(tmp_dict)) 
+        return fault_list
         
 
 
@@ -330,7 +333,6 @@ class StateScoreboard(Scoreboard):
             #    self._redis.hset(self.CU, 'SESSION_ID', session_id)
             id = "Session_" + str(session_id)
             self._redis.set(self.CURRENT_SESSION_ID, id)
-            print("SETTING NEW SESSION_ID")
             self.set_rafts_for_current_session(id)
             return id
         else:
@@ -344,6 +346,12 @@ class StateScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
+
+    def set_current_session(self, session):
+        if self.check_connection():
+            self._redis.set(self.CURRENT_SESSION_ID, session)
+        else:
+            LOGGER.error('Unable to set current session ID due to lack of redis connection')
 
 
     def set_rafts_for_current_session(self, session_id):
@@ -369,15 +377,12 @@ class StateScoreboard(Scoreboard):
     def get_rafts_for_current_session_as_lists(self):
         if self.check_connection():
             current_session = self._redis.get(self.CURRENT_SESSION_ID)
-            print("current_session is %s" % current_session)
             current_session_rafts = str(current_session) + "_RAFTS"
-            print("current_session_rafts is %s" % current_session_rafts)
             rdict = yaml.load(self._redis.hget(current_session_rafts, self.RAFTS))
-            print("The SScbd raft_dict from line 350 is: ")
-            self.prp.pprint(rdict)
+            LOGGER.info("raft dictionary is: %s" % rdict)
             return self.raft_dict_to_lists(rdict)
         else:
-            LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
+            LOGGER.error('Unable to retrieve rafts for current session ID due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
 
 
@@ -396,8 +401,6 @@ class StateScoreboard(Scoreboard):
 
 
     def raft_dict_to_lists(self, raft_dict):
-        print("The SScbd raft_dict from line 370 is: ")
-        self.prp.pprint(raft_dict)
         raft_list = []
         ccd_list = []
         keez = raft_dict.keys()
@@ -409,6 +412,7 @@ class StateScoreboard(Scoreboard):
                 tmp_list.append(item)
             ccd_list.append(tmp_list)
 
+        LOGGER.info("Raft list is %s, --------  ccd_list is %s" % (raft_list, ccd_list))
         return (raft_list, ccd_list)
 
 
@@ -494,8 +498,11 @@ class StateScoreboard(Scoreboard):
                 if device == self.AT:
                     self._redis.lpush('AT_JOBS', job_number)
         except Exception as e:
+            LOGGER.critical("EXCEPTION in SET_CURRENT_DEVICE_JOB")
             print("EXCEPTION in SET_CURRENT_DEVICE_JOB")
+            LOGGER.critical("Job Number is %s, Device is %s" % (job_number,device))
             print("Job Number is %s, Device is %s" % (job_number,device))
+            LOGGER.critical("Exception is %s" % e)
             print("Exception is %s" % e)
 
 
