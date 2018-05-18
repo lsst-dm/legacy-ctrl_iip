@@ -49,7 +49,8 @@ class Premium:
 def main():
   premium = Premium()
   #sp1 = SimplePublisher('amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?heartbeat=300', "YAML")
-  sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Ftest', "YAML")
+  #sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Ftest', "YAML")
+  sp1 = SimplePublisher('amqp://DMCS:DMCS@141.142.238.230:5672/%2Ftest_at', "YAML")
   #sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Fbunny', "YAML")
   #sp2 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
   #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'

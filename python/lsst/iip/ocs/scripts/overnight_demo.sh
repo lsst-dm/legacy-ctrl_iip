@@ -78,7 +78,7 @@ sleep $NAPTIME
 /opt/sal/ts_sal/test/atcamera/cpp/src/sacpp_atcamera_endReadout_send "$SEQ" 1 "on-$IMG" 1 4.0 1.0 1
 sleep $NAPTIME
 
-/opt/sal/ts_sal/test/efd/cpp/src/sacpp_efd_LargeFileObjectAvailable_send 1 1 1 1 "/tmp/source/header/on-$IMG/on-$IMG.header" 1.0 "on-$IMG" 1
+/opt/sal/ts_sal/test/efd/cpp/src/sacpp_efd_LargeFileObjectAvailable_send 1 1 "AT" 1 "http://tmp/source/header/on-$IMG/on-$IMG.header" 1.0 "on-$IMG" 1
 sleep $NAPTIME
 
 sleep 10
