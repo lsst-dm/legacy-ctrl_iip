@@ -63,8 +63,8 @@ do
 for Z in 1 2 3 4 5 6 7 8 9 10
 do
 
-SEQ = $(($SEQ + 1))
-NAM = $(($NAM + 1))
+SEQ=$(($SEQ + 1))
+NAM=$(($NAM + 1))
 
 #SELECT_IMAGE_ID BY RAND - MODULO 20, AND generate IMAGE_ID
 IMG=$(($RANDOM%20))
@@ -72,13 +72,13 @@ IMG=$(($RANDOM%20))
 NAPTIME=$((($RANDOM%5) +1))
 SLEEPYTIME=$((($RANDOM%25) + 3))
 
-/opt/sal/ts_sal/test/camera/cpp/src/sacpp_camera_startIntegration_send "$SEQ" 1 "on-$IMG" $DEX $TSTAMP $ET $PRI
+/opt/sal/ts_sal/test/atcamera/cpp/src/sacpp_atcamera_startIntegration_send "$SEQ" 1 "on-$IMG" $DEX $TSTAMP $ET $PRI
 sleep $NAPTIME
 
-/opt/sal/ts_sal/test/camera/cpp/src/sacpp_camera_endReadout_send "$SEQ" 1 "on-$IMG" 1 4.0 1.0 1
+/opt/sal/ts_sal/test/atcamera/cpp/src/sacpp_atcamera_endReadout_send "$SEQ" 1 "on-$IMG" 1 4.0 1.0 1
 sleep $NAPTIME
 
-/opt/sal/ts_sal/test/dmHeaderService/cpp/src/sacpp_efd_LargeFileObjectAvailable_send 1 1 1 1 "http://lsst-daq:8000/on-$IMG/""on-$IMG.header" 1 1
+/opt/sal/ts_sal/test/efd/cpp/src/sacpp_efd_LargeFileObjectAvailable_send 1 1 1 1 "/tmp/source/header/on-$IMG/""on-$IMG.header" 1 1
 sleep $NAPTIME
 
 sleep 10
@@ -99,27 +99,3 @@ sleep $SLEEPYTIME
 done
 
 
-
-
-
-# START_INTEGRATION
-/opt/sal/ts_sal/test/camera/cpp/src/sacpp_camera_startIntegration_send
-#../events/tcsTarget 1 1 1 1 1 1 1 1 1 1 1 
-#sleep 10
-#echo "[OK] TARGET COMPLETE." 
-
-#/opt/sal/ts_sal/test/dmHeaderService/cpp/src/sacpp_dmHeaderService_LargeFileObjectAvailable_send 1 1 1 1 "felipe@141.142.237.177:/tmp/header/test23.header" 1 1
-#sleep 3
-#echo "[OK] HEADER_READY"
-
-#/opt/sal/ts_sal/test/camera/cpp/src/sacpp_camera_startIntegration_send test23 0
-#sleep 10 
-#echo "[OK] END READOUT COMPLETE." 
-
-#./emu_NextVisit.sh 1 1
-#sleep 20
-#echo "[OK] NEXT_VISIT SEQUENCE COMPLETE." 
-
-#./emu_NextVisit.sh 1 5
-#sleep 20 
-#echo "[OK] NEXT_VISIT SEQUENCE COMPLETE." 
