@@ -211,9 +211,11 @@ class AuxDevice:
         num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
 
+
         # Give fwdrs enough time to respond...
         #self.ack_timer(1.4)
-        sleep(1)
+        sleep(3)
+
 
 
         if (self.set_current_fwdr() == False):
@@ -222,7 +224,7 @@ class AuxDevice:
             type = 'FAULT'
             self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 'no health check response any fwdrs'
             return
-
+        print("  ")
 
         # Add archive check when necessary...
         #if self.use_archive_ctrl == False:
@@ -280,6 +282,7 @@ class AuxDevice:
         xfer_params_dict['AT_FWDR'] = self._current_fwdr['FQN']
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
+        self.prp.pprint(fwdr_new_target_params)
         self._publisher.publish_message(route_key, fwdr_new_target_params)
        
 
@@ -305,6 +308,9 @@ class AuxDevice:
         st_int_params_ack['JOB_NUM'] = job_number
         st_int_params_ack['SESSION_ID'] = session_id
         st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
+        print("000000000000000000000000")
+        print("Acking positive to start integration")
+        print("000000000000000000000000")
         self.accept_job(st_int_params_ack)
 
 

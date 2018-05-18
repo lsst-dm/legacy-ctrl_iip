@@ -127,6 +127,7 @@ class DMCS:
                               'AT_START_INTEGRATION_ACK': self.process_ack,
                               'PP_START_INTEGRATION_ACK': self.process_ack,
                               'AR_READOUT_ACK': self.process_readout_results_ack,
+                              'AT_END_READOUT_ACK': self.process_readout_results_ack,
                               'PP_READOUT_ACK': self.process_readout_results_ack,
                               'PENDING_ACK': self.process_pending_ack,
                               'NEW_JOB_ACK': self.process_ack }
@@ -270,7 +271,7 @@ class DMCS:
                          (str(msg_dict),properties))
 
             print('Processing message in ACK message callback')
-            print('Message and properties from ACK callback message body is: %s', 
+            print('Message and properties from ACK callback message body is: %s and %s', 
                          (str(msg_dict),properties))
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
@@ -636,7 +637,7 @@ class DMCS:
             :return: None.
         """
         x = self.STATE_SCBD.at_device_is_enabled()
-        print("MY OH MY -- x value to determine if AT is enabled is set to: %s" % x)
+        print("enabled is set to: %s" % x)
         if self.STATE_SCBD.at_device_is_enabled():
             LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
             raft_ccd_list = []
