@@ -136,6 +136,9 @@ class AuxDevice:
         """
         ch.basic_ack(method.delivery_tag)
         msg_dict = body 
+        if self.DP:
+            print("Incoming message to on_aux_foreman_message is: ")
+            self.prp.pprint(msg_dict)
 
         LOGGER.info('Msg received in AUX DEVICE Foreman message callback')
         LOGGER.debug('Message from DMCS to AUX Foreman callback message body is: %s', pformat(str(msg_dict)))

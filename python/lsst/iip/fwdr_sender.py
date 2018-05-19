@@ -84,8 +84,8 @@ def main():
   msg["XFER_PARAMS"] = {}
   msg['XFER_PARAMS']['AR_FWDR'] = 'FORWARDER_F99'
   msg['XFER_PARAMS']['RAFT_LIST'] = ['raft01']
-  #msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['11']]
-  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['ALL']]
+  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['11']]
+  #msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['ALL']]
   time.sleep(2)
   sp1.publish_message("f99_consume", msg)
 
@@ -105,7 +105,8 @@ def main():
   msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
   #msg['IMAGE_ID'] = 'test23'
   #msg['IMAGE_ID'] = 'luckyme'
-  msg['IMAGE_ID'] = 'jubilee'
+  #msg['IMAGE_ID'] = 'jubilee'
+  msg['IMAGE_ID'] = 'on-7'
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
@@ -117,10 +118,11 @@ def main():
   print("Sending HEADER1 information") 
   msg = {} 
   msg["MSG_TYPE"] = "FORMAT_HEADER_READY"
-  msg['IMAGE_ID'] = 'jubilee'
+  #msg['IMAGE_ID'] = 'jubilee'
+  msg['IMAGE_ID'] = 'on-7'
   #msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
   #msg["FILENAME"] = "/tmp/source/header/luckyme/luckyme.header"
-  msg["FILENAME"] = "/tmp/source/header/jubilee/jubilee.header"
+  msg["FILENAME"] = "/tmp/source/header/on-7/on-7.header"
   time.sleep(4)
   #sp1.publish_message("f99_consume", msg) 
   sp1.publish_message("format_consume_from_f99", msg) 
