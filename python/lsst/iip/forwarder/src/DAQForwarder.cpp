@@ -323,6 +323,7 @@ Forwarder::Forwarder() {
         PASSWD_FORWARD_PUB = root["PASSWD_FORWARD_PUB"].as<string>();
         this->BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); // @xxx.xxx.xxx.xxx:5672/%2fbunny
         HOSTNAME = root["HOSTNAME"].as<string>();
+        cout << "Did HOSTNAME element" << endl;
         IP_ADDR = root["IP_ADDR"].as<string>();
         this->Work_Dir = root["WORK_DIR"].as<string>();
         this->Src_Dir = root["SRC_DIR"].as<string>(); 
@@ -330,6 +331,7 @@ Forwarder::Forwarder() {
         this->fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
         this->format_consume_queue = root["FORMAT_CONSUME_QUEUE"].as<string>();
         this->forward_consume_queue = root["FORWARD_CONSUME_QUEUE"].as<string>();
+        cout << "Did FORWARDER_CONSUM_QUEUE element" << endl;
         this->FETCH_USER = root["FETCH_USER"].as<string>();
         this->FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
         this->FETCH_USER_PUB = root["FETCH_USER_PUB"].as<string>();
@@ -340,15 +342,19 @@ Forwarder::Forwarder() {
         this->FORMAT_USER_PUB = root["FORMAT_USER_PUB"].as<string>();
         this->FORMAT_USER_PUB_PASSWD = root["FORMAT_USER_PUB_PASSWD"].as<string>();
 
+        cout << "Did FORMAT_USER_PUB_PASSWD element" << endl;
         this->FORWARD_USER = root["FORWARD_USER"].as<string>();
         this->FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
+        cout << "Did FORWARD_USER_PASSWD element" << endl;
         this->FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
         this->FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
+        cout << "Did FORWARD_USER_PUB_PASSWD element" << endl;
 
-        this->WFS_RAFT = root["ATS"]["WFS_RAFT"].as<string>();
-        cout << "Setting WFS_RAFT class var to:  " << this->WFS_RAFT << endl << endl << endl;
+        //this->WFS_RAFT = root["ATS"]["WFS_RAFT"].as<string>();
+        //cout << "Setting WFS_RAFT class var to:  " << this->WFS_RAFT << endl << endl << endl;
     }
     catch (YAML::TypedBadConversion<string>& e) {
+        cout << e.what() << endl;
         cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
     }
 
@@ -891,7 +897,10 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
         {
           for(int amp=0; amp<N_AMPS; ++amp)
           {
-            FH_ATS[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+            //int32_t X = PIX_MASK ^ ((&ccd0[s].segment[amp])) 
+            FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+            //FH_ATS[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
           }
         }
     
@@ -1120,21 +1129,30 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd0) {
-          FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
+            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+            //int32_t X = PIX_MASK ^ ((&ccd0[s].segment[amp])) 
+            FH0[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+          //FH0[amp]->write(reinterpret_cast<const char *>(&ccd0[s].segment[amp]), 4); //32 bits...
         }
       }
 
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd1) {
-          FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 4);
+            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+            //int32_t X = PIX_MASK ^ ((&ccd0[s].segment[amp])) 
+            FH1[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+          //FH1[amp]->write(reinterpret_cast<const char *>(&ccd1[s].segment[amp]), 4);
         }
       }
 
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd2) {
-          FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 4);
+            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+            //int32_t X = PIX_MASK ^ ((&ccd0[s].segment[amp])) 
+            FH2[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+          //FH2[amp]->write(reinterpret_cast<const char *>(&ccd2[s].segment[amp]), 4);
         }
       }
 
@@ -1145,6 +1163,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
 
   }
   while(slice.advance());
+
 
   if (do_ccd0) 
     this->fetch_close_filehandles(FH0);
@@ -1513,7 +1532,7 @@ void Forwarder::format_write_img(string img, string header) {
             string img_segment_name = img_path + "/" + *it 
                                       + "[jL" + STRING(NAXIS1) 
                                       + "," + STRING(NAXIS2) + "]"; 
-            
+
             // get img pixels
             fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status); 
             fits_read_img(pix_file_ptr, TINT, 1, len, NULL, img_buffer, 0, &status); 
@@ -1646,11 +1665,21 @@ void Forwarder::forward_process_end_readout(Node n) {
                  << dest_path; 
         int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
 	cout << "[STATUS] file is copied from " << img_path << " to " << dest_path << endl; 
+
+
+
         if (bbcp_cmd_status == 256) { 
             throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
         } 
         this->finished_image_work_list.push_back(img_id);
         cout << "[X] READOUT COMPLETE." << endl;
+
+        // FIX Remove after weekend test...this is merely a count. 
+        ostringstream cmd;
+        cmd << "echo  " << img_id << " >> ../../logs/count.log";
+        const std::string tmpstr = cmd.str();
+        const char* cmdstr = tmpstr.c_str();
+        system(cmdstr);
     } 
     catch (L1CannotCopyFileError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
