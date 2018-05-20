@@ -42,6 +42,7 @@ class AuxDevice:
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
     AT_FOREMAN_ACK_PUBLISH = "at_foreman_ack_publish"
     DMCS_ACK_CONSUME = "dmcs_ack_consume"
+    DMCS_FAULT_CONSUME = "dmcs_fault_consume"
     START_INTEGRATION_XFER_PARAMS = {}
     ACK_QUEUE = []
     CFG_FILE = 'L1SystemCfg.yaml'
@@ -811,7 +812,7 @@ class AuxDevice:
         msg_params['FAULT_TYPE'] = type
         msg_params['ERROR_CODE'] = error_code
         msg_params['DESCRIPTION'] = desc
-        self._publisher.publish_message(self.DMCS_ACK_CONSUME, msg_params)
+        self._publisher.publish_message(self.DMCS_FAULT_CONSUME, msg_params)
 
 
     def extract_config_values(self):
