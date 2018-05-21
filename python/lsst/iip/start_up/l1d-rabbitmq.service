@@ -1,0 +1,15 @@
+[Unit]
+Description=L1 Rabbitmq Service
+Requires=multi-user.target
+After=multi-user.target
+BindsTo=l1d-ctrl_dependency.target
+
+[Service]
+User=rabbitmq
+Group=rabbitmq
+Type=simple
+ExecStart=/usr/sbin/rabbitmq-server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

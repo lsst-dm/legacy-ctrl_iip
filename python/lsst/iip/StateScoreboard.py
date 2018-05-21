@@ -41,6 +41,7 @@ class StateScoreboard(Scoreboard):
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
     SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM'
     CURRENT_SESSION_ID = 'CURRENT_SESSION_ID'
+    FAULT_HISTORY = 'FAULT_HISTORY'
     DB_INSTANCE = None
     DB_TYPE = ""
     AR = "AR"
@@ -82,11 +83,6 @@ class StateScoreboard(Scoreboard):
         #self.set_current_raft_configuration(rdict)
         self.set_current_configured_rafts(rdict)
 
-        dd = self.get_current_configured_rafts()
-        print("In SSCBD Init - after inserting rafts then pullin it out once again...")
-        self.prp.pprint(dd)
-        print("Done printing init rafts\n====================\n")
-    
 
     def connect(self):
         #pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
@@ -172,14 +168,21 @@ class StateScoreboard(Scoreboard):
             return self._redis.hget(self.CU, STATE)
 
 
-    def set_spectrograph_state(self, state):
+    def set_auxtel_state(self, state):
         if self.check_connection():
             self._redis.hset(self.AT, STATE, state)
 
 
-    def get_spectrograph_state(self):
+    def get_auxtel_state(self):
         if self.check_connection():
             return self._redis.hget(self.AT, STATE)
+
+    def at_device_is_enabled(self):
+        state = self.get_auxtel_state()
+        if state == "ENABLE":
+            return True
+
+        return False
 
 
     def get_device_state(self, device):
@@ -190,7 +193,7 @@ class StateScoreboard(Scoreboard):
         if device == "CU":
             return self.get_catchup_archive_state()
         if device == "AT":
-            return self.get_spectrograph_state()
+            return self.get_auxtel_state()
 
 
     def set_device_state(self, device, state):
@@ -201,7 +204,7 @@ class StateScoreboard(Scoreboard):
         if device == "CU":
             return self.set_catchup_archive_state(state)
         if device == "AT":
-            return self.set_spectrograph_state(state)
+            return self.set_auxtel_state(state)
 
 
     def get_device_consume_queue(self, device):
@@ -231,11 +234,29 @@ class StateScoreboard(Scoreboard):
                     edict[self.PP] = self._redis.hget(self.PP, "CONSUME_QUEUE")
                 if self.get_catchup_archive_state() == state:
                     edict[self.CU] = self._redis.hget(self.CU, "CONSUME_QUEUE")
-                if self.get_spectrograph_state() == state:
+                if self.get_auxtel_state() == state:
                     edict[self.AT] = self._redis.hget(self.AT, "CONSUME_QUEUE")
         else:
             print("BIG TROUBLE IN LITTLE CHINA")
         return edict
+
+    def append_new_fault_to_fault_history(self, params):
+        prms = deepcopy(params)
+        prms['DATETIME'] = str(datetime.datetime)
+        self._redis.rpush('FAULT_HISTORY',yaml.dump(prms))
+
+
+    def report_fault_history(self):
+        fault_list = []
+        tmp_dict = {}
+        len = self._redis.llen('FAULT_HISTORY')
+        if len == 0:
+            return None
+        for i in range(0, len):
+            tmp_dict = yaml.load(self._redis.lindex('FAULT_HISTORY', i))
+            fault_list.append(deepcopy(tmp_dict)) 
+        return fault_list
+        
 
 
     def get_devices(self):
@@ -312,7 +333,6 @@ class StateScoreboard(Scoreboard):
             #    self._redis.hset(self.CU, 'SESSION_ID', session_id)
             id = "Session_" + str(session_id)
             self._redis.set(self.CURRENT_SESSION_ID, id)
-            print("SETTING NEW SESSION_ID")
             self.set_rafts_for_current_session(id)
             return id
         else:
@@ -326,6 +346,12 @@ class StateScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
+
+    def set_current_session(self, session):
+        if self.check_connection():
+            self._redis.set(self.CURRENT_SESSION_ID, session)
+        else:
+            LOGGER.error('Unable to set current session ID due to lack of redis connection')
 
 
     def set_rafts_for_current_session(self, session_id):
@@ -351,15 +377,12 @@ class StateScoreboard(Scoreboard):
     def get_rafts_for_current_session_as_lists(self):
         if self.check_connection():
             current_session = self._redis.get(self.CURRENT_SESSION_ID)
-            print("current_session is %s" % current_session)
             current_session_rafts = str(current_session) + "_RAFTS"
-            print("current_session_rafts is %s" % current_session_rafts)
             rdict = yaml.load(self._redis.hget(current_session_rafts, self.RAFTS))
-            print("The SScbd raft_dict from line 350 is: ")
-            self.prp.pprint(rdict)
+            LOGGER.info("raft dictionary is: %s" % rdict)
             return self.raft_dict_to_lists(rdict)
         else:
-            LOGGER.error('Unable to retrieve current session ID due to lack of redis connection')
+            LOGGER.error('Unable to retrieve rafts for current session ID due to lack of redis connection')
             #RAISE exception to catch in DMCS.py
 
 
@@ -378,8 +401,6 @@ class StateScoreboard(Scoreboard):
 
 
     def raft_dict_to_lists(self, raft_dict):
-        print("The SScbd raft_dict from line 370 is: ")
-        self.prp.pprint(raft_dict)
         raft_list = []
         ccd_list = []
         keez = raft_dict.keys()
@@ -391,6 +412,7 @@ class StateScoreboard(Scoreboard):
                 tmp_list.append(item)
             ccd_list.append(tmp_list)
 
+        LOGGER.info("Raft list is %s, --------  ccd_list is %s" % (raft_list, ccd_list))
         return (raft_list, ccd_list)
 
 
@@ -476,8 +498,11 @@ class StateScoreboard(Scoreboard):
                 if device == self.AT:
                     self._redis.lpush('AT_JOBS', job_number)
         except Exception as e:
+            LOGGER.critical("EXCEPTION in SET_CURRENT_DEVICE_JOB")
             print("EXCEPTION in SET_CURRENT_DEVICE_JOB")
+            LOGGER.critical("Job Number is %s, Device is %s" % (job_number,device))
             print("Job Number is %s, Device is %s" % (job_number,device))
+            LOGGER.critical("Exception is %s" % e)
             print("Exception is %s" % e)
 
 
@@ -533,7 +558,12 @@ class StateScoreboard(Scoreboard):
             return False
 
 
-
+    def scbd_finalize(self):
+        report = self.report_fault_history() 
+        if report != None:
+            LOGGER.debug("Fault history is: %s" % pformat(report))
+            return str(report)
+        self._redis.save()
 
 
     def build_monitor_data(self, params):

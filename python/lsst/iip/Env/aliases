@@ -1,0 +1,7 @@
+# User specific aliases and functions
+alias iip='cd /home/$USER/src/git/ctrl_iip/python/lsst/iip'
+alias gp='git push https://github.com/lsst/ctrl_iip.git stable'
+alias ap='git push https://github.com/lsst/ctrl_iip.git ats_turnkey_system'
+alias gpm='git push https://github.com/lsst/ctrl_iip.git master'
+alias python="python3"
+

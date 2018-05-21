@@ -10,7 +10,7 @@ import yaml
 import sys
 import os
 from copy import deepcopy
-import pprint
+import pprint, pformat
 import time
 from time import sleep
 import threading

@@ -717,6 +717,10 @@ rabbitmqctl add_user DMCS_PUB DMCS_PUB
 rabbitmqctl set_permissions -p /bunny DMCS_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test DMCS_PUB '.*' '.*' '.*'
 
+rabbitmqctl add_user DMCS_FAULT_PUB DMCS_FAULT_PUB
+rabbitmqctl set_permissions -p /bunny DMCS_FAULT_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test DMCS_FAULT_PUB '.*' '.*' '.*'
+
 rabbitmqctl add_user AUDIT AUDIT
 rabbitmqctl set_permissions -p /bunny AUDIT '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test AUDIT '.*' '.*' '.*'

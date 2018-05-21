@@ -22,7 +22,8 @@
 
 #rabbitmqctl -p /test purge_queue ocs_dmcs_consume
 #rabbitmqctl -p /bunny purge_queue audit_consume
-#rabbitmqctl -p /test purge_queue dmcs_ack_consume
+rabbitmqctl -p /test purge_queue dmcs_ack_consume
+rabbitmqctl -p /test purge_queue dmcs_fault_consume
 #rabbitmqctl -p /test purge_queue dmcs_ocs_publish
 #rabbitmqctl -p /test purge_queue pp_foreman_consume
 rabbitmqctl -p /test purge_queue ar_foreman_consume
@@ -37,6 +38,7 @@ rabbitmqctl -p /test purge_queue at_foreman_ack_publish
 #rabbitmqctl -p /test purge_queue audit_consume
 rabbitmqctl -p /test purge_queue f1_consume
 rabbitmqctl -p /test purge_queue f2_consume
+rabbitmqctl -p /test purge_queue f99_consume
 #rabbitmqctl -p /test purge_queue d1_consume
 #rabbitmqctl -p /test purge_queue d2_consume
 #rabbitmqctl -p /test purge_queue f3_consume
