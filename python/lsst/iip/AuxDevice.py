@@ -86,6 +86,10 @@ class AuxDevice:
 
 
 
+        # This structure is a pattern used throughout L1 code.
+        # When a message callback method is called and presented
+        # a new message, this hash uses the 'MSG_TYPE' field to pass
+        # the new message to the appropriate handler function.
         self._msg_actions = { 'AT_START_INTEGRATION': self.process_at_start_integration,
                               'AT_NEW_SESSION': self.set_session,
                               'AT_FWDR_HEALTH_CHECK_ACK': self.process_health_check_ack,
@@ -223,9 +227,10 @@ class AuxDevice:
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
             desc = "No health check response from ANY fwdr"
             type = 'FAULT'
-            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 'no health check response any fwdrs'
+            # error code for 'no health check response any fwdrs'
+            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) 
             return
-        print("  ")
+        if self.DP: print("Incoming AUX AT_Start Int msg"):  print("  ")
 
         # Add archive check when necessary...
         #if self.use_archive_ctrl == False:
@@ -266,10 +271,12 @@ class AuxDevice:
         target_location = self.archive_name + "@" + self.archive_ip + ":" + target_dir
         fwdr_new_target_params['TARGET_LOCATION'] = target_location
 
-        # This may look curious, but in the other devices, a raft_list is a list of rafts,
-        # but a raft_ccd_list is a list of lists, where each ccd sublist refers to 
-        # a raft by the same list index
-        #This business is really so that unit tests can compare messages to 
+        # This may look curious, but in the other devices, a raft_list 
+        # is a list of rafts to be fetched, but a raft_ccd_list is a 
+        # list of lists, where each ccd sublist corresponds to 
+        # a raft by the same list index.
+        #
+        # This bit of business is really so that unit tests can compare messages to 
         # the canonical versions...as dicts are open ended and can correctly
         # contain more keys than the canonical example and hence fail incorrectly,
         # using lists eliminates this likely possibility.
@@ -283,7 +290,8 @@ class AuxDevice:
         xfer_params_dict['AT_FWDR'] = self._current_fwdr['FQN']
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
-        self.prp.pprint(fwdr_new_target_params)
+        if self.DP:
+            self.prp.pprint(fwdr_new_target_params)
         self._publisher.publish_message(route_key, fwdr_new_target_params)
        
 
@@ -309,9 +317,6 @@ class AuxDevice:
         st_int_params_ack['JOB_NUM'] = job_number
         st_int_params_ack['SESSION_ID'] = session_id
         st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
-        print("000000000000000000000000")
-        print("Acking positive to start integration")
-        print("000000000000000000000000")
         self.accept_job(st_int_params_ack)
 
 
@@ -346,31 +351,6 @@ class AuxDevice:
 
             :return: None.
         """
-        self._publisher.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
-
-
-    def refuse_job(self, params, fail_details):
-        """ Send AR_START_INTEGRATION_ACK message with ack_bool equals False (job refused)
-            and other job specs to dmcs_ack_consume queue.
-
-            Set job state as JOB_REFUSED in JobScoreboard.
-
-            :params parmas: A dictionary that stores info of a job.
-
-            :params fail_details: A string that describes what went wrong, not used for now.
-
-            :return: None.
-        """
-        dmcs_message = {}
-        dmcs_message[JOB_NUM] = params[JOB_NUM]
-        dmcs_message[MSG_TYPE] = 'AR_START_INTEGRATION_ACK'
-        dmcs_message['ACK_ID'] = params['ACK_ID']
-        dmcs_message['SESSION_ID'] = params['SESSION_ID']
-        dmcs_message['VISIT_ID'] = params['VISIT_ID']
-        dmcs_message['IMAGE_ID'] = params['IMAGE_ID']
-        dmcs_message[ACK_BOOL] = False 
-        dmcs_message['COMPONENT'] = self.COMPONENT_NAME
-        self.JOB_SCBD.set_value_for_job(params[JOB_NUM], STATE, "JOB_REFUSED")
         self._publisher.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
 
 
@@ -455,10 +435,12 @@ class AuxDevice:
                 self._publisher.publish_message(reply_queue, final_msg)
                 return
             else:
-                self.process_readout_responses(readout_ack_id, msgtype, reply_queue, image_id, job_number, result_set)
+                self.process_readout_responses(readout_ack_id, msgtype, reply_queue, 
+                                               image_id, job_number, result_set)
 
 
-    def process_readout_responses(self, readout_ack_id, msgtype, reply_queue, image_id, job_number, result_set):
+    def process_readout_responses(self, readout_ack_id, msgtype, reply_queue, 
+                                  image_id, job_number, result_set):
         self.clear_archive_ack()
         archive_readout_ack = self.get_next_timed_ack_id("AT_ITEMS_XFERD_ACK")
         xferd_list_msg = {}
@@ -850,8 +832,9 @@ class AuxDevice:
             self.archive_ip = cdm[ROOT]['ARCHIVE']['ARCHIVE_IP']
             self.archive_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_XFER_ROOT']
         except KeyError as e:
-            print("Dictionary error: %s" % e)
-            print("Bailing out...")
+            if self.DP:
+                print("Dictionary error: %s" % e)
+                print("Bailing out...")
             LOGGER.critical("CFG dictionary key error: %s" % e)
             LOGGER.critical("Bailing out...")
             sys.exit(99)
