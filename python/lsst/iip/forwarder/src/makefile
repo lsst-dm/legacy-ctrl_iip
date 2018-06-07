@@ -1,18 +1,25 @@
-INCLUDE       = -I../../ocs/include -I../include -I./
-DAQ_INCLUDE       = -I../../include 
-LIBPATH       = -L../../ocs/lib -Wl,-rpath,../../ocs/lib -L../lib 
-DAQ_LIBPATH       = -L../../lib -Wl,-rpath,../../lib  
+INCLUDE       = -I/usr/local/include -I../../ocs/include \
+		-I../../include \
+		-I../include \
+		-I/usr/local/boost_1_66_0 
+LIBPATH       = -L/usr/local/boost_1_66_0/stage/lib \
+		-Wl,-rpath,/usr/local/boost_1_66_0/stage/lib \
+		-L/usr/local/lib \
+		-Wl,-rpath,/usr/local/lib \
+		-L/usr/local/lib64 \
+		-Wl,-rpath,/usr/local/lib64 \
+		-L../../lib \
+		-Wl,-rpath,../../lib
+DAQ_LIB       = -ldaq_daq -ldaq_ims -ldaq_dsi -ldaq_osa -ldaq_dss -ldaq_net
+LOG_LIB       = -lboost_log_setup -lboost_log -lboost_thread -lboost_system -lboost_filesystem
 LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcurl
-DAQ_LIB           = -ldaq_daq -ldaq_ims -ldaq_dsi -ldaq_osa -ldaq_dss -ldaq_net
 OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
+GCCVERSION    = -std=c++11
 
-all: Forwarder
+all: DAQForwarder
 
-Forwarder: Forwarder.cpp
-	g++ -std=c++11 $(INCLUDE) $(LIBPATH) $(OBJ) -g -o Forwarder Forwarder.cpp $(LIB)
-
-DAQForwarder: test.cpp
-	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -ggdb -o test test.cpp $(LIB) $(DAQ_LIB)
+DAQForwarder: DAQForwarder.cpp
+	g++ $(GCCVERSION) $(INCLUDE) $(LIBPATH) -DBOOST_LOG_DYN_LINK $(OBJ) $^ -g -o $@ $(LOG_LIB) $(LIB) $(DAQ_LIB)
 
 clean: 
-	rm Forwarder
+	rm DAQForwarder

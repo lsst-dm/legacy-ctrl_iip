@@ -17,13 +17,13 @@ SALINC	 	= -I$(ARCHIVE) -I$(ARCHIVE)/src\
 		  -I$(SALPATH)/include/dcps/C++/SACPP\
 		  -I$(SALPATH)/include/sys\
 		  -I$(SALPATH)/include
-INCLUDE  	= -I../include -I/usr/local/include 
+INCLUDE  	= -I../include -I/usr/local/include -I/usr/local/boost_1_66_0
 SALPATH	 	= /opt/sal/ts_opensplice/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux
 LIBSAL	 	= /opt/sal/ts_sal/lsstsal/lib
 CC	 	= g++
 SAL_LDPATH  	= -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config 
 #DM_LDPATH 	= -L../lib -Wl,-rpath,../lib-L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/local/lib64 -Wl,-rpath,/usr/local/lib64
-DM_LDPATH 	= -L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/local/lib64 -Wl,-rpath,/usr/local/lib64
+DM_LDPATH 	= -L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/local/lib64 -Wl,-rpath,/usr/local/lib64 -L/usr/local/boost_1_66_0/stage/lib -Wl,-rpath,/usr/local/boost_1_66_0/stage/lib
 SAL_LDLIB	= -lsacpp_archiver_types -lsacpp_catchuparchiver_types -lsacpp_processingcluster_types\
 		  -lsacpp_camera_types -lsacpp_atcamera_types -lsacpp_efd_types -lsacpp_atArchiver_types\
 		  -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
@@ -50,9 +50,6 @@ Consumer: Consumer.cpp
 
 Toolsmod: Toolsmod.cpp
 	$(CC) $(COMPVERS) $(INCLUDE) -c -o ../obj/Toolsmod.o Toolsmod.cpp
-
-#CommandListener: CommandListener.cpp OCS_Bridge Toolsmod
-#	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(LD_PATH) $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ATARCHIVE)/src/.obj/SAL_atArchiver.o $(ARCHIVE)/src/.obj/CheckStatus.o ../obj/OCS_Bridge.o ../obj/SimplePublisher.o ../obj/Toolsmod.o -Wall -o CommandListener CommandListener.cpp $(LDLIBS) 
 
 CommandListener: CommandListener.cpp OCS_Bridge Toolsmod
 	g++ -std=c++11 $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(OCS_OBJ) $(AT_OBJ) $(OBJ_DIR)/Toolsmod.o $(OBJ_DIR)/SimplePublisher.o $(OBJ_DIR)/OCS_Bridge.o CommandListener.cpp -o CommandListener $(SAL_LDLIB) $(DM_LDLIB)
