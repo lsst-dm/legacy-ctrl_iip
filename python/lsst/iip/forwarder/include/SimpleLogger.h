@@ -29,18 +29,18 @@ typedef sinks::asynchronous_sink< sinks::text_file_backend > file_sink;
     << "    "\
 
 enum severity_level { 
-    DEBUG, 
-    INFO, 
-    CRITICAL
+    debug, 
+    info, 
+    critical
 }; 
 
 BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", severity_level); 
 
 std::ostream& operator<< (std::ostream& strm, severity_level level) { 
     static const char* log_levels[] = { 
-        "DEBUG", 
-        "INFO", 
-        "CRITICAL"
+        "debug", 
+        "info", 
+        "critical"
     }; 
 
     if (static_cast< std::size_t >(level) < sizeof(log_levels) / sizeof(*log_levels)) { 
