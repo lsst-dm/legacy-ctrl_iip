@@ -23,8 +23,8 @@ typedef sinks::asynchronous_sink< sinks::text_file_backend > file_sink;
 #define LOGGER(lg_, sev) BOOST_LOG_SEV(lg_, sev) \
     << std::left\
     << "    "\
-    << std::setw(15) << std::setfill(' ') << __FILE__\
-    << std::setw(20) << std::setfill(' ') << __FUNCTION__\
+    << std::setw(30) << std::setfill(' ') << __FILE__\
+    << std::setw(30) << std::setfill(' ') << __FUNCTION__\
     << std::setw(5) << std::setfill(' ') << __LINE__\
     << "    "\
 
