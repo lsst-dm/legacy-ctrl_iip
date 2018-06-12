@@ -82,11 +82,7 @@ class AuxDevice:
             self.my_mutex_lock = threading.Lock()
 
 
-        #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
-
-
-
-        # This structure is a pattern used throughout L1 code.
+        # This structure implements a pattern used throughout L1 code.
         # When a message callback method is called and presented
         # a new message, this hash uses the 'MSG_TYPE' field to pass
         # the new message to the appropriate handler function.
@@ -106,7 +102,7 @@ class AuxDevice:
 
         self.setup_publishers()
 
-        LOGGER.info('ar foreman consumer setup')
+        LOGGER.info('AT foreman consumer setup')
         self.thread_manager = None
         self.setup_consumer_threads()
 
@@ -122,8 +118,8 @@ class AuxDevice:
             :return: None.
         """
         self.pub_base_broker_url = "amqp://" + self._msg_pub_name + ":" + \
-                                            self._msg_pub_passwd + "@" + \
-                                            str(self._base_broker_addr)
+                                               self._msg_pub_passwd + "@" + \
+                                               str(self._base_broker_addr)
         LOGGER.info('Setting up Base publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
         self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
 
@@ -215,13 +211,8 @@ class AuxDevice:
         self.clear_fwdr_state()
         num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
-
-
         # Give fwdrs enough time to respond...
-        #self.ack_timer(1.4)
         sleep(3)
-
-
 
         if (self.set_current_fwdr() == False):
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
@@ -230,7 +221,9 @@ class AuxDevice:
             # error code for 'no health check response any fwdrs'
             self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) 
             return
-        if self.DP: print("Incoming AUX AT_Start Int msg"):  print("  ")
+        if self.DP: 
+            print("Incoming AUX AT_Start_Int msg: %s" % params)
+            print("  ")
 
         # Add archive check when necessary...
         #if self.use_archive_ctrl == False:
@@ -255,7 +248,6 @@ class AuxDevice:
         #   FIXME raise L1 exception and bail out
         #   print("B-B-BAD Trouble; no ar_response")
         #self.archive_xfer_root = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
-          
  
         target_dir = self.archive_xfer_root 
         
@@ -293,8 +285,6 @@ class AuxDevice:
         if self.DP:
             self.prp.pprint(fwdr_new_target_params)
         self._publisher.publish_message(route_key, fwdr_new_target_params)
-       
-
         
         # receive ack back from forwarder that it has job params
         self.clear_fwdr_state()
@@ -307,7 +297,6 @@ class AuxDevice:
             LOGGER.critical("No xfer_params response from fwdr.. Setting FAULT state, 5752")
             self.send_fault_state_event("5752", desc, type, name) 
             return
-
 
         # accept job by Ack'ing True
         st_int_params_ack = {}
@@ -343,6 +332,7 @@ class AuxDevice:
         return len(forwarders)
 
 
+
     def accept_job(self, dmcs_message):
         """ Send AR_START_INTEGRATION_ACK message with ack_bool equals True (job accepted)
             and other job specs to dmcs_ack_consume queue.
@@ -352,6 +342,7 @@ class AuxDevice:
             :return: None.
         """
         self._publisher.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
+
 
 
     def process_at_end_readout(self, params):
@@ -390,7 +381,6 @@ class AuxDevice:
         route_key = self._current_fwdr['CONSUME_QUEUE']
         self._publisher.publish_message(route_key, msg)
 
-
         readout_response = self.simple_progressive_ack_timer(self.FWDR, 20.0)
 
         if readout_response == False:
@@ -400,9 +390,7 @@ class AuxDevice:
             LOGGER.critical("No AT_FWDR_END_READOUT response from %s for job %s. Setting FAULT state, 5752" % 
                            (name,job_number))
             self.send_fault_state_event(5752, desc, type, name)
-
             return
-
 
         result_set = self.did_current_fwdr_send_result_set()
         if result_set == None:  #fail, ack_bool is false, and filename_list is None
@@ -439,6 +427,7 @@ class AuxDevice:
                                                image_id, job_number, result_set)
 
 
+
     def process_readout_responses(self, readout_ack_id, msgtype, reply_queue, 
                                   image_id, job_number, result_set):
         self.clear_archive_ack()
@@ -466,7 +455,6 @@ class AuxDevice:
             final_msg['RESULT_SET']['FILENAME_LIST'] = flist
             final_msg['RESULT_SET']['RECEIPT_LIST'] = rlist
             self._publisher.publish_message(reply_queue, final_msg)
-
             return
 
         results = self._archive_ack['RESULT_SET']
@@ -479,6 +467,7 @@ class AuxDevice:
         ack_msg['ACK_BOOL'] = True
         ack_msg['RESULT_LIST'] = results
         self._publisher.publish_message(reply_queue, ack_msg)
+
 
 
     def process_header_ready_event(self, params):
@@ -501,15 +490,19 @@ class AuxDevice:
         #hr_response = self.simple_progressive_ack_timer(self.FWDR, 6.0)
 
 
+
     def clear_fwdr_state(self):
         fwdrs = list(self._fwdr_state_dict.keys())
         for fwdr in fwdrs:
             self._fwdr_state_dict[fwdr] = {}
             self._fwdr_state_dict[fwdr]['RESPONSE'] = UNKNOWN
 
+
+
     def clear_archive_ack(self):
         self._archive_ack = {}
         self._archive_ack['RESPONSE'] = UNKNOWN
+
 
 
     def setup_fwdr_state_dict(self):
@@ -532,9 +525,11 @@ class AuxDevice:
         LOGGER.debug("Forwarder dict is: %s" % pformat(self._forwarder_dict))
         LOGGER.debug("Forwarder state dict is: %s" % pformat(self._fwdr_state_dict))
 
+
  
     def set_fwdr_state(self, component, state):
         self._fwdr_state_dict[component]['RESPONSE'] = state
+
 
 
     def set_current_fwdr(self):
@@ -557,11 +552,13 @@ class AuxDevice:
         return False
 
 
+
     def did_archive_respond(self):
         if self._archive_ack['RESPONSE'] == 'RESPONSIVE':
             return True
 
         return False
+
 
 
     def did_current_fwdr_send_result_set(self):
@@ -581,11 +578,13 @@ class AuxDevice:
         return None
 
 
+
     def confirm_fwdr_state_dict_entry(self, component):
         if(self._fwdr_state_dict[component]['RESPONSE'] == HEALTHY):
             return True
 
         return False
+
 
 
     def process_ack(self, params):
@@ -600,6 +599,7 @@ class AuxDevice:
         #self.ACK_SCBD.add_timed_ack(params)
         
 
+
     def process_health_check_ack(self, params):
         """ Add new Health Check ACKS to self._fwdr_state_dict
             where they are collated.
@@ -613,10 +613,12 @@ class AuxDevice:
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, HEALTHY)
        
+
  
     def process_xfer_params_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
+
     
     
     def process_at_fwdr_end_readout_ack(self, params):
@@ -641,15 +643,18 @@ class AuxDevice:
                 LOGGER.debug('Releasing mutex...')
                 self.my_mutex_lock.release()
     
+
     
     def process_at_items_xferd_ack(self, params):
         self._archive_ack['RESPONSE'] = 'RESPONSIVE'
         self._archive_ack['RESULT_SET'] = params['RESULT_SET']
    
+
  
     def process_header_ready_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
+
 
 
     def get_next_timed_ack_id(self, ack_type):
@@ -664,6 +669,7 @@ class AuxDevice:
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         #return (ack_type + "_" + datestring + str(self._next_timed_ack_id.zfill(6)))
         return (ack_type + "_" + str(datestring) + str(self._next_timed_ack_id).zfill(6))
+
 
 
     def set_session(self, params):
@@ -762,6 +768,7 @@ class AuxDevice:
             return None
 
 
+
     def simple_progressive_ack_timer(self, type, seconds):
         counter = 0.0
         while (counter < seconds):
@@ -786,6 +793,7 @@ class AuxDevice:
             return False
 
 
+
     def send_fault_state_event(self, error_code, desc, type, comp):
         msg_params = {}
         msg_params[MSG_TYPE] = "FAULT"
@@ -795,6 +803,7 @@ class AuxDevice:
         msg_params['ERROR_CODE'] = error_code
         msg_params['DESCRIPTION'] = desc
         self._publisher.publish_message(self.DMCS_FAULT_CONSUME, msg_params)
+
 
 
     def extract_config_values(self):
@@ -846,6 +855,7 @@ class AuxDevice:
             self._base_msg_format = cdm[ROOT]['BASE_MSG_FORMAT']
 
 
+
     def setup_consumer_threads(self):
         """ Create ThreadManager object with base broker url and kwargs to setup consumers.
 
@@ -854,13 +864,12 @@ class AuxDevice:
             :return: None.
         """
         base_broker_url = "amqp://" + self._msg_name + ":" + \
-                                            self._msg_passwd + "@" + \
-                                            str(self._base_broker_addr)
+                                      self._msg_passwd + "@" + \
+                                      str(self._base_broker_addr)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
         self.shutdown_event = threading.Event()
         self.shutdown_event.clear()
-
 
         # Set up kwargs that describe consumers to be started
         # The Archive Device needs three message consumers

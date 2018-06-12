@@ -49,8 +49,8 @@ class Premium:
 def main():
   premium = Premium()
   #sp1 = SimplePublisher('amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?heartbeat=300', "YAML")
-  #sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Ftest', "YAML")
-  sp1 = SimplePublisher('amqp://DMCS:DMCS@141.142.238.230:5672/%2Ftest_at', "YAML")
+  sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Ftest', "YAML")
+  #sp1 = SimplePublisher('amqp://DMCS:DMCS@141.142.238.230:5672/%2Ftest_at', "YAML")
   #sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Fbunny', "YAML")
   #sp2 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
   #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
@@ -107,7 +107,7 @@ def main():
   #msg['IMAGE_ID'] = 'test23'
   #msg['IMAGE_ID'] = 'luckyme'
   #msg['IMAGE_ID'] = 'jubilee'
-  msg['IMAGE_ID'] = 'on-7'
+  msg['IMAGE_ID'] = 'on-11'
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
@@ -120,10 +120,10 @@ def main():
   msg = {} 
   msg["MSG_TYPE"] = "FORMAT_HEADER_READY"
   #msg['IMAGE_ID'] = 'jubilee'
-  msg['IMAGE_ID'] = 'on-7'
+  msg['IMAGE_ID'] = 'on-11'
   #msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
   #msg["FILENAME"] = "/tmp/source/header/luckyme/luckyme.header"
-  msg["FILENAME"] = "/tmp/source/header/on-7/on-7.header"
+  msg["FILENAME"] = "/tmp/source/header/on-11/on-11.header"
   time.sleep(4)
   #sp1.publish_message("f99_consume", msg) 
   sp1.publish_message("format_consume_from_f99", msg) 
