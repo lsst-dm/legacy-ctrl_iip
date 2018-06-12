@@ -35,8 +35,10 @@
 #define NAXIS1 576
 #define NAXIS2 2048
 #define N_AMPS 16
-#define STRAIGHT_PIX_MASK 0x20000
+#define WFS_PIX_MASK 0x20000
+#define SCIENCE_PIX_MASK 0x1FFFF
 #define PIX_MASK 0x3FFFF
+#define STRAIGHT_PIX_MASK 0x20000
 #define DEBUG 1
 
 using namespace std;
@@ -879,7 +881,7 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
     
             for(int s=0; s<slice.stripes(); ++s) {
                 for(int amp=0; amp<N_AMPS; ++amp) {
-                    int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+                    int32_t X = WFS_PIX_MASK ^ ((ccd0[s].segment[amp]));
                     FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
                 }
             }
@@ -1070,7 +1072,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd0) {
-            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+            int32_t X = SCIENCE_PIX_MASK ^ ((ccd0[s].segment[amp]));
             FH0[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
@@ -1078,7 +1080,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd1) {
-            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+            int32_t X = SCIENCE_PIX_MASK ^ ((ccd0[s].segment[amp]));
             FH1[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
@@ -1086,7 +1088,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd2) {
-            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+            int32_t X = SCIENCE_PIX_MASK ^ ((ccd0[s].segment[amp]));
             FH2[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
