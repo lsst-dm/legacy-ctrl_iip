@@ -1451,12 +1451,8 @@ void Forwarder::format_write_img(string img, string header) {
             fitsfile *pix_file_ptr; 
             int *img_buffer = new int[len];
             string img_segment_name = img_path + "/" + *it 
-                                      + "[j" + STRING(NAXIS1) 
+                                      + "[jL" + STRING(NAXIS1) 
                                       + "," + STRING(NAXIS2) + "]"; 
-
-            //string img_segment_name = img_path + "/" + *it 
-            //                          + "[jL" + STRING(NAXIS1) 
-            //                          + "," + STRING(NAXIS2) + "]"; 
 
             // get img pixels
             fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status); 
