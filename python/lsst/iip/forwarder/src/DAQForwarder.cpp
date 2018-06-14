@@ -70,8 +70,15 @@ class Forwarder {
     std::string WFS_RAFT = "";
     int Num_Images = 0; 
     int ERROR_CODE_PREFIX; 
-    std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
-                                         "10","11","12","13","14","15","16","17"};
+    //std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
+    //                                     "10","11","12","13","14","15","16","17"};
+   
+    //std::vector<string> New_Segment_Names = {"10","11","12","13","14","15","16","17",\
+    //                                         "00","01","02","03","04","05","06","07"};
+                                             //"07","06","05","04","03","02","01","00"};
+
+    std::vector<string> New_Segment_Names = {"17","16","15","14","13","12","11","10",\
+                                             "00","01","02","03","04","05","06","07"};
    
     
     std::string consume_queue = "";
@@ -272,21 +279,21 @@ map<string, funcptr> on_forwarder_to_forward_message_actions = {
 
 map<string, int> Board_Layout = {
     { "00", 0},
-    { "10", 0},
-    { "20", 0},
-    { "01", 1},
+    { "01", 0},
+    { "02", 0},
+    { "10", 1},
     { "11", 1},
-    { "21", 1},
-    { "02", 2},
-    { "12", 2},
+    { "12", 1},
+    { "20", 2},
+    { "21", 2},
     { "22", 2}
 
 };
 
 map<string, vector<string>> All_Boards = {
-    { "0", {"00","10","20"}},
-    { "1", {"01","11","21"}},
-    { "2", {"02","12","22"}}
+    { "0", {"00","01","02"}},
+    { "1", {"10","11","12"}},
+    { "2", {"20","21","22"}}
 
 };
 
@@ -832,7 +839,8 @@ void Forwarder::process_at_fetch(Node n) {
     system(cmdstr);
     //system(rmcmdstr);
  
-    string raft = "raft02";
+    //string raft = "raft02";
+    string raft = "raft01";
     this->fetch_at_reassemble_process(raft, image_id, filepath.str());
     map<string, vector<string>> source_boards = {
         {"0", {"00"}}
@@ -861,7 +869,8 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
 
     while(sources.remove(location)) {
         IMS::Source source(location, image);
-  
+ 
+        //should be wfs here 
         //IMS::Science slice(source);
         IMS::WaveFront slice(source);
   
@@ -1041,18 +1050,24 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
 
   for (int x = 0; x < ccds_for_board.size(); x++) {
 
-        if (string(1, ccds_for_board[x][0]) == "0") {
+	cout << "DOING XXX" << endl; 
+	cout << "method is: " << string(1, ccds_for_board[x][1]) << " and CCD is: " << ccds_for_board[x][1] << endl; 
+	cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl; 
+        if (string(1, ccds_for_board[x][1]) == "0") {
             do_ccd0 = true;
+cout << "do_ccd0 is True" << endl << ccds_for_board[x] <<  endl << "########################" << endl;
             this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[x], dir_prefix);
         }
 
-        if (string(1, ccds_for_board[x][0]) == "1") {
+        if (string(1, ccds_for_board[x][1]) == "1") {
             do_ccd1 = true;
+cout << "do_ccd1 is True" << endl << ccds_for_board[x] << endl << "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&" << endl;
             this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[x], dir_prefix);
         }
 
-        if (string(1, ccds_for_board[x][0]) == "2") {
+        if (string(1, ccds_for_board[x][1]) == "2") {
             do_ccd2 = true;
+cout << "do_ccd2 is True" << endl << ccds_for_board[x] << endl << "WWWWWWWWWWWWWWWWWWWWWWWWWWWW" << endl;
             this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[x], dir_prefix);
         }
     }
@@ -1072,7 +1087,9 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd0) {
-            int32_t X = SCIENCE_PIX_MASK ^ ((ccd0[s].segment[amp]));
+            int32_t X = SCIENCE_PIX_MASK ^ ((ccd2[s].segment[amp]));
+            //int32_t Y = PIX_MASK ^ ((ccd0[s].segment[amp]));
+            //int32_t X = STRAIGHT_PIX_MASK ^ Y;
             FH0[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
@@ -1080,7 +1097,10 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd1) {
-            int32_t X = SCIENCE_PIX_MASK ^ ((ccd0[s].segment[amp]));
+            int32_t X = SCIENCE_PIX_MASK ^ ((ccd1[s].segment[amp]));
+            //int32_t X = PIX_MASK ^ ((ccd1[s].segment[amp]));
+            //int32_t Y = PIX_MASK ^ ((ccd1[s].segment[amp]));
+            //int32_t X = STRAIGHT_PIX_MASK ^ Y;
             FH1[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
@@ -1089,6 +1109,9 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
       {
         if (do_ccd2) {
             int32_t X = SCIENCE_PIX_MASK ^ ((ccd0[s].segment[amp]));
+            //int32_t X = PIX_MASK ^ ((ccd2[s].segment[amp]));
+            //int32_t Y = PIX_MASK ^ ((ccd2[s].segment[amp]));
+            //int32_t X = STRAIGHT_PIX_MASK ^ Y;
             FH2[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
@@ -1124,7 +1147,7 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set,
                           << "--" << raft \
                           << "-ccd." << ccd \
                           //<< "_segment." << seg;
-                          << "_segment." << this->Segment_Names[i];
+                          << "_segment." << this->New_Segment_Names[i];
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
         fh_set.push_back(fh); 
@@ -1139,7 +1162,7 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
                           << image_id \
                           << "--AUXTEL" \
                           << "-ccd.ATS_CCD" \
-                          << "_segment." << this->Segment_Names[i];
+                          << "_segment." << this->New_Segment_Names[i];
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
         fh_set.push_back(fh); 
@@ -1440,8 +1463,11 @@ void Forwarder::format_write_img(string img, string header) {
         } 
 
         fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
+	cout << "Opening file: " << status << endl; 
         fits_create_file(&optr, destination.c_str(), &status); 
+	cout << "Creatingg file: " << status << endl; 
         fits_copy_hdu(iptr, optr, 0, &status); 
+	cout << "Copying file: " << status << endl; 
 
         vector<string> file_names = format_list_files(img_path); 
         vector<string>::iterator it; 
