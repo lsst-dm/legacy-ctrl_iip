@@ -177,7 +177,7 @@ class Forwarder {
 
     long* format_read_img_segment(const char*);
     unsigned char** format_assemble_pixels(char *);
-    void format_write_img(std::string, std::string);
+    void format_write_img(std::string, std::string, std::string, std::string);
     void format_assemble_img(Node);
     void format_send_completed_msg(std::string);
     void format_look_for_work(); 
@@ -1498,10 +1498,12 @@ void Forwarder::format_assemble_img(Node n) {
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string header = n["HEADER"].as<string>(); 
-        // create dir  /mnt/ram/FITS/IMG_10
-        string fits_dir = Work_Dir + "/FITS"; 
+        string raft_name = n["RAFT"].as<string>();  // raft01
+        string ccd_name = n["CCD"].as<string>(); // ccd00
+        string fits_dir = Work_Dir + "/fits"; 
         const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
-        format_write_img(img_id, header);
+
+        format_write_img(img_id, raft_name, ccd_name, header);
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
@@ -1545,8 +1547,7 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
     } 
 } 
 
-void Forwarder::format_write_img(string img, string header) { 
-    cout << "[x] fwi" << endl;
+void Forwarder::format_write_img(string img_id, string raft_name, string ccd_name, string header) { 
     try { 
         long len = NAXIS1 * NAXIS2;
         int bitpix = LONG_IMG; 
@@ -1559,10 +1560,12 @@ void Forwarder::format_write_img(string img, string header) {
         char card[FLEN_CARD]; 
         fitsfile *iptr, *optr; 
 
-        // /mnt/ram/IMG_31
-        string img_path = Work_Dir + "/" + img;
+        // /mnt/ram/IMG_31/raft01/ccd00/*.segment
+        string img_path = Work_Dir + "/" + img_id + "/" + raft_name + "/" + ccd_name;
         string header_path = header;
-        string destination = Work_Dir + "/FITS/" + img + ".fits";
+
+        // IMG_31--raft01--ccd00.fits
+        string destination = Work_Dir + "/fits/" + img_id + "--" + raft_name + "--" + ccd_name + ".fits";
 
         if (FILE *file = fopen(destination.c_str(), "r")) { 
             // file exists
@@ -1623,7 +1626,7 @@ void Forwarder::format_write_img(string img, string header) {
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
 
-        format_send_completed_msg(img);
+        format_send_completed_msg(img_id);
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
@@ -1708,7 +1711,7 @@ void Forwarder::format_look_for_work() {
 void Forwarder::forward_process_end_readout(Node n) { 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
-        string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
+        string img_path = this->Work_Dir + "/fits/" + img_id + ".fits"; 
         string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
 	cout << "[STATUS] target locations is: " << this->Target_Location << endl; 
       
