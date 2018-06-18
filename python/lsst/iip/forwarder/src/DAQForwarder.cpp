@@ -169,7 +169,7 @@ class Forwarder {
 
     long* format_read_img_segment(const char*);
     unsigned char** format_assemble_pixels(char *);
-    void format_write_img(std::string, std::string);
+    void format_write_img(std::string, std::string, std::string, std::string);
     void format_assemble_img(Node);
     void format_send_completed_msg(std::string);
     void format_look_for_work(); 
@@ -1493,11 +1493,13 @@ void Forwarder::format_assemble_img(Node n) {
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string header = n["HEADER"].as<string>(); 
-        string fits_dir = Work_Dir + "/FITS"; 
+        string raft_name = n["RAFT"].as<string>();  // raft01
+        string ccd_name = n["CCD"].as<string>(); // ccd00
+        string fits_dir = Work_Dir + "/fits"; 
         const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
         LOGGER(my_logger::get(), info) << "Created directory " << fits_dir << " for assembling images."; 
 
-        format_write_img(img_id, header);
+        format_write_img(img_id, raft_name, ccd_name, header);
         LOGGER(my_logger::get(), debug) << "Start formatting ..."; 
     } 
     catch (exception& e) { 
@@ -1543,7 +1545,7 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
 } 
 */ 
 
-void Forwarder::format_write_img(string img, string header) { 
+void Forwarder::format_write_img(string img_id, string raft_name, string ccd_name, string header) { 
     LOGGER(my_logger::get(), debug) << "Entering format_write_img function."; 
     try { 
         long len = NAXIS1 * NAXIS2;
@@ -1557,10 +1559,12 @@ void Forwarder::format_write_img(string img, string header) {
         char card[FLEN_CARD]; 
         fitsfile *iptr, *optr; 
 
-        // /mnt/ram/IMG_31
-        string img_path = Work_Dir + "/" + img;
+        // /mnt/ram/IMG_31/raft01/ccd00/*.segment
+        string img_path = Work_Dir + "/" + img_id + "/" + raft_name + "/" + ccd_name;
         string header_path = header;
-        string destination = Work_Dir + "/FITS/" + img + ".fits";
+
+        // IMG_31--raft01--ccd00.fits
+        string destination = Work_Dir + "/fits/" + img_id + "--" + raft_name + "--" + ccd_name + ".fits";
         LOGGER(my_logger::get(), debug) << "Image file path is " << img_path; 
         LOGGER(my_logger::get(), debug) << "Header file path is " << header_path; 
         LOGGER(my_logger::get(), debug) << "Destination file path is " << destination; 
@@ -1625,7 +1629,7 @@ void Forwarder::format_write_img(string img, string header) {
         fits_close_file(optr, &status); 
         LOGGER(my_logger::get(), info) << "Formatting image segments into fits file is completed."; 
 
-        format_send_completed_msg(img);
+        format_send_completed_msg(img_id);
         LOGGER(my_logger::get(), debug) << "Sending format complete message to forward thread."; 
     } 
     catch (exception& e) { 
@@ -1718,7 +1722,7 @@ void Forwarder::forward_process_end_readout(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering forward_process_end_readout function."; 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
-        string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
+        string img_path = this->Work_Dir + "/fits/" + img_id + ".fits"; 
         string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
 	LOGGER(my_logger::get(), debug) << "Target location to copy file is " << this->Target_Location; 
       
