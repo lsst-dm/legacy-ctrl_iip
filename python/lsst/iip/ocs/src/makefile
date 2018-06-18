@@ -61,5 +61,8 @@ EventSubscriber: EventSubscriber.cpp SimplePublisher
 	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(CAMERA)/src/.obj/CheckStatus.o $(OBJ_DIR)/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
 
 
+fakeEventSubscriber: fakeEventSubscriber.cpp SimplePublisher
+	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(CAMERA)/src/.obj/CheckStatus.o $(OBJ_DIR)/SimplePublisher.o -Wall -g -o fakeEventSubscriber fakeEventSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
+
 clean:
 	rm -i CommandListener EventSubscriber AckSubscriber $(OBJ_DIR)/*.o
