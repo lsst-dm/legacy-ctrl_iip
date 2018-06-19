@@ -85,7 +85,7 @@ def main():
   msg["XFER_PARAMS"] = {}
   msg['XFER_PARAMS']['AR_FWDR'] = 'FORWARDER_F99'
   msg['XFER_PARAMS']['RAFT_LIST'] = ['raft01']
-  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['11']]
+  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['02']]
   #msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['ALL']]
   time.sleep(2)
   sp1.publish_message("f99_consume", msg)
