@@ -1295,14 +1295,13 @@ void Forwarder::process_header_ready(Node n) {
 
         // scp -i ~/.ssh/from_efd felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
         ostringstream cp_cmd; 
-	/** 
-        cp_cmd << "scp -i ~/.ssh/from_efd "
+	// FIX
+        cp_cmd << "scp  "
                << path
                << " " 
                << sub_dir
                << "/"; 
-	*/ 
-	cp_cmd << "wget -P " << sub_dir << "/ " << path; 
+	// cp_cmd << "wget -P " << sub_dir << "/ " << path; 
         int scp_cmd = system(cp_cmd.str().c_str()); 
 
 	/** 
