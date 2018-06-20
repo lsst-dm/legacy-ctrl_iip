@@ -733,14 +733,14 @@ rabbitmqctl add_user OCS_PUB OCS_PUB
 rabbitmqctl set_permissions -p /bunny OCS_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test OCS_PUB '.*' '.*' '.*'
 
-for i in {1..25}; do 
+for i in {1..32}; do 
    x="CL_"$i; 
    rabbitmqctl add_user $x $x;
    rabbitmqctl set_permissions -p /test $x '.*' '.*' '.*'
    rabbitmqctl set_permissions -p /bunny $x '.*' '.*' '.*'
    done
 
-for i in {1..25}; do 
+for i in {1..32}; do 
    x="EVN_"$i; 
    rabbitmqctl add_user $x $x;
    rabbitmqctl set_permissions -p /test $x '.*' '.*' '.*'

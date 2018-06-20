@@ -71,7 +71,7 @@ do
 done
 
 echo -e "[${GREEN}${BOLD}STATUS${NORM}] Creating OCS command users." 
-for i in {1..25}; 
+for i in {1..32}; 
 do 
    x="CL_"$i; 
    rabbitmqctl add_user $x $x;
@@ -80,7 +80,7 @@ do
 done
 
 echo -e "[${GREEN}${BOLD}STATUS${NORM}] Creating OCS event users." 
-for i in {1..25}; 
+for i in {1..32}; 
 do 
    x="EVN_"$i; 
    rabbitmqctl add_user $x $x;
