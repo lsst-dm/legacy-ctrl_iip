@@ -683,6 +683,14 @@ void Forwarder::process_at_xfer_params(Node n) {
     Node p = n["XFER_PARAMS"];
     cout << "Sub Node p is " << p <<  endl;
 
+    this->visit_raft_list.clear();
+    this->visit_raft_list = p["RAFT_LIST"].as<vector<string>>();
+    cout << "In process_xfer_params, RAFT_LIST has been ASSIGNED to class var" << endl;
+
+    this->visit_ccd_list_by_raft.clear();
+    this->visit_ccd_list_by_raft = p["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
+    cout << "In process_xfer_params, RAFT_CCC_LIST has been ASSIGNED to class var" << endl;
+
     //this->Session_ID = n["SESSION_ID"].as<string>();
     //cout << "After setting SESSION_ID" << endl;
 
@@ -796,22 +804,25 @@ void Forwarder::process_fetch(Node n) {
       //   The board list should be iterated through.
       //   after each board is read, the appropriate ccds on that board should be split out
       //   This could be done with map with key being board, and val being a vector of which CCDs should be pulled
+
       string image_id = n["IMAGE_ID"].as<string>();
-      ostringstream cmd;
-      ostringstream rmcmd;
-      ostringstream filepath;
-      filepath << this->Work_Dir << "/" << image_id;
-      cmd << "mkdir -p " << filepath.str();
-      rmcmd << "rm  " << filepath.str() << "/*";
-      const std::string tmpstr = cmd.str();
-      const char* cmdstr = tmpstr.c_str();
-      const std::string tmp_rmstr = rmcmd.str();
-      const char* rmcmdstr = tmp_rmstr.c_str();
-      system(cmdstr);
-      //system(rmcmdstr);
+      ostringstream dir_prefix;
+      dir_prefix << this->Work_Dir << "/" << image_id;
+      for (int i = 0; i < this->visit_raft_list.size(); i++) {
+          for (int j = 0; j < this->visit_ccd_list_by_raft[i].size(); j++) {
+              ostringstream cmd;
+              ostringstream filepath;
+              filepath << dir_prefix.str() << "/" \
+                       << this->visit_raft_list[i] << "/" \
+                       << this->visit_ccd_list_by_raft[i][j];
+              cmd << "mkdir -p " << filepath.str();
+              const std::string tmpstr = cmd.str();
+              const char* cmdstr = tmpstr.c_str();
+              system(cmdstr);
+          }
+      }
 
-
-      this->fetch_readout_image(image_id, filepath.str());
+      this->fetch_readout_image(image_id, dir_prefix.str());
 
 
       string new_msg_type = "FORMAT_END_READOUT";
@@ -826,21 +837,21 @@ void Forwarder::process_fetch(Node n) {
 
 void Forwarder::process_at_fetch(Node n) {
     string image_id = n["IMAGE_ID"].as<string>();
+    string raft = this->visit_raft_list[0];
+    string ccd = this->visit_ccd_list_by_raft[0][0];
     ostringstream cmd;
     ostringstream rmcmd;
     ostringstream filepath;
-    filepath << this->Work_Dir << "/" << image_id;
+    ostringstream dir_prefix;
+    dir_prefix << this->Work_Dir << "/" << image_id;
+    filepath << dir_prefix.str() << "/" \
+                       << raft << "/" \
+                       << ccd;
     cmd << "mkdir -p " << filepath.str();
-    rmcmd << "rm  " << filepath.str() << "/*";
     const std::string tmpstr = cmd.str();
     const char* cmdstr = tmpstr.c_str();
-    const std::string tmp_rmstr = rmcmd.str();
-    const char* rmcmdstr = tmp_rmstr.c_str();
     system(cmdstr);
-    //system(rmcmdstr);
  
-    //string raft = "raft02";
-    string raft = "raft01";
     this->fetch_at_reassemble_process(raft, image_id, filepath.str());
     map<string, vector<string>> source_boards = {
         {"0", {"00"}}
@@ -1044,31 +1055,45 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
   bool do_ccd1 = false;
   bool do_ccd2 = false;
 
+  // Used when sending image array ready msg to format process
+  std::map<string, string> ccd0_map;
+  std::map<string, string> ccd1_map;
+  std::map<string, string> ccd2_map;
+  std::ostringstream ccd0_path;
+  std::ostringstream ccd1_path;
+  std::ostringstream ccd2_path;
+
   std::vector<std::ofstream*> FH0;
   std::vector<std::ofstream*> FH1;
   std::vector<std::ofstream*> FH2;
 
   for (int x = 0; x < ccds_for_board.size(); x++) {
 
-	cout << "DOING XXX" << endl; 
-	cout << "method is: " << string(1, ccds_for_board[x][1]) << " and CCD is: " << ccds_for_board[x][1] << endl; 
-	cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl; 
         if (string(1, ccds_for_board[x][1]) == "0") {
             do_ccd0 = true;
-cout << "do_ccd0 is True" << endl << ccds_for_board[x] <<  endl << "########################" << endl;
             this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[x], dir_prefix);
+            ccd0_path << dir_prefix << "/" << raft << "/" << ccds_for_board[x];
+            ccd0_map.insert(pair<string,string>("raft",raft));
+            ccd0_map.insert(pair<string,string>("ccd",ccds_for_board[x]));
+            ccd0_map.insert(pair<string,string>("path",ccd0_path.str()));
         }
 
         if (string(1, ccds_for_board[x][1]) == "1") {
             do_ccd1 = true;
-cout << "do_ccd1 is True" << endl << ccds_for_board[x] << endl << "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&" << endl;
             this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[x], dir_prefix);
+            ccd1_path << dir_prefix << "/" << raft << "/" << ccds_for_board[x];
+            ccd1_map.insert(pair<string,string>("raft",raft));
+            ccd1_map.insert(pair<string,string>("ccd",ccds_for_board[x]));
+            ccd1_map.insert(pair<string,string>("path",ccd1_path.str()));
         }
 
         if (string(1, ccds_for_board[x][1]) == "2") {
             do_ccd2 = true;
-cout << "do_ccd2 is True" << endl << ccds_for_board[x] << endl << "WWWWWWWWWWWWWWWWWWWWWWWWWWWW" << endl;
             this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[x], dir_prefix);
+            ccd2_path << dir_prefix << "/" << raft << "/" << ccds_for_board[x];
+            ccd2_map.insert(pair<string,string>("raft",raft));
+            ccd2_map.insert(pair<string,string>("ccd",ccds_for_board[x]));
+            ccd2_map.insert(pair<string,string>("path",ccd2_path.str()));
         }
     }
 
@@ -1087,9 +1112,8 @@ cout << "do_ccd2 is True" << endl << ccds_for_board[x] << endl << "WWWWWWWWWWWWW
       for(int amp=0; amp<N_AMPS; ++amp)
       {
         if (do_ccd0) {
-            int32_t X = SCIENCE_PIX_MASK ^ ((ccd2[s].segment[amp]));
-            //int32_t Y = PIX_MASK ^ ((ccd0[s].segment[amp]));
-            //int32_t X = STRAIGHT_PIX_MASK ^ Y;
+            int32_t X = SCIENCE_PIX_MASK ^ ((ccd2[s].segment[amp])); //NOTE: ccd0 and ccd2
+                                                                     // must be swapped here
             FH0[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
@@ -1098,9 +1122,6 @@ cout << "do_ccd2 is True" << endl << ccds_for_board[x] << endl << "WWWWWWWWWWWWW
       {
         if (do_ccd1) {
             int32_t X = SCIENCE_PIX_MASK ^ ((ccd1[s].segment[amp]));
-            //int32_t X = PIX_MASK ^ ((ccd1[s].segment[amp]));
-            //int32_t Y = PIX_MASK ^ ((ccd1[s].segment[amp]));
-            //int32_t X = STRAIGHT_PIX_MASK ^ Y;
             FH1[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
@@ -1109,9 +1130,6 @@ cout << "do_ccd2 is True" << endl << ccds_for_board[x] << endl << "WWWWWWWWWWWWW
       {
         if (do_ccd2) {
             int32_t X = SCIENCE_PIX_MASK ^ ((ccd0[s].segment[amp]));
-            //int32_t X = PIX_MASK ^ ((ccd2[s].segment[amp]));
-            //int32_t Y = PIX_MASK ^ ((ccd2[s].segment[amp]));
-            //int32_t X = STRAIGHT_PIX_MASK ^ Y;
             FH2[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
         }
       }
@@ -1124,12 +1142,39 @@ cout << "do_ccd2 is True" << endl << ccds_for_board[x] << endl << "WWWWWWWWWWWWW
   }
   while(slice.advance());
 
-  if (do_ccd0) 
+  if (do_ccd0) {
     this->fetch_close_filehandles(FH0);
-  if (do_ccd1) 
+    string new_msg_type = "FORMAT_END_READOUT";
+    ostringstream msg;
+    msg << "{MSG_TYPE: " << new_msg_type
+        << ", IMAGE_ID: " << image_id
+        << ", RAFT: " << ccd0_map["raft"]
+        << ", CCD: " << ccd0_map["ccd"]
+        << ", PATH: " << ccd0_map["path"] << "}";
+    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+  }
+  if (do_ccd1) {
     this->fetch_close_filehandles(FH1);
-  if (do_ccd2) 
+    string new_msg_type = "FORMAT_END_READOUT";
+    ostringstream msg;
+    msg << "{MSG_TYPE: " << new_msg_type
+        << ", IMAGE_ID: " << image_id
+        << ", RAFT: " << ccd1_map["raft"]
+        << ", CCD: " << ccd1_map["ccd"]
+        << ", PATH: " << ccd1_map["path"] << "}";
+    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+  }
+  if (do_ccd2) {
     this->fetch_close_filehandles(FH2);
+    string new_msg_type = "FORMAT_END_READOUT";
+    ostringstream msg;
+    msg << "{MSG_TYPE: " << new_msg_type
+        << ", IMAGE_ID: " << image_id
+        << ", RAFT: " << ccd2_map["raft"]
+        << ", CCD: " << ccd2_map["ccd"]
+        << ", PATH: " << ccd2_map["path"] << "}";
+    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+  }
 
   return;
 }
@@ -1140,9 +1185,12 @@ cout << "do_ccd2 is True" << endl << ccds_for_board[x] << endl << "WWWWWWWWWWWWW
 void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, 
                                           string image_id, string raft, 
                                           string ccd, string dir_prefix){
+    std::ostringstream full_dir_prefix;
+    full_dir_prefix << dir_prefix << "/" << raft << "/" << ccd;
+
     for (int i=0; i < 16; i++) {
         std::ostringstream fns;
-        fns << dir_prefix << "/" \
+        fns << full_dir_prefix.str() << "/" \
                           << image_id \
                           << "--" << raft \
                           << "-ccd." << ccd \
