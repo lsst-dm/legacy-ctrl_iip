@@ -169,7 +169,7 @@ class Forwarder {
 
     long* format_read_img_segment(const char*);
     unsigned char** format_assemble_pixels(char *);
-    void format_write_img(std::string, std::string, std::string, std::string);
+    void format_write_img(std::string, std::string, std::string, std::string, std::string);
     void format_assemble_img(Node);
     void format_send_completed_msg(std::string);
     void format_look_for_work(); 
@@ -1492,14 +1492,15 @@ void Forwarder::format_assemble_img(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering format_assemble_img function."; 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
-        string header = n["HEADER"].as<string>(); 
+        string header_path = n["HEADER"].as<string>(); 
         string raft_name = n["RAFT"].as<string>();  // raft01
         string ccd_name = n["CCD"].as<string>(); // ccd00
+        string img_path = n["PATH"].as<string>(); 
         string fits_dir = Work_Dir + "/fits"; 
         const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
         LOGGER(my_logger::get(), info) << "Created directory " << fits_dir << " for assembling images."; 
 
-        format_write_img(img_id, raft_name, ccd_name, header);
+        format_write_img(img_id, raft_name, ccd_name, header_path, img_path);
         LOGGER(my_logger::get(), debug) << "Start formatting ..."; 
     } 
     catch (exception& e) { 
@@ -1545,7 +1546,7 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
 } 
 */ 
 
-void Forwarder::format_write_img(string img_id, string raft_name, string ccd_name, string header) { 
+void Forwarder::format_write_img(string img_id, string raft_name, string ccd_name, string header, string segment_path) { 
     LOGGER(my_logger::get(), debug) << "Entering format_write_img function."; 
     try { 
         long len = NAXIS1 * NAXIS2;
@@ -1560,7 +1561,7 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
         fitsfile *iptr, *optr; 
 
         // /mnt/ram/IMG_31/raft01/ccd00/*.segment
-        string img_path = Work_Dir + "/" + img_id + "/" + raft_name + "/" + ccd_name;
+        string img_path = segment_path; 
         string header_path = header;
 
         // IMG_31--raft01--ccd00.fits
