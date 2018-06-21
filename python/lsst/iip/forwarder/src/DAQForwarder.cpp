@@ -50,7 +50,6 @@ class Forwarder {
     //Important 'per readout' values
     std::vector<string> visit_raft_list;
     std::vector<std::vector<string>> visit_ccd_list_by_raft;
-    std::vector<string> image_id_list;
 
     std::vector<string> current_image_work_list;
     std::vector<string> finished_image_work_list;
@@ -741,7 +740,6 @@ void Forwarder::process_end_readout(Node n) {
 
     //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
     string image_id = n["IMAGE_ID"].as<string>();
-    image_id_list.push_back(image_id);
     string msg_type = "FETCH_END_READOUT";
     ostringstream message;
     message << "{MSG_TYPE: " << msg_type
@@ -758,7 +756,6 @@ void Forwarder::process_at_end_readout(Node n) {
 
     //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
     string image_id = n["IMAGE_ID"].as<string>();
-    image_id_list.push_back(image_id);
     string msg_type = "FETCH_AT_END_READOUT";
     ostringstream message;
     message << "{MSG_TYPE: " << msg_type
@@ -877,9 +874,7 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
         IMS::Source source(location, image);
  
         //should be wfs here 
-        //IMS::Science slice(source);
         IMS::WaveFront slice(source);
-  
         if(!slice) return;
   
         ccd_path << dir_prefix << "/" << raft << "/" << ccd;
@@ -1157,7 +1152,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
         << ", RAFT: " << ccd0_map["raft"]
         << ", CCD: " << ccd0_map["ccd"]
         << ", PATH: " << ccd0_map["path"] << "}";
-    //this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
   }
   if (do_ccd1) {
     this->fetch_close_filehandles(FH1);
@@ -1168,7 +1163,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
         << ", RAFT: " << ccd1_map["raft"]
         << ", CCD: " << ccd1_map["ccd"]
         << ", PATH: " << ccd1_map["path"] << "}";
-    //this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
   }
   if (do_ccd2) {
     this->fetch_close_filehandles(FH2);
@@ -1179,7 +1174,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
         << ", RAFT: " << ccd2_map["raft"]
         << ", CCD: " << ccd2_map["ccd"]
         << ", PATH: " << ccd2_map["path"] << "}";
-    //this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
   }
 
   return;
