@@ -12,20 +12,20 @@ from const import *
 import toolsmod 
 from time import sleep
 
-
+# pytest -s -v tests/test_xxx
 class TestOCS_CommandListener: 
 
     os.chdir("ocs/src")
     cmd = subprocess.Popen("./CommandListener&", shell=True, preexec_fn=os.setsid)
     sleep(10) 
 
-    EXPECTED_DMCS_MESSAGES = 24
+    EXPECTED_DMCS_MESSAGES = 32 
     dmcs_consumer = None
     dmcs_consumer_msg_list = [] 
 
     def test_ocs_commandlistener(self): 
         try: 
-            cdm = toolsmod.intake_yaml_file("/home/hwin16/src/git/ctrl_iip/python/lsst/iip/tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml")
+            cdm = toolsmod.intake_yaml_file("../../tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml")
         except IOError as e: 
             trace = traceback.print_exc() 
             emsg = "Unable to fine CFG Yaml file %s\n" % self._config_file 
@@ -46,7 +46,7 @@ class TestOCS_CommandListener:
         self.dmcs_consumer.start()
         print("Test setup Complete. Commencing Messages...")
 
-        self._msg_auth = MessageAuthority("/home/hwin16/src/git/ctrl_iip/python/lsst/iip/messages.yaml")
+        self._msg_auth = MessageAuthority("../../messages.yaml")
 
         self.send_messages() 
         sleep(10)
@@ -59,7 +59,7 @@ class TestOCS_CommandListener:
         os.chdir("../commands/")
         
         commands = ["start", "stop", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
-        devices = ["archiver", "catchuparchiver", "processingcluster"] 
+        devices = ["archiver", "catchuparchiver", "processingcluster", "atArchiver"] 
 
         for device in devices: 
             for command in commands: 

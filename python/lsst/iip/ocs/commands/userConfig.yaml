@@ -1,0 +1,9 @@
+atArchiver: 
+    start: CL_25
+    stop: CL_26
+    enable: CL_27
+    disable: CL_28
+    standby: CL_29 
+    enterControl: CL_30
+    exitControl: CL_31
+    abort: CL_32 

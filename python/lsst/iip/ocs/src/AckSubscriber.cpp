@@ -168,7 +168,7 @@ void AckSubscriber::process_ack(Node n) {
             Command<SAL_processingcluster>::funcptr action = sender.action_handler[message_value]; 
             (pp.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
         }
-        else if (device == "ATAR"){ 
+        else if (device == "AT"){ 
             Command<SAL_atArchiver> sender; 
             Command<SAL_atArchiver>::funcptr action = sender.action_handler[message_value]; 
             (atar.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
@@ -209,7 +209,7 @@ void AckSubscriber::process_summary_state(Node n) {
             data.priority = priority; 
             pp.logEvent_SummaryState(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_SummaryStateC data; 
             data.SummaryStateValue = summary_state; 
             data.priority = priority; 
@@ -247,7 +247,7 @@ void AckSubscriber::process_recommended_settings_version(Node n) {
             data.priority = priority; 
             pp.logEvent_SettingVersions(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_SettingVersionsC data; 
             data.recommendedSettingVersion = recommended_setting; 
             data.priority = priority; 
@@ -285,7 +285,7 @@ void AckSubscriber::process_settings_applied(Node n) {
             data.priority = priority; 
             pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_AppliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
@@ -323,7 +323,7 @@ void AckSubscriber::process_applied_settings_match_start(Node n) {
             data.priority = priority; 
             pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_AppliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
@@ -361,7 +361,7 @@ void AckSubscriber::process_error_code(Node n) {
             data.priority = priority; 
             pp.logEvent_ErrorCode(&data, priority); 
         }
-        else if (device == "ATAR") { 
+        else if (device == "AT") { 
             atArchiver_logevent_ErrorCodeC data; 
             data.errorCode = error_code; 
             data.priority = priority; 
