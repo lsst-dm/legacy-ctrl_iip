@@ -176,6 +176,7 @@ class Forwarder {
     void format_process_end_readout(Node); 
     void format_get_header(Node); 
     vector<string> format_list_files(string); 
+    void format_cleanup_binaries(std::string); 
 
     void forward_process_end_readout(Node); 
     void forward_process_take_images_done(Node); 
@@ -1637,6 +1638,7 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
         LOGGER(my_logger::get(), critical) << e.what() << endl; 
     } 
 } 
+
 vector<string> Forwarder::format_list_files(string path) { 
     LOGGER(my_logger::get(), debug) << "Entering format_list_files function."; 
     try { 
@@ -1657,6 +1659,33 @@ vector<string> Forwarder::format_list_files(string path) {
     } 
     catch (exception& e) { 
         LOGGER(my_logger::get(), critical) << e.what() << endl; 
+    } 
+} 
+
+void Forwarder::format_cleanup_binaries(string path) { 
+    LOGGER(my_logger::get(), debug) << "Entering format_cleanup_binaries function."; 
+    try { 
+        struct dirent *entry; 
+        DIR *dir  = opendir(path.c_str()); 
+        vector<string> file_names; 
+        while (entry  = readdir(dir)) { 
+            string name = entry->d_name;
+            if (strcmp(name.c_str(), ".") && strcmp(name.c_str(), "..")) { 
+                if (remove(name.c_str()) != 0) { 
+                    LOGGER(my_logger::get(), critical) << "File " << name << " deletion failed."; 
+                } 
+                else { 
+                    LOGGER(my_logger::get(), debug) << "File " << name << " has been successfully deleted."; 
+                } 
+            }
+        } 
+
+        closedir(dir);
+        LOGGER(my_logger::get() , debug) << "Added file list for further processing."; 
+        return; 
+    } 
+    catch (exception& e) { 
+        LOGGER(my_logger::get(), critical) << "In format_cleanup_binaries, error is " << e.what() << endl; 
     } 
 } 
 
