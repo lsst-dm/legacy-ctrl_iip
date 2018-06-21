@@ -824,12 +824,6 @@ void Forwarder::process_fetch(Node n) {
 
       this->fetch_readout_image(image_id, dir_prefix.str());
 
-
-      string new_msg_type = "FORMAT_END_READOUT";
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << new_msg_type
-          << ", IMAGE_ID: " << image_id << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
       return;
     }
 }
@@ -843,6 +837,7 @@ void Forwarder::process_at_fetch(Node n) {
     ostringstream rmcmd;
     ostringstream filepath;
     ostringstream dir_prefix;
+
     dir_prefix << this->Work_Dir << "/" << image_id;
     filepath << dir_prefix.str() << "/" \
                        << raft << "/" \
@@ -852,16 +847,8 @@ void Forwarder::process_at_fetch(Node n) {
     const char* cmdstr = tmpstr.c_str();
     system(cmdstr);
  
-    this->fetch_at_reassemble_process(raft, image_id, filepath.str());
-    map<string, vector<string>> source_boards = {
-        {"0", {"00"}}
-    };
+    this->fetch_at_reassemble_process(raft, image_id, dir_prefix.str());
 
-    string new_msg_type = "FORMAT_END_READOUT";
-    ostringstream msg;
-    msg << "{MSG_TYPE: " << new_msg_type
-        << ", IMAGE_ID: " << image_id << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
     return;
 }
 
@@ -878,6 +865,14 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
 
     DAQ::Location location;
 
+    std::ostringstream ccd_path;
+
+    // As spectrograph camera is just one sensor on one partition,
+    // the ccd name will be the first ccd string in the list for 
+    // the first (and only) raft.
+    //
+    string ccd = this->visit_ccd_list_by_raft[0][0];
+
     while(sources.remove(location)) {
         IMS::Source source(location, image);
  
@@ -887,11 +882,14 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
   
         if(!slice) return;
   
+        ccd_path << dir_prefix << "/" << raft << "/" << ccd;
+
         // Filehandle set for ATS CCD will then have a set of 
         // 16 filehandles...one filehandle for each amp segment.
-  
+        // 
         std::vector<std::ofstream*> FH_ATS;
-        this->fetch_set_up_at_filehandles(FH_ATS, image_id, dir_prefix);
+        this->fetch_set_up_at_filehandles(FH_ATS, image_id, ccd_path.str());
+
   
         do {
             total_stripes += slice.stripes();
@@ -911,6 +909,14 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
         while(slice.advance());
   
         this->fetch_close_filehandles(FH_ATS);
+        string new_msg_type = "FORMAT_END_READOUT";
+        ostringstream msg;
+        msg << "{MSG_TYPE: " << new_msg_type
+            << ", IMAGE_ID: " << image_id
+            << ", RAFT: " << raft
+            << ", CCD: " << ccd
+            << ", PATH: " << ccd_path << "}";
+        this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
     }
     return;
 }
@@ -1151,7 +1157,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
         << ", RAFT: " << ccd0_map["raft"]
         << ", CCD: " << ccd0_map["ccd"]
         << ", PATH: " << ccd0_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    //this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
   }
   if (do_ccd1) {
     this->fetch_close_filehandles(FH1);
@@ -1162,7 +1168,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
         << ", RAFT: " << ccd1_map["raft"]
         << ", CCD: " << ccd1_map["ccd"]
         << ", PATH: " << ccd1_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    //this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
   }
   if (do_ccd2) {
     this->fetch_close_filehandles(FH2);
@@ -1173,7 +1179,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
         << ", RAFT: " << ccd2_map["raft"]
         << ", CCD: " << ccd2_map["ccd"]
         << ", PATH: " << ccd2_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    //this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
   }
 
   return;
@@ -1203,10 +1209,10 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set,
 }
 
 void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set, 
-                                             string image_id, string dir_prefix){
+                                             string image_id, string full_dir_prefix){
     for (int i=0; i < 16; i++) {
         std::ostringstream fns;
-        fns << dir_prefix << "/" \
+        fns << full_dir_prefix << "/" \
                           << image_id \
                           << "--AUXTEL" \
                           << "-ccd.ATS_CCD" \
