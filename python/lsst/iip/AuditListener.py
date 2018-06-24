@@ -4,7 +4,7 @@ from toolsmod import get_timestamp
 from Consumer import Consumer
 import yaml
 import time
-import _thread
+import threading
 import os
 import sys
 from influxdb import InfluxDBClient
@@ -56,16 +56,8 @@ class AuditListener:
 
     def start_consumer(self, broker_url, format): 
 
-        self.influx_consumer = Consumer(self.broker_url, "audit_consume", format)
-        try:
-            _thread.start_new_thread( self.run_influx_consumer, ("thread-influx-consumer", 2,) )
-        except:
-            LOGGER.critical('Cannot start influx consumer thread, exiting...')
-            sys.exit(99)
-
-
-    def run_influx_consumer(self, threadname, delay):
-        self.influx_consumer.run(self.on_influx_message)
+        self.influx_consumer = Consumer(self.broker_url, "audit_consume", "thread-audit", self.on_influx_message, format)
+        self.influx_consumer.start()
 
 
     def on_influx_message(self, ch, method, properties, msg):
