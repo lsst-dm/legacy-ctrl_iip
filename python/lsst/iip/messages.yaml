@@ -24,6 +24,10 @@
 ##                                                             #
 ## fwdr2fwdr  Forwarder inter-thread messages                  #
 ##                                                             #
+## To get a current count of the number of messages in this    #
+## file, run:                                                  #
+## grep "^    [A-Z]" messages.yaml |wc -l                      #
+##                                                             #
 ################################################################
 
 
