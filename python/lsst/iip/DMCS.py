@@ -663,7 +663,7 @@ class DMCS:
             ack_id = self.INCR_SCBD.get_next_timed_ack_id( "AT_START_INT_ACK")
             acks.append(ack_id)
             job_num = self.INCR_SCBD.get_next_job_num( session_id)
-            self.STATE_SCBD.add_job(job_num, image_id, "visit_0", raft_ccd_list)
+            self.STATE_SCBD.add_job(job_num, image_id, raft_list, raft_ccd_list)
             self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', "AT")
             self.STATE_SCBD.set_current_device_job(job_num, "AT")
             self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
