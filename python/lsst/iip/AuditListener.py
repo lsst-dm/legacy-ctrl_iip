@@ -2,6 +2,7 @@ from const import *
 import toolsmod
 from toolsmod import get_timestamp
 from Consumer import Consumer
+from pprint import pprint, pformat
 import yaml
 import time
 import threading
@@ -11,6 +12,9 @@ from influxdb import InfluxDBClient
 
 
 class AuditListener:
+    prp = toolsmod.prp
+    DP = toolsmod.DP
+    PRINT_ONLY = False
 
     def __init__(self, filename=None):
         if filename == None:
@@ -30,8 +34,10 @@ class AuditListener:
         self.influx_db = 'MMM'
         #self.influx_db = self.cdm['ROOT']['INFLUX_DB']
         self.audit_format = "YAML"
-        if 'AUDIT_MSG_FORMAT' in self.cdm['ROOT']:
-            self.audit_format = self.cdm['ROOT']['AUDIT_MSG_FORMAT']
+        if 'AUDIT_MSG_FORMAT' in self.cdm['ROOT']['AUDIT']:
+            self.audit_format = self.cdm['ROOT']['AUDIT']['AUDIT_MSG_FORMAT']
+        if self.cdm['ROOT']['AUDIT']['PRINT_ONLY'] == 'yes':
+            self.PRINT_ONLY = True
 
 
         self.msg_actions = { 'ACK_SCOREBOARD_DB': self.process_ack_scbd,
@@ -63,8 +69,14 @@ class AuditListener:
     def on_influx_message(self, ch, method, properties, msg):
         #print "In audit, msg contents is:  %s" % msg
         ch.basic_ack(method.delivery_tag) 
-        handler = self.msg_actions.get(msg['DATA_TYPE'])
-        result = handler(msg)
+        if self.DP:
+            print("AuditListener message received: ")
+            self.prp.pprint(msg)
+        if self.PRINT_ONLY:
+            return
+        else:
+            handler = self.msg_actions.get(msg['DATA_TYPE'])
+            result = handler(msg)
 
 
 

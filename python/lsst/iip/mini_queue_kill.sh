@@ -74,3 +74,4 @@ rabbitmqctl -p /test purge_queue f99_consume_from_forward
 
 rabbitmqctl -p /test purge_queue ocs_dmcs_consume
 rabbitmqctl -p /test purge_queue dmcs_ocs_publish
+rabbitmqctl -p /test purge_queue audit_consume

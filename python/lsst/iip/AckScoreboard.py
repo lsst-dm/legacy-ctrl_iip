@@ -50,12 +50,12 @@ class AckScoreboard(Scoreboard):
         LOGGER.info('Setting up AckScoreboard')
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
-        try:
-            Scoreboard.__init__(self)
-        except L1RabbitConnectionError as e:
-            LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print("No Auditing for YOU")
-            raise L1Error('Calling super.init in AckScoreboard init caused: ', e.arg)
+        #try:
+        #    Scoreboard.__init__(self)
+        #except L1RabbitConnectionError as e:
+        #    LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
+        #    print("No Auditing for YOU")
+        #    raise L1Error('Calling super.init in AckScoreboard init caused: ', e.arg)
 
         self._redis = self.connect()
         self._redis.flushdb()
@@ -163,10 +163,10 @@ class AckScoreboard(Scoreboard):
 
                 return component_dict
                 
-                params = {}
-                params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
-                params['ACK_ID'] = timed_ack
-                self.persist(self.build_audit_data(params))
+                #params = {}
+                #params['SUB_TYPE'] = 'TIMED_ACK_FETCH'
+                #params['ACK_ID'] = timed_ack
+                #self.persist(self.build_audit_data(params))
                 
             else:
                 return None

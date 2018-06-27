@@ -18,6 +18,7 @@ class Scoreboard:
     """
 
     AUDIT_QUEUE = 'audit_consume'
+    USE_AUDITING = False
 
     def __init__(self, file=None):
         if file == None:
@@ -30,9 +31,17 @@ class Scoreboard:
 
         self.cdm = yaml.safe_load(f)
 
+        if self.cdm.['ROOT']['AUDIT']['USE_AUDITING'] == 'yes':
+            self.USE_AUDITING = True
+
+        if self.USE_AUDITING == False:
+            return
+
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
-        name = self.cdm['ROOT']['BASE_BROKER_NAME']
-        passwd = self.cdm['ROOT']['BASE_BROKER_PASSWD']
+        print("SCBD base name is %s" % self.cdm['ROOT']['BASE_BROKER_NAME'])
+        print("SCBD base passwd is %s" % self.cdm['ROOT']['BASE_BROKER_PASSWD'])
+        name = "PFM_PUB"
+        passwd = "PFM_PUB"
         self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
 
         self.audit_format = "YAML"
@@ -48,7 +57,8 @@ class Scoreboard:
 
 
     def persist(self, data):
-        self.audit_publisher.publish_message(self.AUDIT_QUEUE, data)
+        if self.USE_AUDITING:
+            self.audit_publisher.publish_message(self.AUDIT_QUEUE, data)
 
 
     def persist_snapshot(self, connection, filename):

@@ -212,7 +212,7 @@ class TestDMCS_AT:
         msg['ACK_ID'] = 'DMCS_END_READOUT_ACK_82'
         time.sleep(5)
         if self.DP:
-            print("Sending READOUT Message")
+            print("Sending HEADER_READY Message")
         self.ocs_publisher.publish_message("ocs_dmcs_consume", msg)
      
      

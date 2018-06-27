@@ -43,12 +43,12 @@ class BacklogScoreboard(Scoreboard):
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
-        try:
-            Scoreboard.__init__(self)
-        except L1RabbitConnectionError as e:
-            LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print("No Monitoring for YOU")
-            raise L1Error('Calling super.init in StateScoreboard init caused: ', e.arg)
+        #try:
+        #    Scoreboard.__init__(self)
+        #except L1RabbitConnectionError as e:
+        #    LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
+        #    print("No Monitoring for YOU")
+        #    raise L1Error('Calling super.init in StateScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()

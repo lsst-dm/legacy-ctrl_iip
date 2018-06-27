@@ -82,7 +82,6 @@ ROOT:
   INFLUX_DB: L1_Test
   SESSION_ID_FILE: "/var/session_id"
   DMCS_ACK_ID_FILE: "/var/dmcs_ack_id"
-  AUDIT_MSG_FORMAT: YAML
   USE_MUTEX: YES
   #AR_CFG_KEYS: ['7FC7','2321A','AC11']
   #AR_CFG_KEYS: Normal
@@ -137,6 +136,10 @@ ROOT:
     ARCHIVE_HOSTNAME: ARCHIE
     ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
     CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
+  AUDIT:
+    AUDIT_MSG_FORMAT: YAML
+    USE_AUDITING: yes
+    PRINT_ONLY: yes
   EFD:
     EFD_NAME: LFA
     EFD_LOGIN: felipe

@@ -56,7 +56,7 @@ class StateScoreboard(Scoreboard):
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
         try:
-            Scoreboard.__init__(self)
+            super().__init__()
         except L1RabbitConnectionError as e:
             LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
             print("No Monitoring for YOU")
@@ -464,7 +464,7 @@ class StateScoreboard(Scoreboard):
             params['SUB_TYPE'] = self.JOB_STATE
             params['STATE'] = state
             params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            #self.persist(self.build_monitor_data(params))
+            self.persist(self.build_monitor_data(params))
 
 
     def set_value_for_job(self, job_number, kee, val):
@@ -572,7 +572,6 @@ class StateScoreboard(Scoreboard):
         for kee in keez:
             monitor_data[kee] = params[kee]
         monitor_data['SESSION_ID'] = self.get_current_session()
-        monitor_data['VISIT_ID'] = self.get_current_visit()
         monitor_data['TIME'] = get_epoch_timestamp()
         monitor_data['DATA_TYPE'] = self.DB_TYPE
         return monitor_data
