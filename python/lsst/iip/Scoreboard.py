@@ -31,11 +31,13 @@ class Scoreboard:
 
         self.cdm = yaml.safe_load(f)
 
-        if self.cdm['ROOT']['AUDIT']['USE_AUDITING'] == 'yes':
+        print("First Look Value of CFG USE_AUDITING is %s" % self.cdm['ROOT']['AUDIT']['USE_AUDITING'])
+        if self.cdm['ROOT']['AUDIT']['USE_AUDITING'] == True:
             self.USE_AUDITING = True
 
         if self.USE_AUDITING == False:
             print(">>>>>>>>>>>>><<<<<<<<<<<<<")
+            print("Value of CFG USE_AUDITING is %s" % self.cdm['ROOT']['AUDIT']['USE_AUDITING'])
             print("Scoreboard base calls skipping auditing as USE_AUDITING = False")
             print(">>>>>>>>>>>>><<<<<<<<<<<<<")
             return

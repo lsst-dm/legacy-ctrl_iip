@@ -36,7 +36,7 @@ class AuditListener:
         self.audit_format = "YAML"
         if 'AUDIT_MSG_FORMAT' in self.cdm['ROOT']['AUDIT']:
             self.audit_format = self.cdm['ROOT']['AUDIT']['AUDIT_MSG_FORMAT']
-        if self.cdm['ROOT']['AUDIT']['PRINT_ONLY'] == 'yes':
+        if self.cdm['ROOT']['AUDIT']['PRINT_ONLY'] == True:
             self.PRINT_ONLY = True
 
 
