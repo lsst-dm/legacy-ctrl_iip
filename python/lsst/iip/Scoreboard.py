@@ -31,10 +31,13 @@ class Scoreboard:
 
         self.cdm = yaml.safe_load(f)
 
-        if self.cdm.['ROOT']['AUDIT']['USE_AUDITING'] == 'yes':
+        if self.cdm['ROOT']['AUDIT']['USE_AUDITING'] == 'yes':
             self.USE_AUDITING = True
 
         if self.USE_AUDITING == False:
+            print(">>>>>>>>>>>>><<<<<<<<<<<<<")
+            print("Scoreboard base calls skipping auditing as USE_AUDITING = False")
+            print(">>>>>>>>>>>>><<<<<<<<<<<<<")
             return
 
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
@@ -45,8 +48,8 @@ class Scoreboard:
         self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
 
         self.audit_format = "YAML"
-        if 'AUDIT_MSG_FORMAT' in self.cdm['ROOT']:
-            self.audit_format = self.cdm['ROOT']['AUDIT_MSG_FORMAT']
+        if 'AUDIT_MSG_FORMAT' in self.cdm['ROOT']['AUDIT']:
+            self.audit_format = self.cdm['ROOT']['AUDIT']['AUDIT_MSG_FORMAT']
 
         try:
             self.audit_publisher = SimplePublisher(self.broker_url, self.audit_format)
