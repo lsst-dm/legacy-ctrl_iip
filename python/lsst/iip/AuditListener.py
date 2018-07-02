@@ -45,6 +45,7 @@ class AuditListener:
                              'FWD_SCOREBOARD_DB': self.process_fwd_scbd,
                              'JOB_SCOREBOARD_DB': self.process_job_scbd,
                              'DMCS_SCOREBOARD_DB': self.process_dmcs_scbd,
+                             'DMCS_STATE_SCBD': self.process_job_state_scbd,
                              'BACKLOG_SCOREBOARD_DB': self.process_backlog_scbd,
                              'FOREMAN_ACK_REQUEST': self.process_foreman_ack_request }
 
@@ -117,7 +118,7 @@ class AuditListener:
         tags_dict = {}
         tags_dict['job'] = msg['JOB_NUM']
         tags_dict['session'] = msg['SESSION_ID']
-        tags_dict['visit'] = msg['VISIT_ID']
+        #tags_dict['visit'] = msg['VISIT_ID']
         tags_dict['image_id'] = msg['IMAGE_ID']
 
         fields_dict = {}

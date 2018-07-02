@@ -139,7 +139,7 @@ ROOT:
   AUDIT:
     AUDIT_MSG_FORMAT: YAML
     USE_AUDITING: yes
-    PRINT_ONLY: yes
+    PRINT_ONLY: no
   EFD:
     EFD_NAME: LFA
     EFD_LOGIN: felipe
