@@ -45,7 +45,7 @@ class AuditListener:
                              'FWD_SCOREBOARD_DB': self.process_fwd_scbd,
                              'JOB_SCOREBOARD_DB': self.process_job_scbd,
                              'DMCS_SCOREBOARD_DB': self.process_dmcs_scbd,
-                             'DMCS_STATE_SCBD': self.process_job_state_scbd,
+                             'DMCS_STATE_SCBD': self.process_job_state,
                              'BACKLOG_SCOREBOARD_DB': self.process_backlog_scbd,
                              'FOREMAN_ACK_REQUEST': self.process_foreman_ack_request }
 
