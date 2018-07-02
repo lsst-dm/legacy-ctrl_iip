@@ -1018,7 +1018,7 @@ class DMCS:
         """
         try: 
             job_num = params[JOB_NUM]
-            results = params['RESULTS_LIST']
+            results = params['RESULT_SET']
 
             # Mark job number done
             self.STATE_SCBD.set_job_state(job_num, "COMPLETE")

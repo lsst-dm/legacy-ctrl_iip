@@ -572,7 +572,7 @@ class StateScoreboard(Scoreboard):
         for kee in keez:
             monitor_data[kee] = params[kee]
         monitor_data['SESSION_ID'] = self.get_current_session()
-        monitor_data['TIME'] = get_epoch_timestamp()
+        monitor_data['TIME'] = int(time.time())
         monitor_data['DATA_TYPE'] = self.DB_TYPE
         return monitor_data
 
