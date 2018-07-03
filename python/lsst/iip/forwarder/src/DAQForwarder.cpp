@@ -117,7 +117,7 @@ class Forwarder {
     string FETCH_USER_PUB, FETCH_USER_PUB_PASSWD, FORMAT_USER_PUB, FORMAT_USER_PUB_PASSWD; 
     string FORWARD_USER_PUB, FORWARD_USER_PUB_PASSWD;
 
-    vector<string> readout_img_ids; 
+    map<string, Node> readout_img_ids; 
     map<string, string> header_info_dict; 
     map<string, string> take_img_done_msg; 
 
@@ -180,7 +180,7 @@ class Forwarder {
     void format_write_img(std::string, std::string, std::string, std::string);
     void format_assemble_img(Node);
     void format_send_completed_msg(std::string);
-    void format_look_for_work(); 
+    void format_look_for_work(std::string); 
     void format_process_end_readout(Node); 
     void format_get_header(Node); 
     vector<string> format_list_files(string); 
@@ -1473,8 +1473,11 @@ void Forwarder::process_header_ready(Node n) {
 void Forwarder::format_process_end_readout(Node node) { 
     try { 
         string image_id = node["IMAGE_ID"].as<string>(); 
-        this->readout_img_ids.push_back(image_id); 
-        this->format_look_for_work(); 
+        Node n; 
+        n["RAFT"] = node["RAFT"].as<string>();
+        n["CCD"] = node["CCD"].as<string>(); 
+        this->readout_img_ids[image_id] = n; 
+        this->format_look_for_work(image_id); 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
@@ -1487,7 +1490,7 @@ void Forwarder::format_get_header(Node node) {
         string filename = node["FILENAME"].as<string>(); 
         cout << "[x] " << image_id << ": " << filename << endl;
         this->header_info_dict[image_id] = filename; 
-        this->format_look_for_work(); 
+        this->format_look_for_work(image_id); 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
@@ -1669,9 +1672,10 @@ void Forwarder::format_send_completed_msg(string image_id) {
 } 
 ///////////////////////////////////////////////////////////////////////////
 
-void Forwarder::format_look_for_work() { 
+void Forwarder::format_look_for_work(string image_id) { 
     cout << "[f] flfw" << endl;
     try { 
+        /** 
         vector<string>::iterator it;
         map<string, string>::iterator mit;  
         map<string, string>::iterator tid; 
@@ -1696,6 +1700,25 @@ void Forwarder::format_look_for_work() {
         else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
             cout << "[x] no img data" << endl; 
             return; 
+        } 
+        */ 
+        map<string, Node>::iterator binary_it = this->readout_img_ids.find(image_id); 
+        map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
+        if (binary_it != map::end && header_it != map::end) { 
+            cout << "Found both binaries and header." << endl;  
+            Node n; 
+            n["IMAGE_ID"] = image_id; 
+            n["HEADER"] = this->header_info_dict[image_id]; 
+            n["RAFT"] = this->readout_img_ids[image_id]["RAFT"].as<string>(); 
+            n["CCD"] = this->readout_img_ids[image_id]["CCD"].as<string>(); 
+            format_assemble_img(n); 
+
+            // cleanup the dictionaries
+            this->readout_img_ids.erase(binary_it); 
+            this->header_info_dict.erase(header_it); 
+        } 
+        else { 
+            cout << "[x] either no img data or header data" << endl; 
         } 
     } 
     catch (exception& e) { 
