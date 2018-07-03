@@ -1,4 +1,5 @@
 import pika
+import os
 import os.path
 import hashlib
 import yaml
@@ -22,7 +23,8 @@ class ArchiveController:
 
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
-    ACK_PUBLISH = "ar_foreman_ack_publish"
+    AR_ACK_PUBLISH = "ar_foreman_ack_publish"
+    AT_ACK_PUBLISH = "at_foreman_ack_publish"
     AUDIT_CONSUME = "audit_consume"
     YAML = 'YAML'
     RECEIPT_FILE = "/var/archive/archive_controller_receipt"
@@ -43,6 +45,7 @@ class ArchiveController:
             self._archive_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._archive_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_XFER_ROOT']
+            self._archive_at_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_AT_XFER_ROOT']
             if cdm[ROOT]['ARCHIVE']['CHECKSUM_ENABLED'] == 'yes':
                 self.CHECKSUM_ENABLED = True
             else:
@@ -50,6 +53,8 @@ class ArchiveController:
         except KeyError as e:
             raise L1Error(e)
 
+        os.makedirs(os.path.dirname(self.archive_xfer_root), exist_ok=True)
+        os.makedirs(os.path.dirname(self.archive_at_xfer_root), exist_ok=True)
 
         self._base_msg_format = self.YAML
 
@@ -188,7 +193,7 @@ class ArchiveController:
         msg_params[ACK_BOOL] = "TRUE"
         msg_params['ACK_ID'] = ack_id
         LOGGER.info('%s sent for ACK ID: %s', type, ack_id)
-        self._archive_publisher.publish_message(self.ACK_PUBLISH, msg_params)
+        self._archive_publisher.publish_message(self.AR_ACK_PUBLISH, msg_params)
 
 
     def send_audit_message(self, prefix, params):
@@ -231,7 +236,7 @@ class ArchiveController:
         ack_params['IMAGE_ID'] = params['IMAGE_ID']
         ack_params['COMPONENT'] = self._name
         ack_params['ACK_BOOL'] = True
-        self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        self._archive_publisher.publish_message(self.AR_ACK_PUBLISH, ack_params)
 
 
     def send_transfer_complete_ack(self, transfer_results, params):
@@ -250,7 +255,7 @@ class ArchiveController:
         ack_params['ACK_BOOL'] = True
         ack_params['RESULTS'] = transfer_results
 
-        self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        self._archive_publisher.publish_message(self.AR_ACK_PUBLISH, ack_params)
 
 
 
