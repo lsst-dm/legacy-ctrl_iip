@@ -31,22 +31,15 @@ class Scoreboard:
 
         self.cdm = yaml.safe_load(f)
 
-        print("First Look Value of CFG USE_AUDITING is %s" % self.cdm['ROOT']['AUDIT']['USE_AUDITING'])
         if self.cdm['ROOT']['AUDIT']['USE_AUDITING'] == True:
             self.USE_AUDITING = True
 
         if self.USE_AUDITING == False:
-            print(">>>>>>>>>>>>><<<<<<<<<<<<<")
-            print("Value of CFG USE_AUDITING is %s" % self.cdm['ROOT']['AUDIT']['USE_AUDITING'])
-            print("Scoreboard base calls skipping auditing as USE_AUDITING = False")
-            print(">>>>>>>>>>>>><<<<<<<<<<<<<")
             return
 
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
-        print("SCBD base name is %s" % self.cdm['ROOT']['BASE_BROKER_NAME'])
-        print("SCBD base passwd is %s" % self.cdm['ROOT']['BASE_BROKER_PASSWD'])
-        name = "PFM_PUB"
-        passwd = "PFM_PUB"
+        name = self.cdm['ROOT']['AUDIT_BROKER_NAME'])
+        passwd = self.cdm['ROOT']['AUDIT_BROKER_PASSWD'])
         self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
 
         self.audit_format = "YAML"
