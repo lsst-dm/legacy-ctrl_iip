@@ -179,7 +179,7 @@ class Forwarder {
     unsigned char** format_assemble_pixels(char *);
     void format_write_img(std::string, std::string, std::string, std::string);
     void format_assemble_img(Node);
-    void format_send_completed_msg(std::string);
+    void format_send_completed_msg(std::string, std::string, std::string);
     void format_look_for_work(std::string); 
     void format_process_end_readout(Node); 
     void format_get_header(Node); 
@@ -916,7 +916,7 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
             << ", IMAGE_ID: " << image_id
             << ", RAFT: " << raft
             << ", CCD: " << ccd
-            << ", PATH: " << ccd_path << "}";
+            << ", PATH: " << ccd_path.str() << "}";
         this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
     }
     return;
@@ -1568,7 +1568,8 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
         string header_path = header;
 
         // IMG_31--raft01--ccd00.fits
-        string destination = Work_Dir + "/fits/" + img_id + "--" + raft_name + "--" + ccd_name + ".fits";
+	string dest_filename = img_id + "--" + raft_name + "--" + ccd_name + ".fits";
+        string destination = Work_Dir + "/fits/" + dest_filename; 
 
         if (FILE *file = fopen(destination.c_str(), "r")) { 
             // file exists
@@ -1629,7 +1630,7 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
 
-        format_send_completed_msg(img_id);
+        format_send_completed_msg(img_id, destination, dest_filename);
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
@@ -1656,13 +1657,15 @@ vector<string> Forwarder::format_list_files(string path) {
     } 
 } 
 
-void Forwarder::format_send_completed_msg(string image_id) { 
+void Forwarder::format_send_completed_msg(string image_id, string path, string dest_filename) { 
     cout << "[f] fscm" << endl;
     try { 
         Emitter msg; 
         msg << BeginMap; 
         msg << Key << "MSG_TYPE" << Value << "FORWARD_END_READOUT"; 
         msg << Key << "IMAGE_ID" << Value << image_id; 
+	msg << Key << "PATH" << Value << path; 
+	msg << Key << "IMAGE_NAME" << Value << dest_filename; 
         msg << EndMap; 
         fmt_pub->publish_message(this->forward_consume_queue, msg.c_str()); 
     } 
@@ -1704,7 +1707,7 @@ void Forwarder::format_look_for_work(string image_id) {
         */ 
         map<string, Node>::iterator binary_it = this->readout_img_ids.find(image_id); 
         map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
-        if (binary_it != map::end && header_it != map::end) { 
+        if (binary_it != this->readout_img_ids.end() && header_it != this->header_info_dict.end()) { 
             cout << "Found both binaries and header." << endl;  
             Node n; 
             n["IMAGE_ID"] = image_id; 
@@ -1715,7 +1718,7 @@ void Forwarder::format_look_for_work(string image_id) {
 
             // cleanup the dictionaries
             this->readout_img_ids.erase(binary_it); 
-            this->header_info_dict.erase(header_it); 
+            //this->header_info_dict.erase(header_it); 
         } 
         else { 
             cout << "[x] either no img data or header data" << endl; 
@@ -1734,8 +1737,10 @@ void Forwarder::format_look_for_work(string image_id) {
 void Forwarder::forward_process_end_readout(Node n) { 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
-        string img_path = this->Work_Dir + "/fits/" + img_id + ".fits"; 
-        string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
+        // string img_path = this->Work_Dir + "/fits/" + img_id + ".fits"; 
+	string img_path = n["PATH"].as<string>();
+	string img_name = n["IMAGE_NAME"].as<string>();
+        string dest_path = this->Target_Location + "/" + img_name; 
 	cout << "[STATUS] target locations is: " << this->Target_Location << endl; 
       
         size_t find_at = dest_path.find("@"); 
