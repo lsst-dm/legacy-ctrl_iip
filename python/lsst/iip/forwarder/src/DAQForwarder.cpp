@@ -27,11 +27,13 @@
 #include "ims/Science.hh"
 #include "ims/WaveFront.hh"
 
+#include "rms/InstructionList.hh"
+#include "rms/Instruction.hh"
+
 
 #define SECONDARY_HDU 2
 #define STRING(s) STRING_EXPAND(s)
 #define STRING_EXPAND(s) #s 
-// Gregg T's test image uses these two values:
 #define NAXIS1 576
 #define NAXIS2 2048
 #define N_AMPS 16
@@ -67,6 +69,9 @@ class Forwarder {
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
     std::string WFS_RAFT = "";
+    bool is_naxis_set = true;
+    uint32_t naxis_1 = NAXIS1;
+    uint32_t naxis_2 = NAXIS2;
     int Num_Images = 0; 
     int ERROR_CODE_PREFIX; 
     //std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
@@ -165,6 +170,7 @@ class Forwarder {
     void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
     void fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
+    void get_register_metadata(const DAQ::Location& location, const IMS::Image& image);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
     void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
@@ -1006,6 +1012,15 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string,
   {
       string board_str = std::to_string(board);
 
+      // Check here if bool val is_naxis_set is false...if so,
+      // pull register InstructionList info from current source, and
+      // set this.naxis1 and this.naxis2.
+      //
+      // otherwise if true, skip register metadata and use current vals
+      if (!is_naxis_set) {
+        this->get_register_metadata(location, image);
+      } 
+
       // If current board source is in the source_boards map
       // that we put together in the preceeding method...
       if(source_boards.count(board_str)) {  
@@ -1020,6 +1035,54 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string,
        board++;
   }
   return;
+}
+
+void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image)
+{
+
+       // Here are the values and associated indexes
+       // into the InstructionList returned by source.registers().
+       // These index values are used in the lookup() call below. 
+       // They are subject to change...
+       // REG_READ_ROWS = 0,
+       // REG_READ_COLS = 1,
+       // REG_PRE_ROWS = 2,
+       // REG_PRE_COLS = 3,
+       // REG_POST_ROWS = 4,
+       // REG_POST_COLS = 5,
+       // REG_READ_COLS2 = 6,
+       // REG_OVER_ROWS = 7,
+       // REG_OVER_COLS = 8,
+       // NUM_REGISTERS = 9;
+
+  IMS::Source source(location, image);
+
+  const RMS::InstructionList *reglist = source.registers();
+
+  // READ_ROWS + OVER_ROWS
+  const RMS::Instruction *inst0 = reglist->lookup(0);
+  uint32_t operand0 = inst0->operand();
+
+  const RMS::Instruction *inst7 = reglist->lookup(7);
+  uint32_t operand7 = inst7->operand();
+
+  this->naxis_2 = operand0 + operand7;
+;
+
+  // READ_COLS + READ_COLS2 + OVER_COLS
+  const RMS::Instruction *inst1 = reglist->lookup(1);
+  uint32_t operand1 = inst1->operand();
+
+  const RMS::Instruction *inst6 = reglist->lookup(6);
+  uint32_t operand6 = inst6->operand();
+
+  const RMS::Instruction *inst8 = reglist->lookup(8);
+  uint32_t operand8 = inst8->operand();
+
+  this->naxis_1 = operand1 + operand6 + operand8;
+
+  this->is_naxis_set = true;
+
 }
 
 
@@ -1198,7 +1261,8 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set,
                           //<< "_segment." << seg;
                           << "_segment." << this->New_Segment_Names[i];
 
-        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
+        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | \
+                                               std::ios::app | std::ios::binary );
         fh_set.push_back(fh); 
     }
 }
@@ -1213,7 +1277,8 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
                           << "-ccd.ATS_CCD" \
                           << "_segment." << this->New_Segment_Names[i];
 
-        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
+        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | \
+                                               std::ios::app | std::ios::binary );
         fh_set.push_back(fh); 
     }
 }
