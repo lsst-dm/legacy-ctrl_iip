@@ -1415,6 +1415,7 @@ void Forwarder::process_header_ready(Node n) {
                << " " 
                << sub_dir
                << "/"; 
+        // wget -P http://141.142.238.11/tmp/header/IMG_31.header/ /tmp/header/IMG_31/
 	// cp_cmd << "wget -P " << sub_dir << "/ " << path; 
         int scp_cmd = system(cp_cmd.str().c_str()); 
 
@@ -1582,12 +1583,21 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
             system(rm_cmd.str().c_str()); 
         } 
 
-        fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
-	cout << "Opening file: " << status << endl; 
-        fits_create_file(&optr, destination.c_str(), &status); 
-	cout << "Creatingg file: " << status << endl; 
-        fits_copy_hdu(iptr, optr, 0, &status); 
-	cout << "Copying file: " << status << endl; 
+        if (fits_open_file(&iptr, header_path.c_str(), READONLY, &status)) {
+            char *error_text; 
+            fits_get_errstatus(status, error_text); 
+            cout << "Opening file failed because: " << error_text << endl; 
+        } 
+        if (fits_create_file(&optr, destination.c_str(), &status)) {
+            char *error_text; 
+            fits_get_errstatus(status, error_text); 
+            cout << "Creating file failed because: " << error_text << endl; 
+        } 
+        if (fits_copy_hdu(iptr, optr, 0, &status)){
+            char *error_text; 
+            fits_get_errstatus(status, error_text); 
+            cout << "Copying Hdu failed because: " << error_text << endl; 
+        } 
 
         vector<string> file_names = format_list_files(img_path); 
         vector<string>::iterator it; 
@@ -1601,6 +1611,7 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
                                       + "," + STRING(NAXIS2) + "]"; 
 
             // get img pixels
+            // TODO: add more if-clauses for cfitsio routine
             fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status); 
             fits_read_img(pix_file_ptr, TINT, 1, len, NULL, img_buffer, 0, &status); 
             fits_create_img(optr, bitpix, naxis, naxes, &status); 
@@ -1734,8 +1745,14 @@ void Forwarder::format_look_for_work(string image_id) {
 // Forward part 
 ///////////////////////////////////////////////////////////////////////////////
 
+/* To use bbcp,
+ * Generate ssh private/public keypairs in host machine
+ * Copy ssh key to machine ssh-copy-id
+ */
 void Forwarder::forward_process_end_readout(Node n) { 
     try { 
+        // THIS NEEDS TO BE CHANGED DEPENDING ON NAME OR PATH
+        string ssh_key_id = "to_archie"; 
         string img_id = n["IMAGE_ID"].as<string>(); 
         // string img_path = this->Work_Dir + "/fits/" + img_id + ".fits"; 
 	string img_path = n["PATH"].as<string>();
@@ -1745,8 +1762,11 @@ void Forwarder::forward_process_end_readout(Node n) {
       
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
+
+        // bbcp -i <identify-file> /tmp/source/fits/IMG_31--raft01--01.fits archiver@141.142.238.11:/mnt/xfer
         if (find_at != string::npos) { 
-            bbcp_cmd << "scp -i ~/.ssh/from_efd ";
+            // bbcp_cmd << "scp -i ~/.ssh/from_efd ";
+            bbcp_cmd << "bbcp -i " << ssh_key_id << " "; 
         } 
         else { 
             bbcp_cmd << "cp "; 
@@ -1756,8 +1776,6 @@ void Forwarder::forward_process_end_readout(Node n) {
                  << dest_path; 
         int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
 	cout << "[STATUS] file is copied from " << img_path << " to " << dest_path << endl; 
-
-
 
         if (bbcp_cmd_status == 256) { 
             throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
