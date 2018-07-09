@@ -226,85 +226,85 @@ class AuxDevice:
             print("  ")
 
         # Add archive check when necessary...
-        #if self.use_archive_ctrl == False:
-        #    pass
-        self.clear_archive_ack()
-        # send new_archive_item msg to archive controller
-        start_int_params = {}
-        ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
-        start_int_params[MSG_TYPE] = 'NEW_AT_ARCHIVE_ITEM'
-        start_int_params['ACK_ID'] = ac_timed_ack
-        start_int_params['JOB_NUM'] = job_number
-        start_int_params['SESSION_ID'] = session_id
-        start_int_params['REPLY_QUEUE'] = self.AUX_FOREMAN_ACK_PUBLISH
-        self.JOB_SCBD.set_job_state(job_number, 'NEW_AT_ARCHIVE_ITEM_QUERY')
-        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
+        if self.use_archive_ctrl == False:
+            pass
+        else:
+            self.clear_archive_ack()
+            # send new_archive_item msg to archive controller
+            start_int_params = {}
+            ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
+            start_int_params[MSG_TYPE] = 'NEW_AT_ARCHIVE_ITEM'
+            start_int_params['ACK_ID'] = ac_timed_ack
+            start_int_params['JOB_NUM'] = job_number
+            start_int_params['SESSION_ID'] = session_id
+            start_int_params['REPLY_QUEUE'] = self.AUX_FOREMAN_ACK_PUBLISH
+            self.JOB_SCBD.set_job_state(job_number, 'NEW_AT_ARCHIVE_ITEM_QUERY')
+            self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
 
-        #ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
+            ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 4.0)
 
-        #if ar_response == None:
-        #   FIXME raise L1 exception and bail out
-        #   print("B-B-BAD Trouble; no ar_response")
-        #self.archive_xfer_root = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
- 
-        target_dir = self.archive_xfer_root 
+            if ar_response == None:
+                print("B-B-BAD Trouble; no ar_response")
+                target_location = self.archive_xfer_root 
+            else: 
+                target_location =  ar_response['TARGET_LOCATION']
         
-        xfer_params_ack_id = self.get_next_timed_ack_id("AT_FWDR_XFER_PARAMS_ACK") 
+            xfer_params_ack_id = self.get_next_timed_ack_id("AT_FWDR_XFER_PARAMS_ACK") 
 
-        fwdr_new_target_params = {} 
-        fwdr_new_target_params['XFER_PARAMS'] = {}
-        fwdr_new_target_params[MSG_TYPE] = 'AT_FWDR_XFER_PARAMS'
-        fwdr_new_target_params[SESSION_ID] = params['SESSION_ID']
-        fwdr_new_target_params[JOB_NUM] = params[JOB_NUM]
-        fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
-        fwdr_new_target_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
-        target_location = self.archive_name + "@" + self.archive_ip + ":" + target_dir
-        fwdr_new_target_params['TARGET_LOCATION'] = target_location
+            fwdr_new_target_params = {} 
+            fwdr_new_target_params['XFER_PARAMS'] = {}
+            fwdr_new_target_params[MSG_TYPE] = 'AT_FWDR_XFER_PARAMS'
+            fwdr_new_target_params[SESSION_ID] = params['SESSION_ID']
+            fwdr_new_target_params[JOB_NUM] = params[JOB_NUM]
+            fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
+            fwdr_new_target_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
+            target_location = self.archive_name + "@" + self.archive_ip + ":" + target_dir
+            fwdr_new_target_params['TARGET_LOCATION'] = target_location
 
-        # This may look curious, but in the other devices, a raft_list 
-        # is a list of rafts to be fetched, but a raft_ccd_list is a 
-        # list of lists, where each ccd sublist corresponds to 
-        # a raft by the same list index.
-        #
-        # This bit of business is really so that unit tests can compare messages to 
-        # the canonical versions...as dicts are open ended and can correctly
-        # contain more keys than the canonical example and hence fail incorrectly,
-        # using lists eliminates this likely possibility.
-        xfer_params_dict = {}
-        xfer_params_dict['RAFT_LIST'] = []
-        xfer_params_dict['RAFT_LIST'].append(self._wfs_raft)
-        xfer_params_dict['RAFT_CCD_LIST'] = []
-        CCD_LIST = []
-        CCD_LIST.append(self._wfs_ccd)
-        xfer_params_dict['RAFT_CCD_LIST'].append(CCD_LIST)
-        xfer_params_dict['AT_FWDR'] = self._current_fwdr['FQN']
-        fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
-        route_key = self._current_fwdr["CONSUME_QUEUE"]
-        if self.DP:
-            self.prp.pprint(fwdr_new_target_params)
-        self._publisher.publish_message(route_key, fwdr_new_target_params)
-        
-        # receive ack back from forwarder that it has job params
-        self.clear_fwdr_state()
-        self.ack_timer(1.4)
-
-        if self.did_current_fwdr_respond() == False:
-            name = self._current_fwdr['FQN']
-            type = "FAULT"
-            desc = "No xfer_params response from fwdr."
-            LOGGER.critical("No xfer_params response from fwdr.. Setting FAULT state, 5752")
-            self.send_fault_state_event("5752", desc, type, name) 
-            return
-
-        # accept job by Ack'ing True
-        st_int_params_ack = {}
-        st_int_params_ack['MSG_TYPE'] = 'AT_START_INTEGRATION_ACK'
-        st_int_params_ack['ACK_ID'] = start_int_ack_id
-        st_int_params_ack['ACK_BOOL'] = True
-        st_int_params_ack['JOB_NUM'] = job_number
-        st_int_params_ack['SESSION_ID'] = session_id
-        st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
-        self.accept_job(st_int_params_ack)
+            # This may look curious, but in the other devices, a raft_list 
+            # is a list of rafts to be fetched, but a raft_ccd_list is a 
+            # list of lists, where each ccd sublist corresponds to 
+            # a raft by the same list index.
+            #
+            # This bit of business is really so that unit tests can compare messages to 
+            # the canonical versions...as dicts are open ended and can correctly
+            # contain more keys than the canonical example and hence fail incorrectly,
+            # using lists eliminates this likely possibility.
+            xfer_params_dict = {}
+            xfer_params_dict['RAFT_LIST'] = []
+            xfer_params_dict['RAFT_LIST'].append(self._wfs_raft)
+            xfer_params_dict['RAFT_CCD_LIST'] = []
+            CCD_LIST = []
+            CCD_LIST.append(self._wfs_ccd)
+            xfer_params_dict['RAFT_CCD_LIST'].append(CCD_LIST)
+            xfer_params_dict['AT_FWDR'] = self._current_fwdr['FQN']
+            fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
+            route_key = self._current_fwdr["CONSUME_QUEUE"]
+            if self.DP:
+                self.prp.pprint(fwdr_new_target_params)
+            self._publisher.publish_message(route_key, fwdr_new_target_params)
+            
+            # receive ack back from forwarder that it has job params
+            self.clear_fwdr_state()
+            self.ack_timer(2.0)
+    
+            if self.did_current_fwdr_respond() == False:
+                name = self._current_fwdr['FQN']
+                type = "FAULT"
+                desc = "No xfer_params response from fwdr."
+                LOGGER.critical("No xfer_params response from fwdr.. Setting FAULT state, 5752")
+                self.send_fault_state_event("5752", desc, type, name) 
+                return
+    
+            # accept job by Ack'ing True
+            st_int_params_ack = {}
+            st_int_params_ack['MSG_TYPE'] = 'AT_START_INTEGRATION_ACK'
+            st_int_params_ack['ACK_ID'] = start_int_ack_id
+            st_int_params_ack['ACK_BOOL'] = True
+            st_int_params_ack['JOB_NUM'] = job_number
+            st_int_params_ack['SESSION_ID'] = session_id
+            st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
+            self.accept_job(st_int_params_ack)
 
 
 
@@ -457,6 +457,8 @@ class AuxDevice:
 
         results = self._archive_ack['RESULT_SET']
 
+        # This is the final result of what files made it to the arcvhve and which were verified.
+        # Here, the list is sent to the DMCS for bookkeeping...
         ack_msg = {}
         ack_msg['MSG_TYPE'] = 'AT_END_READOUT_ACK'
         ack_msg['JOB_NUM'] = job_number
