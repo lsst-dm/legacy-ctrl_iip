@@ -70,8 +70,8 @@ class Forwarder {
     std::string Component = ""; //such as FORWARDER_1
     std::string WFS_RAFT = "";
     bool is_naxis_set = true;
-    uint32_t naxis_1 = NAXIS1;
-    uint32_t naxis_2 = NAXIS2;
+    long Naxis_1 = NAXIS1;
+    long Naxis_2 = NAXIS2;
     int Num_Images = 0; 
     int ERROR_CODE_PREFIX; 
     //std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
@@ -1066,7 +1066,7 @@ void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::
   const RMS::Instruction *inst7 = reglist->lookup(7);
   uint32_t operand7 = inst7->operand();
 
-  this->naxis_2 = operand0 + operand7;
+  this->Naxis_2 = operand0 + operand7;
 ;
 
   // READ_COLS + READ_COLS2 + OVER_COLS
@@ -1079,7 +1079,7 @@ void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::
   const RMS::Instruction *inst8 = reglist->lookup(8);
   uint32_t operand8 = inst8->operand();
 
-  this->naxis_1 = operand1 + operand6 + operand8;
+  this->Naxis_1 = operand1 + operand6 + operand8;
 
   this->is_naxis_set = true;
 
@@ -1517,7 +1517,7 @@ void Forwarder::format_assemble_img(Node n) {
 long* Forwarder::format_read_img_segment(const char *file_path) { 
     try { 
         fstream img_file(file_path, fstream::in | fstream::binary); 
-        long len = NAXIS2 * NAXIS1; 
+        long len = Naxis_2 * Naxis_1; 
         long *buffer = new long[len]; 
         img_file.seekg(0, ios::beg); 
         img_file.read((char *)buffer, len); 
@@ -1531,15 +1531,16 @@ long* Forwarder::format_read_img_segment(const char *file_path) {
 
 unsigned char** Forwarder::format_assemble_pixels(char *buffer) { 
     try { 
-        unsigned char **array = new unsigned char*[NAXIS1]; 
-        array[0] = (unsigned char *) malloc( NAXIS2 * NAXIS1 * sizeof(unsigned char)); 
+        unsigned char **array = new unsigned char*[Naxis_1]; 
+        array[0] = (unsigned char *) malloc( Naxis_2 * Naxis_1 * sizeof(unsigned char)); 
 
-        for (int i = 1; i < NAXIS1; i++) { 
-            array[i] = array[i-1] + NAXIS2; 
+        for (int i = 1; i < Naxis_1; i++) { 
+            array[i] = array[i-1] + Naxis_2; 
         } 
 
-        for (int j = 0; j < NAXIS1; j++) {
-            for (int i = 0; i < NAXIS2; i++) {
+        for (int j = 0; j < Naxis_1; j++) {
+            for (int i = 0; i < Naxis_2; i++) {
+
                 array[j][i]= buffer[i+j]; 
             } 
         }
@@ -1552,10 +1553,10 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
 
 void Forwarder::format_write_img(string img_id, string raft_name, string ccd_name, string header) { 
     try { 
-        long len = NAXIS1 * NAXIS2;
+        long len = Naxis_1 * Naxis_2;
         int bitpix = LONG_IMG; 
         long naxis = 2;
-        long naxes[2] = { NAXIS1, NAXIS2 }; 
+        long naxes[2] = { Naxis_1, Naxis_2 }; 
         long fpixel = 1; 
         int status = 0; 
         int hdunum = 2;
@@ -1597,8 +1598,8 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
             fitsfile *pix_file_ptr; 
             int *img_buffer = new int[len];
             string img_segment_name = img_path + "/" + *it 
-                                      + "[jL" + STRING(NAXIS1) 
-                                      + "," + STRING(NAXIS2) + "]"; 
+                                      + "[jL" + STRING(Naxis_1) 
+                                      + "," + STRING(Naxis_2) + "]"; 
 
             // get img pixels
             fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status); 
