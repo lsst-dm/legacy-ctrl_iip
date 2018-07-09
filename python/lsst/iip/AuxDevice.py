@@ -94,7 +94,7 @@ class AuxDevice:
                               'AT_ITEMS_XFERD_ACK': self.process_at_items_xferd_ack,
                               'AT_HEADER_READY': self.process_header_ready_event,
                               'AT_FWDR_HEADER_READY_ACK': self.process_header_ready_ack,
-                              'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AT_ARCHIVE_ITEM_ACK': self.process_ack, 
                               'AT_END_READOUT': self.process_at_end_readout }
 
 
@@ -228,19 +228,17 @@ class AuxDevice:
         # Add archive check when necessary...
         #if self.use_archive_ctrl == False:
         #    pass
-        #self.clear_archive_ack()
+        self.clear_archive_ack()
         # send new_archive_item msg to archive controller
-        #start_int_params = {}
-        #ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
-        #start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
-        #start_int_params['ACK_ID'] = ac_timed_ack
-        #start_int_params['JOB_NUM'] = job_number
-        #start_int_params['SESSION_ID'] = session_id
-        #start_int_params['VISIT_ID'] = visit_id
-        #start_int_params['IMAGE_ID'] = image_id
-        #start_int_params['REPLY_QUEUE'] = self.AUX_FOREMAN_ACK_PUBLISH
-        #self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
-        #self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
+        start_int_params = {}
+        ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
+        start_int_params[MSG_TYPE] = 'NEW_AT_ARCHIVE_ITEM'
+        start_int_params['ACK_ID'] = ac_timed_ack
+        start_int_params['JOB_NUM'] = job_number
+        start_int_params['SESSION_ID'] = session_id
+        start_int_params['REPLY_QUEUE'] = self.AUX_FOREMAN_ACK_PUBLISH
+        self.JOB_SCBD.set_job_state(job_number, 'NEW_AT_ARCHIVE_ITEM_QUERY')
+        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
 
         #ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
 
@@ -460,12 +458,12 @@ class AuxDevice:
         results = self._archive_ack['RESULT_SET']
 
         ack_msg = {}
-        ack_msg['MSG_TYPE'] = 'AT_READOUT_ACK'
+        ack_msg['MSG_TYPE'] = 'AT_END_READOUT_ACK'
         ack_msg['JOB_NUM'] = job_number
         ack_msg['COMPONENT'] = self.COMPONENT_NAME
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['ACK_BOOL'] = True
-        ack_msg['RESULT_LIST'] = results
+        ack_msg['RESULT_SET'] = results
         self._publisher.publish_message(reply_queue, ack_msg)
 
 

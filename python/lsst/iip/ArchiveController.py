@@ -67,8 +67,10 @@ class ArchiveController:
                      self._base_broker_url)
 
         self._msg_actions = { 'ARCHIVE_HEALTH_CHECK': self.process_health_check,
-                              'NEW_ARCHIVE_ITEM': self.process_new_archive_item,
-                              'AR_ITEMS_XFERD': self.process_transfer_complete }
+                              'NEW_AR_ARCHIVE_ITEM': self.process_new_archive_item,
+                              'NEW_AT_ARCHIVE_ITEM': self.process_new_at_archive_item,
+                              'AR_ITEMS_XFERD': self.process_transfer_complete, 
+                              'AT_ITEMS_XFERD': self.process_transfer_complete }
 
         self.setup_consumer()
         self.setup_publisher()
@@ -124,8 +126,14 @@ class ArchiveController:
         
 
     def process_new_archive_item(self, params):
-        self.send_audit_message("received_", params)
-        target_dir = self.construct_send_target_dir(params)
+        #self.send_audit_message("received_", params)
+        target_dir = self.construct_send_target_dir('AR', params)
+        self.send_new_item_ack(target_dir, params)
+
+
+    def process_new_at_archive_item(self, params):
+        #self.send_audit_message("received_", params)
+        target_dir = self.construct_send_target_dir('AT', params)
         self.send_new_item_ack(target_dir, params)
 
 
@@ -205,38 +213,39 @@ class ArchiveController:
 
 
 
-    def construct_send_target_dir(self, params):
+    def construct_send_target_dir(self, dev, params):
         #session = params['SESSION_ID']
-        visit = params['VISIT_ID']
-        image = params['IMAGE_ID']
         ack_id = params['ACK_ID']
-        #target_dir = self._archive_xfer_root + "_" + str(image_type) + "_" + str(session) + "_" + str(visit) + "_" + str(image)
-        target_dir_visit = self._archive_xfer_root + visit + "/"
-        target_dir_image = self._archive_xfer_root + visit + "/" + str(image) + "/"
 
-        if os.path.isdir(target_dir_visit):
+        # Can we add job num to path?
+        if dev == 'AT':
+            target_dir = self._at_archive_xfer_root + "/"
+        else if dev == 'AR':
+            target_dir = self._ar_archive_xfer_root + "/"
+        else:
+            target_dir = self._ar_archive_xfer_root + "/"
+
+
+        if os.path.isdir(target_dir):
             pass
         else:
-            os.mkdir(target_dir_visit, 0o766)
+            os.mkdir(target_dir, 0o766)
 
-        if os.path.isdir(target_dir_image):
-            pass
-        else:
-            os.mkdir(target_dir_image, 0o766)
-
-        return target_dir_image
+        return target_dir
 
 
-    def send_new_item_ack(self, target_dir, params):
+    def send_new_item_ack(self, dev, target_dir, params):
         ack_params = {}
-        ack_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM_ACK'
+        if dev == 'AR':
+            ack_params[MSG_TYPE] = 'NEW_AR_ARCHIVE_ITEM_ACK'
+        else:
+            ack_params[MSG_TYPE] = 'NEW_AT_ARCHIVE_ITEM_ACK'
         ack_params['TARGET_DIR'] = target_dir
         ack_params['ACK_ID'] = params['ACK_ID']
         ack_params['JOB_NUM'] = params['JOB_NUM']
-        ack_params['IMAGE_ID'] = params['IMAGE_ID']
         ack_params['COMPONENT'] = self._name
         ack_params['ACK_BOOL'] = True
-        self._archive_publisher.publish_message(self.AR_ACK_PUBLISH, ack_params)
+        self._archive_publisher.publish_message(params['REPLY_QUEUE'], ack_params)
 
 
     def send_transfer_complete_ack(self, transfer_results, params):

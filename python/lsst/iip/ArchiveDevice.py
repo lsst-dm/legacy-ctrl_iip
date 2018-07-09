@@ -74,13 +74,14 @@ class ArchiveDevice:
 
         self._msg_actions = { 'AR_NEW_SESSION': self.set_session,
                               'AR_NEXT_VISIT': self.process_next_visit,
+                              'AR_START_INTEGRATION': self.process_start_integration,
                               'AR_READOUT': self.process_dmcs_readout,
                               'AR_FWDR_HEALTH_CHECK_ACK': self.process_ack,
                               'AR_FWDR_XFER_PARAMS_ACK': self.process_ack,
                               'AR_FWDR_READOUT_ACK': self.process_ack,
                               'AR_FWDR_TAKE_IMAGES_DONE_ACK': self.process_ack,
                               'AR_ITEMS_XFERD_ACK': self.process_ack,
-                              'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AR_ARCHIVE_ITEM_ACK': self.process_ack, 
                               'AR_TAKE_IMAGES': self.take_images,
                               'AR_HEADER_READY': self.process_header_ready_event,
                               'AR_END_READOUT': self.process_end_readout, 
@@ -223,7 +224,7 @@ class ArchiveDevice:
         # send new_archive_item msg to archive controller
         new_items_params = {}
         ac_timed_ack = self.get_next_timed_ack_id('AR_CTRL_NEW_ITEM')
-        new_items_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
+        new_items_params[MSG_TYPE] = 'NEW_AR_ARCHIVE_ITEM'
         new_items_params['ACK_ID'] = ac_timed_ack
         new_items_params['JOB_NUM'] = job_number
         new_items_params['SESSION_ID'] = session_id
@@ -324,6 +325,150 @@ class ArchiveDevice:
         self.FWD_SCBD.set_forwarder_params(healthy_fwdrs, fscbd_params)
 
 
+    def process_start_integration(self, params):
+        # When this method is invoked, the following must happen:
+        #    1) Health check all forwarders
+        #    2) Divide work and generate dict of forwarders and which rafts/ccds they are fetching
+        #    3) Get Archive info from ArchiveController
+        #    4) Inform each forwarder which rafts they are responsible for
+        ra = params['RA']
+        dec = params['DEC']
+        angle = params['ANGLE']
+        visit_id = params['VISIT_ID']
+        self.JOB_SCBD.set_visit_id(params['VISIT_ID'], ra, dec, angle)
+        # receive new job_number and image_id; session and visit are current
+        # and deep copy it with some additions such as session and visit
+        session_id = self.get_current_session()
+        visit_id = self.get_current_visit()
+        job_number = params[JOB_NUM]
+        raft_list = params['RAFT_LIST']
+        raft_ccd_list = params['RAFT_CCD_LIST']
+        next_visit_reply_queue = params['REPLY_QUEUE']
+        next_visit_ack_id = params[ACK_ID]
+
+        # next, run health check
+        health_check_ack_id = self.get_next_timed_ack_id('AR_FWDR_HEALTH_ACK')
+        num_fwdrs_checked = self.fwdr_health_check(health_check_ack_id)
+
+        # Add job scbd entry
+        self.JOB_SCBD.add_job(job_number, visit_id, raft_list, raft_ccd_list)
+        self.JOB_SCBD.set_value_for_job(job_number, 'VISIT_ID', visit_id)
+        self.ack_timer(1.5)
+
+        healthy_fwdrs = self.ACK_SCBD.get_components_for_timed_ack(health_check_ack_id)
+        if healthy_fwdrs == None:
+            self.refuse_job(params, "No forwarders available")
+            self.JOB_SCBD.set_job_state(job_number, 'SCRUBBED')
+            self.JOB_SCBD.set_job_status(job_number, 'INACTIVE')
+            ### FIX send error code for this...
+            return
+
+        for forwarder in healthy_fwdrs:
+            self.FWD_SCBD.set_forwarder_state(forwarder, 'BUSY')
+            self.FWD_SCBD.set_forwarder_status(forwarder, 'HEALTHY')
+
+        # send new_archive_item msg to archive controller
+        new_items_params = {}
+        ac_timed_ack = self.get_next_timed_ack_id('AR_CTRL_NEW_ITEM')
+        new_items_params[MSG_TYPE] = 'NEW_AR_ARCHIVE_ITEM'
+        new_items_params['ACK_ID'] = ac_timed_ack
+        new_items_params['JOB_NUM'] = job_number
+        new_items_params['SESSION_ID'] = session_id
+        new_items_params['VISIT_ID'] = visit_id
+        new_items_params['REPLY_QUEUE'] = self.AR_FOREMAN_ACK_PUBLISH
+        self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
+        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, new_items_params)
+
+        #ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
+        ### FIX - Go back to orig timer val
+        ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 6.0)
+
+        if ar_response == None:
+           # FIXME raise L1 exception and bail out
+           print("B-B-BAD Trouble; no ar_response")
+           
+       
+        #target_location = ar_response['ARCHIVE_CTRL']['TARGET_LOCATION']
+        target_location = "/tmp/gunk"
+        self.JOB_SCBD.set_job_params(job_number, {'STATE':'AR_NEW_ITEM_RESPONSE', 
+                                                  'TARGET_LOCATION': target_location})
+        
+
+        # divide image fetch across forwarders
+        list_of_fwdrs = list(healthy_fwdrs.keys())
+        print("Just before divide_work...list_of_fwdrs is:")
+        self.prp.pprint(list_of_fwdrs)
+        print("------------------------------")
+        work_schedule = self.divide_work(list_of_fwdrs, raft_list, raft_ccd_list)
+        if self.DP:
+            print("Here is the work schedule hot off of the divide_work stack:")
+            self.prp.pprint(work_schedule) 
+            print("------------- Done Printing Work Schedule --------------")
+
+        # send target dir, and job, session,visit and work to do to healthy forwarders
+        self.JOB_SCBD.set_value_for_job(job_number, 'STATE','SENDING_XFER_PARAMS')
+        set_sched_result = self.JOB_SCBD.set_work_schedule_for_job(job_number, work_schedule)
+        if set_sched_result == False:
+            # FIXME Raise L1 exception and bail
+            print("BIG PROBLEM - CANNOT SET WORK SCHED IN SCBD")
+      
+
+        xfer_params_ack_id = self.get_next_timed_ack_id("AR_FWDR_PARAMS_ACK") 
+
+        fwdr_new_target_params = {} 
+        fwdr_new_target_params['XFER_PARAMS'] = {}
+        fwdr_new_target_params[MSG_TYPE] = 'AR_FWDR_XFER_PARAMS'
+        fwdr_new_target_params[SESSION_ID] = session_id
+        fwdr_new_target_params[VISIT_ID] = visit_id
+        fwdr_new_target_params[JOB_NUM] = job_number
+        fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
+        fwdr_new_target_params[REPLY_QUEUE] = self.AR_FOREMAN_ACK_PUBLISH
+        final_target_location = self.archive_name + "@" + self.archive_ip + ":" + target_location
+        fwdr_new_target_params['TARGET_LOCATION'] = final_target_location
+
+        len_fwdrs_list = len(work_schedule['FORWARDER_LIST'])
+        for i in range (0, len_fwdrs_list):
+            fwdr = work_schedule['FORWARDER_LIST'][i]
+            xfer_params_dict = {}
+            xfer_params_dict['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
+            xfer_params_dict['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
+
+            #fwdr_new_target_params['RAFT_LIST'] = work_schedule['RAFT_LIST'][i]
+            #fwdr_new_target_params['RAFT_CCD_LIST'] = work_schedule['RAFT_CCD_LIST'][i]
+
+            # record work order in scoreboard
+            self.FWD_SCBD.set_work_by_job(fwdr, job_number, xfer_params_dict)
+            xfer_params_dict['AR_FWDR'] = fwdr
+            fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
+            route_key = self.FWD_SCBD.get_value_for_forwarder(fwdr, "CONSUME_QUEUE")
+            print(" sending xfer_params...route_key is %s" % route_key)
+            print(" sending xfer_params...fwdr is %s" % fwdr)
+            print ("Publishing string xfger params... %s" % str(fwdr_new_target_params)) 
+            self._publisher.publish_message(route_key, fwdr_new_target_params)
+       
+
+        
+
+        # receive ack back from forwarders that they have job params
+        params_acks = self.progressive_ack_timer(xfer_params_ack_id, len_fwdrs_list, 3.0)
+
+        ### FIX
+        #   if params_acks == None:
+        #     raise L1Exception and bail
+
+        self.JOB_SCBD.set_value_for_job(job_number,'STATE','XFER_PARAMS_SENT')
+
+        # accept job by Ach'ing True
+        ar_next_visit_ack = {}
+        ar_next_visit_ack['MSG_TYPE'] = 'AR_NEXT_VISIT_ACK'
+        ar_next_visit_ack['ACK_ID'] = next_visit_ack_id
+        ar_next_visit_ack['ACK_BOOL'] = True
+        ar_next_visit_ack['COMPONENT'] = self.COMPONENT_NAME
+        self.accept_job(next_visit_reply_queue, ar_next_visit_ack)
+
+        self.JOB_SCBD.set_value_for_job(job_number, STATE, "JOB_ACCEPTED")
+        fscbd_params = {'STATE':'AWAITING_READOUT'}
+        self.FWD_SCBD.set_forwarder_params(healthy_fwdrs, fscbd_params)
     def fwdr_health_check(self, ack_id):
         """ Send AR_FWDR_HEALTH_CHECK message to ar_foreman_ack_publish queue.
             Retrieve available forwarders from ForwarderScoreboard, set their state to
