@@ -67,10 +67,10 @@ class ArchiveController:
                      self._base_broker_url)
 
         self._msg_actions = { 'ARCHIVE_HEALTH_CHECK': self.process_health_check,
-                              'NEW_AR_ARCHIVE_ITEM': self.process_new_archive_item,
+                              'NEW_AR_ARCHIVE_ITEM': self.process_new_ar_archive_item,
                               'NEW_AT_ARCHIVE_ITEM': self.process_new_at_archive_item,
-                              'AR_ITEMS_XFERD': self.process_transfer_complete, 
-                              'AT_ITEMS_XFERD': self.process_transfer_complete }
+                              'AR_ITEMS_XFERD': self.process_ar_transfer_complete, 
+                              'AT_ITEMS_XFERD': self.process_at_transfer_complete }
 
         self.setup_consumer()
         self.setup_publisher()
@@ -125,7 +125,7 @@ class ArchiveController:
         self.send_health_ack_response("ARCHIVE_HEALTH_CHECK_ACK", params)
         
 
-    def process_new_archive_item(self, params):
+    def process_new_ar_archive_item(self, params):
         #self.send_audit_message("received_", params)
         target_dir = self.construct_send_target_dir('AR', params)
         self.send_new_item_ack(target_dir, params)
@@ -137,7 +137,29 @@ class ArchiveController:
         self.send_new_item_ack(target_dir, params)
 
 
-    def process_transfer_complete(self, params):
+    def process_ar_transfer_complete(self, params):
+        transfer_results = {}
+        ccds = params['RESULT_LIST']['CCD_LIST']
+        fnames = params['RESULT_LIST']['FILENAME_LIST']
+        csums = params['RESULT_LIST']['CHECKSUM_LIST']
+        num_ccds = len(ccds)
+        transfer_results = {}
+        RECEIPT_LIST = [] 
+        for i in range(0, num_ccds):
+            ccd = ccds[i]
+            pathway = fnames[i]
+            csum = csums[i]
+            transfer_result = self.check_transferred_file(pathway, csum)
+            if transfer_result == None:
+                RECEIPT_LIST.append('0')
+            else:
+                RECEIPT_LIST.append(transfer_result) 
+        transfer_results['CCD_LIST'] = ccds
+        transfer_results['RECEIPT_LIST'] = RECEIPT_LIST
+        self.send_transfer_complete_ack(transfer_results, params)
+
+
+    def process_at_transfer_complete(self, params):
         transfer_results = {}
         ccds = params['RESULT_LIST']['CCD_LIST']
         fnames = params['RESULT_LIST']['FILENAME_LIST']
