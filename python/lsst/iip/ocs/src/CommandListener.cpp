@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <string>
 #include <yaml-cpp/yaml.h>
+#include <signal.h> 
 #include "SAL_archiver.h" 
 #include "SAL_catchuparchiver.h"
 #include "SAL_processingcluster.h" 
@@ -14,6 +15,7 @@ using namespace std;
 using namespace YAML;
 
 int next_timed_ack_id = 0; 
+volatile sig_atomic_t isRunning = 1; 
 
 template <typename T, typename U> 
 using funcptr = int (T::*)(U*); 
@@ -27,7 +29,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 
     string processor = CommandListener::get_device(device) + "_command_" + command_name; 
     mgr.salProcessor(const_cast<char *>(processor.c_str())); 
-    while (1) { 
+    while (isRunning) { 
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
 	if (cmdId > 0) { 
 	    cout << "== " << device << " " << command_name << " Command" << endl; 
@@ -58,6 +60,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	}
 	os_nanoSleep(delay_10ms); 
     } 
+    cout << "Shutting down " << processor << endl; 
     mgr.salShutdown(); 
 }  
 
@@ -70,7 +73,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 
     string processor = CommandListener::get_device(device) + "_command_" + command_name; 
     mgr.salProcessor(const_cast<char *>(processor.c_str())); 
-    while (1) { 
+    while (isRunning) { 
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
 	if (cmdId > 0) { 
 	    cout << "== " << device << " " << command_name << " Command" << endl; 
@@ -102,6 +105,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	}
 	os_nanoSleep(delay_10ms); 
     } 
+    cout << "Shutting down " << processor << endl; 
     mgr.salShutdown(); 
 }  
 
@@ -127,7 +131,6 @@ CommandListener::~CommandListener(){
 }
 
 void CommandListener::setup_archiver_listeners() { 
-    pthread_t ar_start, ar_stop, ar_enable, ar_disable, ar_standby, ar_enterControl, ar_exitControl, ar_abort; 
     pthread_create(&ar_start, NULL, &CommandListener::run_ar_start, command_args); 
     pthread_create(&ar_stop, NULL, &CommandListener::run_ar_stop, command_args); 
     pthread_create(&ar_enable, NULL, &CommandListener::run_ar_enable, command_args); 
@@ -139,7 +142,6 @@ void CommandListener::setup_archiver_listeners() {
 } 
 
 void CommandListener::setup_catchuparchiver_listeners() { 
-    pthread_t cu_start, cu_stop, cu_enable, cu_disable, cu_standby, cu_enterControl, cu_exitControl, cu_abort; 
     pthread_create(&cu_start, NULL, &CommandListener::run_cu_start, command_args); 
     pthread_create(&cu_stop, NULL, &CommandListener::run_cu_stop, command_args); 
     pthread_create(&cu_enable, NULL, &CommandListener::run_cu_enable, command_args); 
@@ -151,7 +153,6 @@ void CommandListener::setup_catchuparchiver_listeners() {
 }
 
 void CommandListener::setup_processingcluster_listeners() { 
-    pthread_t pp_start, pp_stop, pp_enable, pp_disable, pp_standby, pp_enterControl, pp_exitControl, pp_abort; 
     pthread_create(&pp_start, NULL, &CommandListener::run_pp_start, command_args); 
     pthread_create(&pp_stop, NULL, &CommandListener::run_pp_stop, command_args); 
     pthread_create(&pp_enable, NULL, &CommandListener::run_pp_enable, command_args); 
@@ -163,7 +164,6 @@ void CommandListener::setup_processingcluster_listeners() {
 }
 
 void CommandListener::setup_atArchiver_listeners() { 
-    pthread_t atar_start, atar_stop, atar_enable, atar_disable, atar_standby, atar_enterControl, atar_exitControl, atar_abort; 
     pthread_create(&atar_start, NULL, &CommandListener::run_atar_start, command_args); 
     pthread_create(&atar_stop, NULL, &CommandListener::run_atar_stop, command_args); 
     pthread_create(&atar_enable, NULL, &CommandListener::run_atar_enable, command_args); 
@@ -592,10 +592,60 @@ string CommandListener::get_device(string name) {
     return device; 
 } 
 
+void CommandListener::shutdown() { 
+    int status; 
+    pthread_join(ar_start, (void **)&status);
+    pthread_join(ar_stop, (void **)&status);
+    pthread_join(ar_enable, (void **)&status);
+    pthread_join(ar_disable, (void **)&status);
+    pthread_join(ar_standby, (void **)&status);
+    pthread_join(ar_enterControl, (void **)&status);
+    pthread_join(ar_exitControl, (void **)&status);
+    pthread_join(ar_abort, (void **)&status);
+    
+    pthread_join(cu_start, (void **)&status);
+    pthread_join(cu_stop, (void **)&status);
+    pthread_join(cu_enable, (void **)&status);
+    pthread_join(cu_disable, (void **)&status);
+    pthread_join(cu_standby, (void **)&status);
+    pthread_join(cu_enterControl, (void **)&status);
+    pthread_join(cu_exitControl, (void **)&status);
+    pthread_join(cu_abort, (void **)&status);
+    
+    pthread_join(pp_start, (void **)&status);
+    pthread_join(pp_stop, (void **)&status);
+    pthread_join(pp_enable, (void **)&status);
+    pthread_join(pp_disable, (void **)&status);
+    pthread_join(pp_standby, (void **)&status);
+    pthread_join(pp_enterControl, (void **)&status);
+    pthread_join(pp_exitControl, (void **)&status);
+    pthread_join(pp_abort, (void **)&status);
+    
+    pthread_join(atar_start, (void **)&status);
+    pthread_join(atar_stop, (void **)&status);
+    pthread_join(atar_enable, (void **)&status);
+    pthread_join(atar_disable, (void **)&status);
+    pthread_join(atar_standby, (void **)&status);
+    pthread_join(atar_enterControl, (void **)&status);
+    pthread_join(atar_exitControl, (void **)&status);
+    pthread_join(atar_abort, (void **)&status);
+
+    delete command_args; 
+    
+    cout << "Shutdown complete." << endl; 
+} 
+
+void signal_handler(int status_code) { 
+    cout << "Handling keyboard interrupts" << endl; 
+    isRunning = 0; 
+} 
+
 int main() { 
     CommandListener cmd; 
-    while (1) { 
+    signal(SIGINT, signal_handler); 
+    while (isRunning) { 
 
     } 
+    cmd.shutdown(); 
     return 0; 
 } 

@@ -21,6 +21,10 @@ class CommandListener : public OCS_Bridge {
 	}; 
 
 	ocs_thread_args *command_args;
+        pthread_t ar_start, ar_stop, ar_enable, ar_disable, ar_standby, ar_enterControl, ar_exitControl, ar_abort; 
+        pthread_t cu_start, cu_stop, cu_enable, cu_disable, cu_standby, cu_enterControl, cu_exitControl, cu_abort; 
+        pthread_t pp_start, pp_stop, pp_enable, pp_disable, pp_standby, pp_enterControl, pp_exitControl, pp_abort; 
+        pthread_t atar_start, atar_stop, atar_enable, atar_disable, atar_standby, atar_enterControl, atar_exitControl, atar_abort; 
  
 	int timed_ack_id;
 
@@ -72,4 +76,6 @@ class CommandListener : public OCS_Bridge {
 	static void *run_atar_enterControl(void *); 
 	static void *run_atar_exitControl(void *); 
 	static void *run_atar_abort(void *); 
+
+        void shutdown(); 
 };

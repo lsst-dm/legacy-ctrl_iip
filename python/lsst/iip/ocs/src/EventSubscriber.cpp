@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <pthread.h>
+#include <signal.h>
 #include "SAL_camera.h"
 #include "SAL_atcamera.h"
 #include "SAL_efd.h"
@@ -23,6 +24,8 @@ using namespace YAML;
 
 typedef void* (*funcptr)(void *args);  
 
+volatile sig_atomic_t isRunning = 1; 
+
 EventSubscriber::EventSubscriber() { 
     Node config_file = LoadFile("../../L1SystemCfg.yaml"); 
     Node root = config_file["ROOT"]; 
@@ -38,102 +41,49 @@ EventSubscriber::~EventSubscriber() {
 } 
 
 void EventSubscriber::setup_events_listeners() { 
-    funcptr thread_funcs[] {   &EventSubscriber::run_ccs_takeImages, 
-                               &EventSubscriber::run_ccs_startIntegration, 
-                               &EventSubscriber::run_ccs_endReadout, 
-                               &EventSubscriber::run_tcs_target, 
-                               &EventSubscriber::run_takeImageDone,
-                               &EventSubscriber::run_getHeaderService, 
-                               &EventSubscriber::run_atcamera_startIntegration, 
-                               &EventSubscriber::run_atcamera_endReadout, 
-                               &EventSubscriber::run_efd_largeFileObjectAvailable};
+
+    ostringstream rmq_url1; 
+    rmq_url1 << "amqp://EVN_1:EVN_1@" << base_broker_addr; 
+    cout << rmq_url1.str() << endl; 
+    thread_args1 = new event_args; 
+    thread_args1->publish_queue = queue_name; 
+    thread_args1->broker_addr = rmq_url1.str(); 
+    pthread_create(&evn1, NULL, &EventSubscriber::run_ccs_startIntegration, thread_args1); 
     
-    for (int i = 0; i < total_events; i++) { 
-        ostringstream rmq_url; 
-        rmq_url << "amqp://EVN_" << (i+1) << ":EVN_" << (i+1) << "@" << base_broker_addr; 
+    ostringstream rmq_url2; 
+    rmq_url2 << "amqp://EVN_2:EVN_2@" << base_broker_addr; 
+    cout << rmq_url2.str() << endl; 
+    thread_args2 = new event_args; 
+    thread_args2->publish_queue = queue_name; 
+    thread_args2->broker_addr = rmq_url2.str(); 
+    pthread_create(&evn2, NULL, &EventSubscriber::run_ccs_endReadout, thread_args2); 
     
-        cout << rmq_url.str() << endl; 
-        pthread_t thread; 
-        
-        thread_args = new event_args; 
-        thread_args->publish_queue = queue_name; 
-        thread_args->broker_addr = rmq_url.str(); 
-        
-        pthread_create(&thread, NULL, thread_funcs[i], thread_args); 
-    }  
+    ostringstream rmq_url3; 
+    rmq_url3 << "amqp://EVN_3:EVN_3@" << base_broker_addr; 
+    cout << rmq_url3.str() << endl; 
+    thread_args3 = new event_args; 
+    thread_args3->publish_queue = queue_name; 
+    thread_args3->broker_addr = rmq_url3.str(); 
+    pthread_create(&evn3, NULL, &EventSubscriber::run_atcamera_startIntegration, thread_args3); 
+    
+    ostringstream rmq_url4; 
+    rmq_url4 << "amqp://EVN_4:EVN_4@" << base_broker_addr; 
+    cout << rmq_url4.str() << endl; 
+    thread_args4 = new event_args; 
+    thread_args4->publish_queue = queue_name; 
+    thread_args4->broker_addr = rmq_url4.str(); 
+    pthread_create(&evn4, NULL, &EventSubscriber::run_atcamera_endReadout, thread_args4); 
+    
+    ostringstream rmq_url5; 
+    rmq_url5 << "amqp://EVN_5:EVN_5@" << base_broker_addr; 
+    cout << rmq_url5.str() << endl; 
+    thread_args5 = new event_args; 
+    thread_args5->publish_queue = queue_name; 
+    thread_args5->broker_addr = rmq_url5.str(); 
+    pthread_create(&evn5, NULL, &EventSubscriber::run_efd_largeFileObjectAvailable, thread_args5); 
+    
 } 
 
-/** 
-void *EventSubscriber::run_ccs_takeImages(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_camera mgr = SAL_camera(); 
-    camera_command_takeImagesC SALInstance; 
-
-    mgr.salProcessor("camera_command_takeImages"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.acceptCommand_takeImages(&SALInstance); 
-
-        if (status > 0) { 
-            cout << "=== Command takeImages Received. =" << endl; 
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: DMCS_TAKE_IMAGES"
-                << ", NUM_IMAGES: " << SALInstance.numImages
-                << ", EXP_TIME: " << SALInstance.expTime
-                << ", SHUTTER: " << SALInstance.shutter
-                << ", SCIENCE: " << SALInstance.science
-                << ", GUIDE: " << SALInstance.guide
-                << ", WFS: " << SALInstance.wfs
-                << ", IMAGE_SEQUENCE_NAME: " << SALInstance.imageSequenceName << "}"; 
-            publisher->publish_message(queue, msg.str());
-        } 
-        os_nanoSleep(delay_10ms); 
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
-*/ 
-void *EventSubscriber::run_ccs_takeImages(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_camera mgr = SAL_camera(); 
-    camera_command_takeImagesC SALInstance; 
-
-    mgr.salProcessor("camera_command_takeImages"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.acceptCommand_takeImages(&SALInstance); 
-
-        if (status > 0) { 
-            cout << "=== Command nextVisit Received. =" << endl; 
-            Emitter msg;
-            msg << BeginMap; 
-            msg << Key << "MSG_TYPE" << Value << "DMCS_TCS_TARGET"; 
-            msg << Key << "RA" << Value << "16"; 
-            msg << Key << "DEC" << Value << "27"; 
-            msg << Key << "ANGLE" << Value << "33";
-            msg << Key << "VISIT_ID" << Value << "visit_123";
-	    msg << Key << "TARGET_ID" << Value << "targe_321"; 
-            msg << EndMap; 	
-	    cout << "ER: " << msg.c_str() << endl; 
-            publisher->publish_message(queue, msg.c_str());
-        } 
-        os_nanoSleep(delay_10ms); 
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
 
 void *EventSubscriber::run_ccs_startIntegration(void *args) { 
     event_args *params = ((event_args *)args); 
@@ -148,7 +98,7 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
     mgr.salEvent("camera_logevent_startIntegration"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
-    while(1) { 
+    while(isRunning) { 
         status = mgr.getEvent_startIntegration(&SALInstance); 
 
         if (status == SAL__OK) { 
@@ -170,6 +120,8 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
         os_nanoSleep(delay_10ms); 
     }  
     mgr.salShutdown(); 
+    delete publisher; 
+    cout << "Shutting down Camera StartIntegration" << endl; 
     return 0;
 } 
 
@@ -186,7 +138,7 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
     mgr.salEvent("camera_logevent_endReadout"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
-    while(1) { 
+    while(isRunning) { 
         status = mgr.getEvent_endReadout(&SALInstance); 
 
         if (status == SAL__OK) { 
@@ -202,38 +154,10 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
         os_nanoSleep(delay_10ms); 
     }  
     mgr.salShutdown(); 
+    delete publisher; 
+    cout << "Shutting down Camera EndReadout" << endl; 
     return 0;
 } 
-/** 
-void *EventSubscriber::run_ccs_endReadout(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_archiver mgr = SAL_archiver(); 
-    archiver_logevent_endReadoutC SALInstance; 
-
-    mgr.salEvent("archiver_logevent_endReadout"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.getEvent_endReadout(&SALInstance); 
-
-        if (status == SAL__OK) { 
-            cout << "=== Event endReadout received = " << endl;
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: DMCS_END_READOUT" 
-                << ", IMAGE_ID: " << SALInstance.ImageName << "}"; 
-            publisher->publish_message(queue, msg.str());
-        } 
-        os_nanoSleep(delay_10ms); 
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
-*/
 
 
 /**
@@ -250,7 +174,7 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
     mgr.salEvent("camera_logevent_startIntegration"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
-    while(1) { 
+    while(isRunning) { 
         status = mgr.getEvent_startIntegration(&SALInstance); 
 
         if (status == SAL__OK) { 
@@ -309,102 +233,6 @@ void *EventSubscriber::run_tcs_target(void *args) {
     */ 
 } 
 
-void *EventSubscriber::run_takeImageDone(void *args) { 
-    /** 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_archiver mgr = SAL_archiver(); 
-    archiver_logevent_takeImageDoneC SALInstance; 
-
-    mgr.salEvent("archiver_logevent_takeImageDone"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.getEvent_takeImageDone(&SALInstance); 
-
-        if (status == SAL__OK) { 
-            cout << "=== Event takeImageDone received = " << endl;
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: DMCS_TAKE_IMAGES_DONE }"; 
-            publisher->publish_message(queue, msg.str()); 
-        } 
-        os_nanoSleep(delay_10ms);
-    }  
-    mgr.salShutdown(); 
-    return 0;
-    */ 
-} 
-            
-void *EventSubscriber::run_getHeaderService(void *args) { 
-    /** 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_headerService mgr = SAL_headerService(); 
-    headerService_logevent_LargeFileObjectAvailableC SALInstance; 
-
-    mgr.salEvent("headerService_logevent_LargeFileObjectAvailable"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
-
-        if (status == SAL__OK) { 
-            cout << "=== Event HeaderService received = " << endl;
-            Emitter msg;
-            msg << BeginMap; 
-            msg << Key << "MSG_TYPE" << Value << "DMCS_HEADER_READY"; 
-            msg << Key << "FILENAME" << Value << SALInstance.URL; 
-            msg << EndMap; 	
-	    cout << "HR: " << msg.c_str() << endl; 
-            publisher->publish_message(queue, msg.c_str()); 
-        } 
-        os_nanoSleep(delay_10ms);
-    }  
-    mgr.salShutdown(); 
-    */
-    return 0;
-} 
-/** 
-void *EventSubscriber::run_getHeaderService(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_efd mgr = SAL_efd(); 
-    efd_logevent_LargeFileObjectAvailableC SALInstance; 
-
-    mgr.salEvent("efd_logevent_LargeFileObjectAvailable"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
-
-        if (status == SAL__OK) { 
-            cout << "=== Event EFD HeaderService received = " << endl;
-            Emitter msg;
-            msg << BeginMap; 
-            msg << Key << "MSG_TYPE" << Value << "DMCS_HEADER_READY"; 
-            msg << Key << "FILENAME" << Value << SALInstance.URL; 
-            msg << EndMap; 	
-	    cout << "HR: " << msg.c_str() << endl; 
-            publisher->publish_message(queue, msg.c_str()); 
-        } 
-        os_nanoSleep(delay_10ms);
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
-*/ 
 
 void *EventSubscriber::run_atcamera_startIntegration(void *args) { 
     event_args *params = ((event_args *)args); 
@@ -419,7 +247,7 @@ void *EventSubscriber::run_atcamera_startIntegration(void *args) {
     mgr.salEvent("atcamera_logevent_startIntegration"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
-    while(1) { 
+    while(isRunning) { 
         status = mgr.getEvent_startIntegration(&SALInstance); 
 
         if (status == SAL__OK) { 
@@ -439,6 +267,8 @@ void *EventSubscriber::run_atcamera_startIntegration(void *args) {
         os_nanoSleep(delay_10ms);
     }  
     mgr.salShutdown(); 
+    delete publisher; 
+    cout << "Shutting down AtCamera StartIntegration" << endl; 
     return 0;
 } 
 
@@ -455,7 +285,7 @@ void *EventSubscriber::run_atcamera_endReadout(void *args) {
     mgr.salEvent("atcamera_logevent_endReadout"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
-    while(1) { 
+    while(isRunning) { 
         status = mgr.getEvent_endReadout(&SALInstance); 
 
         if (status == SAL__OK) { 
@@ -475,6 +305,8 @@ void *EventSubscriber::run_atcamera_endReadout(void *args) {
         os_nanoSleep(delay_10ms);
     }  
     mgr.salShutdown(); 
+    delete publisher; 
+    cout << "Shutting down AtCamera EndReadout" << endl; 
     return 0;
 } 
 
@@ -491,7 +323,7 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
     mgr.salEvent("efd_logevent_LargeFileObjectAvailable"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
-    while(1) { 
+    while(isRunning) { 
         status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
 
         if (status == SAL__OK) { 
@@ -520,13 +352,37 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
         os_nanoSleep(delay_10ms);
     }  
     mgr.salShutdown(); 
+    delete publisher; 
+    cout << "Shutting down EFD LargeFileObjectAvailable" << endl; 
     return 0;
+} 
+
+void EventSubscriber::shutdown() { 
+    int status; 
+    pthread_join(evn1, (void **)&status); 
+    pthread_join(evn2, (void **)&status); 
+    pthread_join(evn3, (void **)&status); 
+    pthread_join(evn4, (void **)&status); 
+    pthread_join(evn5, (void **)&status); 
+    
+    delete thread_args1;  
+    delete thread_args2;  
+    delete thread_args3;  
+    delete thread_args4;  
+    delete thread_args5;  
+} 
+
+void signal_handler(int status_code) {
+    cout << "Handling keyboard interrupts" << endl; 
+    isRunning = 0; 
 } 
 
 int main() { 
     EventSubscriber event; 
-    while(1) { 
+    signal(SIGINT, signal_handler); 
+    while(isRunning) { 
 
     } 
+    event.shutdown(); 
     return 0; 
 } 
