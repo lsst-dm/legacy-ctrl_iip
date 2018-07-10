@@ -643,6 +643,7 @@ void signal_handler(int status_code) {
 int main() { 
     CommandListener cmd; 
     signal(SIGINT, signal_handler); 
+    signal(SIGTERM, signal_handler); 
     while (isRunning) { 
 
     } 

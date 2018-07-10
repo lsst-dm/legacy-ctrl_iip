@@ -380,6 +380,7 @@ void signal_handler(int status_code) {
 int main() { 
     EventSubscriber event; 
     signal(SIGINT, signal_handler); 
+    signal(SIGTERM, signal_handler); 
     while(isRunning) { 
 
     } 
