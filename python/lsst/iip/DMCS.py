@@ -946,6 +946,8 @@ class DMCS:
 
 
     def process_fault(self, params):
+        pass
+
         device = params['DEVICE']
         fault_type = params['FAULT_TYPE']
         error_code = params['ERROR_CODE']
@@ -1316,7 +1318,7 @@ class DMCS:
             message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
             message['DEVICE'] = device
             message['APPLIED'] = True
-            message['SETTING'] = self.general_settings
+            message['SETTINGS'] = self.general_settings
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.args)

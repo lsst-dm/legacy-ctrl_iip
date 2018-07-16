@@ -1,19 +1,21 @@
 # startup sequence 
-#../commands/sacpp_archiver_enterControl_commander 0
-#sleep 3
+/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_enterControl_commander 0
+sleep 3
+echo "[OK] ENTER_CONTROL COMPLETE." 
 
-#../commands/sacpp_archiver_start_commander Normal
-#sleep 3 
+/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_start_commander Normal
+sleep 3 
+echo "[OK] START COMPLETE." 
 
-../commands/sacpp_archiver_standby_commander 0
+/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_standby_commander 0
 sleep 1
 echo "[OK] STANDBY COMPLETE." 
 
-../commands/sacpp_archiver_disable_commander 0
+/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_disable_commander 0
 sleep 1
 echo "[OK] DISABLE COMPLETE." 
 
-../commands/sacpp_archiver_enable_commander 0
+/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_enable_commander 0
 sleep 1
 echo "[OK] ENABLE COMPLETE." 
 

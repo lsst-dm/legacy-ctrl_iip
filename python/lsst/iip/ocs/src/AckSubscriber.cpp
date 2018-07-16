@@ -75,6 +75,7 @@ void AckSubscriber::run() {
     ar.salEvent(const_cast<char *>("archiver_logevent_SummaryState")); 
     ar.salEvent(const_cast<char *>("archiver_logevent_AppliedSettingsMatchStart")); 
     ar.salEvent(const_cast<char *>("archiver_logevent_SettingVersions")); 
+    ar.salEvent(const_cast<char *>("archiver_logevent_SettingVersions")); 
     ar.salEvent(const_cast<char *>("archiver_logevent_ErrorCode")); 
     // Settings applied topic actually doesn't exist. 
 
@@ -115,10 +116,11 @@ void AckSubscriber::run() {
     at.salProcessor(const_cast<char *>("atArchiver_command_stop")); 
     at.salProcessor(const_cast<char *>("atArchiver_command_abort"));
 
-    at.salEvent(const_cast<char *>("atArchiver_logevent_SummaryState")); 
-    at.salEvent(const_cast<char *>("atArchiver_logevent_AppliedSettingsMatchStart")); 
-    at.salEvent(const_cast<char *>("atArchiver_logevent_SettingVersions")); 
-    at.salEvent(const_cast<char *>("atArchiver_logevent_ErrorCode")); 
+    at.salEventPub(const_cast<char *>("atArchiver_logevent_SummaryState")); 
+    at.salEventPub(const_cast<char *>("atArchiver_logevent_AppliedSettingsMatchStart")); 
+    at.salEventPub(const_cast<char *>("atArchiver_logevent_SettingVersions")); 
+    at.salEventPub(const_cast<char *>("atArchiver_logevent_ErrorCode")); 
+    at.salEventPub(const_cast<char *>("atArchiver_logevent_SettingsApplied")); 
 
     cout << "============> running CONSUMER <=============" << endl; 
     callback<AckSubscriber> on_msg = &AckSubscriber::on_message; 
