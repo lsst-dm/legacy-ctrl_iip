@@ -1,8 +1,8 @@
-RELEASE		= /home/lsst-daq/daq-sdk/current
+RELEASE		= /home/atsdaq2/lsst-daq/daq-sdk/current
 INCLUDE       = -I../../ocs/include -I../include
-DAQ_INCLUDE       = -I/home/lsst-daq/daq-sdk/current/include 
+DAQ_INCLUDE       = -I/home/atsdaq2/lsst-daq/daq-sdk/current/include 
 LIBPATH       = -L../../ocs/lib -Wl,-rpath,../../ocs/lib -L../lib 
-DAQ_LIBPATH       = -L/home/lsst-daq/daq-sdk/current/x86/lib -Wl,-rpath,/home/lsst-daq/daq-sdk/current/x86/lib  
+DAQ_LIBPATH       = -L/home/atsdaq2/lsst-daq/daq-sdk/current/x86/lib -Wl,-rpath,/home/atsdaq2/lsst-daq/daq-sdk/current/x86/lib  
 LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcurl
 DAQ_LIB           = -ldaq_daq -ldaq_ims -ldaq_dsi -ldaq_osa -ldaq_dss -ldaq_net
 OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
