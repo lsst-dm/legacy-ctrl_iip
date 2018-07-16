@@ -836,7 +836,8 @@ void Forwarder::process_at_fetch(Node n) {
       
  
       // COMMENTED OUT FOR HACK AS WFS FETCH DOES NOT WORK THIS MORNING
-           string raft = "raft02";
+           string raft = "ats";
+           //string raft = "raft02";
            this->fetch_at_reassemble_process(raft, image_id, filepath.str());
            map<string, vector<string>> source_boards = {
               {"0", {"00"}}
@@ -1634,6 +1635,7 @@ void Forwarder::format_look_for_work() {
 
 void Forwarder::forward_process_end_readout(Node n) { 
     try { 
+	string bbcp_key = "~/.ssh/id_rsa"; 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
         string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
@@ -1642,7 +1644,9 @@ void Forwarder::forward_process_end_readout(Node n) {
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
         if (find_at != string::npos) { 
-            bbcp_cmd << "scp -i ~/.ssh/from_efd ";
+            bbcp_cmd << "bbcp -i "
+                     << bbcp_key 
+		     << " ";
         } 
         else { 
             bbcp_cmd << "cp "; 
