@@ -29,18 +29,13 @@
 
 
 #define SECONDARY_HDU 2
-// Htut Khine, please notice:
-// // These values are set right now for testing. They will become event params soon...
-// // Gregg's test image uses:
-// // NAXIS1 = 576, NAXIS2 = 2048
-// //#define HEIGHT 512
 #define STRING(s) STRING_EXPAND(s)
 #define STRING_EXPAND(s) #s 
-// Gregg T's test image uses these two values:
 #define NAXIS1 576
 #define NAXIS2 2048
 #define N_AMPS 16
 #define PIX_MASK 0x3FFFF
+#define STRAIGHT_PIX_MASK 0x20000
 #define DEBUG 1
 
 using namespace std;
@@ -70,6 +65,9 @@ class Forwarder {
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
     std::string WFS_RAFT = "";
+    bool is_naxis_set = true;
+    long Naxis_1 = NAXIS1;
+    long Naxis_2 = NAXIS2;
     int Num_Images = 0; 
     int ERROR_CODE_PREFIX; 
     std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
@@ -160,6 +158,7 @@ class Forwarder {
     void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
     void fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
+    void get_register_metadata(const DAQ::Location& location, const IMS::Image& image);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
     void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
@@ -853,13 +852,11 @@ void Forwarder::process_at_fetch(Node n) {
 
 void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
 {
-  cout << ">>>>>>>>>>>>>> IN fetch_at_reassemble_process -- raft is: " << raft.c_str() << endl;
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
 
   IMS::Image image(image_id.c_str(), store);
 
-  //image.synopsis();
   DAQ::LocationSet sources = image.sources();
 
   uint64_t total_stripes = 0;
@@ -867,40 +864,41 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
   DAQ::Location location;
 
   while(sources.remove(location)) {
-    IMS::Source source(location, image);
+
+      // Set image array NAXIS values for format thread...
+      this->get_register_metadata(location, image);
+
+      IMS::Source source(location, image);
   
-    //IMS::Science slice(source);
-    IMS::WaveFront slice(source);
+      IMS::WaveFront slice(source);
+      if(!slice) return;
   
+      // Filehandle set for ATS CCD will then have a set of 
+      // 16 filehandles...one filehandle for each amp segment.
   
-    if(!slice) return;
+      std::vector<std::ofstream*> FH_ATS;
+      this->fetch_set_up_at_filehandles(FH_ATS, image_id, dir_prefix);
   
-    // Filehandle set for ATS CCD will then have a set of 
-    // 16 filehandles...one filehandle for each amp segment.
-  
-    std::vector<std::ofstream*> FH_ATS;
-    this->fetch_set_up_at_filehandles(FH_ATS, image_id, dir_prefix);
-  
-      do
-      {
-        total_stripes += slice.stripes();
-        IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
-    
-        slice.decode(ccd0);
-    
-        for(int s=0; s<slice.stripes(); ++s)
-        {
-          for(int amp=0; amp<N_AMPS; ++amp)
+          do
           {
-            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
-            FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
-          }
-        }
+              total_stripes += slice.stripes();
+              IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
     
-        delete [] ccd0;
+              slice.decode(ccd0);
     
-      }
-      while(slice.advance());
+              for(int s=0; s<slice.stripes(); ++s)
+              {
+                  for(int amp=0; amp<N_AMPS; ++amp)
+                  {
+                      int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+                      FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                  }
+              }
+    
+              delete [] ccd0;
+    
+            }
+            while(slice.advance());
   
       this->fetch_close_filehandles(FH_ATS);
   }
@@ -980,17 +978,15 @@ for(auto it = source_boards.cbegin(); it != source_boards.cend(); ++it)
 
 }
 
-//XXX FIX - This method is a mess - hoarder code...
 void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
   ostringstream raft_name;
   raft_name << raft;
   string rafty = raft_name.str();
+
   IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
 
   IMS::Image image(image_id.c_str(), store);
-
-  image.synopsis();
 
   DAQ::LocationSet sources = image.sources();
 
@@ -998,9 +994,6 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
 
   int board = 0; // Only way we know how to access a board is by its integer id.
 
-#ifdef DEBUG
-cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
-#endif
 
   //The loop below processes each raft board (an individual source) one at a time.
   //In order to avoid boards that do not have desired CCDs on them, we check within
@@ -1008,48 +1001,84 @@ cout << "In fetch_reassemble_raft_image, doing raft:  " << raft << endl;
   //converting the board counter to a string, and checking within the source_boards map
   //for a key representing the current board. If it exists, send board(location) to
   //reassemble process
-  // FOR GREGG T: Is there a way to get a board number directly from API
-  //rather than using the indirect counter method used here?
   while(sources.remove(location))
   {
       string board_str = std::to_string(board);
 
-      cout << "XXX fetch_assemble_raft_image -- looking at board: " << board_str << endl;
+      // Check here if bool val is_naxis_set is false...if so,
+      // pull register InstructionList info from current source, and
+      // set this.naxis1 and this.naxis2.
+      //
+      // otherwise if true, skip register metadata and use current vals
+      if (!is_naxis_set) {
+        this->get_register_metadata(location, image);
+      }
 
       if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
                                            // that we put together in the preceeding method...
 
-      cout << "XXX fetch_assemble_raft_image -- source_board.count says YES to board: " << board_str << endl;
 
-        //std::vector<string> ccds_for_board = source_boards[board_str];
-        std::vector<string> ccds_for_board;
+          std::vector<string> ccds_for_board;
 
-        for (auto ii : source_boards[board_str]) {
-
-      cout << "XXX fetch_reassemble_raft_image -- Adding " << ii << " to ccds_for_board vector." << endl;
-
-          ccds_for_board.push_back(ii);
-
-      cout << "XXX fetch_reassemble_raft_image -- CCD added to ccds_for_board vector." << endl;
-
-        }
-
-      #ifdef DEBUG
-      cout << "In fetch_reassemble_raft_image, doing board:  " << board_str << endl;
-      cout << "In fetch_reassemble_raft_image, ccds for board " << board_str << " are:  ";
-        for (auto i: ccds_for_board) {
-          cout << i << " ";
-      }
-      cout << endl;
-      #endif
+          for (auto ii : source_boards[board_str]) {
+              ccds_for_board.push_back(ii);
+          }
 
         this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
       }
     board++;
   }
-
   return;
 }
+
+void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image)
+{
+
+       // Here are the values and associated indexes
+       // into the InstructionList returned by source.registers().
+       // These index values are used in the lookup() call below.
+       // They are subject to change...
+       // REG_READ_ROWS = 0,
+       // REG_READ_COLS = 1,
+       // REG_PRE_ROWS = 2,
+       // REG_PRE_COLS = 3,
+       // REG_POST_ROWS = 4,
+       // REG_POST_COLS = 5,
+       // REG_READ_COLS2 = 6,
+       // REG_OVER_ROWS = 7,
+       // REG_OVER_COLS = 8,
+       // NUM_REGISTERS = 9;
+
+  IMS::Source source(location, image);
+
+  const RMS::InstructionList *reglist = source.registers();
+
+  // READ_ROWS + OVER_ROWS
+  const RMS::Instruction *inst0 = reglist->lookup(0);
+  uint32_t operand0 = inst0->operand();
+
+  const RMS::Instruction *inst7 = reglist->lookup(7);
+  uint32_t operand7 = inst7->operand();
+
+  this->Naxis_2 = operand0 + operand7;
+;
+
+  // READ_COLS + READ_COLS2 + OVER_COLS
+  const RMS::Instruction *inst1 = reglist->lookup(1);
+  uint32_t operand1 = inst1->operand();
+
+  const RMS::Instruction *inst6 = reglist->lookup(6);
+  uint32_t operand6 = inst6->operand();
+
+  const RMS::Instruction *inst8 = reglist->lookup(8);
+  uint32_t operand8 = inst8->operand();
+
+  this->Naxis_1 = operand1 + operand6 + operand8;
+
+  this->is_naxis_set = true;
+
+}
+
 
 // Above, the source boards are iterated through one at a time.
 // If the requested raft/ccd(s) can be found within the current board, the needed CCD list
