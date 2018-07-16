@@ -14,7 +14,7 @@ class AckSubscriber : public OCS_Bridge {
         SAL_archiver ar; 
         SAL_catchuparchiver cu; 
         SAL_processingcluster pp; 
-        SAL_atArchiver atar; 
+        SAL_atArchiver at; 
 
         /** constructor for Rabbitmq ack subscriber to OCS system */ 
 	AckSubscriber(); 

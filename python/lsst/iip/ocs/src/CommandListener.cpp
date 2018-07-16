@@ -165,7 +165,7 @@ void CommandListener::setup_processingcluster_listeners() {
 void CommandListener::setup_atArchiver_listeners() { 
     pthread_t atar_start, atar_stop, atar_enable, atar_disable, atar_standby, atar_enterControl, atar_exitControl, atar_abort; 
     pthread_create(&atar_start, NULL, &CommandListener::run_atar_start, command_args); 
-    pthread_create(&atar_stop, NULL, &CommandListener::run_atar_stop, command_args); 
+    // pthread_create(&atar_stop, NULL, &CommandListener::run_atar_stop, command_args); 
     pthread_create(&atar_enable, NULL, &CommandListener::run_atar_enable, command_args); 
     pthread_create(&atar_disable, NULL, &CommandListener::run_atar_disable, command_args); 
     pthread_create(&atar_standby, NULL, &CommandListener::run_atar_standby, command_args); 
@@ -475,6 +475,7 @@ void *CommandListener::run_atar_start(void *pargs) {
 } 
 
 void *CommandListener::run_atar_stop(void *pargs) {
+    /** 
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
@@ -483,6 +484,7 @@ void *CommandListener::run_atar_stop(void *pargs) {
     
     funcptr<SAL_atArchiver, atArchiver_command_stopC> atar_stop = &SAL_atArchiver::acceptCommand_stop;   
     listenCommand(atar,"AT", "STOP", rabbit_publisher, publish_q, consume_q, atar_stop);  
+    */ 
     return 0; 
 } 
 
