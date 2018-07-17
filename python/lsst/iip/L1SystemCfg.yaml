@@ -152,6 +152,11 @@ ROOT:
     OCS_PASSWD: OCS
     OCS_PUBLISH: ocs_dmcs_consume
     OCS_CONSUME: dmcs_ocs_publish
+  STARTUP:
+    AT_STRRT_ENABLE: yes
+    AR_START_ENABLE: no
+    PP_START_ENABLE: no
+    CU_START_ENABLE: no
   SCOREBOARDS:
     AR_JOB_SCBD: 0
     AR_FWD_SCBD: 1

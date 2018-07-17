@@ -141,6 +141,8 @@ class DMCS:
 
         self.setup_scoreboards()
 
+        self.check_startup_state()
+
         LOGGER.info('DMCS consumer setup')
         self.thread_manager = None
         self.setup_consumer_threads()
@@ -1472,6 +1474,10 @@ class DMCS:
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
             self.efd = self.efd_login + "@" + self.efd_ip + ":"
+            self.at_enabled = cdm[ROOT]['STARTUP']['AT_START_ENABLE']
+            self.ar_enabled = cdm[ROOT]['STARTUP']['AR_START_ENABLE']
+            self.pp_enabled = cdm[ROOT]['STARTUP']['PP_START_ENABLE']
+            self.cu_enabled = cdm[ROOT]['STARTUP']['CU_START_ENABLE']
         except KeyError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find key in CDM representation of %s\n" % filename
@@ -1480,6 +1486,21 @@ class DMCS:
 
         return True
 
+    def check_startup_state(self):
+        if self.at_enabled == True:
+            self.STATE_SCBD.set_device_state('AT', 'ENABLE')
+            session_id = self.INCR_SCBD.get_next_session_id()
+            self.STATE_SCBD.set_current_session(session_id)
+            self.STATE_SCBD.set_rafts_for_current_session(session_id)
+            self.send_new_session_msg(session_id)
+            self.STATE_SCBD.set_device_state('AT', 'ENABLE')
+            # Set up enabled...
+        if self.ar_enabled == True:
+            pass
+        if self.pp_enabled == True:
+            pass
+        if self.cu_enabled == True:
+            pass
 
 
     def setup_consumer_threads(self):
