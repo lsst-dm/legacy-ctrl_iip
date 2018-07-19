@@ -72,6 +72,16 @@ class Forwarder {
     int ERROR_CODE_PREFIX; 
     std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
                                          "10","11","12","13","14","15","16","17"};
+
+    std::vector<string> New_Segment_Names = {"17","16","15","14","13","12","11","10",\
+                                             "00","01","02","03","04","05","06","07"};
+
+    std::vector<string> Newest_Segment_Names = {"07","06","05","04","03","02","01","00",\
+                                         "17","16","15","14","13","12","11","10"};
+
+    std::vector<string> News_Segment_Names = {"10","11","12","13","14","15","16","17",\
+                                             "00","01","02","03","04","05","06","07"};
+
    
     
     std::string consume_queue = "";
@@ -834,12 +844,8 @@ void Forwarder::process_at_fetch(Node n) {
 
       
  
-      // COMMENTED OUT FOR HACK AS WFS FETCH DOES NOT WORK THIS MORNING
-           string raft = "raft02";
+           string raft = "ats";
            this->fetch_at_reassemble_process(raft, image_id, filepath.str());
-           map<string, vector<string>> source_boards = {
-              {"0", {"00"}}
-           };
       //this->fetch_reassemble_raft_image(raft, source_boards, image_id, filepath.str());
 
       string new_msg_type = "FORMAT_END_READOUT";
@@ -890,7 +896,7 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
               {
                   for(int amp=0; amp<N_AMPS; ++amp)
                   {
-                      int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+                      int32_t X = STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp]));
                       FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
                   }
               }
@@ -1233,7 +1239,7 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
                           << image_id \
                           << "--AUXTEL" \
                           << "-ccd.ATS_CCD" \
-                          << "_segment." << this->Segment_Names[i];
+                          << "_segment." << this->Newest_Segment_Names[i];
 cout << "FILENAME:  " << fns.str() << endl;
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
@@ -1671,7 +1677,7 @@ void Forwarder::forward_process_end_readout(Node n) {
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
         if (find_at != string::npos) { 
-            bbcp_cmd << "scp -i ~/.ssh/from_efd ";
+            bbcp_cmd << "bbcp -i ~/.ssh/id_rsa ";
         } 
         else { 
             bbcp_cmd << "cp "; 
