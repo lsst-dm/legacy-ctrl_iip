@@ -852,7 +852,6 @@ void Forwarder::process_at_fetch(Node n) {
 
       
  
-      // COMMENTED OUT FOR HACK AS WFS FETCH DOES NOT WORK THIS MORNING
            string raft = "ats";
            this->fetch_at_reassemble_process(raft, image_id, filepath.str());
            map<string, vector<string>> source_boards = {
@@ -868,9 +867,10 @@ void Forwarder::process_at_fetch(Node n) {
       return;
 }
 
+
+
 void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
 {
-  cout << "In fetch_at_reassemble_process...raft value is:  " << raft << "  and image_id is:  " << image_id << ".  Finally, dir_prefix is:  " << dir_prefix << endl << endl;
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
 
@@ -1253,7 +1253,6 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
                           << "--AUXTEL" \
                           << "-ccd.ATS_CCD" \
                           << "_segment." << this->Newx_Segment_Names[i];
-cout << "FILENAME:  " << fns.str() << endl;
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
         fh_set.push_back(fh); 
