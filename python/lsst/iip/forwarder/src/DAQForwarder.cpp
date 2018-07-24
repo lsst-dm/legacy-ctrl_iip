@@ -900,7 +900,10 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
     
             for(int s=0; s<slice.stripes(); ++s) {
                 for(int amp=0; amp<N_AMPS; ++amp) {
-                    int32_t X = WFS_PIX_MASK ^ ((ccd0[s].segment[amp]));
+                    // int32_t X = WFS_PIX_MASK ^ ((ccd0[s].segment[amp]));
+                    // Changed at Tucson exercise with actual camera
+                    // as this mask worked there...
+                    int32_t X = STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp]));
                     FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
                 }
             }
