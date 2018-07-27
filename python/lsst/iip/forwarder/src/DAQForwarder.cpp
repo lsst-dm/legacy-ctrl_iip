@@ -10,6 +10,8 @@
 #include <sstream>
 #include <pthread.h>
 #include <fstream>
+#include <chrono>
+#include <ctime>
 #include <yaml-cpp/yaml.h>
 #include "Consumer_impl.h"
 #include "SimplePublisher.h"
@@ -42,6 +44,7 @@
 #define PIX_MASK 0x3FFFF
 #define STRAIGHT_PIX_MASK 0x20000
 #define DEBUG 1
+#define METRIX 1
 
 using namespace std;
 using namespace YAML;
@@ -179,7 +182,7 @@ class Forwarder {
     unsigned char** format_assemble_pixels(char *);
     void format_write_img(std::string, std::string, std::string, std::string);
     void format_assemble_img(Node);
-    void format_send_completed_msg(std::string, std::string, std::string);
+    void format_send_completed_msg(std::string, std::string, std::string, std::string,std::string);
     void format_look_for_work(std::string); 
     void format_process_end_readout(Node); 
     void format_get_header(Node); 
@@ -985,7 +988,9 @@ void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string 
   // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
   // but the source_boards map generated above may not include keys for all 3 source boards.
   // If ccd list is especially sparse, only one board might be included in map.
+
   this->fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
+
 }
 
 
@@ -1011,6 +1016,13 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string,
   //converting the board counter to a string, and checking within the source_boards map
   //for a key representing the current board. If it exists, send board(location) to
   //reassemble process
+
+#ifdef METRIX
+  auto start = std::chrono::system_clock::now();
+  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+  std::cout << "Started raft fetch at " << std::ctime(&start_time) << endl;
+#endif
+
   while(sources.remove(location))
   {
       string board_str = std::to_string(board);
@@ -1037,6 +1049,15 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string,
        }
        board++;
   }
+#ifdef METRIX
+  auto end = std::chrono::system_clock::now();
+ 
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+ 
+  std::cout << "Finished raft fetch at " << std::ctime(&end_time)
+            << "elapsed time: " << elapsed_seconds.count() << "s\n";
+#endif
   return;
 }
 
@@ -1138,7 +1159,22 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
 
         if (string(1, ccds_for_board[x][1]) == "0") {
             do_ccd0 = true;
+
+#ifdef METRIX
+  auto start = std::chrono::system_clock::now();
+  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+  std::cout << "Start building filehandles for " << ccds_for_board[x] << " at " << std::ctime(&start_time) << endl;
+#endif
             this->fetch_set_up_filehandles(FH0, image_id, raft, ccds_for_board[x], dir_prefix);
+#ifdef METRIX
+  auto end = std::chrono::system_clock::now();
+ 
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+ 
+  std::cout << "Finished filehandle creation for " << ccds_for_board[x] << " at " << std::ctime(&end_time)
+            << "filehandle creation elapsed time: " << elapsed_seconds.count() << "s\n";
+#endif
             ccd0_path << dir_prefix << "/" << raft << "/" << ccds_for_board[x];
             ccd0_map.insert(pair<string,string>("raft",raft));
             ccd0_map.insert(pair<string,string>("ccd",ccds_for_board[x]));
@@ -1147,7 +1183,21 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
 
         if (string(1, ccds_for_board[x][1]) == "1") {
             do_ccd1 = true;
+#ifdef METRIX
+  auto start = std::chrono::system_clock::now();
+  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+  std::cout << "Start building filehandles for " << ccds_for_board[x] << " at " << std::ctime(&start_time) << endl;
+#endif
             this->fetch_set_up_filehandles(FH1, image_id, raft, ccds_for_board[x], dir_prefix);
+#ifdef METRIX
+  auto end = std::chrono::system_clock::now();
+ 
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+ 
+  std::cout << "Finished filehandle creation for " << ccds_for_board[x] << " at " << std::ctime(&end_time)
+            << "filehandle creation elapsed time: " << elapsed_seconds.count() << "s\n";
+#endif
             ccd1_path << dir_prefix << "/" << raft << "/" << ccds_for_board[x];
             ccd1_map.insert(pair<string,string>("raft",raft));
             ccd1_map.insert(pair<string,string>("ccd",ccds_for_board[x]));
@@ -1156,7 +1206,21 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
 
         if (string(1, ccds_for_board[x][1]) == "2") {
             do_ccd2 = true;
+#ifdef METRIX
+  auto start = std::chrono::system_clock::now();
+  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+  std::cout << "Start building filehandles for " << ccds_for_board[x] << " at " << std::ctime(&start_time) << endl;
+#endif
             this->fetch_set_up_filehandles(FH2, image_id, raft, ccds_for_board[x], dir_prefix);
+#ifdef METRIX
+  auto end = std::chrono::system_clock::now();
+ 
+  std::chrono::duration<double> elapsed_seconds = end-start;
+  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+ 
+  std::cout << "Finished filehandle creation for " << ccds_for_board[x] << " at " << std::ctime(&end_time)
+            << "filehandle creation elapsed time: " << elapsed_seconds.count() << "s\n";
+#endif
             ccd2_path << dir_prefix << "/" << raft << "/" << ccds_for_board[x];
             ccd2_map.insert(pair<string,string>("raft",raft));
             ccd2_map.insert(pair<string,string>("ccd",ccds_for_board[x]));
@@ -1265,7 +1329,7 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set,
                           << "_segment." << this->New_Segment_Names[i];
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | \
-                                               std::ios::app | std::ios::binary );
+                                                std::ios::binary );
         fh_set.push_back(fh); 
     }
 }
@@ -1281,7 +1345,7 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
                           << "_segment." << this->New_Segment_Names[i];
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | \
-                                               std::ios::app | std::ios::binary );
+                                                std::ios::binary );
         fh_set.push_back(fh); 
     }
 }
@@ -1634,7 +1698,7 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
 
-        format_send_completed_msg(img_id, destination, dest_filename);
+        format_send_completed_msg(img_id, raft_name, ccd_name, destination, dest_filename);
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
@@ -1661,15 +1725,22 @@ vector<string> Forwarder::format_list_files(string path) {
     } 
 } 
 
-void Forwarder::format_send_completed_msg(string image_id, string path, string dest_filename) { 
+//## When Fits file is finished, let forward process know where finished file resides
+//## and provide necessary metadata such as file destination.
+void Forwarder::format_send_completed_msg(string image_id, string raft_name, \
+                                          string ccd_name, string path, string dest_filename) { 
     cout << "[f] fscm" << endl;
     try { 
         Emitter msg; 
         msg << BeginMap; 
         msg << Key << "MSG_TYPE" << Value << "FORWARD_END_READOUT"; 
         msg << Key << "IMAGE_ID" << Value << image_id; 
+        msg << Key << "RAFT" << Value << raft_name; 
+        msg << Key << "CCD" << Value << ccd_name; 
 	msg << Key << "PATH" << Value << path; 
 	msg << Key << "IMAGE_NAME" << Value << dest_filename; 
+        //msg << Key << "CHECKSUM" << Value << csum;
+        //msg << Key << "RECEIPT" << Null << receipt;
         msg << EndMap; 
         fmt_pub->publish_message(this->forward_consume_queue, msg.c_str()); 
     } 
@@ -1744,6 +1815,8 @@ void Forwarder::forward_process_end_readout(Node n) {
         // string img_path = this->Work_Dir + "/fits/" + img_id + ".fits"; 
 	string img_path = n["PATH"].as<string>();
 	string img_name = n["IMAGE_NAME"].as<string>();
+        string raft_name = n["RAFT"].as<string>();
+        string ccd_name = n["CCD"].as<string>();
         string dest_path = this->Target_Location + "/" + img_name; 
 	cout << "[STATUS] target locations is: " << this->Target_Location << endl; 
       
