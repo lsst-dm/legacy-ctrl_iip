@@ -82,10 +82,16 @@ class Forwarder {
    
     //std::vector<string> New_Segment_Names = {"10","11","12","13","14","15","16","17",\
     //                                         "00","01","02","03","04","05","06","07"};
-                                             //"07","06","05","04","03","02","01","00"};
 
+    // Works for main cam
     std::vector<string> New_Segment_Names = {"17","16","15","14","13","12","11","10",\
                                              "00","01","02","03","04","05","06","07"};
+
+    // Works for ATS cam
+    std::vector<string> ATS_Segment_Names = {"00","01","02","03","04","05","06","07",\
+                                          "17","16","15","14","13","12","11","10"};
+
+
    
     
     std::string consume_queue = "";
@@ -1342,7 +1348,7 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
                           << image_id \
                           << "--AUXTEL" \
                           << "-ccd.ATS_CCD" \
-                          << "_segment." << this->New_Segment_Names[i];
+                          << "_segment." << this->ATS_Segment_Names[i];
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | \
                                                 std::ios::binary );
