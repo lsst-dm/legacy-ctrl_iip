@@ -1323,7 +1323,10 @@ class DMCS:
             message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
             message['DEVICE'] = device
             message['APPLIED'] = True
-            message['SETTINGS'] = self.general_settings
+            #message['SETTINGS'] = self.general_settings
+            message['TsXmlVersion'] = self.TsXmlVersion
+            message['TsSALVersion'] = self.TsSALVersion
+            message['L1DMRepoTag'] = self.L1DMRepoTag
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.args)
@@ -1472,10 +1475,9 @@ class DMCS:
             self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
             self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
             self.at_cfg_keys = cdm[ROOT]['AT_CFG_KEYS']
-            TsXmlVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsXmlVersion']
-            TsSALVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsSALVersion']
-            L1DMRepoTag = cdm[ROOT]['GENERAL_SETTINGS']['L1DMRepoTag']
-            self.general_settings = "TsXmlVersion:" + TsXmlVersion + "," + "TsSALVersion:" + TsSALVersion + "," + "L1DMRepoTag:" + L1DMRepoTag 
+            self.TsXmlVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsXmlVersion']
+            self.TsSALVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsSALVersion']
+            self.L1DMRepoTag = cdm[ROOT]['GENERAL_SETTINGS']['L1DMRepoTag']
             self.efd_login = cdm[ROOT]['EFD']['EFD_LOGIN']
             self.efd_ip = cdm[ROOT]['EFD']['EFD_IP']
             self.wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
