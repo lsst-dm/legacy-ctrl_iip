@@ -40,7 +40,7 @@ for i in ${queues[@]}
 do
     #rabbitmqctl purge_queue --vhost=/bunny_at -u DMCS -p DMCS name=$i
     #rabbitmqctl purge_queue --vhost=/test_at -u DMCS -p DMCS name=$i
-    rabbitmqctl purge_queue -p /bunny_at $i
+    #rabbitmqctl purge_queue -p /bunny_at $i
     rabbitmqctl purge_queue -p /test_at $i
 done
 

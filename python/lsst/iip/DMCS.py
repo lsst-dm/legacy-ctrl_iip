@@ -141,13 +141,13 @@ class DMCS:
 
         self.setup_scoreboards()
 
-        self.check_startup_state()
-
         LOGGER.info('DMCS consumer setup')
         self.thread_manager = None
         self.setup_consumer_threads()
 
         self.init_ack_id()
+
+        self.check_startup_state()
 
         LOGGER.info('DMCS init complete')
 
@@ -1012,7 +1012,7 @@ class DMCS:
             
 
 
-    def process_readout_results_ack(params):
+    def process_readout_results_ack(self, params):
         """ Mark job_num as COMPLETE and store its results.
             Add CCDs to Backlog Scoreboard if any failed to be transferred.
 
@@ -1020,6 +1020,9 @@ class DMCS:
 
             :return: None.
         """
+        ### FIXXX after activity ---  ##################
+        return
+
         try: 
             job_num = params[JOB_NUM]
             results = params['RESULTS_LIST']

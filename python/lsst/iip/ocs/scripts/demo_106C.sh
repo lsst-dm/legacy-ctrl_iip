@@ -1,22 +1,22 @@
 # startup sequence 
 /opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_enterControl_commander 0
-sleep 3
+sleep 4
 echo "[OK] ENTER_CONTROL COMPLETE." 
 
 /opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_start_commander Normal
-sleep 3 
+sleep 4 
 echo "[OK] START COMPLETE." 
 
-/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_standby_commander 0
-sleep 1
-echo "[OK] STANDBY COMPLETE." 
+#/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_standby_commander 0
+#sleep 4
+#echo "[OK] STANDBY COMPLETE." 
 
-/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_disable_commander 0
-sleep 1
-echo "[OK] DISABLE COMPLETE." 
+#/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_disable_commander 0
+#sleep 4
+#echo "[OK] DISABLE COMPLETE." 
 
 /opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_enable_commander 0
-sleep 1
+sleep 4
 echo "[OK] ENABLE COMPLETE." 
 
 #../events/tcsTarget 1 1 1 1 1 1 1 1 1 1 1 
