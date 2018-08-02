@@ -35,7 +35,7 @@ int main (int argc, char *argv[])
   Node n = LoadFile("../../tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml");
   string broker = n["ROOT"]["BASE_BROKER_ADDR"].as<string>(); 
   ostringstream url; 
-  url << "amqp://CL_18:CL_18@" << broker; 
+  url << "amqp://CL:CL@" << broker; 
   cout << url.str() << endl; 
   SimplePublisher *publisher = new SimplePublisher(url.str()); 
 
@@ -51,8 +51,7 @@ int main (int argc, char *argv[])
   cmdId = mgr.issueCommand_stop(&myData);
   cout << "=== command stop issued = " << endl;
   status = mgr.waitForCompletion_stop(cmdId, timeout);
-
-  if (status == 303) { // completed_ok
+if (status == 303) { // completed_ok
      publisher->publish_message("test_dmcs_ocs_publish", "{ MSG_TYPE: STOP_ACK, DEVICE: PP, CMD_ID: None, ACK_ID: None, ACK_BOOL: None, ACK_STATEMENT }");  
   } 
 
