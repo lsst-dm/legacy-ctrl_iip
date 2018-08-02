@@ -17,3 +17,5 @@ chk.sh
 ospl-info.log
 *_cache/
 env
+ospl-error.log
+ospl-info.log
