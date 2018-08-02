@@ -137,6 +137,7 @@ ROOT:
     ARCHIVE_AR_XFER_ROOT: /mnt/xfer_dir/ar/
     ARCHIVE_AT_XFER_ROOT: /mnt/xfer_dir/at/
     CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
+    CHECKSUM_TYPE: CRC32
   AUDIT:
     AUDIT_MSG_FORMAT: YAML
     USE_AUDITING: yes
@@ -243,6 +244,7 @@ ROOT:
 #      FORWARDER_10:
 #        NAME: F10
 #        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
+#        IP_ADDR: 141.142.238.190
 #        IP_ADDR: 141.142.238.190
 #        STATE: IDLE
 #        CONSUME_QUEUE: f10_consume
@@ -369,7 +371,6 @@ ROOT:
 #
 #      DISTRIBUTOR_4:
 #        NAME: D4
-#        HOSTNAME: lsst-wf-dist04.ncsa.illinois.edu  
 #        IP_ADDR: 141.142.237.164
 #        CONSUME_QUEUE: D4_consume
 #        PUBLISH_QUEUE: distributor_publish

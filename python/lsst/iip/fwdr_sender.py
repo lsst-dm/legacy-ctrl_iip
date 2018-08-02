@@ -85,35 +85,10 @@ def main():
   msg["XFER_PARAMS"] = {}
   msg['XFER_PARAMS']['AR_FWDR'] = 'FORWARDER_F99'
   msg['XFER_PARAMS']['RAFT_LIST'] = ['raft01']
-  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['00','01','02','11','12']]
+  msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['00','01','02','10','11','12','20','21','22']]
   #msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['ALL']]
   time.sleep(2)
   sp1.publish_message("f99_consume", msg)
-
-  """
-  print("Sending AR_FWDR_TAKE_IMAGES message")
-  msg = {}
-  msg['MSG_TYPE'] = "AR_FWDR_TAKE_IMAGES"
-  msg['JOB_NUM'] = 'j42'
-  msg['NUM_IMAGES'] = 2
-  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
-  msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
-  time.sleep(4)
-  sp1.publish_message("f99_consume", msg)
-  """
-  print("Sending HEADER1 information") 
-  msg = {} 
-  msg["MSG_TYPE"] = "FORMAT_HEADER_READY"
-  #msg['IMAGE_ID'] = 'jubilee'
-  #msg['IMAGE_ID'] = 'on-11'
-  msg['IMAGE_ID'] = 'visitJune-28'
-  #msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
-  #msg["FILENAME"] = "/tmp/source/header/luckyme/luckyme.header"
-  #msg["FILENAME"] = "/tmp/source/header/on-11/on-11.header"
-  msg["FILENAME"] = "/tmp/source/header/visitJune-28/visitJune-28.header"
-  time.sleep(4)
-  #sp1.publish_message("f99_consume", msg) 
-  sp1.publish_message("format_consume_from_f99", msg) 
 
   print("Sending AR_FWDR_END_READOUT message")
   msg = {}
@@ -131,7 +106,6 @@ def main():
   time.sleep(4)
   sp1.publish_message("f99_consume", msg)
 
-  """
   print("Sending HEADER1 information") 
   msg = {} 
   msg["MSG_TYPE"] = "FORMAT_HEADER_READY"
@@ -145,38 +119,7 @@ def main():
   time.sleep(4)
   #sp1.publish_message("f99_consume", msg) 
   sp1.publish_message("format_consume_from_f99", msg) 
-  """
 
-  """
-  print("Sending HEADER2 information") 
-  msg = {} 
-  msg["MSG_TYPE"] = "AR_FWDR_HEADER_READY"
-  msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/IMG_101.header"
-  time.sleep(4)
-  sp1.publish_message("f99_consume", msg) 
-
-  print("Sending AR_FWDR_END_READOUT message")
-  msg = {}
-  msg['MSG_TYPE'] = "AR_FWDR_END_READOUT"
-  #msg['IMAGE_ID'] = 'test25'
-  msg['IMAGE_ID'] = 'LSSTTEST_02'
-  msg['JOB_NUM'] = 'j42'
-  msg['VISIT_ID'] = 'vv2'
-  msg['SESSION_ID'] = 'sess77'
-  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
-  msg['ACK_ID'] = 'AR_FWDR_END_READOUT_ACK_558'
-  time.sleep(4)
-  sp1.publish_message("f99_consume", msg)
-
-  print("Sending AR_FWDR_TAKE_IMAGES_DONE message")
-  msg = {}
-  msg['MSG_TYPE'] = "AR_TAKE_IMAGES_DONE"
-  msg['JOB_NUM'] = 'j42'
-  msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
-  msg['ACK_ID'] = 'AR_FWDR_TAKE_IMAGES_ACK_554'
-  time.sleep(6)
-  sp1.publish_message("f99_consume", msg)
-  """
   print("Sender done")
   
 

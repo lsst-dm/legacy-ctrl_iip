@@ -1008,7 +1008,7 @@ class DMCS:
             
 
 
-    def process_readout_results_ack(params):
+    def process_readout_results_ack(self, params):
         """ Mark job_num as COMPLETE and store its results.
             Add CCDs to Backlog Scoreboard if any failed to be transferred.
 

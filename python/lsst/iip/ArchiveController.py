@@ -3,6 +3,8 @@ import os
 import os.path
 import hashlib
 import yaml
+import zlib
+import string
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from ThreadManager import ThreadManager 
@@ -41,13 +43,24 @@ class ArchiveController:
         cdm = toolsmod.intake_yaml_file(self._config_file)
 
         try:
-            self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']  # Message broker user/passwd for component
+            # Message broker user/passwd for component
+            self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME'] 
             self._archive_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
+
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
+
+            # Root dir of where to put files
             self._archive_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_XFER_ROOT']
             self._archive_at_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_AT_XFER_ROOT']
-            if cdm[ROOT]['ARCHIVE']['CHECKSUM_ENABLED'] == 'yes':
+
+            if cdm[ROOT]['ARCHIVE']['CHECKSUM_ENABLED'] == True:
                 self.CHECKSUM_ENABLED = True
+                if cdm[ROOT]['ARCHIVE']['CHECKSUM_TYPE'] == 'MD5':
+                    self.CHECKSUM_TYPE = 'MD5'
+                elif cdm[ROOT]['ARCHIVE']['CHECKSUM_TYPE'] == 'CRC32':
+                    self.CHECKSUM_TYPE = 'CRC32'
+                else:
+                    self.CHECKSUM_ENABLED = False # if bad type, turn off csum's
             else:
                 self.CHECKSUM_ENABLED = False
         except KeyError as e:
@@ -186,14 +199,61 @@ class ArchiveController:
             return ('-1')
 
         if self.CHECKSUM_ENABLED:
-            with open(pathway) as file_to_calc:
-                data = file_to_calc.read()
-                resulting_md5 = hashlib.md5(data).hexdigest()
-
-                if resulting_md5 != csum:
+            if self.CHECKSUM_TYPE == 'MD5':
+                new_csum = self.calculate_md5(pathway)
+                if new_csum != csum:
                     return ('0')
+                else:
+                    return self.next_receipt_number()
+
+                if self.CHECKSUM_TYPE == 'CRC32':
+                new_csum = self.calculate_crc32(pathway)
+                if new_csum != csum:
+                    return ('0')
+                else:
+                    return self.next_receipt_number()
 
         return self.next_receipt_number()
+
+
+    def calculate_crc32(self, filename):
+        new_crc32 = 0
+        buffersize = 65536
+
+        try:
+            with open('NEW_ats-18july2018-00104.fits', 'rb') as afile:
+                buffr = afile.read(buffersize)
+                crcvalue = 0
+                while len(buffr) > 0:
+                    crcvalue = zlib.crc32(buffr, crcvalue)
+                    buffr = afile.read(buffersize)
+        except IOError as e:
+            LOGGER.critical("Unable to open file %s for CRC32 calculation. Returning zero receipt value"
+                             % filename )
+            return new_crc32
+
+        new_crc32 = format(crcvalue & 0xFFFFFFFF, '08x').upper()
+        LOGGER.debug("Returning newly calculated crc32 value: " % new_crc32)
+        print("Returning newly calculated crc32 value: " % new_crc32)
+
+        return new_crc32
+
+
+    def calculate_md5(self, filename):
+        new_md5 = 0
+        try:
+            with open(filename) as file_to_calc:
+                data = file_to_calc.read()
+                new_md5 = hashlib.md5(data).hexdigest()
+        except IOError as e:
+            LOGGER.critical("Unable to open file %s for MD5 calculation. Returning zero receipt value" 
+                            % filename)
+            return new_md5
+
+        LOGGER.debug("Returning newly calculated md5 value: " % new_md5)
+        print("Returning newly calculated md5 value: " % new_md5)
+
+        return new_md5
 
 
     def next_receipt_number(self):
