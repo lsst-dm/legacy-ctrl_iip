@@ -82,15 +82,23 @@ class Forwarder {
     std::vector<string> News_Segment_Names = {"10","11","12","13","14","15","16","17",\
                                              "00","01","02","03","04","05","06","07"};
 
+     //Works except mirrored up and down
+    std::vector<string> Neww_Segment_Names = {"10","11","12","13","14","15","16","17",\
+                                             "07","06","05","04","03","02","01","00"};
+
+
     std::vector<string> Newx_Segment_Names = {"00","01","02","03","04","05","06","07",\
+                                         "17","16","15","14","13","12","11","10"};
+
+    std::vector<string> New_B_Segment_Names = {"07","06","05","04","03","02","01","00",\
                                          "17","16","15","14","13","12","11","10"};
 
     std::vector<string> Newe_Segment_Names = {"07","06","05","04","03","02","01","00",\
                                          "10","11","12","13","14","15","16","17"};
 
-    std::vector<string> Neww_Segment_Names = {"10","11","12","13","14","15","16","17",\
-                                             "07","06","05","04","03","02","01","00"};
 
+
+   
     
     std::string consume_queue = "";
     std::string fetch_consume_queue = "";
@@ -176,6 +184,7 @@ class Forwarder {
     void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
     void fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
+    void new_fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
     void get_register_metadata(const DAQ::Location& location, const IMS::Image& image);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
     void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
@@ -852,8 +861,12 @@ void Forwarder::process_at_fetch(Node n) {
 
       
  
+      // COMMENTED OUT FOR HACK AS WFS FETCH DOES NOT WORK THIS MORNING
            string raft = "ats";
            this->fetch_at_reassemble_process(raft, image_id, filepath.str());
+
+           // Try new method of assembly for particular sensor
+           //this->new_fetch_at_reassemble_process(raft, image_id, filepath.str());
            map<string, vector<string>> source_boards = {
               {"0", {"00"}}
            };
@@ -867,10 +880,9 @@ void Forwarder::process_at_fetch(Node n) {
       return;
 }
 
-
-
 void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
 {
+  cout << "In fetch_at_reassemble_process...raft value is:  " << raft << "  and image_id is:  " << image_id << ".  Finally, dir_prefix is:  " << dir_prefix << endl << endl;
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
 
@@ -918,6 +930,119 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
     
             }
             while(slice.advance());
+  
+      this->fetch_close_filehandles(FH_ATS);
+  }
+  return;
+}
+
+
+void Forwarder::new_fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
+{
+  cout << "In NEW_fetch_at_reassemble_process...raft value is:  " << raft << "  and image_id is:  " << image_id << ".  Finally, dir_prefix is:  " << dir_prefix << endl << endl;
+  IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+                                     // such as raft01, raft13, etc.
+
+  IMS::Image image(image_id.c_str(), store);
+
+  DAQ::LocationSet sources = image.sources();
+
+  uint64_t total_stripes = 0;
+
+  DAQ::Location location;
+
+  while(sources.remove(location)) {
+
+      // Set image array NAXIS values for format thread...
+      this->get_register_metadata(location, image);
+
+      IMS::Source source(location, image);
+  
+      IMS::WaveFront slice(source);
+      if(!slice) return;
+  
+      // Filehandle set for ATS CCD will then have a set of 
+      // 16 filehandles...one filehandle for each amp segment.
+  
+      std::vector<std::ofstream*> FH_ATS;
+      this->fetch_set_up_at_filehandles(FH_ATS, image_id, dir_prefix);
+
+      // 3D matrix of upper 8 amp segments: num_amps X num_rows_in_segment X num_cols
+      // Next line typifies the bizarre manner of initializing vector size in c++
+      std::vector<std::vector<std::vector<int32_t>>> rev_matr(8, vector<vector<int32_t>>(Naxis_1, vector<int32_t>(Naxis_2, 1)));
+
+cout << "Naxis_1 value is: " << Naxis_1 << ". Naxis_2 is: " << Naxis_2 << endl;             
+cout << "The length of axis a is: " << rev_matr.size() << endl;
+cout << "The length of column axis k is: " << rev_matr[0].size() << endl;
+cout << "The length of row axis j is: " << rev_matr[0][0].size() << endl;
+ 
+      int a = 0; //adjusted amp value (amp - 8) 
+      int j = 0; // column index
+      int k = 0; // row index
+
+          // NOTE: Vector of vectors needs long axis to be cleared every source in big camera 
+          // here, matrix is only used once...
+          do
+          {
+              total_stripes += slice.stripes();
+              IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+    
+              slice.decode(ccd0);
+//cout << "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv" << endl;
+//cout << "Number of stripes is: " << slice.stripes() << endl << endl;   
+              for(int s=0; s<slice.stripes(); ++s)
+              {
+                  for(int amp=0; amp<N_AMPS; ++amp)
+                  {
+                      if(amp > 7) {
+                          // Here we must store the values in an 3D array 
+                          // entering data in the inner arrays from first to last,
+                          // and then read the inner arrays from last to first
+                          if(j < Naxis_2 && k < Naxis_1) {
+                              //rev_matr[amp-8][k].push_back(STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp])));
+// cout << "a, k, j, and amp are  " << amp-8 << "  |  " << k << "  |  " << j << " |  " << amp << "  " << endl;
+                              rev_matr[amp-8][k][j]= (STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp])));
+                              j++;
+                          }
+                          else if(k != (Naxis_1 - 1))  {
+                              j = 0;
+                              k++;
+// cout << "Critical section: j, k, and amp-8 = " << j << "  -  " << k << "  -  " << amp-8 << "  " << endl;
+                              //rev_matr[amp-8][k].push_back(STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp])));
+                              rev_matr[amp-8][k][j] = (STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp])));
+                          }
+                      }
+                      else {
+                          int32_t X = STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp]));
+                          FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                      }
+                  }
+             }   
+              //Now drain rev_matr into proper filehandles with rows reversed...
+              delete [] ccd0;
+    
+            }
+            while(slice.advance());
+cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<------>>>>>>>>>>>>>>>>>>>>>>>" << endl; 
+cout << ">>>>>>>>>>> DRAINING_REVERSE_MATRIX <<<<<<<<<<<<<<" << endl;
+cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<------>>>>>>>>>>>>>>>>>>>>>>>" << endl; 
+cout << "The value of index position 2,3,400 is: " << rev_matr[2][3][400] << endl;
+cout << "The length of axis a is: " << rev_matr.size() << endl;
+cout << "The length of column axis k is: " << rev_matr[0].size() << endl;
+cout << "The length of row axis j is: " << rev_matr[0][0].size() << endl;
+cout << endl << endl;
+cout << "Naxis_1 value is: " << Naxis_1 << ". Naxis_2 is: " << Naxis_2 << endl;             
+
+             for(int a = 0; a < 8; a++) {  // var a specifies amp. a must be added with 8 to get true amp val
+                 for(int h=(Naxis_1 - 1); h>=0; h--) {   // index high to low in order to reverse lines in these segments
+                     for(int i=0; i<Naxis_2; i++) {
+// cout << "a, h, and i are  " << a << "  |  " << h << "  |  " << i << " |  " << "  " << endl;
+                         //FH_ATS[a+8]->write(reinterpret_cast<const char *>(&rev_matr[h][i]), 4); //32 bits...
+                         FH_ATS[a+8]->write(reinterpret_cast<const char *>(&rev_matr[a][h][i]), 4); //32 bits...
+                      }
+                  } 
+              }
+    
   
       this->fetch_close_filehandles(FH_ATS);
   }
@@ -1252,7 +1377,8 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
                           << image_id \
                           << "--AUXTEL" \
                           << "-ccd.ATS_CCD" \
-                          << "_segment." << this->Neww_Segment_Names[i];
+                          << "_segment." << this->Newx_Segment_Names[i];
+cout << "FILENAME:  " << fns.str() << endl;
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::app | std::ios::binary );
         fh_set.push_back(fh); 
