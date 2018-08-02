@@ -1324,9 +1324,9 @@ class DMCS:
             message['DEVICE'] = device
             message['APPLIED'] = True
             #message['SETTINGS'] = self.general_settings
-            message['TsXmlVersion'] = self.TsXmlVersion
-            message['TsSALVersion'] = self.TsSALVersion
-            message['L1DMRepoTag'] = self.L1DMRepoTag
+            message['TS_XML_VERSION'] = self.TsXmlVersion
+            message['TS_SAL_VERSION'] = self.TsSALVersion
+            message['L1_DM_REPO_TAG'] = self.L1DMRepoTag
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.args)
