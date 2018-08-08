@@ -12,6 +12,8 @@ forwarder/src/DAQForwarder
 ocs/include/gmock
 ocs/include/gtest
 ocs/examples/Subscriber2
+ocs/src/AckSubscriber
+ocs/src/CommandListener
 dmcs_sender_base.py
 chk.sh
 ospl-info.log
