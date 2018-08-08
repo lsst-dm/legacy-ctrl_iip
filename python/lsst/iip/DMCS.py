@@ -1323,7 +1323,7 @@ class DMCS:
             message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
             message['DEVICE'] = device
             message['APPLIED'] = True
-            #message['SETTINGS'] = self.general_settings
+            message['SETTINGS'] = 'L1SysCfg_1'   # Will eventually be retrieved from DB
             message['TS_XML_VERSION'] = self.TsXmlVersion
             message['TS_SAL_VERSION'] = self.TsSALVersion
             message['L1_DM_REPO_TAG'] = self.L1DMRepoTag
