@@ -139,7 +139,7 @@ ROOT:
     ARCHIVE_LOGIN: ARC
     ARCHIVE_IP: 140.252.32.128
     ARCHIVE_HOSTNAME: ARC
-    ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
+    ARCHIVE_XFER_ROOT: /data/export/
     CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
   EFD:
     EFD_NAME: LFA

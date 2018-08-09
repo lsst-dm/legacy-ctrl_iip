@@ -280,6 +280,7 @@ void AckSubscriber::process_settings_applied(Node n) {
         string ts_sal = n["TS_SAL_VERSION"].as<string>(); 
         string ts_xml = n["TS_XML_VERSION"].as<string>(); 
         string l1_tag = n["L1_DM_REPO_TAG"].as<string>(); 
+	string settings = n["SETTINGS"].as<string>();
         long priority = 0; 
 
         if (device == "AR") { 
@@ -302,9 +303,10 @@ void AckSubscriber::process_settings_applied(Node n) {
         }
         else if (device == "AT") { 
             atArchiver_logevent_settingsAppliedC data; 
-            data.TsSALVersion = ts_sal; 
-            data.TsXMLVersion = ts_xml; 
-            data.L1DMRepoTag = l1_tag; 
+	    data.settings = settings;
+            data.tsSALVersion = ts_sal; 
+            data.tsXMLVersion = ts_xml; 
+            data.l1dmRepoTag = l1_tag; 
             at.logEvent_settingsApplied(&data, priority); 
         }
     } 
