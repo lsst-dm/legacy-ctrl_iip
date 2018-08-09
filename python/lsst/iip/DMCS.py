@@ -141,13 +141,13 @@ class DMCS:
 
         self.setup_scoreboards()
 
-        self.check_startup_state()
-
         LOGGER.info('DMCS consumer setup')
         self.thread_manager = None
         self.setup_consumer_threads()
 
         self.init_ack_id()
+
+        self.check_startup_state()
 
         LOGGER.info('DMCS init complete')
 
@@ -1012,7 +1012,7 @@ class DMCS:
             
 
 
-    def process_readout_results_ack(params):
+    def process_readout_results_ack(self, params):
         """ Mark job_num as COMPLETE and store its results.
             Add CCDs to Backlog Scoreboard if any failed to be transferred.
 
@@ -1020,6 +1020,9 @@ class DMCS:
 
             :return: None.
         """
+        ### FIXXX after activity ---  ##################
+        return
+
         try: 
             job_num = params[JOB_NUM]
             results = params['RESULTS_LIST']
@@ -1272,7 +1275,7 @@ class DMCS:
             message = {}
             message[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
             message['DEVICE'] = device
-            message['CURRENT_STATE'] = toolsmod.summary_state_enum[self.STATE_SCBD.get_device_state(device)]
+            message['CURRENT_STATE'] = self.STATE_SCBD.get_device_state(device)
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.args)
@@ -1320,7 +1323,10 @@ class DMCS:
             message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
             message['DEVICE'] = device
             message['APPLIED'] = True
-            message['SETTINGS'] = self.general_settings
+            message['SETTINGS'] = 'L1SysCfg_1'   # Will eventually be retrieved from DB
+            message['TS_XML_VERSION'] = self.TsXmlVersion
+            message['TS_SAL_VERSION'] = self.TsSALVersion
+            message['L1_DM_REPO_TAG'] = self.L1DMRepoTag
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.args)
@@ -1469,10 +1475,9 @@ class DMCS:
             self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
             self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
             self.at_cfg_keys = cdm[ROOT]['AT_CFG_KEYS']
-            TsXmlVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsXmlVersion']
-            TsSALVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsSALVersion']
-            L1DMRepoTag = cdm[ROOT]['GENERAL_SETTINGS']['L1DMRepoTag']
-            self.general_settings = "TsXmlVersion:" + TsXmlVersion + "," + "TsSALVersion:" + TsSALVersion + "," + "L1DMRepoTag:" + L1DMRepoTag 
+            self.TsXmlVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsXmlVersion']
+            self.TsSALVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsSALVersion']
+            self.L1DMRepoTag = cdm[ROOT]['GENERAL_SETTINGS']['L1DMRepoTag']
             self.efd_login = cdm[ROOT]['EFD']['EFD_LOGIN']
             self.efd_ip = cdm[ROOT]['EFD']['EFD_IP']
             self.wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']

@@ -35,7 +35,7 @@ int main (int argc, char *argv[])
   Node n = LoadFile("../../tests/yaml/L1SystemCfg_Test_ocs_bridge.yaml");
   string broker = n["ROOT"]["BASE_BROKER_ADDR"].as<string>(); 
   ostringstream url; 
-  url << "amqp://CL_1:CL_1@" << broker; 
+  url << "amqp://CL:CL@" << broker; 
   cout << url.str() << endl; 
   SimplePublisher *publisher = new SimplePublisher(url.str()); 
 

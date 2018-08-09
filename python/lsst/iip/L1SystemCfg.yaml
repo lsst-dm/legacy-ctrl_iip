@@ -135,10 +135,10 @@ ROOT:
     AT: at_foreman_consume
   ARCHIVE:
     USE_ARCHIVE_CTRL: False
-    ARCHIVE_NAME: ARCHIE
-    ARCHIVE_LOGIN: ARCHIE
-    ARCHIVE_IP: 141.142.238.15
-    ARCHIVE_HOSTNAME: ARCHIE
+    ARCHIVE_NAME: ARC
+    ARCHIVE_LOGIN: ARC
+    ARCHIVE_IP: 140.252.32.128
+    ARCHIVE_HOSTNAME: ARC
     ARCHIVE_XFER_ROOT: /mnt/xfer_dir/
     CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
   EFD:
@@ -149,7 +149,7 @@ ROOT:
     EFD_XFER_ROOT: /mnt/lfa/
     CHECKSUM_ENABLED: no
   ATS:
-    WFS_RAFT: raft02
+    WFS_RAFT: ats
     WFS_CCD: wfs_ccd
   OCS: 
     OCS_NAME: OCS
@@ -157,7 +157,7 @@ ROOT:
     OCS_PUBLISH: ocs_dmcs_consume
     OCS_CONSUME: dmcs_ocs_publish
   STARTUP:
-    AT_START_ENABLE: yes
+    AT_START_ENABLE: no
     AR_START_ENABLE: no
     PP_START_ENABLE: no
     CU_START_ENABLE: no
@@ -235,7 +235,7 @@ ROOT:
         IP_ADDR: 141.142.238.74
         STATE: IDLE
         CONSUME_QUEUE: f99_consume
-        PUBLISH_QUEUE: ar_foreman_ack_publish
+        PUBLISH_QUEUE: at_foreman_ack_publish
 
       FORWARDER_100:
         NAME: F100

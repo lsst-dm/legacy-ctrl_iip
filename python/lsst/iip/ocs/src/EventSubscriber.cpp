@@ -497,7 +497,7 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
         if (status == SAL__OK) { 
             string device = SALInstance.Generator; 
             string msg_type; 
-            if (device == "AT") { 
+            if (device == "atHeaderService") { 
                 cout << "=== Event AuxTel HeaderService received = " << endl;
                 msg_type = "DMCS_AT_HEADER_READY"; 
             } 

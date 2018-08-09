@@ -27,7 +27,7 @@ class TestOCS_AckSubscriber:
     sleep(10) 
 
 
-    EXPECTED_OCS_MESSAGES = 36
+    EXPECTED_OCS_MESSAGES = 48 
     ocs_consumer_msg_list = [] 
 
     def test_ocs_acksubscriber(self): 
@@ -90,7 +90,7 @@ class TestOCS_AckSubscriber:
         os.chdir("../commands/")
         
         commands = ["start", "stop", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
-        devices = ["archiver" , "catchuparchiver", "processingcluster"] 
+        devices = ["archiver" , "catchuparchiver", "processingcluster", "atArchiver"] 
 
         for device in devices: 
             for command in commands: 
@@ -104,7 +104,7 @@ class TestOCS_AckSubscriber:
                 sleep(10)  # this is not random. startup .sacpp_ thing takes about 7 seconds. 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM) 
 
-        device_sh = ["AR", "CU", "PP"]
+        device_sh = ["AR", "CU", "PP", "AT"]
 
         for device in device_sh: 
             my_dev = None 
@@ -114,6 +114,8 @@ class TestOCS_AckSubscriber:
                 my_dev = "catchuparchiver" 
             elif device == "PP": 
                 my_dev = "processingcluster"
+            elif device == "AT": 
+                my_dev = "atArchiver"
             cmd = "./sacpp_" + my_dev + "_SummaryState_log" 
             run = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
             sleep(10) 

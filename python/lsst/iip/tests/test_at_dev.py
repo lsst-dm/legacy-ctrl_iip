@@ -88,7 +88,8 @@ class TestAtDev:
                                  broker_addr
         print("Opening publisher with this URL string: %s" % dmcs_pub_broker_url)
         self.dmcs_publisher = SimplePublisher(dmcs_pub_broker_url, "YAML")
-    
+   
+        """ 
         ar_ctrl_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']
         ar_ctrl_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
         ar_ctrl_pub_name = cdm[ROOT]['ARCHIVE_BROKER_PUB_NAME']
@@ -101,6 +102,7 @@ class TestAtDev:
                                     broker_addr
         print("Opening publisher with this URL string: %s" % ar_ctrl_pub_broker_url)
         self.ar_ctrl_publisher = SimplePublisher(ar_ctrl_pub_broker_url, "YAML")
+        """
     
         F99_name = 'F99'
         F99_passwd = 'F99'
@@ -128,11 +130,13 @@ class TestAtDev:
 
         print("DMCS Consumer running...")
 
+        """
         self.ar_ctrl_consumer = Consumer(ar_ctrl_broker_url,'archive_ctrl_consume', 'thread-ar-ctrl', 
                                     self.on_ar_ctrl_message,'YAML')
         self.ar_ctrl_consumer.start()
 
         print("ar_ctrl Consumer running...")
+        """
 
         self.F99_consumer = Consumer(F99_broker_url,'f99_consume', 'thread-f99', 
                                     self.on_f99_message,'YAML')
@@ -155,8 +159,8 @@ class TestAtDev:
         # Shut down consumer threads nicely
         self.dmcs_consumer.stop()
         self.dmcs_consumer.join()
-        self.ar_ctrl_consumer.stop()
-        self.ar_ctrl_consumer.join()
+        #self.ar_ctrl_consumer.stop()
+        #self.ar_ctrl_consumer.join()
         self.F99_consumer.stop()
         self.F99_consumer.join()
         if self.DP:
@@ -198,7 +202,7 @@ class TestAtDev:
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['RAFT_LIST'] = ['WFS_RAFT']
         msg['RAFT_CCD_LIST'] = [['WFS_CCD']]
-        #time.sleep(2)
+        time.sleep(12)
         LOGGER.warning('Here comes start_int message')
         print("Start Integration Message")
         self.dmcs_publisher.publish_message("at_foreman_consume", msg)
@@ -276,6 +280,7 @@ class TestAtDev:
 
     def verify_F99_messages(self):
         len_list = len(self.f99_consumer_msg_list)
+        print("Number of messages is: %s" % len_list)
         if len_list != self.EXPECTED_F99_MESSAGES:
             print("Incorrect number of F99 messages received")
             pytest.fail('F99 simulator received incorrect number of messages.\nExpected %s but received %s'\
@@ -332,6 +337,7 @@ class TestAtDev:
 
     def on_f99_message(self, ch, method, properties, body):
         LOGGER.debug("Inside on_f99_message......")
+        print("Inside on_f99_message test handler........")
         ch.basic_ack(method.delivery_tag)
         self.f99_consumer_msg_list.append(body)
         if body['MSG_TYPE'] == 'AT_FWDR_HEALTH_CHECK':
@@ -341,6 +347,8 @@ class TestAtDev:
             msg['COMPONENT'] = 'FORWARDER_99'
             msg['ACK_BOOL'] = True 
             msg['ACK_ID'] = body['ACK_ID']
+            if self.DP:
+                print("In test - on_f99_message health check - sending ack: %s" % msg)
             self.F99_publisher.publish_message(body['REPLY_QUEUE'], msg)
 
         elif body['MSG_TYPE'] == 'AT_FWDR_XFER_PARAMS':
