@@ -245,7 +245,6 @@ ROOT:
 #        NAME: F10
 #        HOSTNAME: lsst-wf-base10.ncsa.illinois.edu  
 #        IP_ADDR: 141.142.238.190
-#        IP_ADDR: 141.142.238.190
 #        STATE: IDLE
 #        CONSUME_QUEUE: f10_consume
 #        PUBLISH_QUEUE: sp_foreman_ack_publish
@@ -371,6 +370,7 @@ ROOT:
 #
 #      DISTRIBUTOR_4:
 #        NAME: D4
+#        HOSTNAME: lsst-wf-dist04.ncsa.illinois.edu  
 #        IP_ADDR: 141.142.237.164
 #        CONSUME_QUEUE: D4_consume
 #        PUBLISH_QUEUE: distributor_publish
