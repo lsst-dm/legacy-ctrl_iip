@@ -7,11 +7,13 @@
 #include <vector> 
 #include <algorithm> 
 #include <iostream>
+#include <ios>
 #include <sstream>
 #include <pthread.h>
 #include <fstream>
 #include <chrono>
 #include <ctime>
+#include <cstdlib>
 #include <yaml-cpp/yaml.h>
 #include "Consumer_impl.h"
 #include "SimplePublisher.h"
@@ -31,6 +33,8 @@
 
 #include "rms/InstructionList.hh"
 #include "rms/Instruction.hh"
+#include <openssl/md5.h>
+#include <boost/crc.hpp>
 
 
 #define SECONDARY_HDU 2
@@ -45,6 +49,7 @@
 #define STRAIGHT_PIX_MASK 0x20000
 #define DEBUG 1
 #define METRIX 1
+#define PRIVATE_BUFFER_SIZE  1024  // Used by crc32 code
 
 using namespace std;
 using namespace YAML;
@@ -60,6 +65,7 @@ class Forwarder {
     std::vector<string> finished_image_work_list;
     std::vector<string> files_transferred_list;
     std::vector<string> checksum_list;
+    std::map<string, map<string,string> > image_ids_to_jobs_map;
 
     std::string Session_ID = "";
     std::string Visit_ID = "";
@@ -71,7 +77,11 @@ class Forwarder {
     std::string Name = ""; //such as FORWARDER_1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
+    std::string Foreman_Reply_Queue = "";
+    std::string Device_Type = "";
     std::string WFS_RAFT = "";
+    std::string Checksum_Type = "";
+    bool Checksum_Enabled = false;
     bool is_naxis_set = true;
     long Naxis_1 = NAXIS1;
     long Naxis_2 = NAXIS2;
@@ -194,6 +204,9 @@ class Forwarder {
 
     void forward_process_end_readout(Node); 
     void forward_process_take_images_done(Node); 
+    std::string forward_send_result_set(std::string, std::string, std::string);
+    std::string forward_calculate_md5_checksum(std::string);
+    std::string forward_calculate_crc32_checksum(std::string);
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -371,8 +384,32 @@ Forwarder::Forwarder() {
         cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
     }
 
-    //ostringstream full_broker_url;
-    //full_broker_url << "amqp://" << user_name << ":" << passwd << basePbroker_addr from above...
+    // Read L1 config file
+    Node L1_config_file;
+    try {
+        L1_config_file = LoadFile("../../L1SystemCfg.yaml");
+    }
+    catch (YAML::BadFile& e) {
+        // FIX better catch clause...at LEAST a log message
+        cout << "Error reading L1SystemCfg.yaml file." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    try {
+        Node cdm;
+        cdm = config_file["ROOT"];
+        if((cdm["ARCHIVE"]["CHECKSUM_ENABLED"].as<string>()) == "yes") {
+            this->Checksum_Enabled = true;
+            this->Checksum_Type = cdm["ARCHIVE"]["CHECKSUM_TYPE"].as<string>();
+        }
+        else {
+            this->Checksum_Enabled = false;
+        }
+    }
+    catch (YAML::TypedBadConversion<string>& e) {
+        cout << e.what() << endl;
+        cout << "ERROR: In L1SystemCfg.yaml, can't read required elements from this file." << endl;
+    }
 
     setup_consumers(BASE_BROKER_ADDR);
     setup_publishers(BASE_BROKER_ADDR);
@@ -641,6 +678,7 @@ void Forwarder::process_health_check(Node n) {
 void Forwarder::process_xfer_params(Node n) {
     cout << "Entering process_xfer_params method" << endl;
     cout << "Incoming Node n is " << n <<  endl;
+    this->Device_Type = "AR";
 
     Node p = n["XFER_PARAMS"];
     cout << "Sub Node p is " << p <<  endl;
@@ -662,8 +700,7 @@ void Forwarder::process_xfer_params(Node n) {
     this->Target_Location = n["TARGET_LOCATION"].as<string>();
     cout << "After setting TARGET_LOCATION" << endl;
 
-    string reply_queue = n["REPLY_QUEUE"].as<string>();
-    cout << "After extracting REPLY_QUEUE" << endl;
+    this->Foreman_Reply_Queue = n["REPLY_QUEUE"].as<string>();
 
     string ack_id = n["ACK_ID"].as<string>();
     cout << "After extracting ACK_ID" << endl;
@@ -684,13 +721,14 @@ void Forwarder::process_xfer_params(Node n) {
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
 
-    FWDR_pub->publish_message(reply_queue, message.str());
+    FWDR_pub->publish_message(this->Foreman_Reply_Queue, message.str());
     return;
 }
 
 void Forwarder::process_at_xfer_params(Node n) {
     cout << "Entering process_xfer_params method" << endl;
     cout << "Incoming Node n is " << n <<  endl;
+    this->Device_Type = "AT";
 
     Node p = n["XFER_PARAMS"];
     cout << "Sub Node p is " << p <<  endl;
@@ -712,8 +750,7 @@ void Forwarder::process_at_xfer_params(Node n) {
     this->Target_Location = n["TARGET_LOCATION"].as<string>();
     cout << "After setting TARGET_LOCATION" << endl;
 
-    string reply_queue = n["REPLY_QUEUE"].as<string>();
-    cout << "After extracting REPLY_QUEUE" << endl;
+    this->Foreman_Reply_Queue = n["REPLY_QUEUE"].as<string>();
 
     string ack_id = n["ACK_ID"].as<string>();
     cout << "After extracting ACK_ID" << endl;
@@ -734,7 +771,7 @@ void Forwarder::process_at_xfer_params(Node n) {
             << ", ACK_ID: " << ack_id
             << ", ACK_BOOL: " << ack_bool << "}";
 
-    FWDR_pub->publish_message(reply_queue, message.str());
+    FWDR_pub->publish_message(this->Foreman_Reply_Queue, message.str());
     return;
 }
 
@@ -751,8 +788,16 @@ void Forwarder::process_end_readout(Node n) {
     //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
     //else, DAQ val will equal a path where files can be found.
 
-    //If DAQ == 'API':  pass manifold into new fetch_and_reassemble class
+    // Build map of job_nums and ack_ids by image_id for other threads to use
+    // The data structure is a map within a map
     string image_id = n["IMAGE_ID"].as<string>();
+    string job_num = n["JOB_NUM"].as<string>();
+    string ack_id = n["ACK_ID"].as<string>();
+    std::map<string,string> inner;
+    inner.insert(std::make_pair("JOB_NUM",job_num));
+    inner.insert(std::make_pair("ACK_ID",ack_id));
+    this->image_ids_to_jobs_map.insert(std::make_pair(image_id, inner));
+
     string msg_type = "FETCH_END_READOUT";
     ostringstream message;
     message << "{MSG_TYPE: " << msg_type
@@ -1814,6 +1859,8 @@ void Forwarder::format_look_for_work(string image_id) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::forward_process_end_readout(Node n) { 
+    string new_csum = "0";
+
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         // string img_path = this->Work_Dir + "/fits/" + img_id + ".fits"; 
@@ -1826,15 +1873,28 @@ void Forwarder::forward_process_end_readout(Node n) {
       
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
+
         if (find_at != string::npos) { 
             bbcp_cmd << "scp -i ~/.ssh/from_efd ";
         } 
         else { 
             bbcp_cmd << "cp "; 
         } 
+
         bbcp_cmd << img_path
                  << " " 
                  << dest_path; 
+
+        // If enabled, calculate checksum for verification use at Archive
+        if (this->Checksum_Enabled == true) {
+            if(this->Checksum_Type == "MD5") {
+                new_csum = this->forward_calculate_md5_checksum(img_path);
+            }
+            else if(this->Checksum_Type == "CRC32") {
+                new_csum = this->forward_calculate_crc32_checksum(img_path);
+            }
+        }
+
         int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
 	cout << "[STATUS] file is copied from " << img_path << " to " << dest_path << endl; 
 
@@ -1842,8 +1902,9 @@ void Forwarder::forward_process_end_readout(Node n) {
 
         if (bbcp_cmd_status == 256) { 
             throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
-        } 
-        this->finished_image_work_list.push_back(img_id);
+        }
+
+        this->forward_send_result_set(img_name, dest_path, new_csum);
         cout << "[X] READOUT COMPLETE." << endl;
 
     } 
@@ -1856,6 +1917,102 @@ void Forwarder::forward_process_end_readout(Node n) {
         cerr << e.what() << endl; 
     } 
 } 
+
+std::string Forwarder::forward_send_result_set(string image_id, string filenames, string checksums) { 
+    // Get device from xfer_params vars
+    // Use device to know where to send end readout and which msg_type to use
+    ostringstream msg_type;
+    string job_num = this->image_ids_to_jobs_map[image_id]["JOB_NUM"];
+    string ack_id = this->image_ids_to_jobs_map[image_id]["ACK_ID"];
+    string reply_queue = this->Foreman_Reply_Queue;
+    string device_type = this->Device_Type;
+
+    msg_type << device_type << " _FWDR_END_READOUT_ACK ";
+    string ack_bool = "True";
+  
+    Emitter msg; 
+    msg << BeginMap; 
+    msg << Key << "MSG_TYPE" << Value << msg_type; 
+    msg << Key << "COMPONENT" << Value << this->Component; 
+    msg << Key << "IMAGE_ID" << Value << image_id;
+    msg << Key << "JOB_NUM" << Value << job_num;
+    msg << Key << "ACK_ID" << Value << ack_id; 
+    msg << Key << "ACK_BOOL" << Value << ack_bool; 
+    msg << Key << "RESULT_SET" << Value << Flow; 
+        msg << BeginMap; 
+        msg << Key << "FILENAME_LIST" << Value << Flow << filenames; 
+        msg << Key << "CHECKSUM_LIST" << Value << Flow << checksums;  
+        msg << EndMap; 
+    msg << EndMap; 
+    cout << "[x] tid msg: " << endl; 
+    cout << msg.c_str() << endl;
+  
+    this->fwd_pub->publish_message(reply_queue, msg.c_str());
+    cout << "msg is replied to ..." << reply_queue << endl;
+} 
+
+std::string Forwarder::forward_calculate_md5_checksum(const string img_path ) {
+      FILE *fh;
+      long filesize;
+      unsigned char *buf;
+      unsigned char *md5_result = NULL;
+      char csum [32];
+      std::string md5_csum;
+      std::ostringstream outage;
+      std::streamsize const  buffer_size = PRIVATE_BUFFER_SIZE;
+      if(this->Checksum_Type == "MD5") {
+          FILE *fh;
+          long filesize;
+          unsigned char *buf;
+          unsigned char *md5_result = NULL;
+        
+          fh = fopen(img_path.c_str(), "r");
+          fseek(fh, 0L, SEEK_END);
+          filesize = ftell(fh);
+          fseek(fh, 0L, SEEK_SET);
+          buf = (unsigned char *)malloc(filesize);
+          fread(buf, filesize, 1, fh);
+          fclose(fh);
+
+          md5_result = (unsigned char *)malloc(MD5_DIGEST_LENGTH);
+          MD5(buf, filesize, md5_result);
+          for (int i=0; i < MD5_DIGEST_LENGTH; i++) {
+              sprintf(csum, "%02x",  md5_result[i]);
+              md5_csum.append(csum);
+          }
+        
+          for(unsigned int k = 0; k < md5_csum.length(); k++) {
+              md5_csum[k] = toupper(md5_csum[k]);
+          }
+        
+        
+          std::cout << "MD5 Checksum is:  " << md5_csum << "  " <<  std::endl;
+        
+          free(md5_result);
+          free(buf);
+          return md5_csum;
+      }
+}
+std::string Forwarder::forward_calculate_crc32_checksum(const string img_path) {
+      std::streamsize const  buffer_size = PRIVATE_BUFFER_SIZE;
+      boost::crc_32_type  result;
+      std::ifstream  ifs( img_path, std::ios_base::binary );
+      if(ifs) {
+          do {
+              char  buffer[ buffer_size ];
+              ifs.read( buffer, buffer_size );
+              result.process_bytes( buffer, ifs.gcount() );
+          } while(ifs);
+      } else {
+          std::cerr << "Failed to open file '" << img_path << "'." << std::endl;
+      }
+
+      //std::cout << std::hex << std::uppercase << result.checksum() << std::endl;
+      std::cout << "CRC32 Checksum is  " << result.checksum() << std::endl;
+      std::string csum = std::to_string(result.checksum());
+      return csum;
+}
+
 
 void Forwarder::forward_process_take_images_done(Node n) { 
     cout << "get here" << endl;
