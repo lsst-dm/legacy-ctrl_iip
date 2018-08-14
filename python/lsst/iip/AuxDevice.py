@@ -622,6 +622,13 @@ class AuxDevice:
     
     
     def process_at_fwdr_end_readout_ack(self, params):
+        ## Check cfg file to see if archive controller is to be used
+        ## Receive result set
+        ## Compose message to archive controller
+        ## Send message, but do not wait for response
+        ## In another handler, take the ack from the archive controller
+        ## and pass result set to DMCS via message. This will be an at_end_readout_ack
+        
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         if self._use_mutex:
             LOGGER.debug('Acquireing mutex in process fwdr end readout...')
