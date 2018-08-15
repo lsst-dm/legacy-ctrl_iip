@@ -1,12 +1,125 @@
-# Cfg settings for system
-ROOT:
-  NUMBER_OF_PAIRS: 10
+## Cfg settings for system
+##
 
-  # Broker user names and passwds
-  # Why so many? To avoid broker connection 
-  # contention, each publisher should have its
-  # own connection. Some foremen, who message
-  # between the base and ncsa, have extra sets
+ROOT:
+
+  BASE_BROKER_ADDR: 141.142.238.10:5672/%2ftest
+  #BASE_BROKER_ADDR: 141.142.238.230:5672/%2ftest_at
+
+  INFLUX_DB: L1_Test
+  SESSION_ID_FILE: "/var/session_id"
+  DMCS_ACK_ID_FILE: "/var/dmcs_ack_id"
+  USE_MUTEX: YES
+  AR_CFG_KEYS: Normal
+  PP_CFG_KEYS: Normal
+  CU_CFG_KEYS: Normal
+  AT_CFG_KEYS: Normal
+
+  DMCS_FAULT_QUEUE: dmcs_fault_consume
+
+  FOREMAN_CONSUME_QUEUES:
+    AR: ar_foreman_consume
+    PP: pp_foreman_consume
+    CU: cu_foreman_consume
+    AT: at_foreman_consume
+
+  ARCHIVE:
+    USE_ARCHIVE_CTRL: False
+    ARCHIVE_NAME: ARCHIE
+    ARCHIVE_LOGIN: ARCHIE
+    ARCHIVE_IP: 141.142.238.15
+    ARCHIVE_HOSTNAME: ARCHIE
+    ARCHIVE_AR_XFER_ROOT: /mnt/xfer_dir/ar/
+    ARCHIVE_AT_XFER_ROOT: /mnt/xfer_dir/at/
+    CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
+    CHECKSUM_TYPE: CRC32
+
+  AUDIT:
+    AUDIT_MSG_FORMAT: YAML
+    USE_AUDITING: yes
+    PRINT_ONLY: no
+
+  EFD:
+    EFD_NAME: LFA
+    EFD_LOGIN: felipe
+    EFD_IP: 141.142.238.177
+    EFD_HOSTNAME: ARCHIE
+    EFD_XFER_ROOT: /mnt/lfa/
+
+  ATS:
+    WFS_RAFT: raft02
+    WFS_CCD: wfs_ccd
+
+  OCS: 
+    OCS_NAME: OCS
+    OCS_PASSWD: OCS
+    OCS_PUBLISH: ocs_dmcs_consume
+    OCS_CONSUME: dmcs_ocs_publish
+
+  ## A list of Redis DB instances, and 
+  ## who is using which DB.
+  ##
+  SCOREBOARDS:
+    AR_JOB_SCBD: 0
+    AR_FWD_SCBD: 1
+    AR_ACK_SCBD: 2
+    PP_JOB_SCBD: 3
+    PP_FWD_SCBD: 4
+    PP_ACK_SCBD: 5
+    CU_JOB_SCBD: 6
+    CU_FWD_SCBD: 7
+    CU_ACK_SCBD: 8
+    SP_JOB_SCBD: 9
+    SP_FWD_SCBD: 10
+    SP_ACK_SCBD: 11
+    NCSA_JOB_SCBD: 9
+    NCSA_DIST_SCBD: 10
+    NCSA_ACK_SCBD: 11
+    DMCS_ACK_SCBD: 11
+    DMCS_INCR_SCBD: 12
+    DMCS_STATE_SCBD: 13
+    DMCS_JOB_SCBD: 14
+    DMCS_BACKLOG_SCBD: 15
+
+  POLICY:
+    MAX_CCDS_PER_FWDR: 10
+
+  DEFAULT_RAFT_CONFIGURATION:
+#    raft00: ['ALL'] 
+#    raft01: ['11'] 
+#    raft10: ['11'] 
+#    raft20: ['00','12','22'] 
+#    raft30: ['00','01','02','11','12','22','10']
+#    raft40: ['ALL'] 
+#    raft01: ['11'] 
+#    raft11: ['12','22'] 
+#    raft21: ['ALL'] 
+#    raft31: ['ALL'] 
+#    raft41: ['ALL'] 
+    raft02: ['00'] 
+#    raft12: ['ALL'] 
+#    raft22: ['ALL'] 
+#    raft32: ['ALL'] 
+#    raft42: ['ALL'] 
+#    raft03: ['ALL'] 
+#    raft13: ['ALL'] 
+#    raft23: ['ALL'] 
+#    raft33: ['ALL'] 
+#    raft43: ['ALL'] 
+#    raft04: ['ALL'] 
+#    raft14: ['ALL'] 
+#    raft24: ['ALL'] 
+#    raft34: ['ALL'] 
+#    raft44: ['ALL'] 
+  RAFT_LIST:  ['4','6','18','2','1','20','15','16','3','12','5','10','9','14','19','7','13','8','21','17','11']
+  CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115']
+
+  ## Broker user names and passwds
+  ## Why so many? To avoid broker connection 
+  ## contention, each publisher should have its
+  ## own connection. Some foremen, who message
+  ## between the base and ncsa, have extra sets
+  ##
   BASE_BROKER_NAME: BASE
   BASE_BROKER_PASSWD: BASE
   BASE_BROKER_PUB_NAME: BASE_PUB
@@ -72,114 +185,13 @@ ROOT:
   NCSA_BROKER_PUB_PASSWD: NCSA_PUB
   NCSA_BROKER_CLSTR_PUB_NAME: NCSA_CLSTR_PUB
   NCSA_BROKER_CLSTR_PUB_PASSWD: NCSA_CLSTR_PUB
-  BASE_BROKER_ADDR: 141.142.238.10:5672/%2ftest
-  #BASE_BROKER_ADDR: 141.142.208.191:5672/%2fbunny
-  #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny?heartbeat=30
-  #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
-  #NCSA_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
-  #BASE_BROKER_ADDR: 141.142.238.230:5672/%2ftest_at
-  #NCSA_BROKER_ADDR: 141.142.238.230:5672/%2ftest_at
-  INFLUX_DB: L1_Test
-  SESSION_ID_FILE: "/var/session_id"
-  DMCS_ACK_ID_FILE: "/var/dmcs_ack_id"
-  USE_MUTEX: YES
-  #AR_CFG_KEYS: ['7FC7','2321A','AC11']
-  #AR_CFG_KEYS: Normal
-  #AR_CFG_KEYS: archiver-Normal
-  #PP_CFG_KEYS: processingcluster-Normal
-  AR_CFG_KEYS: Normal
-  PP_CFG_KEYS: Normal
-  CU_CFG_KEYS: Normal
-  AT_CFG_KEYS: Normal
-  #CU_CFG_KEYS: catchuparchiver-Normal
-  DMCS_FAULT_QUEUE: dmcs_fault_consume
-  DEFAULT_RAFT_CONFIGURATION:
-#    raft00: ['ALL'] 
-#    raft01: ['11'] 
-#    raft10: ['11'] 
-#    raft20: ['00','12','22'] 
-#    raft30: ['00','01','02','11','12','22','10']
-#    raft40: ['ALL'] 
-#    raft01: ['11'] 
-#    raft11: ['12','22'] 
-#    raft21: ['ALL'] 
-#    raft31: ['ALL'] 
-#    raft41: ['ALL'] 
-    raft02: ['00'] 
-#    raft12: ['ALL'] 
-#    raft22: ['ALL'] 
-#    raft32: ['ALL'] 
-#    raft42: ['ALL'] 
-#    raft03: ['ALL'] 
-#    raft13: ['ALL'] 
-#    raft23: ['ALL'] 
-#    raft33: ['ALL'] 
-#    raft43: ['ALL'] 
-#    raft04: ['ALL'] 
-#    raft14: ['ALL'] 
-#    raft24: ['ALL'] 
-#    raft34: ['ALL'] 
-#    raft44: ['ALL'] 
-  RAFT_LIST:  ['4','6','18','2','1','20','15','16','3','12','5','10','9','14','19','7','13','8','21','17','11']
-  CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115']
-  #CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115','136','3','12','50','101','79','144','19','7','139','8','21','172','11','121','122','123','124','125','126','127','128','129','130','131','132','133','134','135','137','138','143']  #43
-  FOREMAN_CONSUME_QUEUES:
-    AR: ar_foreman_consume
-    PP: pp_foreman_consume
-    CU: cu_foreman_consume
-    AT: at_foreman_consume
-  ARCHIVE:
-    USE_ARCHIVE_CTRL: False
-    ARCHIVE_NAME: ARCHIE
-    ARCHIVE_LOGIN: ARCHIE
-    ARCHIVE_IP: 141.142.238.15
-    ARCHIVE_HOSTNAME: ARCHIE
-    ARCHIVE_AR_XFER_ROOT: /mnt/xfer_dir/ar/
-    ARCHIVE_AT_XFER_ROOT: /mnt/xfer_dir/at/
-    CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
-    CHECKSUM_TYPE: CRC32
-  AUDIT:
-    AUDIT_MSG_FORMAT: YAML
-    USE_AUDITING: yes
-    PRINT_ONLY: no
-  EFD:
-    EFD_NAME: LFA
-    EFD_LOGIN: felipe
-    EFD_IP: 141.142.238.177
-    EFD_HOSTNAME: ARCHIE
-    EFD_XFER_ROOT: /mnt/lfa/
-    CHECKSUM_ENABLED: no
-  ATS:
-    WFS_RAFT: raft02
-    WFS_CCD: wfs_ccd
-  OCS: 
-    OCS_NAME: OCS
-    OCS_PASSWD: OCS
-    OCS_PUBLISH: ocs_dmcs_consume
-    OCS_CONSUME: dmcs_ocs_publish
-  SCOREBOARDS:
-    AR_JOB_SCBD: 0
-    AR_FWD_SCBD: 1
-    AR_ACK_SCBD: 2
-    PP_JOB_SCBD: 3
-    PP_FWD_SCBD: 4
-    PP_ACK_SCBD: 5
-    CU_JOB_SCBD: 6
-    CU_FWD_SCBD: 7
-    CU_ACK_SCBD: 8
-    SP_JOB_SCBD: 9
-    SP_FWD_SCBD: 10
-    SP_ACK_SCBD: 11
-    NCSA_JOB_SCBD: 9
-    NCSA_DIST_SCBD: 10
-    NCSA_ACK_SCBD: 11
-    DMCS_ACK_SCBD: 11
-    DMCS_INCR_SCBD: 12
-    DMCS_STATE_SCBD: 13
-    DMCS_JOB_SCBD: 14
-    DMCS_BACKLOG_SCBD: 15
-  POLICY:
-    MAX_CCDS_PER_FWDR: 10
+
+
+  ## The section below enumerates all of the forwarders available for work.
+  ## They are listed by name, message consume queue, and their hostname or IP Addr.
+  ## The list is also partitioned by duty as well.
+  ## These machines will be placed in the job/resource database for each foreman.
+  ##
   XFER_COMPONENTS:
     FWDR_DIR_PREFIX: /tmp/gunk/
 
