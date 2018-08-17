@@ -16,6 +16,7 @@
 #include "fitsio.h"
 #include <errno.h>
 #include "Exceptions.h"
+#include <curl/curl.h>
 
 #include "daq/Location.hh"
 #include "daq/LocationSet.hh"
@@ -185,6 +186,7 @@ class Forwarder {
 
     void forward_process_end_readout(Node); 
     void forward_process_take_images_done(Node); 
+    std::string forward_send_result_set(std::string, std::string, std::string);
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -1364,11 +1366,6 @@ void Forwarder::process_header_ready(Node n) {
         string path = n["FILENAME"].as<string>(); 
         string img_id = n["IMAGE_ID"].as<string>(); 
         int img_idx = path.find_last_of("/"); 
-        /** 
-        int dot_idx = path.find_last_of("."); 
-        int num_char = dot_idx - (img_idx + 1); // offset +1
-        string img_id = path.substr(img_idx + 1, num_char); 
-        */
 
         string sub_dir = main_header_dir + "/" + img_id; 
 	cout << "SUB_DIR " << sub_dir << endl; 
@@ -1386,24 +1383,26 @@ void Forwarder::process_header_ready(Node n) {
                << sub_dir
                << "/"; 
 	*/ 
-	cp_cmd << "wget -P " << sub_dir << "/ " << path; 
-        int scp_cmd = system(cp_cmd.str().c_str()); 
 
-	/** 
-	ostringstream move_cmd; 
-	int move_idx = path.find_last_of("/"); 
-	int dot_idx = path.find_last_of("."); 
-        int num_char = dot_idx - (move_idx + 1); // offset +1
-	string move_str = path.substr(move_idx + 1, num_char); 
+        // TODO: MUST REUSE HANDLE AS CLASS VARIABLE--> https://curl.haxx.se/libcurl/c/curl_easy_cleanup.html
+        CURL *handle = curl_easy_init();
+        CURLcode response;
+        char error[CURL_ERROR_SIZE]; 
+        FILE *destination; 
+        if (handle) { 
+            destination = fopen(sub_dir, "w"); 
+            curl_easy_setopt(handle, CURLOPT_URL, path.c_str()); 
+            curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, error); 
+            curl_easy_setopt(handle, CURLOPT_WRITEDATA, destination); 
+            
+            // setting the error buffer as zero
+            error[0] = 0; 
+            response = curl_easy_perform(handle); 
+            curl_easy_cleanup(handle); 
+        } 
 
-	move_cmd << "mv " << move_str << " " << sub_dir << "/"; 
-	cout << "[STATUS] " << move_cmd.str() << endl; 
-	int move_cmd_exec = system(move_cmd.str().c_str()); 
-	cout << "Moved file to " << sub_dir << endl; 
-	*/ 
-
-        if (scp_cmd == 256) { 
-            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + cp_cmd.str()); 
+        if (response != CURLE_OK) { 
+            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + error); 
         } 
 
         string img_idx_wheader = path.substr(img_idx + 1);  
@@ -1753,6 +1752,7 @@ void Forwarder::format_look_for_work() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::forward_process_end_readout(Node n) { 
+    string new_csum = "0";
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
@@ -1779,8 +1779,9 @@ void Forwarder::forward_process_end_readout(Node n) {
             throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
         } 
         this->finished_image_work_list.push_back(img_id);
-        cout << "[X] READOUT COMPLETE." << endl;
 
+        this->forward_send_result_set(img_name, dest_path, new_csum);
+        cout << "[X] READOUT COMPLETE." << endl;
     } 
     catch (L1CannotCopyFileError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
@@ -1845,6 +1846,41 @@ void Forwarder::forward_process_take_images_done(Node n) {
 //    this->fwd_pub->publish_message(reply_queue, msg.c_str());
 //    cout << "msg is replied to ..." << reply_queue << endl;
 //} 
+
+std::string Forwarder::forward_send_result_set(string image_id, string filenames, string checksums) { 
+    // Get device from xfer_params vars
+    // Use device to know where to send end readout and which msg_type to use
+    ostringstream msg_type;
+    string job_num = this->image_ids_to_jobs_map[image_id]["JOB_NUM"];
+    string ack_id = this->image_ids_to_jobs_map[image_id]["ACK_ID"];
+    string reply_queue = this->Foreman_Reply_Queue;
+    string device_type = this->Device_Type;
+
+    msg_type << device_type << " _FWDR_END_READOUT_ACK ";
+    string ack_bool = "True";
+  
+    Emitter msg; 
+    msg << BeginMap; 
+    msg << Key << "MSG_TYPE" << Value << msg_type; 
+    msg << Key << "COMPONENT" << Value << this->Component; 
+    msg << Key << "IMAGE_ID" << Value << image_id;
+    msg << Key << "JOB_NUM" << Value << job_num;
+    msg << Key << "ACK_ID" << Value << ack_id; 
+    msg << Key << "ACK_BOOL" << Value << ack_bool; 
+    msg << Key << "ERROR_CODE" << Value << "0"; 
+    msg << Key << "RESULT_SET" << Value << Flow; 
+        msg << BeginMap; 
+        msg << Key << "FILENAME_LIST" << Value << Flow << filenames; 
+        msg << Key << "CHECKSUM_LIST" << Value << Flow << checksums;  
+        msg << EndMap; 
+    msg << EndMap; 
+    cout << "[x] tid msg: " << endl; 
+    cout << msg.c_str() << endl;
+  
+    this->fwd_pub->publish_message(reply_queue, msg.c_str());
+    cout << "msg is replied to ..." << reply_queue << endl;
+} 
+
 
 int main() {
     Forwarder *fwdr = new Forwarder();
