@@ -6,6 +6,9 @@ DAQ_LIBPATH       = -L/home/atsdaq2/lsst-daq/daq-sdk/current/x86/lib -Wl,-rpath,
 LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcurl
 DAQ_LIB           = -ldaq_daq -ldaq_ims -ldaq_dsi -ldaq_osa -ldaq_dss -ldaq_net
 OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
+CURL_INCLUDE  = -I/usr/include
+CURL_LIBPATH  = -L/usr/lib64
+CURL_LIB      = -lcurl
 
 all: Forwarder
 
@@ -13,7 +16,7 @@ Forwarder: Forwarder.cpp
 	g++ -std=c++11 $(INCLUDE) $(LIBPATH) $(OBJ) -g -o Forwarder Forwarder.cpp $(LIB)
 
 DAQForwarder: DAQForwarder.cpp
-	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -ggdb -o DAQForwarder DAQForwarder.cpp $(LIB) $(DAQ_LIB)
+	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(CURL_INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(CURL_LIBPATH) $(OBJ) -ggdb -o DAQForwarder DAQForwarder.cpp $(LIB) $(DAQ_LIB) $(CURL_LIB)
 
 DAQ2: DAQ2.cpp
 	g++ -std=c++11 $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -ggdb -o DAQ2 DAQ2.cpp $(LIB) $(DAQ_LIB)

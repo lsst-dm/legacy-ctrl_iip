@@ -1390,7 +1390,7 @@ void Forwarder::process_header_ready(Node n) {
         char error[CURL_ERROR_SIZE]; 
         FILE *destination; 
         if (handle) { 
-            destination = fopen(sub_dir, "w"); 
+            destination = fopen(sub_dir.c_str(), "w"); 
             curl_easy_setopt(handle, CURLOPT_URL, path.c_str()); 
             curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, error); 
             curl_easy_setopt(handle, CURLOPT_WRITEDATA, destination); 
@@ -1402,7 +1402,7 @@ void Forwarder::process_header_ready(Node n) {
         } 
 
         if (response != CURLE_OK) { 
-            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + error); 
+            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + string(error)); 
         } 
 
         string img_idx_wheader = path.substr(img_idx + 1);  
@@ -1780,7 +1780,7 @@ void Forwarder::forward_process_end_readout(Node n) {
         } 
         this->finished_image_work_list.push_back(img_id);
 
-        this->forward_send_result_set(img_name, dest_path, new_csum);
+        // this->forward_send_result_set(img_name, dest_path, new_csum);
         cout << "[X] READOUT COMPLETE." << endl;
     } 
     catch (L1CannotCopyFileError& e) { 
@@ -1847,6 +1847,7 @@ void Forwarder::forward_process_take_images_done(Node n) {
 //    cout << "msg is replied to ..." << reply_queue << endl;
 //} 
 
+/**
 std::string Forwarder::forward_send_result_set(string image_id, string filenames, string checksums) { 
     // Get device from xfer_params vars
     // Use device to know where to send end readout and which msg_type to use
@@ -1880,6 +1881,7 @@ std::string Forwarder::forward_send_result_set(string image_id, string filenames
     this->fwd_pub->publish_message(reply_queue, msg.c_str());
     cout << "msg is replied to ..." << reply_queue << endl;
 } 
+*/
 
 
 int main() {
