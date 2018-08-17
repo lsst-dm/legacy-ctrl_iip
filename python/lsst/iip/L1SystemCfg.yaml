@@ -125,9 +125,9 @@ ROOT:
   CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115']
   #CCD_LIST:  ['34','6','160','161','162','163','181','2','1','20','115','136','3','12','50','101','79','144','19','7','139','8','21','172','11','121','122','123','124','125','126','127','128','129','130','131','132','133','134','135','137','138','143']  #43
   GENERAL_SETTINGS:
-    TsXmlVersion: ManCtrl_MPD_AuxTel 
+    TsXmlVersion: feature/OCS_IntSpectImgCC 
     TsSALVersion: 3.7.1
-    L1DMRepoTag: V1.4a-ats_turnkey_system
+    L1DMRepoTag: V1.5a-ats_turnkey_system
   FOREMAN_CONSUME_QUEUES:
     AR: ar_foreman_consume
     PP: pp_foreman_consume
@@ -139,7 +139,7 @@ ROOT:
     ARCHIVE_LOGIN: ARC
     ARCHIVE_IP: 140.252.32.128
     ARCHIVE_HOSTNAME: ARC
-    ARCHIVE_XFER_ROOT: /data/export/
+    ARCHIVE_XFER_ROOT: /data/export/20180816
     CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
   EFD:
     EFD_NAME: LFA

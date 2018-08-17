@@ -2,6 +2,7 @@ ARCHIVE  	= /opt/sal/ts_sal/test/archiver/cpp
 CARCHIVE 	= /opt/sal/ts_sal/test/catchuparchiver/cpp
 PCLUSTER 	= /opt/sal/ts_sal/test/processingcluster/cpp
 HEADER   	= /opt/sal/ts_sal/test/headerService/cpp
+ATHEADER   	= /opt/sal/ts_sal/test/atHeaderService/cpp
 CAMERA   	= /opt/sal/ts_sal/test/camera/cpp
 EFD      	= /opt/sal/ts_sal/test/efd/cpp
 ATARCHIVE	= /opt/sal/ts_sal/test/atArchiver/cpp
@@ -13,6 +14,7 @@ SALINC	 	= -I$(ARCHIVE) -I$(ARCHIVE)/src\
 		  -I$(EFD) -I$(EFD)/src\
 		  -I$(ATCAMERA) -I$(ATCAMERA)/src\
 		  -I$(ATARCHIVE) -I$(ATARCHIVE)/src\
+		  -I$(ATHEADER) -I$(ATHEADER)/src\
 		  -I/opt/sal/ts_sal/lsstsal/include\
 		  -I$(SALPATH)/include/dcps/C++/SACPP\
 		  -I$(SALPATH)/include/sys\
@@ -25,7 +27,7 @@ SAL_LDPATH  	= -L$(SALPATH)/lib -L$(LIBSAL) -L/usr/lib/python2.7/config
 #DM_LDPATH 	= -L../lib -Wl,-rpath,../lib-L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/local/lib64 -Wl,-rpath,/usr/local/lib64
 DM_LDPATH 	= -L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/local/lib64 -Wl,-rpath,/usr/local/lib64 
 SAL_LDLIB	= -lsacpp_archiver_types -lsacpp_catchuparchiver_types -lsacpp_processingcluster_types\
-		  -lsacpp_camera_types -lsacpp_atcamera_types -lsacpp_efd_types -lsacpp_atArchiver_types\
+		  -lsacpp_camera_types -lsacpp_atcamera_types -lsacpp_efd_types -lsacpp_atArchiver_types -lsacpp_atHeaderService_types\
 		  -l"dcpssacpp" -l"dcpsgapi" -l"ddsuser" \
 		  -l"ddskernel" -l"ddsserialization" -l"ddsconfparser" -l"ddsconf" -l"ddsdatabase" \
 		  -l"ddsutil" -l"ddsos" -ldl $(subst lib,-l,$(sort $(basename $(notdir $(wildcard /usr/lib/librt.so /lib/librt.so)))))
@@ -58,7 +60,7 @@ AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod
 	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(OCS_OBJ) $(AT_OBJ) $(DM_OBJ) -Wall -g -o AckSubscriber AckSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
 
 EventSubscriber: EventSubscriber.cpp SimplePublisher
-	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(CAMERA)/src/.obj/CheckStatus.o $(OBJ_DIR)/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
+	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(ATHEADER)/src/.obj/SAL_atHeaderService.o $(CAMERA)/src/.obj/CheckStatus.o $(OBJ_DIR)/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
 
 
 clean:

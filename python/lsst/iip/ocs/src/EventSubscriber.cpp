@@ -5,9 +5,11 @@
 #include "SAL_camera.h"
 #include "SAL_atcamera.h"
 #include "SAL_efd.h"
+#include "SAL_atHeaderService.h"
 #include "ccpp_sal_camera.h"
 #include "ccpp_sal_atcamera.h"
 #include "ccpp_sal_efd.h"
+#include "ccpp_sal_atHeaderService.h"
 #include "os.h"
 #include <yaml-cpp/yaml.h>
 #include <stdlib.h>
@@ -19,9 +21,14 @@ using namespace DDS;
 using namespace camera;
 using namespace atcamera;
 using namespace efd;
+using namespace atHeaderService;
 using namespace YAML; 
 
 typedef void* (*funcptr)(void *args);  
+
+// To disable efd message, comment out line 503, where `publisher->publish_message`.
+// To disable atHeader message, comment out line 385, where `publisher->publish_message`.
+// What this means is that EventSubscriber might get message from both, but only publish message from the correct CSC.
 
 EventSubscriber::EventSubscriber() { 
     Node config_file = LoadFile("../../L1SystemCfg.yaml"); 
@@ -45,7 +52,7 @@ void EventSubscriber::setup_events_listeners() {
                                &EventSubscriber::run_takeImageDone,
                                &EventSubscriber::run_getHeaderService, 
                                &EventSubscriber::run_atcamera_startIntegration, 
-                               &EventSubscriber::run_atcamera_endReadout, 
+                               &EventSubscriber::run_atcamera_endReadout,
                                &EventSubscriber::run_efd_largeFileObjectAvailable};
     
     for (int i = 0; i < total_events; i++) { 
@@ -340,71 +347,51 @@ void *EventSubscriber::run_takeImageDone(void *args) {
 } 
             
 void *EventSubscriber::run_getHeaderService(void *args) { 
-    /** 
+/**
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
     string broker_addr = params->broker_addr; 
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
-    SAL_headerService mgr = SAL_headerService(); 
-    headerService_logevent_LargeFileObjectAvailableC SALInstance; 
+    SAL_atHeaderService mgr = SAL_atHeaderService(); 
+    atHeaderService_logevent_largeFileObjectAvailableC SALInstance; 
 
-    mgr.salEvent("headerService_logevent_LargeFileObjectAvailable"); 
+    mgr.salEvent("atHeaderService_logevent_largeFileObjectAvailable"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
-        status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
+        status = mgr.getEvent_largeFileObjectAvailable(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event HeaderService received = " << endl;
+            string device = SALInstance.generator; 
+            string msg_type; 
+            if (device == "atHeaderService") { 
+                cout << "=== Event AuxTel HeaderService received = " << endl;
+                msg_type = "DMCS_AT_HEADER_READY"; 
+            } 
+            else { 
+                cout << "=== Event Regular HeaderService received = " << endl;
+                msg_type = "DMCS_HEADER_READY"; 
+            } 
+
             Emitter msg;
             msg << BeginMap; 
-            msg << Key << "MSG_TYPE" << Value << "DMCS_HEADER_READY"; 
-            msg << Key << "FILENAME" << Value << SALInstance.URL; 
+            msg << Key << "MSG_TYPE" << Value << msg_type; 
+            msg << Key << "FILENAME" << Value << SALInstance.url; 
+            msg << Key << "IMAGE_ID" << Value << SALInstance.id; 
             msg << EndMap; 	
-	    cout << "HR: " << msg.c_str() << endl; 
+
+	    cout << "msg is: " << endl; 
+            cout << msg.c_str() << endl; 
             publisher->publish_message(queue, msg.c_str()); 
         } 
         os_nanoSleep(delay_10ms);
     }  
     mgr.salShutdown(); 
-    */
+*/
     return 0;
 } 
-/** 
-void *EventSubscriber::run_getHeaderService(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_efd mgr = SAL_efd(); 
-    efd_logevent_LargeFileObjectAvailableC SALInstance; 
-
-    mgr.salEvent("efd_logevent_LargeFileObjectAvailable"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
-
-        if (status == SAL__OK) { 
-            cout << "=== Event EFD HeaderService received = " << endl;
-            Emitter msg;
-            msg << BeginMap; 
-            msg << Key << "MSG_TYPE" << Value << "DMCS_HEADER_READY"; 
-            msg << Key << "FILENAME" << Value << SALInstance.URL; 
-            msg << EndMap; 	
-	    cout << "HR: " << msg.c_str() << endl; 
-            publisher->publish_message(queue, msg.c_str()); 
-        } 
-        os_nanoSleep(delay_10ms);
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
-*/ 
 
 void *EventSubscriber::run_atcamera_startIntegration(void *args) { 
     event_args *params = ((event_args *)args); 
@@ -486,17 +473,18 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
     SAL_efd mgr = SAL_efd(); 
-    efd_logevent_LargeFileObjectAvailableC SALInstance; 
+    efd_logevent_largeFileObjectAvailableC SALInstance; 
 
-    mgr.salEvent("efd_logevent_LargeFileObjectAvailable"); 
+    mgr.salEventSub("efd_logevent_largeFileObjectAvailable"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
-        status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
+        status = mgr.getEvent_largeFileObjectAvailable(&SALInstance); 
 
         if (status == SAL__OK) { 
-            string device = SALInstance.Generator; 
+            string device = SALInstance.generator; 
             string msg_type; 
+	    cout << "Generator is " << device << endl; 
             if (device == "atHeaderService") { 
                 cout << "=== Event AuxTel HeaderService received = " << endl;
                 msg_type = "DMCS_AT_HEADER_READY"; 
@@ -509,8 +497,8 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
             Emitter msg;
             msg << BeginMap; 
             msg << Key << "MSG_TYPE" << Value << msg_type; 
-            msg << Key << "FILENAME" << Value << SALInstance.URL; 
-            msg << Key << "IMAGE_ID" << Value << SALInstance.ID; 
+            msg << Key << "FILENAME" << Value << SALInstance.url; 
+            msg << Key << "IMAGE_ID" << Value << SALInstance.id; 
             msg << EndMap; 	
 
 	    cout << "msg is: " << endl; 

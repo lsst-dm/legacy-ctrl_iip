@@ -411,7 +411,7 @@ class AuxDevice:
         self._publisher.publish_message(route_key, msg)
 
 
-        readout_response = self.simple_progressive_ack_timer(self.FWDR, 20.0)
+        readout_response = self.simple_progressive_ack_timer(self.FWDR, 40.0)
 
         if readout_response == False:
             name = self._current_fwdr['FQN']
