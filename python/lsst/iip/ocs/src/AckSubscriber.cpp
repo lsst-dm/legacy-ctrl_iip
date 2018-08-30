@@ -35,7 +35,8 @@ map<string, ack_funcptr> action_handler = {
     {"APPLIED_SETTINGS_MATCH_START_EVENT", &AckSubscriber::process_applied_settings_match_start}, 
     {"ERROR_CODE_EVENT", &AckSubscriber::process_error_code}, 
     {"BOOK_KEEPING", &AckSubscriber::process_book_keeping}, 
-    {"RESOLVE_ACK", &AckSubscriber::process_resolve_ack}
+    {"RESOLVE_ACK", &AckSubscriber::process_resolve_ack}, 
+    {"DM_TELEMETRY", &AckSubscriber::process_telemetry}
 }; 
 
 template<typename T> 
@@ -391,6 +392,21 @@ void AckSubscriber::process_error_code(Node n) {
     catch (exception& e) { 
 	cout << "WARNING: " << "In AckSubscriber -- error_code, cannot read fields from message." << endl; 
         cout << "The error is " << e.what() << endl; 
+    }  
+} 
+
+void AckSubscriber::process_telemetry(Node n) { 
+    try { 
+        long priority = 0; 
+        int error_code = n["ERROR_CODE"].as<int>(); 
+        string description = n["DESCRIPTION"].as<string>(); 
+        atArchiver_logevent_telemetryC data; 
+        data.errorCode = error_code; 
+        data.description = description; 
+        at.logEvent_Telemetry(&data, priority); 
+    } 
+    catch (exception& e) { 
+        cout << "In process_telemetry, ackSubscriber cannot publish telemetry." << endl; 
     }  
 } 
 

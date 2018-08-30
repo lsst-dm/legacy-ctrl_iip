@@ -1364,11 +1364,6 @@ void Forwarder::process_header_ready(Node n) {
         string path = n["FILENAME"].as<string>(); 
         string img_id = n["IMAGE_ID"].as<string>(); 
         int img_idx = path.find_last_of("/"); 
-        /** 
-        int dot_idx = path.find_last_of("."); 
-        int num_char = dot_idx - (img_idx + 1); // offset +1
-        string img_id = path.substr(img_idx + 1, num_char); 
-        */
 
         string sub_dir = main_header_dir + "/" + img_id; 
 	cout << "SUB_DIR " << sub_dir << endl; 
@@ -1379,30 +1374,10 @@ void Forwarder::process_header_ready(Node n) {
 
         // scp -i ~/.ssh/from_efd felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
         ostringstream cp_cmd; 
-	/** 
-        cp_cmd << "scp -i ~/.ssh/from_efd "
-               << path
-               << " " 
-               << sub_dir
-               << "/"; 
-	*/ 
 	cp_cmd << "wget -P " << sub_dir << "/ " << path; 
         int scp_cmd = system(cp_cmd.str().c_str()); 
 
-	/** 
-	ostringstream move_cmd; 
-	int move_idx = path.find_last_of("/"); 
-	int dot_idx = path.find_last_of("."); 
-        int num_char = dot_idx - (move_idx + 1); // offset +1
-	string move_str = path.substr(move_idx + 1, num_char); 
-
-	move_cmd << "mv " << move_str << " " << sub_dir << "/"; 
-	cout << "[STATUS] " << move_cmd.str() << endl; 
-	int move_cmd_exec = system(move_cmd.str().c_str()); 
-	cout << "Moved file to " << sub_dir << endl; 
-	*/ 
-
-        if (scp_cmd == 256) { 
+        if (scp_cmd > 0) { 
             throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + cp_cmd.str()); 
         } 
 
@@ -1421,19 +1396,23 @@ void Forwarder::process_header_ready(Node n) {
         int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+        send_status_message(ERROR_CODE, e.what()); 
     } 
     catch (L1CannotCreateDirError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 20; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+        send_status_message(ERROR_CODE, e.what()); 
     } 
     catch (L1CannotCopyFileError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+        send_status_message(ERROR_CODE, e.what()); 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
+        send_status_message(ERROR_CODE, e.what()); 
     } 
 } 
 
@@ -1546,9 +1525,15 @@ void Forwarder::format_write_img(string img, string header) {
             system(rm_cmd.str().c_str()); 
         } 
 
-        fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
-        fits_create_file(&optr, destination.c_str(), &status); 
-        fits_copy_hdu(iptr, optr, 0, &status); 
+        if (fits_open_file(&iptr, header_path.c_str(), READONLY, &status)) { 
+            throw L1FitsFileError("In format_write_img, forwarder cannot open header file: " + header_path); 
+        } 
+        if (fits_create_file(&optr, destination.c_str(), &status)) {
+            throw L1FitsFileError("In format_write_img, forwarder cannot create output fits file: " + destination); 
+        } 
+        if (fits_copy_hdu(iptr, optr, 0, &status)) {
+            throw L1FitsFileError("In format_write_img, forwarder cannot copy primary hdu from header file."); 
+        } 
         int aaa; 
         fits_get_hdu_num(iptr, &aaa); 
         cout << aaa << endl; 
@@ -1605,13 +1590,13 @@ void Forwarder::format_write_img(string img, string header) {
                                                   + "," + STRING(NAXIS2) + "]"; 
                         cout << "IMG segment name is " << img_segment_name << endl; 
                         if (fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status)) { 
-                            cout << "Fits_open_file error " << status << endl; 
+                            throw L1FitsFileError("In format_write_img, forwarder cannot open segment file: " + img_segment_name); 
                         }  
                         if (fits_read_img(pix_file_ptr, TINT, 1, len, NULL, img_buffer, 0, &status)){
-                            cout << "Fits_read_imge error " << status << endl; 
+                            throw L1FitsFileError("In format_write_img, forwarder cannot read pixel data from segment: " + img_segment_name); 
                         }
                         if (fits_write_img(optr, TINT, 1, len, img_buffer, &status)){
-                            cout << "Fits_write_img error " << status << endl; 
+                            throw L1FitsFileError("In format_write_img, forwarder cannot write pixel data to output file: " + img_segment_name); 
                         } 
 
                         // clean up 
@@ -1631,49 +1616,17 @@ void Forwarder::format_write_img(string img, string header) {
 	} 
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
-	/** 
-        for (it = file_names.begin(); it != file_names.end(); it++) { 
-            fitsfile *pix_file_ptr; 
-            int *img_buffer = new int[len];
-            string img_segment_name = img_path + "/" + *it 
-                                      + "[jL" + STRING(NAXIS1) 
-                                      + "," + STRING(NAXIS2) + "]"; 
-
-            // get img pixels
-            fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status); 
-            fits_read_img(pix_file_ptr, TINT, 1, len, NULL, img_buffer, 0, &status); 
-            fits_create_img(optr, bitpix, naxis, naxes, &status); 
-            fits_write_img(optr, TINT, 1, len, img_buffer, &status);
-
-            // get header 
-            fits_movabs_hdu(iptr, hdunum, NULL, &status); 
-            fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
-            for (int i = 1; i <= nkeys; i++) { 
-                fits_read_record(iptr, i, card, &status); 
-	        string card_str = string(card); 
-                if (card_str.find("BITPIX") == 0) {} 
-                else if (card_str.find("NAXIS") == 0) {} 
-                else if (card_str.find("PCOUNT") == 0) {} 
-                else if (card_str.find("GCOUNT") == 0) {} 
-                else if (card_str.find("XTENSION") == 0) {} 
-                else { 
-		    fits_write_record(optr, card, &status); 
-                } 
-            }
-            hdunum++;
-
-            // clean up 
-            fits_close_file(pix_file_ptr, &status); 
-            delete[] img_buffer; 
-        } 
-        fits_close_file(iptr, &status); 
-        fits_close_file(optr, &status); 
-	*/ 
-
         format_send_completed_msg(img);
+    } 
+    catch (L1FitsFileError e) { 
+        int ERROR_CODE = ERROR_CODE_PREFIX + 60; 
+        cerr << e.what() << endl; 
+        cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+        send_status_message(ERROR_CODE, e.what()); 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
+        send_status_message(ERROR_CODE, e.what()); 
     } 
 } 
 vector<string> Forwarder::format_list_files(string path) { 
@@ -1773,23 +1726,33 @@ void Forwarder::forward_process_end_readout(Node n) {
         int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
 	cout << "[STATUS] file is copied from " << img_path << " to " << dest_path << endl; 
 
-
-
         if (bbcp_cmd_status == 256) { 
             throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
         } 
         this->finished_image_work_list.push_back(img_id);
         cout << "[X] READOUT COMPLETE." << endl;
-
+        send_status_message(0, "Image " + img_id + " transfer has been completed.") 
     } 
     catch (L1CannotCopyFileError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+        send_status_message(ERROR_CODE, "Image " + img_id + " transfer has failed.") 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
+        send_status_message(9999, "Image " + img_id + " transfer has failed.") 
     } 
+} 
+
+void Forwarder::send_status_message(int status_code, string description) { 
+    Emitter msg; 
+    msg << BeginMap; 
+    msg << Key << "MSG_TYPE" << Value << "DM_TELEMETRY"; 
+    msg << Key << "ERROR_CODE" << Value << status_code; 
+    msg << Key << "DESCRIPTION" << Value << description; 
+    msg << EndMap; 
+    this->fwd_pub->publish_message(TELEMETRY_QUEUE, msg.c_str()); 
 } 
 
 void Forwarder::forward_process_take_images_done(Node n) { 

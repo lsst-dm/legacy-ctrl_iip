@@ -156,7 +156,8 @@ state_matrix[6][6] = True
 # 54 - No Response to END_READOUT message
 # 55 - No New Session Response
 # 56 - No Next Visit Response
-
+#
+# 60 - General Fits error
 
 """ Exception classes 
 """ 

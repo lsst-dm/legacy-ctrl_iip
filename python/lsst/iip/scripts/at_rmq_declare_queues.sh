@@ -33,6 +33,9 @@ declare -a queues=( "at_foreman_consume"
                     "forward_consume_from_f92"
                     "forward_consume_from_f93"
                     "ar_foreman_ack_publish"
+                    "at_telemetry"
+                    "dmcs_telemetry"
+                    "ocsbr_telemetry"
                     "test_dmcs_ocs_publish")
 
 echo -e "[${GREEN}${BOLD}STATUS${NORM}] Creating queues in vhost bunny_at." 
