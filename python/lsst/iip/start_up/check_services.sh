@@ -12,7 +12,15 @@ while true; do
         status=$(systemctl is-active ${sv})
         case $status in
             active)
-                echo "${sv} is active." 
+                if ["$1" == "-v"] 
+		then
+                    echo "${sv} is running." 
+                fi
+
+                STATE=$(redis-cli -n 13 hget AT STATE)
+                echo "Data Management System is running." 
+                echo "AtArchiver is currently in $STATE state."
+
                 ;;
             *)
                 echo "Stopping services..."

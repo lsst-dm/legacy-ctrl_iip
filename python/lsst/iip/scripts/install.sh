@@ -2,7 +2,7 @@ echo "Creating workdir"
 mkdir ~/workdir
 
 # Install dependencies
-yum install -y java-1.7.0-openjdk java-1.7.0-openjdk-devel cmake
+yum install -y java-1.7.0-openjdk java-1.7.0-openjdk-devel cmake ncurses-devel
 yum groupinstall -y "Development Tools" 
 
 # Install Rabbitmq-Server
