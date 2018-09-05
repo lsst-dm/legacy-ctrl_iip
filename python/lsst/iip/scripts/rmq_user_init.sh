@@ -13,6 +13,7 @@ rabbitmqctl add_user F8 F8
 rabbitmqctl add_user F9 F9
 rabbitmqctl add_user F10 F10
 rabbitmqctl add_user F11 F11
+rabbitmqctl add_user F99 F99
 
 rabbitmqctl add_user F1_PUB F1_PUB
 rabbitmqctl add_user F2_PUB F2_PUB
@@ -25,6 +26,7 @@ rabbitmqctl add_user F8_PUB F8_PUB
 rabbitmqctl add_user F9_PUB F9_PUB
 rabbitmqctl add_user F10_PUB F10_PUB
 rabbitmqctl add_user F11_PUB F11_PUB
+rabbitmqctl add_user F99_PUB F99_PUB
 
 rabbitmqctl set_permissions -p /bunny F1  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F2  '.*' '.*' '.*'
@@ -37,6 +39,7 @@ rabbitmqctl set_permissions -p /bunny F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2  '.*' '.*' '.*'
@@ -49,6 +52,7 @@ rabbitmqctl set_permissions -p /test F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /bunny F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F2_PUB  '.*' '.*' '.*'
@@ -61,6 +65,7 @@ rabbitmqctl set_permissions -p /bunny F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99_PUB '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2_PUB  '.*' '.*' '.*'
@@ -73,6 +78,7 @@ rabbitmqctl set_permissions -p /test F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99_PUB '.*' '.*' '.*'
 ############################################################
 
 ### Consumer and Publisher for each Primary Forwarder in relation to its subcomponents + perms
@@ -87,6 +93,7 @@ rabbitmqctl add_user F8_FETCH F8_FETCH
 rabbitmqctl add_user F9_FETCH F9_FETCH
 rabbitmqctl add_user F10_FETCH F10_FETCH
 rabbitmqctl add_user F11_FETCH F11_FETCH
+rabbitmqctl add_user F99_FETCH F99_FETCH
 
 rabbitmqctl add_user F1_FETCH_PUB F1_FETCH_PUB
 rabbitmqctl add_user F2_FETCH_PUB F2_FETCH_PUB
@@ -99,6 +106,7 @@ rabbitmqctl add_user F8_FETCH_PUB F8_FETCH_PUB
 rabbitmqctl add_user F9_FETCH_PUB F9_FETCH_PUB
 rabbitmqctl add_user F10_FETCH_PUB F10_FETCH_PUB
 rabbitmqctl add_user F11_FETCH_PUB F11_FETCH_PUB
+rabbitmqctl add_user F99_FETCH_PUB F99_FETCH_PUB
 
 rabbitmqctl add_user F1_FORMAT F1_FORMAT
 rabbitmqctl add_user F2_FORMAT F2_FORMAT
@@ -111,6 +119,7 @@ rabbitmqctl add_user F8_FORMAT F8_FORMAT
 rabbitmqctl add_user F9_FORMAT F9_FORMAT
 rabbitmqctl add_user F10_FORMAT F10_FORMAT
 rabbitmqctl add_user F11_FORMAT F11_FORMAT
+rabbitmqctl add_user F99_FORMAT F99_FORMAT
 
 rabbitmqctl add_user F1_FORMAT_PUB F1_FORMAT_PUB
 rabbitmqctl add_user F2_FORMAT_PUB F2_FORMAT_PUB
@@ -123,6 +132,7 @@ rabbitmqctl add_user F8_FORMAT_PUB F8_FORMAT_PUB
 rabbitmqctl add_user F9_FORMAT_PUB F9_FORMAT_PUB
 rabbitmqctl add_user F10_FORMAT_PUB F10_FORMAT_PUB
 rabbitmqctl add_user F11_FORMAT_PUB F11_FORMAT_PUB
+rabbitmqctl add_user F99_FORMAT_PUB F99_FORMAT_PUB
 
 rabbitmqctl add_user F1_FORWARD F1_FORWARD
 rabbitmqctl add_user F2_FORWARD F2_FORWARD
@@ -135,6 +145,7 @@ rabbitmqctl add_user F8_FORWARD F8_FORWARD
 rabbitmqctl add_user F9_FORWARD F9_FORWARD
 rabbitmqctl add_user F10_FORWARD F10_FORWARD
 rabbitmqctl add_user F11_FORWARD F11_FORWARD
+rabbitmqctl add_user F99_FORWARD F99_FORWARD
 
 rabbitmqctl add_user F1_FORWARD_PUB F1_FORWARD_PUB
 rabbitmqctl add_user F2_FORWARD_PUB F2_FORWARD_PUB
@@ -147,6 +158,7 @@ rabbitmqctl add_user F8_FORWARD_PUB F8_FORWARD_PUB
 rabbitmqctl add_user F9_FORWARD_PUB F9_FORWARD_PUB
 rabbitmqctl add_user F10_FORWARD_PUB F10_FORWARD_PUB
 rabbitmqctl add_user F11_FORWARD_PUB F11_FORWARD_PUB
+rabbitmqctl add_user F99_FORWARD_PUB F99_FORWARD_PUB
 ######################################################
 
 ### Each forwarder subcomponent pub and sub to Primary Forwarder
@@ -161,6 +173,7 @@ rabbitmqctl add_user FETCH_F8 FETCH_F8
 rabbitmqctl add_user FETCH_F9 FETCH_F9
 rabbitmqctl add_user FETCH_F10 FETCH_F10
 rabbitmqctl add_user FETCH_F11 FETCH_F11
+rabbitmqctl add_user FETCH_F99 FETCH_F99
 
 rabbitmqctl add_user FETCH_F1_PUB FETCH_F1_PUB
 rabbitmqctl add_user FETCH_F2_PUB FETCH_F2_PUB
@@ -173,6 +186,7 @@ rabbitmqctl add_user FETCH_F8_PUB FETCH_F8_PUB
 rabbitmqctl add_user FETCH_F9_PUB FETCH_F9_PUB
 rabbitmqctl add_user FETCH_F10_PUB FETCH_F10_PUB
 rabbitmqctl add_user FETCH_F11_PUB FETCH_F11_PUB
+rabbitmqctl add_user FETCH_F99_PUB FETCH_F99_PUB
 
 rabbitmqctl add_user FORMAT_F1 FORMAT_F1
 rabbitmqctl add_user FORMAT_F2 FORMAT_F2
@@ -185,6 +199,7 @@ rabbitmqctl add_user FORMAT_F8 FORMAT_F8
 rabbitmqctl add_user FORMAT_F9 FORMAT_F9
 rabbitmqctl add_user FORMAT_F10 FORMAT_F10
 rabbitmqctl add_user FORMAT_F11 FORMAT_F11
+rabbitmqctl add_user FORMAT_F99 FORMAT_F99
 
 rabbitmqctl add_user FORMAT_F1_PUB FORMAT_F1_PUB
 rabbitmqctl add_user FORMAT_F2_PUB FORMAT_F2_PUB
@@ -197,6 +212,7 @@ rabbitmqctl add_user FORMAT_F8_PUB FORMAT_F8_PUB
 rabbitmqctl add_user FORMAT_F9_PUB FORMAT_F9_PUB
 rabbitmqctl add_user FORMAT_F10_PUB FORMAT_F10_PUB
 rabbitmqctl add_user FORMAT_F11_PUB FORMAT_F11_PUB
+rabbitmqctl add_user FORMAT_F99_PUB FORMAT_F99_PUB
 
 rabbitmqctl add_user FORWARD_F1 FORWARD_F1
 rabbitmqctl add_user FORWARD_F2 FORWARD_F2
@@ -209,6 +225,7 @@ rabbitmqctl add_user FORWARD_F8 FORWARD_F8
 rabbitmqctl add_user FORWARD_F9 FORWARD_F9
 rabbitmqctl add_user FORWARD_F10 FORWARD_F10
 rabbitmqctl add_user FORWARD_F11 FORWARD_F11
+rabbitmqctl add_user FORWARD_F99 FORWARD_F99
 
 rabbitmqctl add_user FORWARD_F1_PUB FORWARD_F1_PUB
 rabbitmqctl add_user FORWARD_F2_PUB FORWARD_F2_PUB
@@ -221,6 +238,7 @@ rabbitmqctl add_user FORWARD_F8_PUB FORWARD_F8_PUB
 rabbitmqctl add_user FORWARD_F9_PUB FORWARD_F9_PUB
 rabbitmqctl add_user FORWARD_F10_PUB FORWARD_F10_PUB
 rabbitmqctl add_user FORWARD_F11_PUB FORWARD_F11_PUB
+rabbitmqctl add_user FORWARD_F99_PUB FORWARD_F99_PUB
 
 
 
@@ -237,6 +255,7 @@ rabbitmqctl set_permissions -p /bunny F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2  '.*' '.*' '.*'
@@ -249,6 +268,7 @@ rabbitmqctl set_permissions -p /test F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /bunny F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F2_PUB  '.*' '.*' '.*'
@@ -261,6 +281,7 @@ rabbitmqctl set_permissions -p /bunny F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99_PUB '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2_PUB  '.*' '.*' '.*'
@@ -273,6 +294,7 @@ rabbitmqctl set_permissions -p /test F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99_PUB '.*' '.*' '.*'
 
 
 rabbitmqctl set_permissions -p /bunny F1_FETCH  '.*' '.*' '.*'
@@ -286,6 +308,7 @@ rabbitmqctl set_permissions -p /bunny F8_FETCH  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9_FETCH  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10_FETCH '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11_FETCH '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99_FETCH '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1_FETCH  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2_FETCH  '.*' '.*' '.*'
@@ -298,6 +321,7 @@ rabbitmqctl set_permissions -p /test F8_FETCH  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9_FETCH  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10_FETCH '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F11_FETCH '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99_FETCH '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /bunny F1_FETCH_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F2_FETCH_PUB  '.*' '.*' '.*'
@@ -310,6 +334,7 @@ rabbitmqctl set_permissions -p /bunny F8_FETCH_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9_FETCH_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10_FETCH_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11_FETCH_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99_FETCH_PUB '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1_FETCH_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2_FETCH_PUB  '.*' '.*' '.*'
@@ -322,6 +347,7 @@ rabbitmqctl set_permissions -p /test F8_FETCH_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9_FETCH_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10_FETCH_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F11_FETCH_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99_FETCH_PUB '.*' '.*' '.*'
 ##
 rabbitmqctl set_permissions -p /bunny FETCH_F1  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FETCH_F2  '.*' '.*' '.*'
@@ -334,6 +360,7 @@ rabbitmqctl set_permissions -p /bunny FETCH_F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FETCH_F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FETCH_F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FETCH_F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny FETCH_F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test FETCH_F1  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FETCH_F2  '.*' '.*' '.*'
@@ -346,6 +373,7 @@ rabbitmqctl set_permissions -p /test FETCH_F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FETCH_F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FETCH_F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FETCH_F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test FETCH_F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /bunny FETCH_F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FETCH_F2_PUB  '.*' '.*' '.*'
@@ -358,6 +386,7 @@ rabbitmqctl set_permissions -p /bunny FETCH_F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FETCH_F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FETCH_F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FETCH_F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny FETCH_F99_PUB '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test FETCH_F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FETCH_F2_PUB  '.*' '.*' '.*'
@@ -370,6 +399,7 @@ rabbitmqctl set_permissions -p /test FETCH_F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FETCH_F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FETCH_F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FETCH_F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test FETCH_F99_PUB '.*' '.*' '.*'
 ##
 
 rabbitmqctl set_permissions -p /bunny FORMAT_F1  '.*' '.*' '.*'
@@ -383,6 +413,7 @@ rabbitmqctl set_permissions -p /bunny FORMAT_F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORMAT_F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORMAT_F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORMAT_F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny FORMAT_F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test FORMAT_F1  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORMAT_F2  '.*' '.*' '.*'
@@ -395,6 +426,7 @@ rabbitmqctl set_permissions -p /test FORMAT_F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORMAT_F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORMAT_F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORMAT_F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test FORMAT_F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /bunny FORMAT_F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORMAT_F2_PUB  '.*' '.*' '.*'
@@ -407,6 +439,7 @@ rabbitmqctl set_permissions -p /bunny FORMAT_F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORMAT_F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORMAT_F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORMAT_F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny FORMAT_F99_PUB '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test FORMAT_F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORMAT_F2_PUB  '.*' '.*' '.*'
@@ -419,6 +452,7 @@ rabbitmqctl set_permissions -p /test FORMAT_F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORMAT_F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORMAT_F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORMAT_F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test FORMAT_F99_PUB '.*' '.*' '.*'
 ##
 rabbitmqctl set_permissions -p /bunny FORWARD_F1  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORWARD_F2  '.*' '.*' '.*'
@@ -431,6 +465,7 @@ rabbitmqctl set_permissions -p /bunny FORWARD_F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORWARD_F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORWARD_F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORWARD_F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny FORWARD_F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test FORWARD_F1  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORWARD_F2  '.*' '.*' '.*'
@@ -443,6 +478,7 @@ rabbitmqctl set_permissions -p /test FORWARD_F8  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORWARD_F9  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORWARD_F10 '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORWARD_F11 '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test FORWARD_F99 '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /bunny FORWARD_F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORWARD_F2_PUB  '.*' '.*' '.*'
@@ -455,6 +491,7 @@ rabbitmqctl set_permissions -p /bunny FORWARD_F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORWARD_F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORWARD_F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny FORWARD_F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny FORWARD_F99_PUB '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test FORWARD_F1_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORWARD_F2_PUB  '.*' '.*' '.*'
@@ -467,6 +504,7 @@ rabbitmqctl set_permissions -p /test FORWARD_F8_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORWARD_F9_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORWARD_F10_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test FORWARD_F11_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test FORWARD_F99_PUB '.*' '.*' '.*'
 ##
 ############################################################
 
@@ -481,6 +519,7 @@ rabbitmqctl set_permissions -p /bunny F8_FORMAT  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9_FORMAT  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10_FORMAT '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11_FORMAT '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99_FORMAT '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1_FORMAT  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2_FORMAT  '.*' '.*' '.*'
@@ -493,6 +532,7 @@ rabbitmqctl set_permissions -p /test F8_FORMAT  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9_FORMAT  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10_FORMAT '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F11_FORMAT '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99_FORMAT '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /bunny F1_FORMAT_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F2_FORMAT_PUB  '.*' '.*' '.*'
@@ -505,6 +545,7 @@ rabbitmqctl set_permissions -p /bunny F8_FORMAT_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9_FORMAT_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10_FORMAT_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11_FORMAT_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99_FORMAT_PUB '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1_FORMAT_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2_FORMAT_PUB  '.*' '.*' '.*'
@@ -516,6 +557,8 @@ rabbitmqctl set_permissions -p /test F7_FORMAT_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F8_FORMAT_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9_FORMAT_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10_FORMAT_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F11_FORMAT_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99_FORMAT_PUB '.*' '.*' '.*'
 
 ############################################################
 rabbitmqctl set_permissions -p /bunny F1_FORWARD  '.*' '.*' '.*'
@@ -529,6 +572,7 @@ rabbitmqctl set_permissions -p /bunny F8_FORWARD  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9_FORWARD  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10_FORWARD '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11_FORWARD '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99_FORWARD '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1_FORWARD  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2_FORWARD  '.*' '.*' '.*'
@@ -541,6 +585,7 @@ rabbitmqctl set_permissions -p /test F8_FORWARD  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9_FORWARD  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10_FORWARD '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F11_FORWARD '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99_FORWARD '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /bunny F1_FORWARD_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F2_FORWARD_PUB  '.*' '.*' '.*'
@@ -553,6 +598,7 @@ rabbitmqctl set_permissions -p /bunny F8_FORWARD_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F9_FORWARD_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F10_FORWARD_PUB '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /bunny F11_FORWARD_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /bunny F99_FORWARD_PUB '.*' '.*' '.*'
 
 rabbitmqctl set_permissions -p /test F1_FORWARD_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F2_FORWARD_PUB  '.*' '.*' '.*'
@@ -564,6 +610,8 @@ rabbitmqctl set_permissions -p /test F7_FORWARD_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F8_FORWARD_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F9_FORWARD_PUB  '.*' '.*' '.*'
 rabbitmqctl set_permissions -p /test F10_FORWARD_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F11_FORWARD_PUB '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test F99_FORWARD_PUB '.*' '.*' '.*'
 
 ############################################################
 
@@ -642,10 +690,12 @@ rabbitmqctl set_permissions -p /test D11_PUB '.*' '.*' '.*'
 
 rabbitmqctl add_user FM FM
 rabbitmqctl set_permissions -p /bunny FM '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test FM '.*' '.*' '.*'
 rabbitmqctl set_user_tags FM administrator
 
 rabbitmqctl add_user DMCS DMCS
 rabbitmqctl set_permissions -p /bunny DMCS '.*' '.*' '.*'
+rabbitmqctl set_permissions -p /test DMCS '.*' '.*' '.*'
 rabbitmqctl set_user_tags DMCS administrator
 
 

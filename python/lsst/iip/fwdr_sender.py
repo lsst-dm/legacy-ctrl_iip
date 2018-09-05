@@ -97,7 +97,7 @@ def main():
   #msg['IMAGE_ID'] = 'luckyme'
   #msg['IMAGE_ID'] = 'jubilee'
   #msg['IMAGE_ID'] = 'on-11'
-  msg['IMAGE_ID'] = 'visitJune-28'
+  msg['IMAGE_ID'] = 'XXvisitJune-28'
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
