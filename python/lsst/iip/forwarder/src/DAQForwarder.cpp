@@ -1773,6 +1773,23 @@ void Forwarder::forward_process_end_readout(Node n) {
         string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
         string dest_path = this->Target_Location + "/" + this->XFER_DIR + "/"+ img_id + ".fits"; 
 	cout << "[STATUS] target locations is: " << this->Target_Location << endl; 
+
+        size_t find_colon = this->Target_Location.find(":"); 
+        ostringstream mkdir_cmd;
+        string mkdir_path;
+        if (find_colon != string::npos) { 
+            mkdir_path = this->Target_Location.substr(find_colon + 1) + "/" + this->XFER_DIR; 
+            string host_name = this->Target_Location.substr(0, find_colon);
+            mkdir_cmd << "ssh -i ~/.ssh/id_rsa " << host_name << " 'mkdir " << mkdir_path << "'"; 
+        } 
+        else { 
+            mkdir_path = this->Target_Location + "/" + this->XFER_DIR; 
+            mkdir_cmd << "mkdir -p " << mkdir_path;
+        } 
+        int mkdir_cmd_status = system(mkdir_cmd.str().c_str());
+    
+        cout << "[STATUS] mkdir command is " << mkdir_cmd.str() << endl;
+        cout << "[STATUS] directory " << mkdir_path << " is created for transfer." << endl;
       
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
