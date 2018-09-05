@@ -15,6 +15,8 @@
 #include "SimplePublisher.h"
 #include "fitsio.h"
 #include <errno.h>
+#include <iomanip>
+#include <time.h>
 #include "Exceptions.h"
 
 #include "daq/Location.hh"
@@ -65,6 +67,7 @@ class Forwarder {
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
     std::string WFS_RAFT = "";
+    std::string XFER_DIR; 
     bool is_naxis_set = true;
     long Naxis_1 = NAXIS1;
     long Naxis_2 = NAXIS2;
@@ -356,6 +359,18 @@ Forwarder::Forwarder() {
 
         //this->WFS_RAFT = root["ATS"]["WFS_RAFT"].as<string>();
         //cout << "Setting WFS_RAFT class var to:  " << this->WFS_RAFT << endl << endl << endl;
+        
+        // Creating UTC date as directory for xfer directory
+        time_t current; 
+        struct tm* tm; 
+        time(&current);
+        tm = gmtime(&current); 
+        int year = tm->tm_year + 1900;
+        int month = tm->tm_mon + 1; 
+        int day = tm->tm_mday; 
+        ostringstream oss; 
+        oss << year << setfill('0') << setw(2) << month << setw(2) << day;     
+        this->XFER_DIR = oss.str(); 
     }
     catch (YAML::TypedBadConversion<string>& e) {
         cout << e.what() << endl;
@@ -1756,13 +1771,13 @@ void Forwarder::forward_process_end_readout(Node n) {
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
-        string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
+        string dest_path = this->Target_Location + "/" + this->XFER_DIR + "/"+ img_id + ".fits"; 
 	cout << "[STATUS] target locations is: " << this->Target_Location << endl; 
       
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
         if (find_at != string::npos) { 
-            bbcp_cmd << "bbcp -f -i ~/.ssh/id_rsa ";
+            bbcp_cmd << "bbcp -A -f -i ~/.ssh/id_rsa ";
         } 
         else { 
             bbcp_cmd << "cp "; 
@@ -1773,14 +1788,11 @@ void Forwarder::forward_process_end_readout(Node n) {
         int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
 	cout << "[STATUS] file is copied from " << img_path << " to " << dest_path << endl; 
 
-
-
         if (bbcp_cmd_status == 256) { 
             throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
         } 
         this->finished_image_work_list.push_back(img_id);
         cout << "[X] READOUT COMPLETE." << endl;
-
     } 
     catch (L1CannotCopyFileError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
