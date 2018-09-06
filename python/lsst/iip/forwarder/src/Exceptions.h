@@ -68,3 +68,8 @@ class L1CannotCopyFileError: public L1Exception {
     public: 
         L1CannotCopyFileError(const string& msg) : L1Exception(msg) {} 
 }; 
+
+class L1FitsFileError: public L1Exception { 
+    public: 
+        L1FitsFileError(const string& msg) : L1Exception(msg) {}
+};
