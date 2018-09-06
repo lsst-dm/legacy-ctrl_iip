@@ -70,6 +70,7 @@ class L1CannotCopyFileError: public L1Exception {
 }; 
 
 class L1FitsFileError: public L1Exception { 
+    // Raise when ciftiso api calls return error codes
     public: 
         L1FitsFileError(const string& msg) : L1Exception(msg) {}
 };

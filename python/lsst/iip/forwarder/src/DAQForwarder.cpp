@@ -1396,23 +1396,19 @@ void Forwarder::process_header_ready(Node n) {
         int ERROR_CODE = ERROR_CODE_PREFIX + 2; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
-        send_status_message(ERROR_CODE, e.what()); 
     } 
     catch (L1CannotCreateDirError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 20; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
-        send_status_message(ERROR_CODE, e.what()); 
     } 
     catch (L1CannotCopyFileError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
-        send_status_message(ERROR_CODE, e.what()); 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
-        send_status_message(ERROR_CODE, e.what()); 
     } 
 } 
 
@@ -1547,9 +1543,13 @@ void Forwarder::format_write_img(string img, string header) {
             if (fits_create_img(optr, bitpix, naxis, naxes, &status)){
                 throw L1FitsFileError("In format_write_img, forwarder cannot create empty image buffer for hdu " + hdunum); 
             }
-            fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
+            if (fits_get_hdrspace(iptr, &nkeys, NULL, &status)) { 
+                throw L1FitsFileError("In format_write_img, forwarder cannot get number of existing keys " + hdunum);
+            } 
             for (int i = 1; i <= nkeys; i++) { 
-                fits_read_record(iptr, i, card, &status); 
+                if (fits_read_record(iptr, i, card, &status)) {
+                    throw L1FitsFileError("In format_write_img, forwarder cannot read header data from header file.");
+                } 
 	        string card_str = string(card); 
                 if (card_str.find("BITPIX") == 0) {} 
                 else if (card_str.find("NAXIS") == 0) {} 
@@ -1561,7 +1561,9 @@ void Forwarder::format_write_img(string img, string header) {
 		    segment_name = card_str; 
 		} 
                 else { 
-		    fits_write_record(optr, card, &status); 
+		    if (fits_write_record(optr, card, &status)) { 
+                        throw L1FitsFileError("In format_write_img, forwarder cannot write header data to output file.");
+                    } 
                 } 
             }
 	
@@ -1617,11 +1619,9 @@ void Forwarder::format_write_img(string img, string header) {
         int ERROR_CODE = ERROR_CODE_PREFIX + 60; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
-        send_status_message(ERROR_CODE, e.what()); 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
-        send_status_message(ERROR_CODE, e.what()); 
     } 
 } 
 vector<string> Forwarder::format_list_files(string path) { 
@@ -1726,28 +1726,15 @@ void Forwarder::forward_process_end_readout(Node n) {
         } 
         this->finished_image_work_list.push_back(img_id);
         cout << "[X] READOUT COMPLETE." << endl;
-        send_status_message(0, "Image " + img_id + " transfer has been completed.") 
     } 
     catch (L1CannotCopyFileError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
-        send_status_message(ERROR_CODE, "Image " + img_id + " transfer has failed.") 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
-        send_status_message(9999, "Image " + img_id + " transfer has failed.") 
     } 
-} 
-
-void Forwarder::send_status_message(int status_code, string description) { 
-    Emitter msg; 
-    msg << BeginMap; 
-    msg << Key << "MSG_TYPE" << Value << "DM_TELEMETRY"; 
-    msg << Key << "ERROR_CODE" << Value << status_code; 
-    msg << Key << "DESCRIPTION" << Value << description; 
-    msg << EndMap; 
-    this->fwd_pub->publish_message(TELEMETRY_QUEUE, msg.c_str()); 
 } 
 
 void Forwarder::forward_process_take_images_done(Node n) { 
