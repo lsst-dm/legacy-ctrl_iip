@@ -365,6 +365,7 @@ ROOT:
         MSG_TYPE: AR_FWDR_XFER_PARAMS
         JOB_NUM:
         TARGET_LOCATION: Where to put file in archive
+        CSUM_TYPE:  (MD5 or CRC32 for now)
         SESSION_ID:
         VISIT_ID:
         DAQ_ADDR: This is tmp until DAQ can support all forwarders - either path or 'API'
@@ -421,7 +422,7 @@ ROOT:
         ACK_ID: return seq. num
         ACK_BOOL:
         RESULT_SET:
-            CCD_LIST: Ordered list of CCDs - index is shared with lists below 
+            CSUM_TYPE: (MD5 or CRC32 for now)
             FILENAME_LIST: Ordered list of Path plus filename used for the transfer
             CHECKSUM_LIST: Ordered list of File checksum value
 
@@ -641,6 +642,7 @@ ROOT:
         MSG_TYPE: AT_FWDR_XFER_PARAMS
         JOB_NUM:
         TARGET_LOCATION: Where to put file in archive
+        CSUM_TYPE:  (MD5 or CRC32 for now)
         SESSION_ID:
         ACK_ID: seq. num
         REPLY_QUEUE:
@@ -676,6 +678,7 @@ ROOT:
         ACK_ID: return seq. num
         ACK_BOOL:
         RESULT_SET:
+            CSUM_TYPE: (MD5 or CRC32 for now)
             FILENAME_LIST: Ordered list of Path plus filename used for the transfer
             CHECKSUM_LIST: Ordered list of File checksum value
 

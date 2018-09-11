@@ -29,9 +29,9 @@ ROOT:
     ARCHIVE_LOGIN: ARCHIE
     ARCHIVE_IP: 141.142.238.15
     ARCHIVE_HOSTNAME: ARCHIE
-    ARCHIVE_AR_XFER_ROOT: /mnt/xfer_dir/ar/
-    ARCHIVE_AT_XFER_ROOT: /mnt/xfer_dir/at/
-    CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
+    ARCHIVE_AR_XFER_ROOT: /data/archive/
+    ARCHIVE_AT_XFER_ROOT: /data/archive/
+    CHECKSUM_ENABLED: True  # Current available options: MD5, CRC-32 
     CHECKSUM_TYPE: CRC32
 
   AUDIT:

@@ -206,7 +206,7 @@ class ArchiveController:
                 else:
                     return self.next_receipt_number()
 
-                if self.CHECKSUM_TYPE == 'CRC32':
+            if self.CHECKSUM_TYPE == 'CRC32':
                 new_csum = self.calculate_crc32(pathway)
                 if new_csum != csum:
                     return ('0')
