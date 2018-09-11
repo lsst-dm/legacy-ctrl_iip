@@ -58,10 +58,8 @@ class TestOCS_CommandListener:
     def send_messages(self): 
         os.chdir("../commands/")
         
-        #commands = ["start", "stop", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
-        #devices = ["archiver", "catchuparchiver", "processingcluster", "atArchiver"] 
+        devices = ["archiver", "catchuparchiver", "processingcluster", "atArchiver"] 
         commands = ["start", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
-        devices = ["atArchiver"] 
 
         for device in devices: 
             for command in commands: 

@@ -41,5 +41,8 @@ class AckSubscriber : public OCS_Bridge {
         void process_error_code(YAML::Node); 
 	void process_book_keeping(YAML::Node); 
 	void process_resolve_ack(YAML::Node); 
+
+        // recover from fault
+        void process_recover_from_fault_ack(YAML::Node); 
 }; 
 

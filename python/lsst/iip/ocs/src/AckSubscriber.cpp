@@ -29,6 +29,7 @@ map<string, ack_funcptr> action_handler = {
     {"STANDBY_ACK", &AckSubscriber::process_ack}, 
     {"EXIT_CONTROL_ACK", &AckSubscriber::process_ack}, 
     {"ABORT_ACK", &AckSubscriber::process_ack}, 
+    {"RECOVER_FROM_FAULT_ACK", &AckSubscriber::process_recover_from_fault_ack}, 
     {"SUMMARY_STATE_EVENT", &AckSubscriber::process_summary_state}, 
     {"RECOMMENDED_SETTINGS_VERSION_EVENT", &AckSubscriber::process_recommended_settings_version}, 
     {"SETTINGS_APPLIED_EVENT", &AckSubscriber::process_settings_applied}, 
@@ -51,7 +52,7 @@ class Command {
             {"ENTER_CONTROL_ACK", &T::ackCommand_enterControl}, 
             {"STANDBY_ACK", &T::ackCommand_standby}, 
             {"EXIT_CONTROL_ACK", &T::ackCommand_exitControl}, 
-            {"ABORT_ACK", &T::ackCommand_abort}
+            {"ABORT_ACK", &T::ackCommand_abort},
         }; 
 };  
 
@@ -71,63 +72,48 @@ void AckSubscriber::setup_consumer() {
 }
 
 void AckSubscriber::run() { 
-    ar.salProcessor(const_cast<char *>("archiver_command_enable")); 
-    ar.salProcessor(const_cast<char *>("archiver_command_disable")); 
-    ar.salProcessor(const_cast<char *>("archiver_command_standby")); 
-    ar.salProcessor(const_cast<char *>("archiver_command_enterControl")); 
-    ar.salProcessor(const_cast<char *>("archiver_command_exitControl")); 
-    ar.salProcessor(const_cast<char *>("archiver_command_start")); 
-    ar.salProcessor(const_cast<char *>("archiver_command_stop")); 
-    ar.salProcessor(const_cast<char *>("archiver_command_abort"));
+    string devices[] = {"archiver", "catchuparchiver", "processingcluster", "atArchiver"};
+    string commands[] = {"enable", "disable", "standby", "enterControl", "exitControl", "start", "stop", "abort"}; 
+    string events[] = {"SummaryState", "AppliedSettingsMatchStart", "SettingVersion", "ErrorCode"};
 
-    ar.salEvent(const_cast<char *>("archiver_logevent_SummaryState")); 
-    ar.salEvent(const_cast<char *>("archiver_logevent_AppliedSettingsMatchStart")); 
-    ar.salEvent(const_cast<char *>("archiver_logevent_SettingVersions")); 
-    ar.salEvent(const_cast<char *>("archiver_logevent_SettingVersions")); 
-    ar.salEvent(const_cast<char *>("archiver_logevent_ErrorCode")); 
-    // Settings applied topic actually doesn't exist. 
+    for (const string device: devices) { 
+        for (const string command: commands) { 
+            string topic = device + "_command_" + command;
+            if (device == "archiver") { 
+                ar.salProcessor(const_cast<char *>(topic.c_str())); 
+            } 
+            else if (device == "catchuparchiver") { 
+                cu.salProcessor(const_cast<char *>(topic.c_str())); 
+            } 
+            else if (device == "processingcluster") { 
+                pp.salProcessor(const_cast<char *>(topic.c_str())); 
+            } 
+            else if (device == "atArchiver") { 
+                at.salProcessor(const_cast<char *>(topic.c_str())); 
+            } 
+        }
+    } 
 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_enable")); 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_disable")); 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_standby")); 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_enterControl")); 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_exitControl")); 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_start")); 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_stop")); 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_abort"));
-    
-    cu.salEvent(const_cast<char *>("catchuparchiver_logevent_SummaryState")); 
-    cu.salEvent(const_cast<char *>("catchuparchiver_logevent_AppliedSettingsMatchStart")); 
-    cu.salEvent(const_cast<char *>("catchuparchiver_logevent_SettingVersions")); 
-    cu.salEvent(const_cast<char *>("catchuparchiver_logevent_ErrorCode")); 
-    
-    pp.salProcessor(const_cast<char *>("processingcluster_command_enable")); 
-    pp.salProcessor(const_cast<char *>("processingcluster_command_disable")); 
-    pp.salProcessor(const_cast<char *>("processingcluster_command_standby")); 
-    pp.salProcessor(const_cast<char *>("processingcluster_command_enterControl")); 
-    pp.salProcessor(const_cast<char *>("processingcluster_command_exitControl")); 
-    pp.salProcessor(const_cast<char *>("processingcluster_command_start")); 
-    pp.salProcessor(const_cast<char *>("processingcluster_command_stop")); 
-    pp.salProcessor(const_cast<char *>("processingcluster_command_abort"));
+    for (const string device: devices) { 
+        for (const string event: events) { 
+            string topic = device + "_logevent_" + event;
+            if (device == "archiver") { 
+                ar.salEvent(const_cast<char *>(topic.c_str())); 
+            } 
+            else if (device == "catchuparchiver") { 
+                cu.salEvent(const_cast<char *>(topic.c_str())); 
+            } 
+            else if (device == "processingcluster") { 
+                pp.salEvent(const_cast<char *>(topic.c_str())); 
+            } 
+            else if (device == "atArchiver") { 
+                at.salEventPub(const_cast<char *>(topic.c_str())); 
+            } 
+        }
+    } 
 
-    pp.salEvent(const_cast<char *>("processingcluster_logevent_SummaryState")); 
-    pp.salEvent(const_cast<char *>("processingcluster_logevent_AppliedSettingsMatchStart")); 
-    pp.salEvent(const_cast<char *>("processingcluster_logevent_SettingVersions")); 
-    pp.salEvent(const_cast<char *>("processingcluster_logevent_ErrorCode")); 
-
-    at.salProcessor(const_cast<char *>("atArchiver_command_enable")); 
-    at.salProcessor(const_cast<char *>("atArchiver_command_disable")); 
-    at.salProcessor(const_cast<char *>("atArchiver_command_standby")); 
-    at.salProcessor(const_cast<char *>("atArchiver_command_enterControl")); 
-    at.salProcessor(const_cast<char *>("atArchiver_command_exitControl")); 
-    at.salProcessor(const_cast<char *>("atArchiver_command_start")); 
-    at.salProcessor(const_cast<char *>("atArchiver_command_stop")); 
-    at.salProcessor(const_cast<char *>("atArchiver_command_abort"));
-
-    at.salEventPub(const_cast<char *>("atArchiver_logevent_summaryState")); 
-    at.salEventPub(const_cast<char *>("atArchiver_logevent_appliedSettingsMatchStart")); 
-    at.salEventPub(const_cast<char *>("atArchiver_logevent_settingVersions")); 
-    at.salEventPub(const_cast<char *>("atArchiver_logevent_errorCode")); 
+    // These two events do not exist in other devices
+    at.salProcessor(const_cast<char *>("atArchiver_command_recoverFromFault"));
     at.salEventPub(const_cast<char *>("atArchiver_logevent_settingsApplied")); 
 
     cout << "============> running CONSUMER <=============" << endl; 
@@ -452,6 +438,32 @@ void AckSubscriber::process_resolve_ack(Node n) {
 	    }  	
 	}  
     }
+}
+// ****************************************************************************
+// RECOVER_FROM_FAULT_ACK
+// ****************************************************************************
+void AckSubscriber::process_recover_from_fault_ack(Node n) {
+    try { 
+	string message_value = n["MSG_TYPE"].as<string>(); 
+	long cmdId = stol(n["CMD_ID"].as<string>()); 
+	string device = n["DEVICE"].as<string>(); 
+	string ack_id = n["ACK_ID"].as<string>(); 
+	string ack_bool = n["ACK_BOOL"].as<string>(); 
+	string ack_statement = n["ACK_STATEMENT"].as<string>();
+
+        salLONG error_code = (ack_bool == "true") ? 0: -302; 
+
+        Command<SAL_atArchiver> sender; 
+        at.ackCommand_recoverFromFault(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
+
+	cout << "=== PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id 
+             << "::" << message_value << "::" << ack_statement << endl; 
+
+	ack_book_keeper[ack_id]["CHECKBOX"] = "true"; 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- process_ack, cannot read fields from message." << endl; 
+    }  
 }
 
 int main() { 
