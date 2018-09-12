@@ -276,13 +276,15 @@ class DMCS:
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
             if handler == None:
-                raise KeyError("In on_ack_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
+                raise KeyError("In on_ack_message; Received unknown MSG_TYPE: %s" \
+                                % msg_dict[MSG_TYPE])
             result = handler(msg_dict)
         except KeyError as e:
             LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
             if self.DP: 
                 print("DMCS received unrecognized message type: %s" % e.args)
-            raise L1Error("DMCS ecountering Error Code %s. %s" % (str(self.ERROR_CODE_PREFIX + 35), e.args))
+            raise L1Error("DMCS ecountering Error Code %s. %s" % \
+                           (str(self.ERROR_CODE_PREFIX + 35), e.args))
         except Exception as e: 
             LOGGER.error("DMCS unable to on_ack_message: %s" % e.args) 
             print("DMCS unable to on_ack_message: %s" % e.args) 
@@ -293,14 +295,31 @@ class DMCS:
         try:
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in FAULT message callback')
-            LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s' % 
-                         (pformat(str(msg_dict)), pformat(properties)))
+            LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s'\
+                          % (pformat(str(msg_dict)), pformat(properties)))
     
             err_code = msg_dict['ERR_CODE']
             desc = msg_dict['DESCRIPTION']
-            LOGGER.critical("DMCS received fault message with error code %s -- %s" % (err_code,desc))
+            LOGGER.critical("DMCS received fault message with error code %s -- %s" \
+                             % (err_code,desc))
+
             if self.DP: 
-                print("DMCS received fault message, error code type: %s and description %s" % (err_code,desc))
+                print("DMCS received fault message, error code type: %s and description %s" \
+                       % (err_code,desc))
+           
+            handler = self._fault_actions.get(msg_dict[MSG_TYPE])
+            if handler == None:
+                raise KeyError("In on_ack_message; Received unknown MSG_TYPE: %s" \
+                                % msg_dict[MSG_TYPE])
+
+            result = handler(msg_dict)
+        except KeyError as e:
+            LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
+            if self.DP: 
+                print("DMCS received unrecognized message type: %s" % e.args)
+            raise L1Error("DMCS ecountering Error Code %s. %s" \
+                           % (str(self.ERROR_CODE_PREFIX + 35), e.args))
+
         finally:
             self.process_fault(msg_dict)
 
@@ -974,6 +993,7 @@ class DMCS:
         #a date
         self.STATE_SCBD.set_device_state(device, FAULT)
         self.STATE_SCBD.append_new_fault_to_fault_history(params)
+        self.send_summary_state_event(device):
 
 
     def process_ack(self, params):
