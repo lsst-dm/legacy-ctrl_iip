@@ -309,7 +309,7 @@ class DMCS:
            
             handler = self._fault_actions.get(msg_dict[MSG_TYPE])
             if handler == None:
-                raise KeyError("In on_ack_message; Received unknown MSG_TYPE: %s" \
+                raise KeyError("In on_fault_message; Received unknown MSG_TYPE: %s" \
                                 % msg_dict[MSG_TYPE])
 
             result = handler(msg_dict)
