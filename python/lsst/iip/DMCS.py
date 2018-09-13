@@ -134,6 +134,8 @@ class DMCS:
 
         self._fault_actions = { 'FAULT': self.process_fault }
 
+        self._gen_actions = { 'REQUEST_ACK_ID': self.process_request_ack_id }
+
 
 
         LOGGER.info('DMCS publisher setup')
@@ -145,7 +147,7 @@ class DMCS:
         self.thread_manager = None
         self.setup_consumer_threads()
 
-        self.init_ack_id()
+        #self.init_ack_id()
 
         LOGGER.info('DMCS init complete')
 
@@ -289,6 +291,28 @@ class DMCS:
             LOGGER.error("DMCS unable to on_ack_message: %s" % e.args) 
             print("DMCS unable to on_ack_message: %s" % e.args) 
             raise L1Error("DMCS unable to on_ack_message: %s" % e.args) 
+
+
+    def on_gen_message(self, ch, method, properties, msg_dict):
+        try:
+            ch.basic_ack(method.delivery_tag) 
+            LOGGER.info('Processing message in General DMCS  message callback')
+            LOGGER.debug('Message and properties from General callback message body are: %s and %s'\
+                          % (pformat(str(msg_dict)), pformat(properties)))
+    
+
+            handler = self._gen_actions.get(msg_dict[MSG_TYPE])
+            if handler == None:
+                raise KeyError("In on_gen_message; Received unknown MSG_TYPE: %s" \
+                                % msg_dict[MSG_TYPE])
+
+            result = handler(msg_dict)
+        except KeyError as e:
+            LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
+            if self.DP: 
+                print("DMCS received unrecognized message type: %s" % e.args)
+            raise L1Error("DMCS ecountering Error Code %s. %s" \
+                           % (str(self.ERROR_CODE_PREFIX + 35), e.args))
 
 
     def on_fault_message(self, ch, method, properties, msg_dict):
@@ -964,6 +988,15 @@ class DMCS:
         self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 
+    def process_request_ack_id(self, params):
+        ack_id = self.INCR_SCBD.get_next_timed_ack_id("")
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'RESPONSE_ACK_ID'
+        msg_params['ACK_ID_VALUE'] = str(ack_id)
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
+        
+
+
     def process_fault(self, params):
         device = params['DEVICE']
         fault_type = params['FAULT_TYPE']
@@ -993,7 +1026,7 @@ class DMCS:
         #a date
         self.STATE_SCBD.set_device_state(device, FAULT)
         self.STATE_SCBD.append_new_fault_to_fault_history(params)
-        self.send_summary_state_event(device):
+        self.send_summary_state_event(device)
 
 
     def process_ack(self, params):
@@ -1544,6 +1577,15 @@ class DMCS:
             md['test_val'] = None
             kws[md['name']] = md
 
+            md = {}
+            md['amqp_url'] = base_broker_url
+            md['name'] = 'Thread-gen_dmcs_consume'
+            md['queue'] = 'gen_dmcs_consume'
+            md['callback'] = self.on_gen_message
+            md['format'] = "YAML"
+            md['test_val'] = None
+            kws[md['name']] = md
+
             self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
 
         except ThreadError as e:
@@ -1598,6 +1640,7 @@ class DMCS:
             self.STATE_SCBD.add_device_cfg_keys('AT', self.at_cfg_keys)
             self.STATE_SCBD.set_device_cfg_key('AT',self.STATE_SCBD.get_cfg_from_cfgs('AT', 0))
 
+            # Sends initial SummaryStateEvents for each device...
             self.send_appropriate_events_by_state('AR', 'OFFLINE')
             self.send_appropriate_events_by_state('PP', 'OFFLINE')
             self.send_appropriate_events_by_state('CU', 'OFFLINE')

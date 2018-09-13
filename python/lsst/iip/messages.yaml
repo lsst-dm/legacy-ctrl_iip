@@ -215,6 +215,20 @@ ROOT:
         FILENAME:
         IMAGE_ID:
 
+### General messages published to and from the DMCS
+###################################################
+
+    ## This msg goes to the gen_dmsc_consume queue
+    REQUEST_ACK_ID:
+        MSG_TYPE: REQUEST_ACK_ID
+        REPLY_QUEUE:
+
+    RESPONSE_ACK_ID:
+        MSG_TYPE: RESPONSE_ACK_ID
+        ACK_ID_VALUE:  such as, 772...an integer cast as a string
+
+
+
 ### Events published by the DMCS
 ### dmcs_ev
 ##################################

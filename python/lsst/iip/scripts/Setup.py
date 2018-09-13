@@ -10,11 +10,9 @@ class Setup:
     def __init__(self):
 
         #Choose a connection...
-#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.208.191:5672/%2fbunny'))
-#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
-        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
-        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2fbunny'))
-        #self.connection = pika.BlockingConnection(pika.URLParameters('amqp://adm:adm@141.142.238.160:5672/%2ftester'))
+        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2fbunny'))
+
+#        self.connection = pika.BlockingConnection(pika.URLParameters('amqp://FM:FM@141.142.238.10:5672/%2ftest'))
 
         self.channel = self.connection.channel()
         ## Bind signature details
@@ -23,7 +21,8 @@ class Setup:
         self.channel.exchange_declare(exchange='message', exchange_type='direct', durable=True)
         #self.channel.exchange_delete(exchange='message')
         time.sleep(2)
-                 
+
+        """                 
         ## Set up queues for each forwarder and distributor...
         ## start with pool of queues for 40 forwarders and 24 distributors
         #self.delete_forwarder_queues(30)
@@ -61,7 +60,14 @@ class Setup:
         
         self.channel.queue_declare(queue='ocs_dmcs_consume',durable=True)
         self.channel.queue_bind(queue='ocs_dmcs_consume', exchange='message', routing_key='ocs_dmcs_consume' )
-        
+       
+        """
+
+        self.channel.queue_declare(queue='gen_dmcs_consume',durable=True)
+        self.channel.queue_bind(queue='gen_dmcs_consume', exchange='message', routing_key='gen_dmcs_consume' )
+
+
+        """ 
         self.channel.queue_declare(queue='event_dmcs_consume',durable=True)
         self.channel.queue_bind(queue='event_dmcs_consume', exchange='message', routing_key='event_dmcs_consume' )
         
@@ -105,6 +111,7 @@ class Setup:
         self.channel.queue_bind(queue='ncsa_consume', exchange='message',routing_key='ncsa_consume')
         self.connection.close()
 
+        """
 
     def setup_forwarders(self, num):
         for i in range (1, num + 1):

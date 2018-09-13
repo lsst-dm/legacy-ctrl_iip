@@ -86,6 +86,7 @@ class IncrScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
 
+
     def get_next_job_num(self, session):
         if self.check_connection():
             self._redis.incr(self.JOB_SEQUENCE_NUM)
@@ -96,23 +97,23 @@ class IncrScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
 
+
     def get_next_timed_ack_id(self, ack):
         if self.check_connection():
             self._redis.incr(self.ACK_SEQUENCE_NUM)
             ack_id = self._redis.get(self.ACK_SEQUENCE_NUM)
-            id = str(ack) + "_" + str(ack_id).zfill(6)
-            print("In INCR scbd, new ack_id is %s" % id)
-            return id
+            if ack == "":
+                return ack_id
+            else:
+                id = str(ack) + "_" + str(ack_id).zfill(6)
+                LOGGER.debug("In INCR scbd, new ack_id is %s" % id)
+                return id
         else:
             LOGGER.error('Unable to increment ACK_ID due to lack of redis connection')
 
 
     def print_all(self):
-        all_forwarders = self.return_forwarders_list()
-        for forwarder in all_forwarders:
-            print(forwarder)
-            print(self._redis.hgetall(forwarder))
-        print("--------Finished In print_all--------")
+        pass
 
 
 

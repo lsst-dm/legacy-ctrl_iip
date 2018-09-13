@@ -38,8 +38,8 @@ class Scoreboard:
             return
 
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
-        name = self.cdm['ROOT']['AUDIT_BROKER_NAME'])
-        passwd = self.cdm['ROOT']['AUDIT_BROKER_PASSWD'])
+        name = self.cdm['ROOT']['AUDIT_BROKER_NAME']
+        passwd = self.cdm['ROOT']['AUDIT_BROKER_PASSWD']
         self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
 
         self.audit_format = "YAML"
