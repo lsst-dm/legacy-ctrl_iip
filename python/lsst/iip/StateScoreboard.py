@@ -440,13 +440,14 @@ class StateScoreboard(Scoreboard):
             #RAISE exception to catch in DMCS.py
 
 
-    def add_job(self, job_number, visit_id, raft_list, raft_ccd_list):
+    def add_job(self, job_number, device, raft_list, raft_ccd_list):
         """All job rows created in the scoreboard begin with this method
            where initial attributes are inserted.
         """
         if self.check_connection():
-            self._redis.hset(job_number, 'VISIT_ID', visit_id)
             self._redis.lpush(self.JOBS, job_number)
+            self.set_value_for_job(job_num, 'DEVICE', device)
+            self.set_current_device_job(job_number, device)
             # self.set_ccds_for_job(job_number, ccds)
             self.set_job_state(job_number, 'NEW')
             self.set_value_for_job(job_number, STATUS, 'ACTIVE')

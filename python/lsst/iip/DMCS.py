@@ -134,6 +134,7 @@ class DMCS:
 
         self._fault_actions = { 'FAULT': self.process_fault }
 
+        self._gen_actions = { 'REQUEST_ACK_ID': self.process_request_ack_id }
 
 
         LOGGER.info('DMCS publisher setup')
@@ -145,45 +146,8 @@ class DMCS:
         self.thread_manager = None
         self.setup_consumer_threads()
 
-        self.init_ack_id()
-
-        self.check_startup_state()
-
         LOGGER.info('DMCS init complete')
 
-
-
-    def init_ack_id(self):
-        """ Create an ack_id for the message. If dmcs_ack_id_file is a valid path,
-            increment it's current_ack_id. Start from 1 if exceeds 999900 or
-            dmcs_ack_id_file does not exist, and store current_ack_id to
-            dmcs_ack_id_file.
-
-            :params: None.
-
-            :return: None.
-        """
-        try: 
-            ### FIX change to use redis db incr...
-            self._next_timed_ack_id = 0
-            if os.path.isfile(self.dmcs_ack_id_file):
-                val = toolsmod.intake_yaml_file(self.dmcs_ack_id_file)
-                current_id = val['CURRENT_ACK_ID'] + 1
-                if current_id > 999900:
-                    current_id = 1
-                val['CURRENT_ACK_ID'] = current_id
-                toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
-                self._next_timed_ack_id = current_id
-            else:
-                current_id = 1
-                val = {}
-                val['CURRENT_ACK_ID'] = current_id
-                toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
-                self._next_timed_ack_id =  current_id
-        except Exception as e: 
-            LOGGER.error("DMCS unable to get init_ack_id: %s" % e.args) 
-            print("DMCS unable to get init_ack_id: %s" % e.args) 
-            raise L1Error("DMCS unable to get init_ack_id: %s" % e.args) 
 
     def setup_publishers(self):
         """ Set up base publisher with pub_base_broker_url by calling a new instance
@@ -278,31 +242,72 @@ class DMCS:
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
             if handler == None:
-                raise KeyError("In on_ack_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
+                raise KeyError("In on_ack_message; Received unknown MSG_TYPE: %s" \
+                                % msg_dict[MSG_TYPE])
             result = handler(msg_dict)
         except KeyError as e:
             LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
             if self.DP: 
                 print("DMCS received unrecognized message type: %s" % e.args)
-            raise L1Error("DMCS ecountering Error Code %s. %s" % (str(self.ERROR_CODE_PREFIX + 35), e.args))
+            raise L1Error("DMCS ecountering Error Code %s. %s" \
+                           % (str(self.ERROR_CODE_PREFIX + 35), e.args))
         except Exception as e: 
             LOGGER.error("DMCS unable to on_ack_message: %s" % e.args) 
             print("DMCS unable to on_ack_message: %s" % e.args) 
             raise L1Error("DMCS unable to on_ack_message: %s" % e.args) 
 
 
+    def on_gen_message(self, ch, method, properties, msg_dict):
+        try:
+            ch.basic_ack(method.delivery_tag)
+            LOGGER.info('Processing message in General DMCS  message callback')
+            LOGGER.debug('Message and properties from General callback message body are: %s and %s'\
+                          % (pformat(str(msg_dict)), pformat(properties)))
+
+
+            handler = self._gen_actions.get(msg_dict[MSG_TYPE])
+            if handler == None:
+                raise KeyError("In on_gen_message; Received unknown MSG_TYPE: %s" \
+                                % msg_dict[MSG_TYPE])
+
+            result = handler(msg_dict)
+        except KeyError as e:
+            LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
+            if self.DP:
+                print("DMCS received unrecognized message type: %s" % e.args)
+            raise L1Error("DMCS ecountering Error Code %s. %s" \
+                           % (str(self.ERROR_CODE_PREFIX + 35), e.args))
+
+
     def on_fault_message(self, ch, method, properties, msg_dict):
         try:
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in FAULT message callback')
-            LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s' % 
-                         (pformat(str(msg_dict)), pformat(properties)))
+            LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s'\
+                          % (pformat(str(msg_dict)), pformat(properties)))
     
             err_code = msg_dict['ERR_CODE']
             desc = msg_dict['DESCRIPTION']
-            LOGGER.critical("DMCS received fault message with error code %s -- %s" % (err_code,desc))
+            LOGGER.critical("DMCS received fault message with error code %s -- %s" \
+                             % (err_code,desc))
+
             if self.DP: 
-                print("DMCS received fault message, error code type: %s and description %s" % (err_code,desc))
+                print("DMCS received fault message, error code type: %s and description %s" \
+                       % (err_code,desc))
+
+            handler = self._fault_actions.get(msg_dict[MSG_TYPE])
+            if handler == None:
+                raise KeyError("In on_fault_message; Received unknown MSG_TYPE: %s" \
+                                % msg_dict[MSG_TYPE])
+
+            result = handler(msg_dict)
+        except KeyError as e:
+            LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
+            if self.DP:
+                print("DMCS received unrecognized message type: %s" % e.args)
+            raise L1Error("DMCS ecountering Error Code %s. %s" \
+                           % (str(self.ERROR_CODE_PREFIX + 35), e.args))
+
         finally:
             self.process_fault(msg_dict)
 
@@ -665,14 +670,13 @@ class DMCS:
             ack_id = self.INCR_SCBD.get_next_timed_ack_id( "AT_START_INT_ACK")
             acks.append(ack_id)
             job_num = self.INCR_SCBD.get_next_job_num( session_id)
-            self.STATE_SCBD.add_job(job_num, image_id, "visit_0", raft_ccd_list)
-            self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', "AT")
-            self.STATE_SCBD.set_current_device_job(job_num, "AT")
-            self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+            self.STATE_SCBD.add_job(job_num, "AT", raft_list, raft_ccd_list)
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
             self._publisher.publish_message(rkey, msg_params)
+
+            self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
     
             #### FIX replace non-pending acks with regular ack timer
             wait_time = 5  # seconds...
@@ -947,19 +951,28 @@ class DMCS:
         self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 
+    def process_request_ack_id(self, params):
+        ack_id = self.INCR_SCBD.get_next_timed_ack_id("")
+        msg_params = {}
+        msg_params[MSG_TYPE] = 'RESPONSE_ACK_ID'
+        msg_params['ACK_ID_VALUE'] = str(ack_id)
+        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
+
+
     def process_fault(self, params):
         pass
-
         device = params['DEVICE']
         fault_type = params['FAULT_TYPE']
         error_code = params['ERROR_CODE']
         if fault_type == 'FAULT':
             self.set_device_to_fault_state(device, params['ERROR_CODE'])
-            LOGGER.error("DMCS seeing a FAULT state from %s device with error code: %s" % (device, error_code))
+            LOGGER.error("DMCS seeing a FAULT state from %s device with error code: %s" \
+                          % (device, error_code))
             LOGGER.error("Description string is:  %s." % params['DESCRIPTION'])
         else:
-            LOGGER.critical("DMCS seeing a %s state from %s device...error code is %s and description is %s" % \
-                 (device, fault_type, error_code, params['DESCRIPTION']))
+            LOGGER.critical("DMCS seeing a %s state from %s device...error code is %s " \
+                            "and description is %s" % \
+                            (device, fault_type, error_code, params['DESCRIPTION']))
 
         msg_params = {}
         msg_params[MSG_TYPE] = FAULT
@@ -974,10 +987,11 @@ class DMCS:
     def set_device_to_fault_state(self, device, params):
         # set state to FAULT for device
         # associate err_code with fault
-        # There should be a 'Fault_History' list that yaml dumps all params of the fault and assoiates it with
-        #a date
+        # There should be a 'Fault_History' list that yaml 
+        # dumps all params of the fault and assoiates it with a date
         self.STATE_SCBD.set_device_state(device, FAULT)
         self.STATE_SCBD.append_new_fault_to_fault_history(params)
+        self.send_summary_state_event(device) 
 
 
     def process_ack(self, params):
@@ -1486,10 +1500,6 @@ class DMCS:
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
             self.efd = self.efd_login + "@" + self.efd_ip + ":"
-            self.at_enabled = cdm[ROOT]['STARTUP']['AT_START_ENABLE']
-            self.ar_enabled = cdm[ROOT]['STARTUP']['AR_START_ENABLE']
-            self.pp_enabled = cdm[ROOT]['STARTUP']['PP_START_ENABLE']
-            self.cu_enabled = cdm[ROOT]['STARTUP']['CU_START_ENABLE']
         except KeyError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find key in CDM representation of %s\n" % filename
@@ -1497,22 +1507,6 @@ class DMCS:
             sys.exit(102)
 
         return True
-
-    def check_startup_state(self):
-        if self.at_enabled == True:
-            self.STATE_SCBD.set_device_state('AT', 'ENABLE')
-            session_id = self.INCR_SCBD.get_next_session_id()
-            self.STATE_SCBD.set_current_session(session_id)
-            self.STATE_SCBD.set_rafts_for_current_session(session_id)
-            self.send_new_session_msg(session_id)
-            self.STATE_SCBD.set_device_state('AT', 'ENABLE')
-            # Set up enabled...
-        if self.ar_enabled == True:
-            pass
-        if self.pp_enabled == True:
-            pass
-        if self.cu_enabled == True:
-            pass
 
 
     def setup_consumer_threads(self):
@@ -1553,6 +1547,15 @@ class DMCS:
             md['name'] = 'Thread-dmcs_fault_consume'
             md['queue'] = 'dmcs_fault_consume'
             md['callback'] = self.on_fault_message
+            md['format'] = "YAML"
+            md['test_val'] = None
+            kws[md['name']] = md
+
+            md = {}
+            md['amqp_url'] = base_broker_url
+            md['name'] = 'Thread-gen_dmcs_consume'
+            md['queue'] = 'gen_dmcs_consume'
+            md['callback'] = self.on_gen_message
             md['format'] = "YAML"
             md['test_val'] = None
             kws[md['name']] = md
