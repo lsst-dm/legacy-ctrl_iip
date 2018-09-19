@@ -848,12 +848,8 @@ void Forwarder::process_at_fetch(Node n) {
 
       
  
-           string raft = "ats";
-           this->fetch_at_reassemble_process(raft, image_id, filepath.str());
-           map<string, vector<string>> source_boards = {
-              {"0", {"00"}}
-           };
-      //this->fetch_reassemble_raft_image(raft, source_boards, image_id, filepath.str());
+      string raft = "ats";
+      this->fetch_at_reassemble_process(raft, image_id, filepath.str());
 
       string new_msg_type = "FORMAT_END_READOUT";
       ostringstream msg;
@@ -869,9 +865,7 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
 {
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
-
   IMS::Image image(image_id.c_str(), store);
-
   DAQ::LocationSet sources = image.sources();
 
   uint64_t total_stripes = 0;
@@ -896,8 +890,8 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
   
           do
           {
-              total_stripes += slice.stripes();
-              IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+                  total_stripes += slice.stripes();
+                  IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
     
               slice.decode(ccd0);
     
@@ -1383,27 +1377,40 @@ void Forwarder::process_header_ready(Node n) {
                << sub_dir
                << "/"; 
 	*/ 
+        cp_cmd << "wget -P " << sub_dir << "/ " << path; 
+        int scp_cmd = system(cp_cmd.str().c_str()); 
+        if (scp_cmd > 0) { 
+            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + cp_cmd.str()); 
+        } 
 
+        /** 
         // TODO: MUST REUSE HANDLE AS CLASS VARIABLE--> https://curl.haxx.se/libcurl/c/curl_easy_cleanup.html
         CURL *handle = curl_easy_init();
         CURLcode response;
         char error[CURL_ERROR_SIZE]; 
         FILE *destination; 
+        cout << "HANDLE is " << handle << endl; 
         if (handle) { 
             destination = fopen(sub_dir.c_str(), "w"); 
+            cout << "CURL Destination: " << sub_dir << endl;
+            cout << "CURL URL: " << path << endl;
             curl_easy_setopt(handle, CURLOPT_URL, path.c_str()); 
             curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, error); 
             curl_easy_setopt(handle, CURLOPT_WRITEDATA, destination); 
+            cout << "CURL setting options." << endl;
             
             // setting the error buffer as zero
             error[0] = 0; 
             response = curl_easy_perform(handle); 
             curl_easy_cleanup(handle); 
+            cout << "CURL performing request." << endl;
         } 
+        cout << "CURL Error is " << string(error) << endl;
 
         if (response != CURLE_OK) { 
             throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + string(error)); 
         } 
+        */ 
 
         string img_idx_wheader = path.substr(img_idx + 1);  
         string header_path = sub_dir + "/" + img_idx_wheader;
