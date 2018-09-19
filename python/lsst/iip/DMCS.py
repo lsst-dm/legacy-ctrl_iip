@@ -985,18 +985,34 @@ class DMCS:
         
 
         try: 
+            # Transition_is_valid will encapsulate an error ack id if an error occurs,
+            # otherwise, a '1' for success
             transition_is_valid = toolsmod.state_matrix[current_index][new_index]
             if transition_is_valid == True:
                 self.STATE_SCBD.set_device_state(device, new_state)
                 response = str(device) + " device in " + new_state
                 response = response + cfg_response
-                self.send_ocs_ack(transition_is_valid, response, msg_in)
+                self.send_ocs_ack(1, response, msg_in)
             else:
-                LOGGER.error("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
-                print("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
-                response = "Invalid transition: " + str(current_state) + " to " + new_state
-                #response = response + ". Device remaining in " + current_state + " state."
-                self.send_ocs_ack(transition_is_valid, response, msg_in)
+                # Special fail case - same state transition...
+                if current_index == new_index:
+                    LOGGER.error("DMCS: Error, Same State Device Transition attempt from %s to %s" \
+                                  % (current_state, new_state))
+                    print("DMCS - Error, Same State Device Transition appempt from %s  to %s" \
+                           % (current_state, new_state))
+                    response = "Invalid same state transition: " + str(current_state) + 
+                               " to " + new_state
+                    self.send_ocs_ack(-324, response, msg_in)
+
+
+
+
+                else:
+                    LOGGER.error("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
+                    print("DMCS - BAD Device Transition from %s  to %s" % (current_state, new_state))
+                    response = "Invalid transition: " + str(current_state) + " to " + new_state
+                    #response = response + ". Device remaining in " + current_state + " state."
+                    self.send_ocs_ack(-320, response, msg_in)
         except Exception as e: 
             LOGGER.error("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.args) 
             print("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.args) 
@@ -1065,8 +1081,11 @@ class DMCS:
             print("DMCS unable to send_ocs_ack: %s" % e.args)
             raise L1Error("DMCS unable to send_ocs_ack - Rabbit Problem?: %s" % e.args)
 
-        if transition_check:
+        if transition_check == 1:
             self.send_appropriate_events_by_state(msg_in['DEVICE'], msg_in['MSG_TYPE'])
+
+        if transition_check == -324: # Attempt to change state to existing state
+            self.send_summary_state_event(msg_in['DEVICE'])
 
 
     def send_appropriate_events_by_state(self, dev, transition):
