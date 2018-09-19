@@ -378,6 +378,7 @@ ROOT:
     AR_FWDR_XFER_PARAMS:
         MSG_TYPE: AR_FWDR_XFER_PARAMS
         JOB_NUM:
+        IMAGE_ID:
         TARGET_LOCATION: Where to put file in archive
         CSUM_TYPE:  (MD5 or CRC32 for now)
         SESSION_ID:
@@ -655,6 +656,7 @@ ROOT:
     AT_FWDR_XFER_PARAMS:
         MSG_TYPE: AT_FWDR_XFER_PARAMS
         JOB_NUM:
+        IMAGE_ID:
         TARGET_LOCATION: Where to put file in archive
         CSUM_TYPE:  (MD5 or CRC32 for now)
         SESSION_ID:
