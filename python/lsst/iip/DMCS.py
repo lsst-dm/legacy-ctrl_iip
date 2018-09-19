@@ -104,14 +104,11 @@ class DMCS:
                               'EXIT_CONTROL': self.process_exit_control_command,
                               'ABORT': self.process_abort_command,
                               'STOP': self.process_stop_command,
-                              'NEXT_VISIT': self.process_next_visit_event,
                               'START_INTEGRATION': self.process_start_integration_event,
                               'DMCS_AT_START_INTEGRATION': self.process_at_start_integration_event,
 			      ###########################################################
                               'DMCS_HEADER_READY': self.process_header_ready_event,
                               'DMCS_AT_HEADER_READY': self.process_at_header_ready_event,
-                              'DMCS_TCS_TARGET': self.process_target_visit_event, 
-                              'DMCS_TAKE_IMAGES': self.process_ccs_take_images_event,
 			      'DMCS_END_READOUT': self.process_end_readout, 
 			      'DMCS_AT_END_READOUT': self.process_at_end_readout} 
 
@@ -514,72 +511,6 @@ class DMCS:
             
 
 
-    def process_next_visit_event(self, params):
-        """ Send next visit info to any devices in enable state.
-            Keep track of current Next Visit for each device.
-            Wait for timeout and then check for each ack's response.
-
-            :params params: Next visit info.
-
-            :return: None.
-        """
-        try: 
-            # First, get dict of devices in Enable state with their consume queues
-            visit_id = params['VISIT_ID']
-            self.STATE_SCBD.set_visit_id(visit_id)
-            enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
-            LOGGER.debug("Enabled device list is:")
-            LOGGER.debug(enabled_devices)
-            session_id = self.STATE_SCBD.get_current_session()
-
-            acks = []
-            for k in list(enabled_devices.keys()):
-                consume_queue = self.STATE_SCBD.get_device_consume_queue(enabled_devices[k])
-                if self.DP:
-                  print("Consume queue for device %s is %s" % (enabled_devices[k], consume_queue)) 
-                ## FIXME - Must each enabled device use its own ack_id? Or
-                ## can we use the same method for broadcasting Forwarder messages?  
-                ack = self.INCR_SCBD.get_next_timed_ack_id(k + "_NEXT_VISIT_ACK")
-                acks.append(ack)
-                msg = {}
-                msg[MSG_TYPE] = k + '_NEXT_VISIT'
-                msg[ACK_ID] = ack
-                msg['SESSION_ID'] = session_id
-                msg[VISIT_ID] = params[VISIT_ID]
-                msg[BORE_SIGHT] = params['BORE_SIGHT']
-                msg['REPLY_QUEUE'] = "dmcs_ack_consume"
-                LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
-                self._publisher.publish_message(consume_queue, msg)
-
-            self.ack_timer(3)
-            for a in acks:
-                ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
-
-                if ack_responses != None:
-                    responses = list(ack_responses.keys())
-                    for response in responses:
-                        if ack_responses[response]['ACK_BOOL'] == False:
-                            # Mark this device as messed up...maybe enter fault.
-                            pass 
-                else:
-                    #Enter a fault state, as no devices are responding
-                    pass
-        except L1RedisError as e: 
-            LOGGER.error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
-            print("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
-        except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
-            print("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
-        except Exception as e: 
-            LOGGER.error("DMCS unable to process_next_visit_event: %s" % e.args)
-            print("DMCS unable to process_next_visit_event: %s" % e.args)
-            raise L1Error("DMCS unable to process_next_visit_event: %s" % e.args)
-            
-            
-
-
     def process_start_integration_event(self, params):
         """ Send start integration message to all enabled devices with details of job,
             including new job_num and image_id.
@@ -777,98 +708,6 @@ class DMCS:
             raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
         # add in two additional acks for format and transfer complete
 
-    def process_target_visit_event(self, params):
-        try:
-            msg = {}
-            acks = []
-            # First, get dict of devices in Enable state with their consume queues
-            session_id = self.STATE_SCBD.get_current_session()
-            msg['SESSION_ID'] = session_id
-            visit_id = params['TARGET_ID']
-            self.STATE_SCBD.set_visit_id(visit_id)
-            msg['VISIT_ID'] = visit_id
-            msg['RA'] = params['RA']
-            msg['DEC'] = params['DEC']
-            msg['ANGLE'] = params['ANGLE']
-            raft_list, raft_ccd_list = self.STATE_SCBD.get_rafts_for_current_session_as_lists()
-            msg['RAFT_LIST'] = raft_list
-            msg['RAFT_CCD_LIST'] = raft_ccd_list
-            #filter = params['FILTER']
-            msg['REPLY_QUEUE'] = "dmcs_ack_consume"
-
-
-            enabled_devices = self.STATE_SCBD.get_devices_by_state(ENABLE)
-            LOGGER.debug("Enabled device list for %s is:" % visit_id)
-            LOGGER.debug(enabled_devices)
-
-            for k in list(enabled_devices.keys()):
-                msg[MSG_TYPE] = k + '_NEXT_VISIT'
-                ack_id = self.get_next_timed_ack_id( str(k) + "_NEXT_VISIT_ACK")
-                acks.append(ack_id)
-                msg[ACK_ID] = ack_id
-                job_num = self.STATE_SCBD.get_next_job_num( session_id)
-                self.STATE_SCBD.add_job(job_num, visit_id, raft_list, raft_ccd_list)
-                #self.STATE_SCBD.set_value_for_job(job_num, 'FILTER', filter)
-                self.STATE_SCBD.set_current_device_job(job_num, str(k))
-                self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
-                msg[JOB_NUM] = job_num
-
-                consume_queue = self.STATE_SCBD.get_device_consume_queue(k)
-                LOGGER.debug("Sending next visit msg %s to %s at queue %s" % (msg, k, consume_queue))
-                self._publisher.publish_message(consume_queue, msg)
-
-            ## FIX - Use different type of ack here...
-            self.ack_timer(3)
-            for a in acks:
-                ack_responses = self.ACK_SCBD.get_components_for_timed_ack(a)
-
-                if ack_responses != None:
-                    responses = list(ack_responses.keys())
-                    for response in responses:
-                        if ack_responses[response]['ACK_BOOL'] == False:
-                            # Mark this device as messed up...maybe enter fault.
-                            pass
-                else:
-                    #Enter a fault state, as no devices are responding
-                    pass
-        except L1RedisError as e:
-            LOGGER.error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
-            print("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_next_visit_event - No redis connection: %s" % e.args)
-        except L1RabbitConnectionError as e:
-            LOGGER.error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
-            print("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_next_visit_event - No rabbit connection: %s" % e.args)
-        except Exception as e:
-            LOGGER.error("DMCS unable to process_next_visit_event: %s" % e.args)
-            print("DMCS unable to process_next_visit_event: %s" % e.args)
-            raise L1Error("DMCS unable to process_next_visit_event: %s" % e.args)
-
-
-
-    def process_ccs_take_images_event(self, params):  
-        try:
-            msg = {}
-            num_images = params['NUM_IMAGES']
-            msg['NUM_IMAGES'] = num_images
-            enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
-            for k in list(enabled_devices.keys()):
-                msg[MSG_TYPE] = str(k) + '_TAKE_IMAGES'
-                job_num = self.STATE_SCBD.get_current_device_job(k)
-                msg[JOB_NUM] = job_num
-                self.STATE_SCBD.set_value_for_job(job_num, self.EXPECTED_NUM_IMAGES, num_images)
-                self.STATE_SCBD.set_job_state(job_num, "TAKE_IMAGES")
-                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg)
-
-        except L1RedisError as e:
-            LOGGER.error("DMCS unable to process_ccs_take_images_event - No redis connection: %s" % e.args)
-            print("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_start_integration_event - No redis connection: %s" % e.args)
-        except Exception as e:
-            LOGGER.error("DMCS unable to process_ccs_take_images_event: %s" % e.args)
-            print("DMCS unable to process_ccs_take_images_event: %s" % e.args)
-            raise L1Error("DMCS unable to process_ccs_take_images_event: %s" % e.args)
-
 
 
     ### This method receives the all important image name message parameter in params.
@@ -893,7 +732,6 @@ class DMCS:
                 self.STATE_SCBD.set_job_state(job_num, "READOUT")
                 self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
-
             wait_time = 5  # seconds...
             self.set_pending_nonblock_acks(acks, wait_time)
         except L1RabbitConnectionError as e:
@@ -906,24 +744,6 @@ class DMCS:
             raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
         # add in two additional acks for format and transfer complete
 
-
-    def process_take_images_done(self, params):
-        msg_params = {}
-        msg_params[MSG_TYPE] = 'AR_TAKE_IMAGES_DONE'
-        enabled_devices = self.STATE_SCBD.get_devices_by_state('ENABLE')
-        acks = []
-        for k in list(enabled_devices.keys()):
-            ack_id = self.get_next_timed_ack_id( str(k) + "_TAKE_IMAGES_DONE_ACK")
-            acks.append(ack_id)
-            job_num = self.STATE_SCBD.get_current_device_job(str(k))
-            msg_params[MSG_TYPE] = k + '_TAKE_IMAGES_DONE'
-            msg_params[ACK_ID] = ack_id
-            msg_params[JOB_NUM] = job_num
-            msg_params["REPLY_QUEUE"] = "ar_foreman_ack_publish"
-            self.STATE_SCBD.set_job_state(job_num, "READOUT")
-            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
-
-        ### FIX Progressive timer, then collect acks and process what was done, then return to DMCS with results
 
     def process_header_ready_event(self, params):
         msg_params = {}
