@@ -94,7 +94,7 @@ class DMCS:
         # Run queue purges in rabbitmqctl
         #self.purge_broker(broker_vhost, queue_purges)
 
-        # These two dicts call the correct handler method for the message_type of incoming messages
+        # These dicts call the correct handler method for the message_type of incoming messages
         self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
                               'START': self.process_start_command,
                               'STANDBY': self.process_standby_command,
@@ -147,43 +147,10 @@ class DMCS:
         self.thread_manager = None
         self.setup_consumer_threads()
 
-        #self.init_ack_id()
 
         LOGGER.info('DMCS init complete')
 
 
-
-    def init_ack_id(self):
-        """ Create an ack_id for the message. If dmcs_ack_id_file is a valid path,
-            increment it's current_ack_id. Start from 1 if exceeds 999900 or
-            dmcs_ack_id_file does not exist, and store current_ack_id to
-            dmcs_ack_id_file.
-
-            :params: None.
-
-            :return: None.
-        """
-        try: 
-            ### FIX change to use redis db incr...
-            self._next_timed_ack_id = 0
-            if os.path.isfile(self.dmcs_ack_id_file):
-                val = toolsmod.intake_yaml_file(self.dmcs_ack_id_file)
-                current_id = val['CURRENT_ACK_ID'] + 1
-                if current_id > 999900:
-                    current_id = 1
-                val['CURRENT_ACK_ID'] = current_id
-                toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
-                self._next_timed_ack_id = current_id
-            else:
-                current_id = 1
-                val = {}
-                val['CURRENT_ACK_ID'] = current_id
-                toolsmod.export_yaml_file(self.dmcs_ack_id_file, val)
-                self._next_timed_ack_id =  current_id
-        except Exception as e: 
-            LOGGER.error("DMCS unable to get init_ack_id: %s" % e.args) 
-            print("DMCS unable to get init_ack_id: %s" % e.args) 
-            raise L1Error("DMCS unable to get init_ack_id: %s" % e.args) 
 
     def setup_publishers(self):
         """ Set up base publisher with pub_base_broker_url by calling a new instance
@@ -644,8 +611,7 @@ class DMCS:
                 ack_id = self.INCR_SCBD.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
                 acks.append(ack_id)
                 job_num = self.INCR_SCBD.get_next_job_num( "job_" + session_id)
-                self.STATE_SCBD.add_job(job_num, image_id, visit_id, ccd_list)
-                self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', str(k))
+                self.STATE_SCBD.add_job(job_num, str(k), image_id, visit_id, raft_list, ccd_list)
                 self.STATE_SCBD.set_current_device_job(job_num, str(k))
                 self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
                 msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
@@ -706,14 +672,13 @@ class DMCS:
             ack_id = self.INCR_SCBD.get_next_timed_ack_id( "AT_START_INT_ACK")
             acks.append(ack_id)
             job_num = self.INCR_SCBD.get_next_job_num( session_id)
-            self.STATE_SCBD.add_job(job_num, image_id, raft_list, raft_ccd_list)
-            self.STATE_SCBD.set_value_for_job(job_num, 'DEVICE', "AT")
-            self.STATE_SCBD.set_current_device_job(job_num, "AT")
-            self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
+            self.STATE_SCBD.add_job(job_num, "AT", image_id, raft_list, raft_ccd_list)
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
             self._publisher.publish_message(rkey, msg_params)
+
+            self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
     
             #### FIX replace non-pending acks with regular ack timer
             wait_time = 5  # seconds...
@@ -1003,11 +968,13 @@ class DMCS:
         error_code = params['ERROR_CODE']
         if fault_type == 'FAULT':
             self.set_device_to_fault_state(device, params['ERROR_CODE'])
-            LOGGER.error("DMCS seeing a FAULT state from %s device with error code: %s" % (device, error_code))
+            LOGGER.error("DMCS seeing a FAULT state from %s device with error code: %s" \
+                          % (device, error_code))
             LOGGER.error("Description string is:  %s." % params['DESCRIPTION'])
         else:
-            LOGGER.critical("DMCS seeing a %s state from %s device...error code is %s and description is %s" % \
-                 (device, fault_type, error_code, params['DESCRIPTION']))
+            LOGGER.critical("DMCS seeing a %s state from %s device...error code is %s " \
+                            "and description is %s" % \
+                            (device, fault_type, error_code, params['DESCRIPTION']))
 
         msg_params = {}
         msg_params[MSG_TYPE] = FAULT
@@ -1022,8 +989,9 @@ class DMCS:
     def set_device_to_fault_state(self, device, params):
         # set state to FAULT for device
         # associate err_code with fault
-        # There should be a 'Fault_History' list that yaml dumps all params of the fault and assoiates it with
-        #a date
+        # There should be a 'Fault_History' list that yaml 
+        # dumps all params of the fault and assoiates it with a date
+
         self.STATE_SCBD.set_device_state(device, FAULT)
         self.STATE_SCBD.append_new_fault_to_fault_history(params)
         self.send_summary_state_event(device)
