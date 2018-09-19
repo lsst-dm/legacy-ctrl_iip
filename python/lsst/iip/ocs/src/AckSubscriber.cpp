@@ -22,7 +22,6 @@ map<string, long> summary_states = {
 
 map<string, ack_funcptr> action_handler = { 
     {"START_ACK", &AckSubscriber::process_ack}, 
-    {"STOP_ACK", &AckSubscriber::process_ack}, 
     {"ENABLE_ACK", &AckSubscriber::process_ack}, 
     {"DISABLE_ACK", &AckSubscriber::process_ack}, 
     {"ENTER_CONTROL_ACK", &AckSubscriber::process_ack}, 
@@ -45,7 +44,6 @@ class Command {
 
         map<string, funcptr> action_handler = { 
             {"START_ACK", &T::ackCommand_start}, 
-            // {"STOP_ACK", &T::ackCommand_stop}, 
             {"ENABLE_ACK", &T::ackCommand_enable}, 
             {"DISABLE_ACK", &T::ackCommand_disable}, 
             {"ENTER_CONTROL_ACK", &T::ackCommand_enterControl}, 
@@ -77,7 +75,6 @@ void AckSubscriber::run() {
     ar.salProcessor(const_cast<char *>("archiver_command_enterControl")); 
     ar.salProcessor(const_cast<char *>("archiver_command_exitControl")); 
     ar.salProcessor(const_cast<char *>("archiver_command_start")); 
-    ar.salProcessor(const_cast<char *>("archiver_command_stop")); 
     ar.salProcessor(const_cast<char *>("archiver_command_abort"));
 
     ar.salEvent(const_cast<char *>("archiver_logevent_SummaryState")); 
@@ -93,7 +90,6 @@ void AckSubscriber::run() {
     cu.salProcessor(const_cast<char *>("catchuparchiver_command_enterControl")); 
     cu.salProcessor(const_cast<char *>("catchuparchiver_command_exitControl")); 
     cu.salProcessor(const_cast<char *>("catchuparchiver_command_start")); 
-    cu.salProcessor(const_cast<char *>("catchuparchiver_command_stop")); 
     cu.salProcessor(const_cast<char *>("catchuparchiver_command_abort"));
     
     cu.salEvent(const_cast<char *>("catchuparchiver_logevent_SummaryState")); 
@@ -107,7 +103,6 @@ void AckSubscriber::run() {
     pp.salProcessor(const_cast<char *>("processingcluster_command_enterControl")); 
     pp.salProcessor(const_cast<char *>("processingcluster_command_exitControl")); 
     pp.salProcessor(const_cast<char *>("processingcluster_command_start")); 
-    pp.salProcessor(const_cast<char *>("processingcluster_command_stop")); 
     pp.salProcessor(const_cast<char *>("processingcluster_command_abort"));
 
     pp.salEvent(const_cast<char *>("processingcluster_logevent_SummaryState")); 
@@ -121,7 +116,6 @@ void AckSubscriber::run() {
     at.salProcessor(const_cast<char *>("atArchiver_command_enterControl")); 
     at.salProcessor(const_cast<char *>("atArchiver_command_exitControl")); 
     at.salProcessor(const_cast<char *>("atArchiver_command_start")); 
-    at.salProcessor(const_cast<char *>("atArchiver_command_stop")); 
     at.salProcessor(const_cast<char *>("atArchiver_command_abort"));
 
     at.salEventPub(const_cast<char *>("atArchiver_logevent_summaryState")); 
