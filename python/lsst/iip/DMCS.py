@@ -1084,9 +1084,6 @@ class DMCS:
         if transition_check == 1:
             self.send_appropriate_events_by_state(msg_in['DEVICE'], msg_in['MSG_TYPE'])
 
-        if transition_check == -324: # Attempt to change state to existing state
-            self.send_summary_state_event(msg_in['DEVICE'])
-
 
     def send_appropriate_events_by_state(self, dev, transition):
         """ Send appropriate messages of state transition for device to OCS Bridge.
