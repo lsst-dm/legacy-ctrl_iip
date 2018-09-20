@@ -21,7 +21,6 @@ class Setup:
         bunny_channel.exchange_declare(exchange='message', exchange_type='direct', durable=True)
         test_channel.exchange_declare(exchange='message', exchange_type='direct', durable=True)
 
-
         queues = ["at_foreman_consume",
                   "at_foreman_ack_publish",
                   "archive_ctrl_publish",
@@ -30,6 +29,7 @@ class Setup:
                   "ocs_dmcs_consume",
                   "dmcs_ocs_publish",
                   "dmcs_fault_consume",
+                  "gen_dmcs_consume",
                   "at_forwarder_publish",
                   "f91_consume",
                   "f92_consume",

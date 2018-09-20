@@ -282,7 +282,7 @@ class DMCS:
             LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s' % 
                          (pformat(str(msg_dict)), pformat(properties)))
     
-            err_code = msg_dict['ERR_CODE']
+            err_code = msg_dict['ERROR_CODE']
             desc = msg_dict['DESCRIPTION']
             LOGGER.critical("DMCS received fault message with error code %s -- %s" \
                              % (err_code,desc))
