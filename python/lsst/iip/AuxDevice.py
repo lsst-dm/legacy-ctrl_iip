@@ -290,7 +290,7 @@ class AuxDevice:
         
         # receive ack back from forwarder that it has job params
         self.clear_fwdr_state()
-        self.ack_timer(8.4)
+        self.ack_timer(28.4)
 
         if self.did_current_fwdr_respond() == False:
             name = self._current_fwdr['FQN']
