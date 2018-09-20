@@ -446,8 +446,8 @@ class StateScoreboard(Scoreboard):
         """
         if self.check_connection():
             self._redis.lpush(self.JOBS, job_number)
-            self.set_value_for_job(job_num, 'DEVICE', device)
-            self.set_value_for_job(job_num, 'IMAGE', image_id)
+            self.set_value_for_job(job_number, 'DEVICE', device)
+            self.set_value_for_job(job_number, 'IMAGE', image_id)
             self.set_current_device_job(job_number, device)
             # self.set_ccds_for_job(job_number, ccds)
             self.set_job_state(job_number, 'NEW')
