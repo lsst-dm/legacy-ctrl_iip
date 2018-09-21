@@ -996,7 +996,7 @@ class DMCS:
                                   % (current_state, new_state))
                     print("DMCS - Error, Same State Device Transition appempt from %s  to %s" \
                            % (current_state, new_state))
-                    response = "Invalid same state transition: " + str(current_state) +
+                    response = "Invalid same state transition: " + str(current_state) + \
                                " to " + new_state
                     self.send_ocs_ack(-324, response, msg_in)
                 else:
@@ -1076,7 +1076,7 @@ class DMCS:
             print("DMCS unable to send_ocs_ack: %s" % e.args)
             raise L1Error("DMCS unable to send_ocs_ack - Rabbit Problem?: %s" % e.args)
 
-        if transition_check:
+        if transition_check == 1:
             self.send_appropriate_events_by_state(msg_in['DEVICE'], msg_in['MSG_TYPE'])
 
 
