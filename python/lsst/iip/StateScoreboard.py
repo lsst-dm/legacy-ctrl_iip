@@ -242,7 +242,7 @@ class StateScoreboard(Scoreboard):
 
     def append_new_fault_to_fault_history(self, params):
         prms = deepcopy(params)
-        prms['DATETIME'] = str(datetime.datetime)
+        #prms['DATETIME'] = str(datetime.datetime)
         self._redis.rpush('FAULT_HISTORY',yaml.dump(prms))
 
 

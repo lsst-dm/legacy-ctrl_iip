@@ -303,14 +303,11 @@ class DMCS:
             result = handler(msg_dict)
         except KeyError as e:
             LOGGER.error("DMCS received unrecognized message type: %s" % e.args)
+            self.process_fault(msg_dict)
             if self.DP: 
                 print("DMCS received unrecognized message type: %s" % e.args)
             raise L1Error("DMCS ecountering Error Code %s. %s" \
                            % (str(self.ERROR_CODE_PREFIX + 35), e.args))
-
-        finally:
-            self.process_fault(msg_dict)
-
 
 
     ### Remaining methods in this class are workhorse methods for the running threads
@@ -542,7 +539,7 @@ class DMCS:
                 ack_id = self.INCR_SCBD.get_next_timed_ack_id( str(k) + "_START_INT_ACK")
                 acks.append(ack_id)
                 job_num = self.INCR_SCBD.get_next_job_num( "job_" + session_id)
-                self.STATE_SCBD.add_job(job_num, str(k), image_id, visit_id, raft_list, ccd_list)
+                self.STATE_SCBD.add_job(job_num, str(k), image_id, raft_list, ccd_list)
                 self.STATE_SCBD.set_current_device_job(job_num, str(k))
                 self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
                 msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
@@ -709,7 +706,6 @@ class DMCS:
         # add in two additional acks for format and transfer complete
 
 
-
     ### This method receives the all important image name message parameter in params.
     def process_end_readout(self, params):
         try:
@@ -780,7 +776,6 @@ class DMCS:
         msg_params['ACK_ID_VALUE'] = str(ack_id)
         self._publisher.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
         
-
 
     def process_fault(self, params):
         device = params['DEVICE']
@@ -1002,7 +997,6 @@ class DMCS:
             print("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.args) 
             raise L1Error("DMCS unable to validate_transaction - can't check scoreboards: %s" % e.args) 
             
-
         return transition_is_valid
  
 
@@ -1109,7 +1103,7 @@ class DMCS:
             message = {}
             message[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
             message['DEVICE'] = device
-            message['CURRENT_STATE'] = toolsmod.summary_state_enum[self.STATE_SCBD.get_device_state(device)]
+            message['CURRENT_STATE'] = self.STATE_SCBD.get_device_state(device)
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.args)
@@ -1157,6 +1151,10 @@ class DMCS:
             message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
             message['DEVICE'] = device
             message['APPLIED'] = True
+            message['SETTINGS'] = 'L1SysCfg_1'   # Will eventually be retrieved from DB
+            message['TS_XML_VERSION'] = self.TsXmlVersion
+            message['TS_SAL_VERSION'] = self.TsSALVersion
+            message['L1_DM_REPO_TAG'] = self.L1DMRepoTag
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.args)
@@ -1228,7 +1226,6 @@ class DMCS:
         except Exception as e: 
             LOGGER.error("DMCS unable to get_next_timed_ack_id: %s" % e.args)
             print("DMCS unable to get_next_timed_ack_id: %s" % e.args)
-            sys.exit(self.ERROR_CODE_PREFIX + 3); 
 
         return new_val 
 
@@ -1284,6 +1281,7 @@ class DMCS:
             cdm = toolsmod.intake_yaml_file(self._config_file)
         except IOError as e:
             LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
+            ### FIXXX FIXXX Change to Fault state
             sys.exit(101) 
 
         try:
@@ -1293,6 +1291,7 @@ class DMCS:
             self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
             self._pub_fault_name = cdm[ROOT]['DMCS_FAULT_PUB_NAME']
             self._pub_fault_passwd = cdm[ROOT]['DMCS_FAULT_PUB_PASSWD']
+
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self.ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
             self.rdict = cdm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
@@ -1301,26 +1300,32 @@ class DMCS:
             self.incr_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_INCR_SCBD']
             self.backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
             self.CCD_LIST = cdm[ROOT]['CCD_LIST']
+
             self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
             self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
             self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
             self.at_cfg_keys = cdm[ROOT]['AT_CFG_KEYS']
+            self.TsXmlVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsXmlVersion']
+            self.TsSALVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsSALVersion']
+            self.L1DMRepoTag = cdm[ROOT]['GENERAL_SETTINGS']['L1DMRepoTag']
+
             self.efd_login = cdm[ROOT]['EFD']['EFD_LOGIN']
             self.efd_ip = cdm[ROOT]['EFD']['EFD_IP']
             self.wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
             self.wfs_ccd = cdm[ROOT]['ATS']['WFS_CCD']
             broker_vhost = cdm[ROOT]['BROKER_VHOST']
             queue_purges = cdm[ROOT]['QUEUE_PURGES']
+
             self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
             self.efd = self.efd_login + "@" + self.efd_ip + ":"
         except KeyError as e:
             trace = traceback.print_exc()
             emsg = "Unable to find key in CDM representation of %s\n" % filename
             LOGGER.critical(emsg + trace)
+            ### FIXXX FIXXX Change to FAULT state
             sys.exit(102)
 
         return True
-
 
 
     def setup_consumer_threads(self):
@@ -1434,8 +1439,10 @@ class DMCS:
             self.send_appropriate_events_by_state('CU', 'OFFLINE')
             self.send_appropriate_events_by_state('AT', 'OFFLINE')
         except Exception as e: 
-            LOGGER.error("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args)
-            print("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" % e.args) 
+            LOGGER.error("DMCS init unable to complete setup_scoreboards - "\
+                         "Cannot set scoreboards: %s" % e.args)
+            print("DMCS init unable to complete setup_scoreboards - Cannot set scoreboards: %s" \
+                   % e.args) 
             sys.exit(self.ERROR_CODE_PREFIX + 10) 
         LOGGER.info('DMCS Scoreboard Init complete')
 
