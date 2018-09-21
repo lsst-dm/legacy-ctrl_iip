@@ -13,6 +13,7 @@ ocs/include/gmock
 ocs/include/gtest
 ocs/examples/Subscriber2
 ocs/src/AckSubscriber
+ocs/src/EventSubscriber
 ocs/src/CommandListener
 dmcs_sender_base.py
 chk.sh

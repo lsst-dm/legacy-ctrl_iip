@@ -181,7 +181,10 @@ class AuxDevice:
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback: RECEIVING ACK MESSAGE')
-        LOGGER.debug('Message from ACK callback message body is: %s', pformat(str(msg_dict)))
+        LOGGER.info('Message in an ACK callback message body is: %s', pformat(str(msg_dict)))
+
+        if self.DP:
+            print("\n\nIn AuxDevice on_ack_message - receiving this message: %s" % body)
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -215,7 +218,7 @@ class AuxDevice:
 
         # Give fwdrs enough time to respond...
         #self.ack_timer(1.4)
-        sleep(3)
+        sleep(5)
 
 
 
@@ -552,6 +555,9 @@ class AuxDevice:
 
  
     def set_fwdr_state(self, component, state):
+        if self.DP:
+            print("\n\nIn set_fwdr_state - Setting %s state to RESPONSIVE\n" % component)
+        LOGGER.info("set_fwdr_state - setting component %s to RESPONSIVE\n" % component)
         self._fwdr_state_dict[component]['RESPONSE'] = state
 
 
@@ -633,6 +639,10 @@ class AuxDevice:
        
  
     def process_xfer_params_ack(self, params):
+        if self.DP:
+            print("\n\nIn process_xfer_params_ack - auxdevice setting state of %s to RESPONSIVE\n" \
+                   % params['COMPONENT'])
+        LOGGER.info('process_xfer_params_ack: state of %s being set to RESPONSIVE' %  params['COMPONENT'])
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
     
