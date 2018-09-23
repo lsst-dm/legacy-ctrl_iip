@@ -51,6 +51,7 @@ import os
 from copy import deepcopy
 from pprint import pprint, pformat
 import time
+import datetime
 from time import sleep
 import threading
 from threading import Lock
@@ -329,15 +330,20 @@ class AuxDevice:
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
         self.prp.pprint(fwdr_new_target_params)
+        self.clear_fwdr_state()
         self._publisher.publish_message(route_key, fwdr_new_target_params)
        
 
         
         # receive ack back from forwarder that it has job params
-        self.clear_fwdr_state()
-        self.ack_timer(28.4)
+        #self.ack_timer(28.4)
+        z1 = datetime.datetime.now()
+        fwdr_response = self.simple_progressive_ack_timer(self.FWDR, 30.0)
+        z2 = datetime.datetime.now()
+        z3 = z2 - z1
+        LOGGER.info("In StartInt - waited %s for xfer_params ack to return." % z3)
 
-        if self.did_current_fwdr_respond() == False:
+        if fwdr_response == False:
             name = self._current_fwdr['FQN']
             type = "FAULT"
             desc = "No xfer_params response from fwdr."
