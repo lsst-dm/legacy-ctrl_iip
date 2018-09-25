@@ -115,6 +115,7 @@ def main():
   print("AT ENABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
+  """
   msg = {}
   msg['MSG_TYPE'] = "DMCS_AT_START_INTEGRATION"
   msg['IMAGE_ID'] = 'AT_C_20180923_000050'
@@ -146,6 +147,7 @@ def main():
   msg["FILENAME"] = "http://localhost:8000/visitJune-28.header"
   time.sleep(4)
   sp1.publish_message("ocs_dmcs_consume", msg)
+  """
 
   time.sleep(5)
 

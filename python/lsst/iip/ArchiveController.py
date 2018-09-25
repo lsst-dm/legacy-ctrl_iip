@@ -44,15 +44,19 @@ import pika
 import os.path
 import hashlib
 import yaml
+import os, os.path
+from subprocess import call
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from ThreadManager import ThreadManager 
 from const import *
 import toolsmod  # here so reader knows where intake yaml method resides
 from toolsmod import *
+from IncrScoreboard import IncrScoreboard
 import _thread
 import logging
 import threading
+import datetime
 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -81,31 +85,62 @@ class ArchiveController:
         cdm = toolsmod.intake_yaml_file(self._config_file)
 
         try:
-            self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME']  # Message broker user/passwd for component
+            self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME'] 
             self._archive_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
+
+            self._archive_pub_name = cdm[ROOT]['ARCHIVE_BROKER_PUB_NAME'] 
+            self._archive_pub_passwd = cdm[ROOT]['ARCHIVE_BROKER_PUB_PASSWD']
+
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
+            self.incr_db_instance = cdm[ROOT]['SCOREBOARDS']['ARC_CTRL_RCPT_SCBD']
+
             self._archive_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_XFER_ROOT']
+            self._archive_ar_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_AR_XFER_ROOT']
+            self._archive_at_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_AT_XFER_ROOT']
+
             if cdm[ROOT]['ARCHIVE']['CHECKSUM_ENABLED'] == 'yes':
                 self.CHECKSUM_ENABLED = True
+                if cdm[ROOT]['ARCHIVE']['CHECKSUM_TYPE'] == 'MD5':
+                    self.CHECKSUM_TYPE = 'MD5'
+                elif cdm[ROOT]['ARCHIVE']['CHECKSUM_TYPE'] == 'CRC32':
+                    self.CHECKSUM_TYPE = 'CRC32'
             else:
                 self.CHECKSUM_ENABLED = False
         except KeyError as e:
             raise L1Error(e)
 
+        os.makedirs(os.path.dirname(self._archive_xfer_root), exist_ok=True)
+        os.makedirs(os.path.dirname(self._archive_ar_xfer_root), exist_ok=True)
+        os.makedirs(os.path.dirname(self._archive_at_xfer_root), exist_ok=True)
 
         self._base_msg_format = self.YAML
 
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
 
-        self._base_broker_url = "amqp://" + self._archive_name + ":" + self._archive_passwd + "@" + str(self._base_broker_addr)
+        self._base_broker_url = "amqp://" + self._archive_name + ":" + \
+                                 self._archive_passwd + "@" + str(self._base_broker_addr)
 
-        LOGGER.info('Building _base_broker_url connection string for Archive Controller. Result is %s', 
-                     self._base_broker_url)
+        self._pub_base_broker_url = "amqp://" + self._archive_pub_name + ":" + \
+                                 self._archive_pub_passwd + "@" + str(self._base_broker_addr)
+
+        LOGGER.info('Building _base_broker_url connection string for Archive Controller.' + \
+                    ' Result is %s' % self._base_broker_url)
 
         self._msg_actions = { 'ARCHIVE_HEALTH_CHECK': self.process_health_check,
-                              'NEW_ARCHIVE_ITEM': self.process_new_archive_item,
-                              'AR_ITEMS_XFERD': self.process_transfer_complete }
+                              'NEW_AR_ARCHIVE_ITEM': self.process_new_ar_archive_item,
+                              'NEW_AT_ARCHIVE_ITEM': self.process_new_at_archive_item,
+                              'AR_ITEMS_XFERD': self.process_ar_transfer_complete,
+                              'AT_ITEMS_XFERD': self.process_at_transfer_complete }
+
+        # Set up Incr Scbd...
+        try:
+            LOGGER.info('Setting up Archive Incr Scoreboard')
+            self.INCR_SCBD = IncrScoreboard('ARC_CTRL_RCPT_SCBD', self.incr_db_instance)
+        except L1RedisError as e:
+            LOGGER.error("DMCS unable to complete setup_scoreboards - No Redis connect: %s" % e.args)
+            print("DMCS unable to complete setup_scoreboards - No Redis connection: %s" % e.args)
+            sys.exit(self.ERROR_CODE_PREFIX + 12)
 
         self.setup_consumer()
         self.setup_publisher()
@@ -133,15 +168,16 @@ class ArchiveController:
 
 
     def setup_publisher(self):
-        LOGGER.info('Setting up Archive publisher on %s using %s', self._base_broker_url, self._base_msg_format)
-        self._archive_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
+        LOGGER.info('Setting up Archive publisher on %s using %s',\
+                     self._pub_base_broker_url, self._base_msg_format)
+        self._archive_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
         #self._audit_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
 
 
 
     def on_archive_message(self, ch, method, properties, msg_dict):
-        LOGGER.info('Message from Archive callback message body is: %s', str(msg_dict))
         ch.basic_ack(method.delivery_tag)
+        LOGGER.info('Message from Archive callback message body is: %s', str(msg_dict))
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
@@ -156,21 +192,48 @@ class ArchiveController:
            :param str 'SESSION_ID' Might be useful for the controller to 
                generate a target location for new items to be archived?
         """
-        self.send_audit_message("received_", params)
+        #self.send_audit_message("received_", params)
         self.send_health_ack_response("ARCHIVE_HEALTH_CHECK_ACK", params)
         
 
-    def process_new_archive_item(self, params):
-        self.send_audit_message("received_", params)
-        target_dir = self.construct_send_target_dir(params)
-        self.send_new_item_ack(target_dir, params)
+    def process_new_ar_archive_item(self, params):
+        #self.send_audit_message("received_", params)
+        final_target_dir = self.construct_send_target_dir(self._archive_ar_xfer_root)
+        self.send_new_item_ack(final_target_dir, params)
+
+    def process_new_at_archive_item(self, params):
+        #self.send_audit_message("received_", params)
+        final_target_dir = self.construct_send_target_dir(self._archive_at_xfer_root)
+        self.send_new_item_ack(final_target_dir, params)
 
 
-    def process_transfer_complete(self, params):
+    def process_ar_transfer_complete(self, params):
         transfer_results = {}
-        ccds = params['RESULT_LIST']['CCD_LIST']
-        fnames = params['RESULT_LIST']['FILENAME_LIST']
-        csums = params['RESULT_LIST']['CHECKSUM_LIST']
+        ccds = params['RESULT_SET']['CCD_LIST']
+        fnames = params['RESULT_SET']['FILENAME_LIST']
+        csums = params['RESULT_SET']['CHECKSUM_LIST']
+        num_ccds = len(ccds)
+        transfer_results = {}
+        RECEIPT_LIST = [] 
+        for i in range(0, num_ccds):
+            ccd = ccds[i]
+            pathway = fnames[i]
+            csum = csums[i]
+            transfer_result = self.check_transferred_file(pathway, csum)
+            if transfer_result == None:
+                RECEIPT_LIST.append('0')
+            else:
+                RECEIPT_LIST.append(transfer_result) 
+        transfer_results['CCD_LIST'] = ccds
+        transfer_results['RECEIPT_LIST'] = RECEIPT_LIST
+        self.send_transfer_complete_ack(transfer_results, params)
+
+
+    def process_at_transfer_complete(self, params):
+        transfer_results = {}
+        ccds = params['RESULT_SET']['CCD_LIST']
+        fnames = params['RESULT_SET']['FILENAME_LIST']
+        csums = params['RESULT_SET']['CHECKSUM_LIST']
         num_ccds = len(ccds)
         transfer_results = {}
         RECEIPT_LIST = [] 
@@ -190,17 +253,64 @@ class ArchiveController:
 
     def check_transferred_file(self, pathway, csum):
         if not os.path.isfile(pathway):
-            return ('-1')
+            return ('-1') # File doesn't exist
 
-        if self.CHECKSUM_ENABLED:
-            with open(pathway) as file_to_calc:
-                data = file_to_calc.read()
-                resulting_md5 = hashlib.md5(data).hexdigest()
-
-                if resulting_md5 != csum:
+        if self.CHECKSUM_ENABLED == True:
+            if self.CHECKSUM_TYPE == 'MD5':
+                new_csum = self.calculate_md5(pathway)
+                if new_csum != csum:
                     return ('0')
+                else:
+                    return self.next_receipt_number()
+
+            if self.CHECKSUM_TYPE == 'CRC32':
+                new_csum = self.calculate_crc32(pathway)
+                if new_csum != csum:
+                    return ('0')
+                else:
+                    return self.next_receipt_number()
 
         return self.next_receipt_number()
+
+
+    def calculate_crc32(self, filename):
+        new_crc32 = 0
+        buffersize = 65536
+
+        try:
+            with open(filename, 'rb') as afile:
+                buffr = afile.read(buffersize)
+                crcvalue = 0
+                while len(buffr) > 0:
+                    crcvalue = zlib.crc32(buffr, crcvalue)
+                    buffr = afile.read(buffersize)
+        except IOError as e:
+            LOGGER.critical("Unable to open file %s for CRC32 calculation. " + \
+                            "Returning zero receipt value" % filename )
+            return new_crc32
+
+        new_crc32 = format(crcvalue & 0xFFFFFFFF, '08x').upper()
+        LOGGER.debug("Returning newly calculated crc32 value: " % new_crc32)
+        print("Returning newly calculated crc32 value: " % new_crc32)
+
+        return new_crc32
+
+
+    def calculate_md5(self, filename):
+        new_md5 = 0
+        try:
+            with open(filename) as file_to_calc:
+                data = file_to_calc.read()
+                new_md5 = hashlib.md5(data).hexdigest()
+        except IOError as e:
+            LOGGER.critical("Unable to open file %s for MD5 calculation. " +\
+                            "Returning zero receipt value" % filename)
+            return new_md5
+
+        LOGGER.debug("Returning newly calculated md5 value: " % new_md5)
+        print("Returning newly calculated md5 value: " % new_md5)
+
+        return new_md5
 
 
     def next_receipt_number(self):
@@ -242,38 +352,30 @@ class ArchiveController:
 
 
 
-    def construct_send_target_dir(self, params):
-        #session = params['SESSION_ID']
-        visit = params['VISIT_ID']
-        image = params['IMAGE_ID']
-        ack_id = params['ACK_ID']
-        #target_dir = self._archive_xfer_root + "_" + str(image_type) + "_" + str(session) + "_" + str(visit) + "_" + str(image)
-        target_dir_visit = self._archive_xfer_root + visit + "/"
-        target_dir_image = self._archive_xfer_root + visit + "/" + str(image) + "/"
+    def construct_send_target_dir(self, target_dir):
+        today = datetime.datetime.now()
+        day_string = today.date()
 
-        if os.path.isdir(target_dir_visit):
+        final_target_dir = target_dir + "/" + str(day_string) + "/"
+
+        if os.path.isdir(final_target_dir):
             pass
         else:
-            os.mkdir(target_dir_visit, 0o766)
+            os.mkdir(final_target_dir, 0o766)
 
-        if os.path.isdir(target_dir_image):
-            pass
-        else:
-            os.mkdir(target_dir_image, 0o766)
-
-        return target_dir_image
+        return final_target_dir
 
 
     def send_new_item_ack(self, target_dir, params):
         ack_params = {}
-        ack_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM_ACK'
+        new_type = params[MSG_TYPE] + "_ACK"
+        reply_queue = params[REPLY_QUEUE]
+        ack_params[MSG_TYPE] = new_type
         ack_params['TARGET_DIR'] = target_dir
         ack_params['ACK_ID'] = params['ACK_ID']
-        ack_params['JOB_NUM'] = params['JOB_NUM']
-        ack_params['IMAGE_ID'] = params['IMAGE_ID']
         ack_params['COMPONENT'] = self._name
         ack_params['ACK_BOOL'] = True
-        self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        self._archive_publisher.publish_message(reply_queue, ack_params)
 
 
     def send_transfer_complete_ack(self, transfer_results, params):
@@ -305,6 +407,9 @@ def main():
         while 1:
             pass
     except KeyboardInterrupt:
+        x = os.getpid()
+        print("Killing PID: %s" % x)
+        call(["kill","-9",str(x)])
         pass
 
     print("")
