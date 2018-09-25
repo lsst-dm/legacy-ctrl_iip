@@ -91,6 +91,7 @@ class AuxDevice:
     CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
     DP = toolsmod.DP
+    METRIX = toolsmod.METRIX
     RAFT_LIST = []
     RAFT_CCD_LIST = ['00']
     date_format='date +%F_%H_%R:%S-'  # Used to generate unique ack_ids
@@ -258,20 +259,20 @@ class AuxDevice:
         num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
 
-
         # Give fwdrs enough time to respond...
         #self.ack_timer(1.4)
         sleep(5)
-
+        fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
 
 
         if (self.set_current_fwdr() == False):
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
             desc = "No health check response from ANY fwdr"
             type = 'FAULT'
-            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 'no health check response any fwdrs'
+            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 
+                                                                          # 'no health check 
+                                                                          # response any fwdrs'
             return
-        print("  ")
 
         # Add archive check when necessary...
         #if self.use_archive_ctrl == False:
@@ -336,12 +337,15 @@ class AuxDevice:
 
         
         # receive ack back from forwarder that it has job params
-        #self.ack_timer(28.4)
-        z1 = datetime.datetime.now()
+        if self.METRIX:
+            z1 = datetime.datetime.now()
+
         fwdr_response = self.simple_progressive_ack_timer(self.FWDR, 30.0)
-        z2 = datetime.datetime.now()
-        z3 = z2 - z1
-        LOGGER.info("In StartInt - waited %s for xfer_params ack to return." % z3)
+
+        if self.METRIX: 
+            z2 = datetime.datetime.now()
+            z3 = z2 - z1
+            LOGGER.info("METRIX: In StartInt - waited %s for xfer_params ack to return." % z3)
 
         if fwdr_response == False:
             name = self._current_fwdr['FQN']
@@ -360,9 +364,6 @@ class AuxDevice:
         st_int_params_ack['JOB_NUM'] = job_number
         st_int_params_ack['SESSION_ID'] = session_id
         st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
-        print("000000000000000000000000")
-        print("Acking positive to start integration")
-        print("000000000000000000000000")
         self.accept_job(st_int_params_ack)
 
 
