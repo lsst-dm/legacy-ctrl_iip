@@ -20,6 +20,7 @@
 #include "fitsio.h"
 #include <errno.h>
 #include "Exceptions.h"
+#include "SimpleLogger.h"
 
 #include "daq/Location.hh"
 #include "daq/LocationSet.hh"
