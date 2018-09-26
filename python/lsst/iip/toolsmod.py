@@ -116,19 +116,19 @@ state_enumeration["FINAL"] =    6
 #STATE\
 #      \ |Offline |Standby |Disabled|Enabled |Fault   |Initial |Final   |
 #------------------------------------------------------------------------ 
-#Offline | TRUE   | TRUE   |        |        |        |        |  TRUE  |
+#Offline |        | TRUE   |        |        |        |        |  TRUE  |
 #------------------------------------------------------------------------
-#Standby |  TRUE  | TRUE   |  TRUE  |        |  TRUE  |        |  TRUE  |
+#Standby |  TRUE  |        |  TRUE  |        |  TRUE  |        |  TRUE  |
 #------------------------------------------------------------------------
-#Disable |        |  TRUE  |  TRUE  |  TRUE  |  TRUE  |        |        |
+#Disable |        |  TRUE  |        |  TRUE  |  TRUE  |        |        |
 #------------------------------------------------------------------------
-#Enable  |        |        |  TRUE  |  TRUE  |  TRUE  |        |        |
+#Enable  |        |        |  TRUE  |        |  TRUE  |        |        |
 #------------------------------------------------------------------------
-#Fault   |        |        |        |        |  TRUE  |        |        |
+#Fault   |        |        |        |        |        |        |        |
 #------------------------------------------------------------------------
-#Initial |        |  TRUE  |        |        |        | TRUE   |        |
+#Initial |        |  TRUE  |        |        |        |        |        |
 #------------------------------------------------------------------------
-#Final   |        |        |        |        |        |        | TRUE   |
+#Final   |        |        |        |        |        |        |        |
 #------------------------------------------------------------------------
 
 w, h = 7, 7;
@@ -146,14 +146,14 @@ state_matrix[3][2] = True
 state_matrix[3][4] = True
 state_matrix[5][1] = True
 
-# Set up same state transitions as allowed 
-state_matrix[0][0] = True
-state_matrix[1][1] = True
-state_matrix[2][2] = True
-state_matrix[3][3] = True
-state_matrix[4][4] = True
-state_matrix[5][5] = True
-state_matrix[6][6] = True
+# Disallow same state transitions 
+#state_matrix[0][0] = True
+#state_matrix[1][1] = True
+#state_matrix[2][2] = True
+#state_matrix[3][3] = True
+#state_matrix[4][4] = True
+#state_matrix[5][5] = True
+#state_matrix[6][6] = True
 
 
 # Error codes are 4 digit numbers
