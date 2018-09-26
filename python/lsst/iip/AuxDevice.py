@@ -139,6 +139,8 @@ class AuxDevice:
                               'AT_HEADER_READY': self.process_header_ready_event,
                               'AT_FWDR_HEADER_READY_ACK': self.process_header_ready_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AR_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AT_ARCHIVE_ITEM_ACK': self.process_ack, 
                               'AT_END_READOUT': self.process_at_end_readout }
 
 
