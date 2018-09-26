@@ -22,3 +22,9 @@ ospl-info.log
 env
 ospl-error.log
 ospl-info.log
+Consumer.o
+SimplePublisher.o
+Toolsmod.o
+AckSubscriber
+CommandListener
+EventSubscriber
