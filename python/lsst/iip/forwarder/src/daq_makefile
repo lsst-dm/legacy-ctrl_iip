@@ -1,5 +1,8 @@
-RELEASE		= /home/atsdaq2/lsst-daq/daq-sdk/current
-INCLUDE       = -I/usr/local/include -I../../ocs/include -I../include
+RELEASE	= /home/atsdaq2/lsst-daq/daq-sdk/current
+INCLUDE       = -I/usr/local/include \
+		-I../../ocs/include \
+		-I../include \
+		-I/usr/local/boost_1_66_0
 DAQ_INCLUDE       = -I/home/atsdaq2/lsst-daq/daq-sdk/current/include 
 LIBPATH       = -L/usr/local/lib -L/usr/local/lib64 -L../../ocs/lib -Wl,-rpath,../../ocs/lib -L../lib 
 DAQ_LIBPATH       = -L/home/atsdaq2/lsst-daq/daq-sdk/current/x86/lib -Wl,-rpath,/home/atsdaq2/lsst-daq/daq-sdk/current/x86/lib  
