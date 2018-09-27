@@ -60,6 +60,7 @@ class IncrScoreboard(Scoreboard):
     SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM' 
     JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM' 
     ACK_SEQUENCE_NUM = 'ACK_SEQUENCE_NUM' 
+    RECEIPT_SEQUENCE_NUM = 'RECEIPT_SEQUENCE_NUM' 
   
 
     def __init__(self, db_type, db_instance):
@@ -77,6 +78,8 @@ class IncrScoreboard(Scoreboard):
             self._redis.set(self.JOB_SEQUENCE_NUM, 1000)
         if not (self._redis.exists(self.ACK_SEQUENCE_NUM)):
             self._redis.set(self.ACK_SEQUENCE_NUM, 1)
+        if not (self._redis.exists(self.RECEIPT_SEQUENCE_NUM)):
+            self._redis.set(self.RECEIPT_SEQUENCE_NUM, 100)
     
 
 
@@ -147,6 +150,15 @@ class IncrScoreboard(Scoreboard):
             return id
         else:
             LOGGER.error('Unable to increment ACK_ID due to lack of redis connection')
+
+    def get_next_receipt_id(self):
+        if self.check_connection():
+            self._redis.incr(self.RECEIPT_SEQUENCE_NUM)
+            session_id = self._redis.get(self.RECEIPT_SEQUENCE_NUM)
+            id = "Receipt_" + str(session_id)
+            return id
+        else:
+            LOGGER.error('Unable to increment job number due to lack of redis connection')
 
 
     def print_all(self):

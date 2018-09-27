@@ -41,16 +41,18 @@
 
 
 import pika
+import os
 import os.path
 import hashlib
 import yaml
-import os, os.path
+import zlib
+import string
 from subprocess import call
 from Consumer import Consumer
 from SimplePublisher import SimplePublisher
 from ThreadManager import ThreadManager 
 from const import *
-import toolsmod  # here so reader knows where intake yaml method resides
+import toolsmod  
 from toolsmod import *
 from IncrScoreboard import IncrScoreboard
 import _thread
@@ -68,10 +70,11 @@ class ArchiveController:
 
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
-    ACK_PUBLISH = "ar_foreman_ack_publish"
+    AR_ACK_PUBLISH = "ar_foreman_ack_publish"
+    AT_ACK_PUBLISH = "ar_foreman_ack_publish"
     AUDIT_CONSUME = "audit_consume"
+    ERROR_CODE_PREFIX = '54'
     YAML = 'YAML'
-    RECEIPT_FILE = "/var/archive/archive_controller_receipt"
 
 
 
@@ -94,6 +97,7 @@ class ArchiveController:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self.incr_db_instance = cdm[ROOT]['SCOREBOARDS']['ARC_CTRL_RCPT_SCBD']
 
+            # Root dir of where to put files
             self._archive_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_XFER_ROOT']
             self._archive_ar_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_AR_XFER_ROOT']
             self._archive_at_xfer_root = cdm[ROOT]['ARCHIVE']['ARCHIVE_AT_XFER_ROOT']
@@ -104,9 +108,13 @@ class ArchiveController:
                     self.CHECKSUM_TYPE = 'MD5'
                 elif cdm[ROOT]['ARCHIVE']['CHECKSUM_TYPE'] == 'CRC32':
                     self.CHECKSUM_TYPE = 'CRC32'
+                else:
+                    self.CHECKSUM_ENABLED = False # if bad type, turn off csum's
             else:
                 self.CHECKSUM_ENABLED = False
         except KeyError as e:
+            LOGGER.critical('Key Error exception thrown when attempting to read L1 cfg file.')
+            LOGGER.critical('No other choice but to bail out.')
             raise L1Error(e)
 
         os.makedirs(os.path.dirname(self._archive_xfer_root), exist_ok=True)
@@ -138,8 +146,10 @@ class ArchiveController:
             LOGGER.info('Setting up Archive Incr Scoreboard')
             self.INCR_SCBD = IncrScoreboard('ARC_CTRL_RCPT_SCBD', self.incr_db_instance)
         except L1RedisError as e:
-            LOGGER.error("DMCS unable to complete setup_scoreboards - No Redis connect: %s" % e.args)
+            LOGGER.error("DMCS unable to complete setup_scoreboards - " + \
+                         "No Redis connect: %s" % e.args)
             print("DMCS unable to complete setup_scoreboards - No Redis connection: %s" % e.args)
+            ### FIXX - send Fault Instead...
             sys.exit(self.ERROR_CODE_PREFIX + 12)
 
         self.setup_consumer()
@@ -200,6 +210,7 @@ class ArchiveController:
         #self.send_audit_message("received_", params)
         final_target_dir = self.construct_send_target_dir(self._archive_ar_xfer_root)
         self.send_new_item_ack(final_target_dir, params)
+
 
     def process_new_at_archive_item(self, params):
         #self.send_audit_message("received_", params)
@@ -314,11 +325,7 @@ class ArchiveController:
 
 
     def next_receipt_number(self):
-        last_receipt = toolsmod.intake_yaml_file(self.RECEIPT_FILE)
-        current_receipt = int(last_receipt['RECEIPT_ID']) + 1
-        session_dict = {}
-        session_dict['RECEIPT_ID'] = current_receipt
-        toolsmod.export_yaml_file(self.RECEIPT_FILE, session_dict)
+        current_receipt = self.INCR_SCBD.get_next_receipt_id()
         return current_receipt
 
 
