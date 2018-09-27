@@ -17,3 +17,9 @@ chk.sh
 ospl-info.log
 *_cache/
 env
+Consumer.o
+SimplePublisher.o
+Toolsmod.o
+CommandListener
+EventSubscriber
+AckSubscriber

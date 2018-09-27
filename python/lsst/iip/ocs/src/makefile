@@ -1,3 +1,4 @@
+ROOT_DIR        = ~/src/git/ctrl_iip/python/lsst/iip
 ARCHIVE  	= /opt/sal/ts_sal/test/archiver/cpp
 CARCHIVE 	= /opt/sal/ts_sal/test/catchuparchiver/cpp
 PCLUSTER 	= /opt/sal/ts_sal/test/processingcluster/cpp
@@ -32,7 +33,7 @@ SAL_LDLIB	= -lsacpp_archiver_types -lsacpp_catchuparchiver_types -lsacpp_process
 DM_LDLIB        = -lpthread -lSimpleAmqpClient -lyaml-cpp
 CFLAGS   	= -g -Wall -c 
 COMPVERS 	= -std=c++11
-OBJ_DIR         = ../obj
+OBJ_DIR         = $(ROOT_DIR)/ocs/obj
 DM_OBJ          = ../obj/OCS_Bridge.o ../obj/SimplePublisher.o ../obj/Toolsmod.o ../obj/Consumer.o
 OCS_OBJ         = $(ARCHIVE)/src/.obj/SAL_archiver.o $(CARCHIVE)/src/.obj/SAL_catchuparchiver.o $(PCLUSTER)/src/.obj/SAL_processingcluster.o $(ARCHIVE)/src/.obj/CheckStatus.o
 AT_OBJ          = $(ATARCHIVE)/src/.obj/SAL_atArchiver.o
@@ -60,6 +61,3 @@ AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod
 EventSubscriber: EventSubscriber.cpp SimplePublisher
 	# $(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(ATARCHIVE)/src/.obj/CheckStatus.o $(OBJ_DIR)/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
 	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(OBJ_DIR)/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
-
-clean:
-	rm -i CommandListener EventSubscriber AckSubscriber $(OBJ_DIR)/*.o

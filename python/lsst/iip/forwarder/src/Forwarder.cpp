@@ -106,26 +106,26 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //Consumers for Primary Forwarder
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
-    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url;
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url.str();
     from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
 
     ostringstream consume_queue1;
     consume_queue1 << this->consume_queue << "_from_fetch";
     from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
-    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue1;
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue1.str();
 
     ostringstream consume_queue2;
     consume_queue2 << this->consume_queue << "_from_format";
     from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
-    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue2;
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue2.str();
 
     ostringstream consume_queue3;
     consume_queue3 << this->consume_queue << "_from_forward";
     ostringstream from_fwd_broker_url;
     from_fwd_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
     from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
-    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << from_fwd_broker_url;
-    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue3;
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << from_fwd_broker_url.str();
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue3.str();
 
     //Consumers for sub-components
     //ostringstream consume_queue;
@@ -133,20 +133,20 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     ostringstream full_broker_url2;
     full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD << this->BASE_BROKER_ADDR ;
     from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
-    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url2;
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url2.str();
     LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->fetch_consume_queue;
 
     ostringstream full_broker_url3;
     full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD << this->BASE_BROKER_ADDR;
     from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
-    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url3;
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url3.str();
     LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->format_consume_queue;
     //cout << this->format_consume_queue << endl; 
 
     ostringstream full_broker_url4;
     full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD << this->BASE_BROKER_ADDR ;
     from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
-    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url4;
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url4.str();
     LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->forward_consume_queue;
 
     LOGGER(my_logger::get(), debug) << "Finished setting broker urls for consumers"; 
