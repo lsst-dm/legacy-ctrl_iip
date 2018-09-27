@@ -1,9 +1,15 @@
 RELEASE	      = /home/lsst-daq/daq-sdk/current
-INCLUDE       = -I/usr/local/include -I../../ocs/include -I../include -I/usr/local/boost_1_66_0
+INCLUDE       = -I../../ocs/include \
+		-I../include \
+		-I../../include \
+		-I/usr/local/boost_1_66_0
 DAQ_INCLUDE   = -I/home/lsst-daq/daq-sdk/current/include 
-LIBPATH       = -L/usr/local/lib -Wl,-rpath,/usr/local/lib -L/usr/local/lib64 -Wl,-rpath,/usr/local/lib64 -L/usr/local/boost_1_66_0/stage/lib -Wl,-rpath,/usr/local/boost_1_66_0/stage/lib
+LIBPATH       = -L../../lib -Wl,-rpath,../../lib \
+		-L/usr/local/lib -Wl,-rpath,/usr/local/lib \
+		-L/usr/local/lib64 -Wl,-rpath,/usr/local/lib64 \
+		-L/usr/local/boost_1_66_0/stage/lib -Wl,-rpath,/usr/local/boost_1_66_0/stage/lib
 DAQ_LIBPATH   = -L/home/lsst-daq/daq-sdk/current/x86/lib -Wl,-rpath,/home/lsst-daq/daq-sdk/current/x86/lib  
-LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcurl -lcrypto
+LIB           = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcrypto
 DAQ_LIB       = -ldaq_daq -ldaq_ims -ldaq_dsi -ldaq_osa -ldaq_dss -ldaq_net
 LOG_LIB       = -lboost_log_setup -lboost_log -lboost_thread -lboost_system -lboost_filesystem
 OBJ           = ../../ocs/obj/Consumer.o ../../ocs/obj/SimplePublisher.o
