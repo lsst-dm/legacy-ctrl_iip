@@ -861,12 +861,26 @@ void Forwarder::process_at_fetch(Node n) {
       return;
 }
 
+int Forwarder::check_for_image_existence(string image_id) {
+  int x;
+  std::string line = "./ims.sh ";
+  line += image_id;
+  x = system(line.c_str());
+  return x;
 
+}
 
 void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
 {
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
+
+      XXOOXX
+      if ((this->check_for_image_existence(image_id.c_str()) == 0) {
+      }
+      else {
+          return (1);
+      }
 
   IMS::Image image(image_id.c_str(), store);
 
