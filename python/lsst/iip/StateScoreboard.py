@@ -1,3 +1,45 @@
+###############################################################################
+###############################################################################
+## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
+## All rights reserved.
+##
+## Developed by:
+##
+##   LSST Image Ingest and Distribution Team
+##   National Center for Supercomputing Applications
+##   University of Illinois
+##   http://www.ncsa.illinois.edu/enabling/data/lsst
+##
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal with the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+##
+##   Redistributions of source code must retain the above copyright
+##   notice, this list of conditions and the following disclaimers.
+##
+##   Redistributions in binary form must reproduce the above copyright
+##   notice, this list of conditions and the following disclaimers in the
+##   documentation and/or other materials provided with the distribution.
+##
+##   Neither the names of the National Center for Supercomputing
+##   Applications, the University of Illinois, nor the names of its
+##   contributors may be used to endorse or promote products derived from
+##   this Software without specific prior written permission.
+##
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+## IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+## ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+## CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
+
+
+
 import redis
 import toolsmod
 from toolsmod import get_timestamp
@@ -242,7 +284,7 @@ class StateScoreboard(Scoreboard):
 
     def append_new_fault_to_fault_history(self, params):
         prms = deepcopy(params)
-        prms['DATETIME'] = str(datetime.datetime)
+        #prms['DATETIME'] = str(datetime.datetime)
         self._redis.rpush('FAULT_HISTORY',yaml.dump(prms))
 
 
@@ -440,13 +482,15 @@ class StateScoreboard(Scoreboard):
             #RAISE exception to catch in DMCS.py
 
 
-    def add_job(self, job_number, visit_id, raft_list, raft_ccd_list):
+    def add_job(self, job_number, device, image_id, raft_list, raft_ccd_list):
         """All job rows created in the scoreboard begin with this method
            where initial attributes are inserted.
         """
         if self.check_connection():
-            self._redis.hset(job_number, 'VISIT_ID', visit_id)
             self._redis.lpush(self.JOBS, job_number)
+            self.set_value_for_job(job_number, 'DEVICE', device)
+            self.set_value_for_job(job_number, 'IMAGE', image_id)
+            self.set_current_device_job(job_number, device)
             # self.set_ccds_for_job(job_number, ccds)
             self.set_job_state(job_number, 'NEW')
             self.set_value_for_job(job_number, STATUS, 'ACTIVE')

@@ -1,3 +1,45 @@
+###############################################################################
+###############################################################################
+## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
+## All rights reserved.
+##
+## Developed by:
+##
+##   LSST Image Ingest and Distribution Team
+##   National Center for Supercomputing Applications
+##   University of Illinois
+##   http://www.ncsa.illinois.edu/enabling/data/lsst
+##
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal with the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+##
+##   Redistributions of source code must retain the above copyright
+##   notice, this list of conditions and the following disclaimers.
+##
+##   Redistributions in binary form must reproduce the above copyright
+##   notice, this list of conditions and the following disclaimers in the
+##   documentation and/or other materials provided with the distribution.
+##
+##   Neither the names of the National Center for Supercomputing
+##   Applications, the University of Illinois, nor the names of its
+##   contributors may be used to endorse or promote products derived from
+##   this Software without specific prior written permission.
+##
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+## IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+## ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+## CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
+
+
+
 import toolsmod
 from toolsmod import get_timestamp
 import logging
@@ -9,6 +51,7 @@ import os
 from copy import deepcopy
 from pprint import pprint, pformat
 import time
+import datetime
 from time import sleep
 import threading
 from threading import Lock
@@ -48,6 +91,7 @@ class AuxDevice:
     CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
     DP = toolsmod.DP
+    METRIX = toolsmod.METRIX
     RAFT_LIST = []
     RAFT_CCD_LIST = ['00']
     date_format='date +%F_%H_%R:%S-'  # Used to generate unique ack_ids
@@ -95,6 +139,8 @@ class AuxDevice:
                               'AT_HEADER_READY': self.process_header_ready_event,
                               'AT_FWDR_HEADER_READY_ACK': self.process_header_ready_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AR_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AT_ARCHIVE_ITEM_ACK': self.process_ack, 
                               'AT_END_READOUT': self.process_at_end_readout }
 
 
@@ -181,7 +227,10 @@ class AuxDevice:
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback: RECEIVING ACK MESSAGE')
-        LOGGER.debug('Message from ACK callback message body is: %s', pformat(str(msg_dict)))
+        LOGGER.info('Message in an ACK callback message body is: %s', pformat(str(msg_dict)))
+
+        if self.DP:
+            print("\n\nIn AuxDevice on_ack_message - receiving this message: %s" % body)
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -212,20 +261,20 @@ class AuxDevice:
         num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
 
-
         # Give fwdrs enough time to respond...
-        #self.ack_timer(1.4)
-        sleep(3)
-
+        ## FIX - Note: Incorporate way for simple_prog timer to do health checks.
+        self.ack_timer(2.0)
+        #fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
 
 
         if (self.set_current_fwdr() == False):
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
             desc = "No health check response from ANY fwdr"
             type = 'FAULT'
-            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 'no health check response any fwdrs'
+            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 
+                                                                          # 'no health check 
+                                                                          # response any fwdrs'
             return
-        print("  ")
 
         # Add archive check when necessary...
         #if self.use_archive_ctrl == False:
@@ -284,15 +333,23 @@ class AuxDevice:
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
         self.prp.pprint(fwdr_new_target_params)
+        self.clear_fwdr_state()
         self._publisher.publish_message(route_key, fwdr_new_target_params)
        
 
         
         # receive ack back from forwarder that it has job params
-        self.clear_fwdr_state()
-        self.ack_timer(8.4)
+        if self.METRIX:
+            z1 = datetime.datetime.now()
 
-        if self.did_current_fwdr_respond() == False:
+        fwdr_response = self.simple_progressive_ack_timer(self.FWDR, 30.0)
+
+        if self.METRIX: 
+            z2 = datetime.datetime.now()
+            z3 = z2 - z1
+            LOGGER.info("METRIX: In StartInt - waited %s for xfer_params ack to return." % z3)
+
+        if fwdr_response == False:
             name = self._current_fwdr['FQN']
             type = "FAULT"
             desc = "No xfer_params response from fwdr."
@@ -309,9 +366,6 @@ class AuxDevice:
         st_int_params_ack['JOB_NUM'] = job_number
         st_int_params_ack['SESSION_ID'] = session_id
         st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
-        print("000000000000000000000000")
-        print("Acking positive to start integration")
-        print("000000000000000000000000")
         self.accept_job(st_int_params_ack)
 
 
@@ -552,6 +606,9 @@ class AuxDevice:
 
  
     def set_fwdr_state(self, component, state):
+        if self.DP:
+            print("\n\nIn set_fwdr_state - Setting %s state to RESPONSIVE\n" % component)
+        LOGGER.info("set_fwdr_state - setting component %s to RESPONSIVE\n" % component)
         self._fwdr_state_dict[component]['RESPONSE'] = state
 
 
@@ -633,6 +690,10 @@ class AuxDevice:
        
  
     def process_xfer_params_ack(self, params):
+        if self.DP:
+            print("\n\nIn process_xfer_params_ack - auxdevice setting state of %s to RESPONSIVE\n" \
+                   % params['COMPONENT'])
+        LOGGER.info('process_xfer_params_ack: state of %s being set to RESPONSIVE' %  params['COMPONENT'])
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
     
