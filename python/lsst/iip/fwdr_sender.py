@@ -54,7 +54,7 @@ def main():
 
 
   print("Begin Send Messages...")
-
+  """
   print("Sending AT_FWDR_HEALTH_CHECK message")
   msg = {}
   msg['MSG_TYPE'] = "AT_FWDR_HEALTH_CHECK"
@@ -62,11 +62,14 @@ def main():
   msg['ACK_ID'] = 'xxX22122'
   time.sleep(5)
   sp1.publish_message("f99_consume", msg)
+  """
 
   print("Sending AT_FWDR_XFER_PARAMS message")
   msg = {}
   msg['MSG_TYPE'] = "AT_FWDR_XFER_PARAMS"
   msg['JOB_NUM'] = 'j42'
+  msg['IMAGE_ID'] = 'AT-O-20180930-00005'
+  #msg['IMAGE_ID'] = 'EAT-O-2018930-00005'
   msg['TARGET_LOCATION'] = '/tmp/target'
   msg['SESSION_ID'] = 'sess77'
   msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
@@ -88,7 +91,8 @@ def main():
   #msg['IMAGE_ID'] = 'test23'
   #msg['IMAGE_ID'] = 'luckyme'
   #msg['IMAGE_ID'] = 'jubilee'
-  msg['IMAGE_ID'] = 'ats-18july2018-00104'
+  msg['IMAGE_ID'] = 'AT-O-20180930-00005'
+  #msg['IMAGE_ID'] = 'EAT-O-2018930-00005'
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
@@ -101,10 +105,12 @@ def main():
   msg = {} 
   msg["MSG_TYPE"] = "FORMAT_HEADER_READY"
   #msg['IMAGE_ID'] = 'jubilee'
-  msg['IMAGE_ID'] = 'ats-18july2018-00104'
+  msg['IMAGE_ID'] = 'AT-O-20180930-00005'
+  #msg['IMAGE_ID'] = 'EAT-O-2018930-00005'
   #msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
   #msg["FILENAME"] = "/tmp/source/header/luckyme/luckyme.header"
-  msg["FILENAME"] = "/tmp/source/header/ats-18july2018-00111/ats-18july2018-00111.header"
+  #msg["FILENAME"] = "/tmp/source/header/ats-18july2018-00111/ats-18july2018-00111.header"
+  msg["FILENAME"] = "http://localhost:8000/visitJune-28.header"
   time.sleep(4)
   #sp1.publish_message("f99_consume", msg) 
   sp1.publish_message("format_consume_from_f99", msg) 

@@ -480,6 +480,7 @@ ROOT:
         JOB_NUM:
         TARGET_LOCATION: Where to put file in archive
         SESSION_ID:
+        DEVICE:
         VISIT_ID:
         DAQ_ADDR: This is tmp until DAQ can support all forwarders - either path or 'API'
         ACK_ID: seq. num
@@ -685,6 +686,7 @@ ROOT:
         JOB_NUM:
         TARGET_LOCATION: Where to put file in archive
         SESSION_ID:
+        DEVICE:
         ACK_ID: seq. num
         REPLY_QUEUE:
         XFER_PARAMS:
