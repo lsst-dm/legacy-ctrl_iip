@@ -64,12 +64,14 @@ class Forwarder {
     std::string Name = ""; //such as FORWARDER_1
     std::string Lower_Name; //such as f1
     std::string Component = ""; //such as FORWARDER_1
+    std::string Device_Type = "";
     std::string WFS_RAFT = "";
     bool is_naxis_set = true;
     long Naxis_1 = NAXIS1;
     long Naxis_2 = NAXIS2;
     int Num_Images = 0; 
     int ERROR_CODE_PREFIX; 
+    std::string Telemetry_Queue = "telemetry_queue";
     std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
                                          "10","11","12","13","14","15","16","17"};
 
@@ -173,6 +175,7 @@ class Forwarder {
     void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
     int check_for_image_existence(std::string);
+    void send_telemetry(int, std::string);
 
     long* format_read_img_segment(const char*);
     unsigned char** format_assemble_pixels(char *);
@@ -648,6 +651,9 @@ void Forwarder::process_xfer_params(Node n) {
     this->Session_ID = n["SESSION_ID"].as<string>();
     cout << "After setting SESSION_ID" << endl;
 
+    this->Device_Type = n["DEVICE"].as<string>();
+    cout << "After setting DEVICE" << endl;
+
     this->Job_Num = n["JOB_NUM"].as<string>();
     cout << "After setting JOB_NUM" << endl;
 
@@ -689,6 +695,9 @@ void Forwarder::process_at_xfer_params(Node n) {
 
     //this->Session_ID = n["SESSION_ID"].as<string>();
     //cout << "After setting SESSION_ID" << endl;
+
+    this->Device_Type = n["DEVICE"].as<string>();
+    cout << "After setting DEVICE" << endl;
 
     //this->Job_Num = n["JOB_NUM"].as<string>();
     //cout << "After setting JOB_NUM" << endl;
@@ -850,12 +859,19 @@ void Forwarder::process_at_fetch(Node n) {
  
            string raft = "ats";
            retval = this->fetch_at_reassemble_process(raft, image_id, filepath.str());
-           if(retval > 0) {
-             // Send telemetry stating what happened.
-             // (1) means that the image was not in catalog
-             // (2) means that no slices were available for it.
-             // (0) means all fine...
-             return;
+           if(retval == 1) {
+               ostringstream desc;
+               desc << "Forwarder Fetch Error: Found no image in Catalog for " \
+                    << image_id << ". Bailing from Readout." << endl;
+               this->send_telemetry(1, desc.str());
+               return;
+            }
+           if(retval == 2) {
+               ostringstream desc;
+               desc << "Forwarder Fetch Error: No data slices available for " \
+                    << image_id << ". Bailing from Readout." << endl;
+               this->send_telemetry(2, desc.str());
+               return;
             }
 
            map<string, vector<string>> source_boards = {
@@ -887,6 +903,7 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, st
                                      // such as raft01, raft13, etc.
 
       //XXOOXX
+      // This tmp code checks for the existence of the image name in the DAQ catalog.
       if ((this->check_for_image_existence(image_id)) == 0) {
         cout << "Found an image that exists in Catalog. Fetching " << image_id << " now." << endl;
         retval = 0; 
@@ -1882,4 +1899,15 @@ int main() {
     }
 }
 
+void Forwarder::send_telemetry(int code, std::string description) {
+      Emitter msg;
+      msg << BeginMap;
+      msg << Key << "MSG_TYPE" << Value << "TELEMETRY";
+      msg << Key << "STATUS_CODE" << Value << code;
+      msg << Key << "DEVICE" << Value << this->Device_Type;
+      msg << Key << "DESCRIPTION" << Value << description;
+      msg << EndMap;
+      this->fetch_pub->publish_message(this->Telemetry_Queue, msg.c_str());
 
+      return;
+}
