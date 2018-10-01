@@ -86,7 +86,7 @@ def main():
 
 
   #  while 1:
-
+  """
   msg = {}
   msg['MSG_TYPE'] = "STANDBY"
   msg['DEVICE'] = 'AT'
@@ -118,7 +118,7 @@ def main():
   """
   msg = {}
   msg['MSG_TYPE'] = "DMCS_AT_START_INTEGRATION"
-  msg['IMAGE_ID'] = 'AT_C_20180923_000050'
+  msg['IMAGE_ID'] = 'AT-O-20180928-00064'
   msg['IMAGE_INDEX'] = '2'
   msg['IMAGE_SEQUENCE_NAME'] = 'MAIN'
   msg['IMAGES_IN_SEQUENCE'] = '3'
@@ -130,7 +130,7 @@ def main():
 
   msg = {}
   msg['MSG_TYPE'] = "DMCS_AT_END_READOUT"
-  msg['IMAGE_ID'] = 'AT_C_20180923_000050'
+  msg['IMAGE_ID'] = 'AT-O-20180928-00064'
   msg['IMAGE_INDEX'] = '2'
   msg['IMAGE_SEQUENCE_NAME'] = 'MAIN'
   msg['IMAGES_IN_SEQUENCE'] = '3'
@@ -143,11 +143,10 @@ def main():
   print("Sending HEADER1 information")
   msg = {}
   msg["MSG_TYPE"] = "DMCS_AT_HEADER_READY"
-  msg["IMAGE_ID"] = 'AT_C_20180923_000050'
+  msg["IMAGE_ID"] = 'AT-O-20180928-00064'
   msg["FILENAME"] = "http://localhost:8000/visitJune-28.header"
   time.sleep(4)
   sp1.publish_message("ocs_dmcs_consume", msg)
-  """
 
   time.sleep(5)
 

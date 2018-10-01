@@ -262,9 +262,9 @@ class AuxDevice:
 
 
         # Give fwdrs enough time to respond...
-        #self.ack_timer(1.4)
-        sleep(5)
-        fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
+        ## FIX - Note: Incorporate way for simple_prog timer to do health checks.
+        self.ack_timer(2.0)
+        #fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
 
 
         if (self.set_current_fwdr() == False):
