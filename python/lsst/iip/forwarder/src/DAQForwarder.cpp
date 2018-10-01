@@ -167,11 +167,12 @@ class Forwarder {
     void fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
     void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
-    void fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
+    int fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
     void get_register_metadata(const DAQ::Location& location, const IMS::Image& image);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
     void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
+    int check_for_image_existence(std::string);
 
     long* format_read_img_segment(const char*);
     unsigned char** format_assemble_pixels(char *);
@@ -830,6 +831,7 @@ void Forwarder::process_fetch(Node n) {
 
 void Forwarder::process_at_fetch(Node n) {
       string image_id = n["IMAGE_ID"].as<string>();
+      int retval;
       ostringstream cmd;
       ostringstream rmcmd;
       ostringstream filepath;
@@ -847,7 +849,15 @@ void Forwarder::process_at_fetch(Node n) {
       
  
            string raft = "ats";
-           this->fetch_at_reassemble_process(raft, image_id, filepath.str());
+           retval = this->fetch_at_reassemble_process(raft, image_id, filepath.str());
+           if(retval > 0) {
+             // Send telemetry stating what happened.
+             // (1) means that the image was not in catalog
+             // (2) means that no slices were available for it.
+             // (0) means all fine...
+             return;
+            }
+
            map<string, vector<string>> source_boards = {
               {"0", {"00"}}
            };
@@ -870,16 +880,21 @@ int Forwarder::check_for_image_existence(string image_id) {
 
 }
 
-void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
+int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
 {
+  int retval = 1;
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
 
-      XXOOXX
-      if ((this->check_for_image_existence(image_id.c_str()) == 0) {
+      //XXOOXX
+      if ((this->check_for_image_existence(image_id)) == 0) {
+        cout << "Found an image that exists in Catalog. Fetching " << image_id << " now." << endl;
+        retval = 0; 
       }
       else {
-          return (1);
+        cout << "ALERT - ALERT" << endl;
+        cout << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
+        return retval;
       }
 
   IMS::Image image(image_id.c_str(), store);
@@ -898,7 +913,7 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
       IMS::Source source(location, image);
   
       IMS::WaveFront slice(source);
-      if(!slice) return;
+      if(!slice) return (2);
   
       // Filehandle set for ATS CCD will then have a set of 
       // 16 filehandles...one filehandle for each amp segment.
@@ -929,7 +944,7 @@ void Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, s
   
       this->fetch_close_filehandles(FH_ATS);
   }
-  return;
+  return retval;
 }
 
 
