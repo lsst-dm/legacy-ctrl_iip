@@ -10,6 +10,11 @@ using namespace YAML;
 
 using ack_funcptr = void (AckSubscriber::*)(Node); 
 
+struct consumer_thread_args { 
+    Consumer *consumer; 
+    AckSubscriber *subscriber; 
+};
+
 map<string, map<string, string>> ack_book_keeper; 
 
 map<string, long> summary_states = { 
@@ -37,6 +42,10 @@ map<string, ack_funcptr> action_handler = {
     {"BOOK_KEEPING", &AckSubscriber::process_book_keeping}, 
     {"RESOLVE_ACK", &AckSubscriber::process_resolve_ack}
 }; 
+
+map<string, ack_funcptr> telemetry_handler = { 
+    { "TELEMETRY", &AckSubscriber::process_telemetry }  
+};
 
 template<typename T> 
 class Command { 
@@ -130,9 +139,55 @@ void AckSubscriber::run() {
     at.salEventPub(const_cast<char *>("atArchiver_logevent_errorCode")); 
     at.salEventPub(const_cast<char *>("atArchiver_logevent_settingsApplied")); 
 
+    // telemetry 
+    at.salEventPub("atArchiver_logevent_telemetry");
+
     cout << "============> running CONSUMER <=============" << endl; 
+    Consumer *telemetry_consumer = new Consumer(base_broker_addr, "telemetry_consume"); 
+
+    consumer_thread_args *telemetry_args = new consumer_thread_args; 
+    telemetry_args->consumer = telemetry_consumer; 
+    telemetry_args->subscriber = this; 
+
+    consumer_thread_args *ack_args = new consumer_thread_args; 
+    ack_args->consumer = ack_consumer; 
+    ack_args->subscriber = this; 
+
+    pthread_create(&telemetry_t, NULL, &AckSubscriber::run_telemetry_consumer, telemetry_args); 
+    pthread_create(&ack_t, NULL, &AckSubscriber::run_ack_consumer, ack_args); 
+} 
+
+void *AckSubscriber::run_telemetry_consumer(void *pargs) {
+    cout << "Consuming telemetry..." << endl;
+    consumer_thread_args *params = ((consumer_thread_args *)pargs); 
+    Consumer *consumer = params->consumer; 
+    AckSubscriber *subscriber = params->subscriber;
+    callback<AckSubscriber> on_msg = &AckSubscriber::on_telemetry_message; 
+    consumer->run<AckSubscriber>(subscriber, on_msg); 
+    return 0;
+} 
+
+void *AckSubscriber::run_ack_consumer(void *pargs) {
+    cout << "Consuming acks..." << endl;
+    consumer_thread_args *params = ((consumer_thread_args *)pargs); 
+    Consumer *consumer = params->consumer; 
+    AckSubscriber *subscriber = params->subscriber;
     callback<AckSubscriber> on_msg = &AckSubscriber::on_message; 
-    ack_consumer->run<AckSubscriber>(this, on_msg); 
+    consumer->run<AckSubscriber>(subscriber, on_msg); 
+    return 0;
+} 
+
+void AckSubscriber::on_telemetry_message(string message) { 
+    Node node = Load(message); 
+    string message_value; 
+    try { 
+	message_value = node["MSG_TYPE"].as<string>(); 
+	ack_funcptr action = telemetry_handler[message_value]; 
+	(this->*action)(node); 
+    } 
+    catch (exception& e) { 
+	cout << "WARNING: " << "In AckSubscriber -- on_telemetry_message, cannot read fields from message." << endl; 
+    } 
 } 
 
 void AckSubscriber::on_message(string message) { 
@@ -456,8 +511,29 @@ void AckSubscriber::process_resolve_ack(Node n) {
     }
 }
 
+void AckSubscriber::process_telemetry(Node n) { 
+    cout << "Entering process_telemetry function." << endl;
+    try { 
+        int priority = 0;
+        int status_code = n["STATUS_CODE"].as<int>(); 
+        string description = n["DESCRIPTION"].as<string>(); 
+
+        atArchiver_logevent_telemetryC data; 
+        data.statusCode = status_code; 
+        data.description = description; 
+        data.priority = priority; 
+        at.logEvent_telemetry(&data, priority);
+    } 
+    catch (exception& e) { 
+        cout << "In process_telemetry, Cannot publish messages back to OCS." << endl; 
+    } 
+} 
+
 int main() { 
     AckSubscriber ack; 
     ack.run(); 
+    while(1) { 
+
+    }
     return 0; 
 } 
