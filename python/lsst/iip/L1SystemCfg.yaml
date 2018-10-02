@@ -134,14 +134,14 @@ ROOT:
     CU: cu_foreman_consume
     AT: at_foreman_consume
   ARCHIVE:
-    USE_ARCHIVE_CTRL: False
+    USE_ARCHIVE_CTRL: True
     ARCHIVE_NAME: ARC
     ARCHIVE_LOGIN: ARC
     ARCHIVE_IP: 140.252.32.128
     ARCHIVE_HOSTNAME: ARC
-    ARCHIVE_XFER_ROOT: /data/export/
-    ARCHIVE_AT_XFER_ROOT: /data/export/at
-    ARCHIVE_AR_XFER_ROOT: /data/export/ar
+    ARCHIVE_XFER_ROOT: /data/export
+    ARCHIVE_AT_XFER_ROOT: /data/export
+    ARCHIVE_AR_XFER_ROOT: /data/export
     CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
     CHECKSUM_TYPE: MD5 
   EFD:

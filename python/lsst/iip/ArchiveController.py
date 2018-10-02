@@ -71,7 +71,7 @@ class ArchiveController:
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
     AR_ACK_PUBLISH = "ar_foreman_ack_publish"
-    AT_ACK_PUBLISH = "ar_foreman_ack_publish"
+    AT_ACK_PUBLISH = "at_foreman_ack_publish"
     AUDIT_CONSUME = "audit_consume"
     ERROR_CODE_PREFIX = '54'
     YAML = 'YAML'
@@ -368,7 +368,7 @@ class ArchiveController:
         if os.path.isdir(final_target_dir):
             pass
         else:
-            os.mkdir(final_target_dir, 0o766)
+            os.mkdir(final_target_dir, 0o2776)
 
         return final_target_dir
 
@@ -380,6 +380,8 @@ class ArchiveController:
         ack_params[MSG_TYPE] = new_type
         ack_params['TARGET_DIR'] = target_dir
         ack_params['ACK_ID'] = params['ACK_ID']
+        ack_params['JOB_NUM'] = params['JOB_NUM']
+        ack_params['IMAGE_ID'] = params['IMAGE_ID']
         ack_params['COMPONENT'] = self._name
         ack_params['ACK_BOOL'] = True
         self._archive_publisher.publish_message(reply_queue, ack_params)

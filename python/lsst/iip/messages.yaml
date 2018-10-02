@@ -661,21 +661,20 @@ ROOT:
         ACK_BOOL:
         ACK_ID:
 
-    NEW_ARCHIVE_ITEM:
-        MSG_TYPE: NEW_ARCHIVE_ITEM
+    NEW_AT_ARCHIVE_ITEM:
+        MSG_TYPE: NEW_AT_ARCHIVE_ITEM
         JOB_NUM:
         SESSION_ID: num from OCS
-        VISIT_ID: num from OCS
         IMAGE_ID: num from OCS
         REPLY_QUEUE: 'at_foreman_ack_publish'
         ACK_ID: seq. num
 
 
-    NEW_ARCHIVE_ITEM_ACK:
-        MSG_TYPE: NEW_ARCHIVE_ITEM_ACK
+    NEW_AT_ARCHIVE_ITEM_ACK:
+        MSG_TYPE: NEW_AT_ARCHIVE_ITEM_ACK
         COMPONENT: ARCHIVE_CTRL
         ACK_ID: return seq. number
-        TARGET_LOCATION: Path of intended location
+        TARGET_DIR: Path of intended location
         ACK_BOOL: 
         JOB_NUM: 
         IMAGE_ID: 
@@ -1067,6 +1066,16 @@ ROOT:
         RESULT_SET:
             CCD_LIST: 
             RECEIPT_LIST: Alphanumeric receipt or 'none' for failure
+
+
+
+#   Miscellaneous Messages
+
+    TELEMETRY:
+        MSG_TYPE: TELEMETRY
+        DEVICE:
+        STATUS_CODE:
+        DESCRIPTION:
 
     # -------------------------------------------------------------------------------
 
