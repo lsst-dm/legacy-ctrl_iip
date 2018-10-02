@@ -1,7 +1,7 @@
 [Unit]
 Description=L1 Image Ingest and Processing
 Requires=multi-user.target l1d-ctrl_dependency.target 
-Wants=l1d-ctrl_check.service l1d-DMCS.service l1d-CommandListener.service l1d-AckSubscriber.service l1d-EventSubscriber.service l1d-AuxDevice.service
+Wants=l1d-ctrl_check.service l1d-DMCS.service l1d-CommandListener.service l1d-AckSubscriber.service l1d-EventSubscriber.service l1d-AuxDevice.service l1d-ArchiveController.service
 
 [Install]
 WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=L1 ArchiveController Service
+Requires=l1d-ctrl_dependency.target
+BindsTo=l1d-ctrl_iip.target
+
+[Service]
+Type=simple
+User=ATS
+WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip
+ExecStart=/opt/rh/rh-python36/root/usr/bin/python3 ArchiveController.py
+Restart=always
+
+[Install]
+WantedBy=l1d-ctrl_iip.target

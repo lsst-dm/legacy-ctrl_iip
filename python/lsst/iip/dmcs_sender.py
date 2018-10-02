@@ -12,13 +12,13 @@ import toolsmod
 class Premium:
   def __init__(self):
     logging.basicConfig()
-    broker_url = 'amqp://ARCHIE:ARCHIE@140.252.32.160:5672/%2Ftest_at'
+    broker_url = 'amqp://ARCHIE:ARCHIE@140.252.32.128:5672/%2Ftest_at'
 
-    self.new_thread = Consumer(broker_url, 'telemetry_queue', 'xthread', self.mycallback, 'YAML')
-    self.new_thread.start()
+    #self.new_thread = Consumer(broker_url, 'telemetry_queue', 'xthread', self.mycallback, 'YAML')
+    #self.new_thread.start()
 
-    cdm = toolsmod.intake_yaml_file("L1SystemCfg.yaml")
-    self.ccd_list = cdm['ROOT']['CCD_LIST']
+    #cdm = toolsmod.intake_yaml_file("L1SystemCfg.yaml")
+    #self.ccd_list = cdm['ROOT']['CCD_LIST']
    
   def mycallback(self, ch, method, properties, body):
     ch.basic_ack(method.delivery_tag)
@@ -68,7 +68,7 @@ def main():
   """
   msg = {}
   msg['MSG_TYPE'] = "DMCS_AT_START_INTEGRATION"
-  msg['IMAGE_ID'] = 'AT_C_20181001_000002'
+  msg['IMAGE_ID'] = 'AT_C_20181001_000003'
   msg['IMAGE_INDEX'] = '2'
   msg['IMAGE_SEQUENCE_NAME'] = 'MAIN'
   msg['IMAGES_IN_SEQUENCE'] = '3'
@@ -81,7 +81,7 @@ def main():
   msg = {}
   msg['MSG_TYPE'] = "DMCS_AT_END_READOUT"
   #msg['IMAGE_ID'] = 'EAT-O-20Z80930-00005'
-  msg['IMAGE_ID'] = 'AT_C_20181001_000002'
+  msg['IMAGE_ID'] = 'AT_C_20181001_000003'
   msg['IMAGE_INDEX'] = '2'
   msg['IMAGE_SEQUENCE_NAME'] = 'MAIN'
   msg['IMAGES_IN_SEQUENCE'] = '3'
@@ -94,7 +94,7 @@ def main():
   print("Sending HEADER1 information")
   msg = {}
   msg["MSG_TYPE"] = "DMCS_AT_HEADER_READY"
-  msg["IMAGE_ID"] = 'AT_C_20181001_000002'
+  msg["IMAGE_ID"] = 'AT_C_20181001_000003'
   msg["FILENAME"] = "http://localhost:8000/visitJune-28.header"
   time.sleep(4)
   sp1.publish_message("ocs_dmcs_consume", msg)
