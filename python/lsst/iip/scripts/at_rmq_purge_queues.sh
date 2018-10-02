@@ -35,6 +35,7 @@ declare -a queues=( "at_foreman_consume"
                     "forward_consume_from_f93"
                     "forward_consume_from_f99"
                     "ar_foreman_ack_publish"
+                    "telemetry_queue"
                     "test_dmcs_ocs_publish") # optional test queue for dmcs_ocs test 
 
 for i in ${queues[@]}

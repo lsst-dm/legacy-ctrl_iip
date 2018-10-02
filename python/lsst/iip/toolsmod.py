@@ -200,6 +200,9 @@ state_matrix[5][1] = True
 # 55 - No New Session Response
 # 56 - No Next Visit Response
 
+#Status Codes
+# 4451 - No response from Archive Controller
+
 
 """ Exception classes 
 """ 

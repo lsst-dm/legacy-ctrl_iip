@@ -86,6 +86,7 @@ class AuxDevice:
     AT_FOREMAN_ACK_PUBLISH = "at_foreman_ack_publish"
     DMCS_ACK_CONSUME = "dmcs_ack_consume"
     DMCS_FAULT_CONSUME = "dmcs_fault_consume"
+    TELEMETRY_QUEUE = "telemetry_queue"
     START_INTEGRATION_XFER_PARAMS = {}
     ACK_QUEUE = []
     CFG_FILE = 'L1SystemCfg.yaml'
@@ -140,7 +141,7 @@ class AuxDevice:
                               'AT_FWDR_HEADER_READY_ACK': self.process_header_ready_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
                               'NEW_AR_ARCHIVE_ITEM_ACK': self.process_ack, 
-                              'NEW_AT_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AT_ARCHIVE_ITEM_ACK': self.process_new_at_item_ack, 
                               'AT_END_READOUT': self.process_at_end_readout }
 
 
@@ -251,6 +252,7 @@ class AuxDevice:
         start_int_ack_id = params[ACK_ID]
         session_id = params['SESSION_ID']
         job_number = params['JOB_NUM']
+        image_id = params['IMAGE_ID']
 
         if self.DP: print("Incoming AUX AT_Start Int msg")
         # next, run health check
@@ -262,9 +264,9 @@ class AuxDevice:
 
 
         # Give fwdrs enough time to respond...
-        #self.ack_timer(1.4)
-        sleep(5)
-        fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
+        ## FIX - Note: Incorporate way for simple_prog timer to do health checks.
+        self.ack_timer(2.0)
+        #fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
 
 
         if (self.set_current_fwdr() == False):
@@ -277,38 +279,42 @@ class AuxDevice:
             return
 
         # Add archive check when necessary...
-        #if self.use_archive_ctrl == False:
-        #    pass
-        #self.clear_archive_ack()
+        if self.use_archive_ctrl == False:
+            pass
+        self.clear_archive_ack()
+
         # send new_archive_item msg to archive controller
-        #start_int_params = {}
-        #ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
-        #start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
-        #start_int_params['ACK_ID'] = ac_timed_ack
-        #start_int_params['JOB_NUM'] = job_number
-        #start_int_params['SESSION_ID'] = session_id
-        #start_int_params['VISIT_ID'] = visit_id
-        #start_int_params['IMAGE_ID'] = image_id
-        #start_int_params['REPLY_QUEUE'] = self.AUX_FOREMAN_ACK_PUBLISH
-        #self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
-        #self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
+        start_int_params = {}
+        ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
+        start_int_params[MSG_TYPE] = 'NEW_AT_ARCHIVE_ITEM'
+        start_int_params['ACK_ID'] = ac_timed_ack
+        start_int_params['JOB_NUM'] = job_number
+        start_int_params['SESSION_ID'] = session_id
+        start_int_params['IMAGE_ID'] = image_id
+        start_int_params['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
+        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
 
-        #ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
+        ar_response = self.simple_progressive_ack_timer(self.ARCHIVE, 4.0)
 
-        #if ar_response == None:
-        #   FIXME raise L1 exception and bail out
-        #   print("B-B-BAD Trouble; no ar_response")
-        #self.archive_xfer_root = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
+        if ar_response == False:
+            description = ("Non-Fatal Error - No NEW_AT_ARCHIVE_ITEM response from ArchiveCtrl." + \
+                           "Using default Archive Dir location from CFG file: %s" \
+                            % self.archive_xfer_root)
+            LOGGER.critical(description)
+            self.send_telemetry("4451", description) 
+            target_dir = self.archive_xfer_root 
+ 
+        else:
+            target_dir = self._archive_ack['TARGET_DIR']
           
  
-        target_dir = self.archive_xfer_root 
-        
         xfer_params_ack_id = self.get_next_timed_ack_id("AT_FWDR_XFER_PARAMS_ACK") 
 
         fwdr_new_target_params = {} 
         fwdr_new_target_params['XFER_PARAMS'] = {}
         fwdr_new_target_params[MSG_TYPE] = 'AT_FWDR_XFER_PARAMS'
         fwdr_new_target_params[SESSION_ID] = params['SESSION_ID']
+        fwdr_new_target_params['DEVICE'] = self.DEVICE
         fwdr_new_target_params[JOB_NUM] = params[JOB_NUM]
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
         fwdr_new_target_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
@@ -318,7 +324,8 @@ class AuxDevice:
         # This may look curious, but in the other devices, a raft_list is a list of rafts,
         # but a raft_ccd_list is a list of lists, where each ccd sublist refers to 
         # a raft by the same list index
-        #This business is really so that unit tests can compare messages to 
+        #
+        # This business is really so that unit tests can compare messages to 
         # the canonical versions...as dicts are open ended and can correctly
         # contain more keys than the canonical example and hence fail incorrectly,
         # using lists eliminates this likely possibility.
@@ -509,6 +516,7 @@ class AuxDevice:
                 self._publisher.publish_message(reply_queue, final_msg)
                 return
             else:
+                pass
                 self.process_readout_responses(readout_ack_id, msgtype, reply_queue, image_id, job_number, result_set)
 
 
@@ -689,6 +697,11 @@ class AuxDevice:
         self.set_fwdr_state(component, HEALTHY)
        
  
+    def process_new_at_item_ack(self, params):
+        self._archive_ack['RESPONSE'] = 'RESPONSIVE'
+        self._archive_ack['TARGET_DIR'] = params['TARGET_DIR']
+        
+
     def process_xfer_params_ack(self, params):
         if self.DP:
             print("\n\nIn process_xfer_params_ack - auxdevice setting state of %s to RESPONSIVE\n" \
@@ -973,6 +986,14 @@ class AuxDevice:
         self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
+
+    def send_telemetry(self, status_code, description):
+        msg = {}
+        msg['MSG_TYPE'] = 'TELEMETRY'
+        msg['DEVICE'] = self.DEVICE
+        msg['STATUS_CODE'] = status_code
+        msg['DESCRIPTION'] = description
+        self._publisher.publish_message(self.TELEMETRY_QUEUE, msg)
 
 
     def shutdown(self):

@@ -53,7 +53,8 @@ class Setup:
                   "f99_consume_from_forward",
                   "ar_foreman_ack_publish",
                   "test_dmcs_ocs_publish"] # optional test queue for dmcs_ocs test ,
- 
+
+
         for queue in queues: 
             bunny_channel.queue_declare(queue=queue,durable=True)
             bunny_channel.queue_bind(queue=queue, exchange='message', routing_key=queue )
