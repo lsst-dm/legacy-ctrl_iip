@@ -410,20 +410,20 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD << this->BASE_BROKER_ADDR ;
     from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
     LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url2.str();
-    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->fetch_consume_queue.str();
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->fetch_consume_queue;
 
     ostringstream full_broker_url3;
     full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD << this->BASE_BROKER_ADDR;
     from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
     LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url3.str();
-    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->format_consume_queue.str();
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->format_consume_queue;
     //cout << this->format_consume_queue << endl; 
 
     ostringstream full_broker_url4;
     full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD << this->BASE_BROKER_ADDR ;
     from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
     LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url4.str();
-    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->forward_consume_queue.str();
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->forward_consume_queue;
 
     LOGGER(my_logger::get(), debug) << "Finished setting broker urls for consumers"; 
 }
@@ -833,7 +833,7 @@ void Forwarder::process_fetch(Node n) {
           << ", ACK_ID: " << ack_id << "}";
       this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
         LOGGER(my_logger::get(), debug) << "FORMAT_TAKE_IMAGES_DONE is sent to: " << this->format_consume_queue; 
-        LOGGER(my_logger::get(), debug) << "Message is: " << message.str(); 
+        LOGGER(my_logger::get(), debug) << "Message is: " << msg.str(); 
       return;
     }
 
@@ -870,7 +870,7 @@ void Forwarder::process_fetch(Node n) {
               << ", IMAGE_ID: " << image_id << "}";
       this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
       LOGGER(my_logger::get(), debug) << "FORMAT_END_READOUT is sent to: " << this->format_consume_queue; 
-      LOGGER(my_logger::get(), debug) << "Message is: " << message.str(); 
+      LOGGER(my_logger::get(), debug) << "Message is: " << msg.str(); 
       return;
     }
 }
@@ -1435,7 +1435,7 @@ void Forwarder::process_header_ready(Node n) {
         // Inform AuxDevice message was received.
         FWDR_pub->publish_message(reply_queue, message.str());
         LOGGER(my_logger::get(), debug) << "AT_FWDR_HEADER_READY_ACK is sent to: " << reply_queue; 
-        LOGGER(my_logger::get(), debug) << "Message is: " << msg; 
+        LOGGER(my_logger::get(), debug) << "Message is: " << message; 
 
         string path = n["FILENAME"].as<string>(); 
         string img_id = n["IMAGE_ID"].as<string>(); 
