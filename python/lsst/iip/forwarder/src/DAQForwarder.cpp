@@ -1892,12 +1892,6 @@ void Forwarder::forward_process_take_images_done(Node n) {
 //    cout << "msg is replied to ..." << reply_queue << endl;
 //} 
 
-int main() {
-    Forwarder *fwdr = new Forwarder();
-    fwdr->run();
-    while(1) {
-    }
-}
 
 void Forwarder::send_telemetry(int code, std::string description) {
       Emitter msg;
@@ -1911,3 +1905,12 @@ void Forwarder::send_telemetry(int code, std::string description) {
 
       return;
 }
+
+
+int main() {
+    Forwarder *fwdr = new Forwarder();
+    fwdr->run();
+    while(1) {
+    }
+}
+
