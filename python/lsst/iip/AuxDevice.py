@@ -471,8 +471,13 @@ class AuxDevice:
         route_key = self._current_fwdr['CONSUME_QUEUE']
         self._publisher.publish_message(route_key, msg)
 
+        # Now, ack processor will deal with result sets if they arrive...if end readout ack
+        # does not arrive, then lack of ack is noted against that job_num, IF checksumming
+        # is set to true.
+        return
 
-        readout_response = self.simple_progressive_ack_timer(self.FWDR, 20.0)
+        """
+        readout_response = self.simple_progressive_ack_timer(self.FWDR, 30.0)
 
         if readout_response == False:
             name = self._current_fwdr['FQN']
@@ -483,7 +488,6 @@ class AuxDevice:
             self.send_fault_state_event(5752, desc, type, name)
 
             return
-
 
         result_set = self.did_current_fwdr_send_result_set()
         if result_set == None:  #fail, ack_bool is false, and filename_list is None
@@ -518,7 +522,7 @@ class AuxDevice:
             else:
                 pass
                 self.process_readout_responses(readout_ack_id, msgtype, reply_queue, image_id, job_number, result_set)
-
+        """
 
     def process_readout_responses(self, readout_ack_id, msgtype, reply_queue, image_id, job_number, result_set):
         self.clear_archive_ack()
@@ -709,7 +713,8 @@ class AuxDevice:
         LOGGER.info('process_xfer_params_ack: state of %s being set to RESPONSIVE' %  params['COMPONENT'])
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
-    
+   
+ 
     
     def process_at_fwdr_end_readout_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
@@ -733,15 +738,18 @@ class AuxDevice:
                 LOGGER.debug('Releasing mutex...')
                 self.my_mutex_lock.release()
     
+
     
     def process_at_items_xferd_ack(self, params):
         self._archive_ack['RESPONSE'] = 'RESPONSIVE'
         self._archive_ack['RESULT_SET'] = params['RESULT_SET']
+
    
  
     def process_header_ready_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
+
 
 
     def get_next_timed_ack_id(self, ack_type):
@@ -756,6 +764,7 @@ class AuxDevice:
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         #return (ack_type + "_" + datestring + str(self._next_timed_ack_id.zfill(6)))
         return (ack_type + "_" + str(datestring) + str(self._next_timed_ack_id).zfill(6))
+
 
 
     def set_session(self, params):
@@ -778,6 +787,7 @@ class AuxDevice:
         """
 
 
+
     def set_visit(self, params):
         """ Set current visit_id in JobScoreboard.
             Send AR_NEXT_VISIT_ACK message with ack_bool equals True to specified reply queue.
@@ -797,6 +807,7 @@ class AuxDevice:
         msg['ACK_BOOL'] = True
         route_key = params['REPLY_QUEUE'] 
         self._publisher.publish_message(route_key, msg)
+
 
 
     def get_current_visit(self):
