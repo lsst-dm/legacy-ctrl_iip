@@ -384,44 +384,50 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //Consumers for Primary Forwarder
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
-    cout << full_broker_url.str() << endl;
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url.str();
     from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
 
     ostringstream consume_queue1;
     consume_queue1 << this->consume_queue << "_from_fetch";
-    cout << full_broker_url.str() << endl;
     from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue1.str();
 
     ostringstream consume_queue2;
     consume_queue2 << this->consume_queue << "_from_format";
-    cout << full_broker_url.str() << endl;
     from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue2.str();
 
     ostringstream consume_queue3;
     consume_queue3 << this->consume_queue << "_from_forward";
     ostringstream from_fwd_broker_url;
     from_fwd_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
-    cout << from_fwd_broker_url.str() << endl;
     from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << from_fwd_broker_url.str();
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue3.str();
 
     //Consumers for sub-components
     //ostringstream consume_queue;
 
     ostringstream full_broker_url2;
     full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD << this->BASE_BROKER_ADDR ;
-    cout << full_broker_url.str() << endl;
     from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url2.str();
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->fetch_consume_queue;
 
     ostringstream full_broker_url3;
     full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD << this->BASE_BROKER_ADDR;
-    cout << full_broker_url3.str() << endl;
     from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url3.str();
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->format_consume_queue;
     //cout << this->format_consume_queue << endl; 
 
     ostringstream full_broker_url4;
     full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD << this->BASE_BROKER_ADDR ;
-    cout << full_broker_url4.str() << endl;
     from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
+    LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url4.str();
+    LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->forward_consume_queue;
+
+    LOGGER(my_logger::get(), debug) << "Finished setting broker urls for consumers"; 
 
 }
 
@@ -487,6 +493,7 @@ void Forwarder::run() {
     pthread_t t7;
     pthread_create(&t7, NULL, &Forwarder::run_thread, args7);
 
+    LOGGER(my_logger::get(), debug) << "Finished setting up threads for consumers."; 
 }
 
 void *Forwarder::run_thread(void *pargs) {
@@ -498,6 +505,7 @@ void *Forwarder::run_thread(void *pargs) {
     callback<Forwarder> on_msg = params->funcptr;
 
     consumer->run<Forwarder>(forwarder, on_msg);
+    LOGGER(my_logger::get(), debug) << "Finished setting up thread."; 
 }
 
 
@@ -506,38 +514,39 @@ void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
     //Publishers
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << this->USER_PUB << ":" << this->PASSWD_PUB << this->BASE_BROKER_ADDR;
-    cout << "Pub Broker url is: " << full_broker_url.str() << endl;
+    LOGGER(my_logger::get(), debug) << "Publisher broker URL is: " << full_broker_url.str();
     FWDR_pub = new SimplePublisher(full_broker_url.str());
 
     ostringstream full_broker_url1;
     full_broker_url1 << "amqp://" << this->USER_FETCH_PUB << ":" << this->PASSWD_FETCH_PUB << this->BASE_BROKER_ADDR;
-    cout << "Pub Broker url is: " << full_broker_url1.str() << endl;
+    LOGGER(my_logger::get(), debug) << "Publisher broker URL is: " << full_broker_url1.str();
     FWDR_to_fetch_pub = new SimplePublisher(full_broker_url1.str());
 
     ostringstream full_broker_url2;
     full_broker_url2 << "amqp://" << this->USER_FORMAT_PUB << ":" << this->PASSWD_FORMAT_PUB << this->BASE_BROKER_ADDR;
-    cout << "Pub Broker url is: " << full_broker_url2.str() << endl;
+    LOGGER(my_logger::get(), debug) << "Publisher broker URL is: " << full_broker_url2.str();
     FWDR_to_format_pub = new SimplePublisher(full_broker_url2.str());
 
     ostringstream full_broker_url3;
     full_broker_url3 << "amqp://" << this->USER_FORWARD_PUB << ":" << this->PASSWD_FORWARD_PUB << this->BASE_BROKER_ADDR;
-    cout << "Pub Broker url is: " << full_broker_url3.str() << endl;
+    LOGGER(my_logger::get(), debug) << "Publisher broker URL is: " << full_broker_url3.str();
     FWDR_to_forward_pub = new SimplePublisher(full_broker_url3.str());
 
     ostringstream full_broker_url4;
     full_broker_url4 << "amqp://" << this->FETCH_USER_PUB << ":" << this->FETCH_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
-    cout << "Pub Broker url is: " << full_broker_url4.str() << endl;
+    LOGGER(my_logger::get(), debug) << "Publisher broker URL is: " << full_broker_url4.str();
     fetch_pub = new SimplePublisher(full_broker_url4.str());
 
     ostringstream full_broker_url5;
     full_broker_url5 << "amqp://" << this->FORMAT_USER_PUB << ":" << this->FORMAT_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
-    cout << "Pub Broker url is: " << full_broker_url5.str() << endl;
+    LOGGER(my_logger::get(), debug) << "Publisher broker URL is: " << full_broker_url5.str();
     fmt_pub = new SimplePublisher(full_broker_url5.str());
 
     ostringstream full_broker_url6;
     full_broker_url6 << "amqp://" << this->FORWARD_USER_PUB << ":" << this->FORWARD_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
-    cout << "Pub Broker url is: " << full_broker_url6.str() << endl;
+    LOGGER(my_logger::get(), debug) << "Publisher broker URL is: " << full_broker_url6.str();
     fwd_pub = new SimplePublisher(full_broker_url6.str());
+    LOGGER(my_logger::get(), debug) << "Setting up publishers is complete."; 
 }
 
 
@@ -648,7 +657,9 @@ void Forwarder::process_health_check(Node n) {
             << ", ACK_BOOL: " << ack_bool << "}";
 
     FWDR_pub->publish_message(reply_queue, message.str());
-    cout << "Health Check request Message, ACK sent to: " << reply_queue << endl;
+    LOGGER(my_logger::get(), debug) << "Health Check request Message, ACK sent to: " << reply_queue << endl;
+    LOGGER(my_logger::get(), debug) << "Message sent is: " << message.str() << endl;
+    LOGGER(my_logger::get(), info) << "Processing health check message complete."; 
     return;
 }
 
@@ -661,26 +672,26 @@ void Forwarder::process_xfer_params(Node n) {
 
     this->visit_raft_list.clear();
     this->visit_raft_list = p["RAFT_LIST"].as<vector<string>>();
-    cout << "In process_xfer_params, RAFT_LIST has been ASSIGNED to class var" << endl;
+    LOGGER(my_logger::get(), debug) << "RAFT_LIST has been assigned to class variable.";
 
     this->visit_ccd_list_by_raft.clear();
     this->visit_ccd_list_by_raft = p["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
-    cout << "In process_xfer_params, RAFT_CCC_LIST has been ASSIGNED to class var" << endl;
+    LOGGER(my_logger::get(), debug) << "RAFT_CCC_LIST has been assigned to class variable.";
 
     this->Session_ID = n["SESSION_ID"].as<string>();
-    cout << "After setting SESSION_ID" << endl;
+    LOGGER(my_logger::get(), debug) << "SESSION_ID has been assigned: " << this->Session_ID;
 
     this->Device_Type = n["DEVICE"].as<string>();
-    cout << "After setting DEVICE" << endl;
+    LOGGER(my_logger::get(), debug) << "DEVICE has been assigned: " << this->Device_Type;
 
     this->Job_Num = n["JOB_NUM"].as<string>();
-    cout << "After setting JOB_NUM" << endl;
+    LOGGER(my_logger::get(), debug) << "JOB_NUM has been assigned: " << this->Job_Num;
 
     this->Target_Location = n["TARGET_LOCATION"].as<string>();
-    cout << "After setting TARGET_LOCATION" << endl;
+    LOGGER(my_logger::get(), debug) << "TARGET_LOCATION has been assigned: " << this->Target_Location;
 
     string reply_queue = n["REPLY_QUEUE"].as<string>();
-    cout << "After extracting REPLY_QUEUE" << endl;
+    LOGGER(my_logger::get(), debug) << "REPLY_QUEUE has been assigned: " << reply_queue;
 
     string ack_id = n["ACK_ID"].as<string>();
     cout << "After extracting ACK_ID" << endl;
@@ -702,6 +713,9 @@ void Forwarder::process_xfer_params(Node n) {
             << ", ACK_BOOL: " << ack_bool << "}";
 
     FWDR_pub->publish_message(reply_queue, message.str());
+    LOGGER(my_logger::get(), debug) << "AR_XFER_PARAMS_ACK is sent to: " << reply_queue; 
+    LOGGER(my_logger::get(), debug) << "Message is: " << message.str(); 
+    LOGGER(my_logger::get(), info) << "Processing transfer params is complete."; 
     return;
 }
 
@@ -710,7 +724,7 @@ void Forwarder::process_at_xfer_params(Node n) {
     LOGGER(my_logger::get(), debug) << "Incoming message is: " << n;
 
     Node p = n["XFER_PARAMS"];
-    cout << "Sub Node p is " << p <<  endl;
+    LOGGER(my_logger::get(), debug) << "Incoming xfer_params is: " << p;
 
     //this->Session_ID = n["SESSION_ID"].as<string>();
     //cout << "After setting SESSION_ID" << endl;
@@ -722,13 +736,13 @@ void Forwarder::process_at_xfer_params(Node n) {
     //cout << "After setting JOB_NUM" << endl;
 
     this->Target_Location = n["TARGET_LOCATION"].as<string>();
-    cout << "After setting TARGET_LOCATION" << endl;
+    LOGGER(my_logger::get(), debug) << "TARGET_LOCATION has been assigned: " << this->Target_Location;
 
     string reply_queue = n["REPLY_QUEUE"].as<string>();
-    cout << "After extracting REPLY_QUEUE" << endl;
+    LOGGER(my_logger::get(), debug) << "REPLY_QUEUE has been assigned: " << reply_queue;
 
     string ack_id = n["ACK_ID"].as<string>();
-    cout << "After extracting ACK_ID" << endl;
+    LOGGER(my_logger::get(), debug) << "ACK_ID has been assigned: " << ack_id;
 
     //this->Daq_Addr = n["DAQ_ADDR"].as<string>();
     //cout << "After setting DAQ_ADDR" << endl;
@@ -747,7 +761,9 @@ cout << "SENDING XFER_PARAMS ACK" << endl;
             << ", ACK_BOOL: " << ack_bool << "}";
 
     FWDR_pub->publish_message(reply_queue, message.str());
-cout << "FINISHED SENDING XFER_PARAMS ACK" << endl;
+    LOGGER(my_logger::get(), debug) << "AT_XFER_PARAMS_ACK is sent to: " << this->Foreman_Reply_Queue; 
+    LOGGER(my_logger::get(), debug) << "Message is: " << message.str(); 
+    LOGGER(my_logger::get(), info) << "Processing at_transfer params is complete."; 
 
     return;
 }
@@ -773,6 +789,8 @@ void Forwarder::process_end_readout(Node n) {
     message << "{MSG_TYPE: " << msg_type
             << ", IMAGE_ID: " << image_id << "}";
     this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
+    LOGGER(my_logger::get(), debug) << "FETCH_END_READOUT is sent to: " << this->fetch_consume_queue; 
+    LOGGER(my_logger::get(), debug) << "Message is: " << message.str(); 
     return;
 }
 
@@ -790,6 +808,8 @@ void Forwarder::process_at_end_readout(Node n) {
     message << "{MSG_TYPE: " << msg_type
             << ", IMAGE_ID: " << image_id << "}";
     this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
+    LOGGER(my_logger::get(), debug) << "FETCH_AT_END_READOUT is sent to: " << this->fetch_consume_queue; 
+    LOGGER(my_logger::get(), debug) << "Message is: " << message.str(); 
     return;
 }
 
@@ -820,6 +840,8 @@ void Forwarder::process_fetch(Node n) {
           << ", REPLY_QUEUE: " << reply_queue
           << ", ACK_ID: " << ack_id << "}";
       this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+        LOGGER(my_logger::get(), debug) << "FORMAT_TAKE_IMAGES_DONE is sent to: " << this->format_consume_queue; 
+        LOGGER(my_logger::get(), debug) << "Message is: " << msg; 
       return;
     }
 
@@ -874,6 +896,8 @@ void Forwarder::process_at_fetch(Node n) {
       const char* rmcmdstr = tmp_rmstr.c_str();
       system(cmdstr);
       //system(rmcmdstr);
+    LOGGER(my_logger::get(), debug) << "Directory " << filepath << " is created.";
+    LOGGER(my_logger::get(), debug) << "Created directories for image segments."; 
 
 
       
@@ -905,10 +929,13 @@ void Forwarder::process_at_fetch(Node n) {
       msg << "{MSG_TYPE: " << new_msg_type
               << ", IMAGE_ID: " << image_id << "}";
       this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+        LOGGER(my_logger::get(), debug) << "FORMAT_END_READOUT is sent to: " << this->format_consume_queue; 
+        LOGGER(my_logger::get(), debug) << "Message is: " << msg; 
       return;
 }
 
 int Forwarder::check_for_image_existence(string image_id) {
+        LOGGER(my_logger::get(), debug) << "Entering check_for_image_existence function."; 
   int x;
   std::string line = "./ims.sh ";
   line += image_id;
@@ -1327,6 +1354,7 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::binary );
         fh_set.push_back(fh); 
   }
+    LOGGER(my_logger::get(), debug) << "Finished setting up file handlers for image segments."; 
 }
 
 
@@ -1335,6 +1363,7 @@ void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
   for (int i = 0; i < 16; i++) {
     fh_set[i]->close();
   }
+    LOGGER(my_logger::get(), debug) << "Finished closing file handlers for image segments."; 
 }
 
 
