@@ -365,10 +365,17 @@ class ArchiveController:
 
         final_target_dir = target_dir + "/" + str(day_string) + "/"
 
+        # This code allows two users belonging to the same group (such as ARCHIVE)
+        # to both create and write to a specific directory.
+        # The common group must be made the primary group for both users like this:
+        # usermod -g ARCHIVE ATS_user
+        # and the sticky bit must be set when the group is created. 
+        # chmod is called after creation to deal with system umask
         if os.path.isdir(final_target_dir):
             pass
         else:
-            os.mkdir(final_target_dir, 0o2776)
+            os.mkdir(final_target_dir, 0o2775)
+            os.chmod(final_target_dir, 0o775)
 
         return final_target_dir
 
