@@ -314,6 +314,7 @@ class AuxDevice:
         fwdr_new_target_params['XFER_PARAMS'] = {}
         fwdr_new_target_params[MSG_TYPE] = 'AT_FWDR_XFER_PARAMS'
         fwdr_new_target_params[SESSION_ID] = params['SESSION_ID']
+        fwdr_new_target_params[IMAGE_ID] = image_id
         fwdr_new_target_params['DEVICE'] = self.DEVICE
         fwdr_new_target_params[JOB_NUM] = params[JOB_NUM]
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
