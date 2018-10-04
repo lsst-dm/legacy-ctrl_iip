@@ -16,6 +16,7 @@
 #include "fitsio.h"
 #include <errno.h>
 #include "Exceptions.h"
+#include "SimpleLogger.h"
 
 #include "daq/Location.hh"
 #include "daq/LocationSet.hh"
@@ -304,15 +305,19 @@ map<string, vector<string>> All_Boards = {
 
 };
 
+BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(my_logger, src::severity_logger_mt< severity_level >);
+
 Forwarder::Forwarder() {
+    init_log("Forwarder");
     // Read config file
     Node config_file;
     try {
         config_file = LoadFile("./ForwarderCfg.yaml");
+        LOGGER(my_logger::get(), debug) << "Reading ForwarderCfg config file."; 
     }
     catch (YAML::BadFile& e) {
         // FIX better catch clause...at LEAST a log message
-        cout << "Error reading ForwarderCfg.yaml file." << endl;
+        LOGGER(my_logger::get(), critical) << "Error reading ForwarderCfg.yaml file.";
         exit(EXIT_FAILURE);
     }
 
@@ -362,8 +367,8 @@ Forwarder::Forwarder() {
         //cout << "Setting WFS_RAFT class var to:  " << this->WFS_RAFT << endl << endl << endl;
     }
     catch (YAML::TypedBadConversion<string>& e) {
-        cout << e.what() << endl;
-        cout << "ERROR: In ForwarderCfg.yaml, cannot read required elements from this file." << endl;
+        LOGGER(my_logger::get(), critical) << e.what();
+        LOGGER(my_logger::get(), critical) << "In ForwarderCfg.yaml, cannot read required elements from this file.";
     }
 
     //ostringstream full_broker_url;
@@ -375,6 +380,7 @@ Forwarder::Forwarder() {
 }
 
 void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
+    LOGGER(my_logger::get(), debug) << "Entering setup_consumers function."; 
     //Consumers for Primary Forwarder
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
@@ -420,6 +426,7 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
 }
 
 void Forwarder::run() {
+    LOGGER(my_logger::get(), debug) << "Entering run function."; 
     //Set up argument structs for all seven consumer threads
     //Primary Forwarder consumer threads
     arg_struct *args1 = new arg_struct;
@@ -483,6 +490,7 @@ void Forwarder::run() {
 }
 
 void *Forwarder::run_thread(void *pargs) {
+    LOGGER(my_logger::get(), debug) << "Entering run_thread function."; 
 
     arg_struct *params = ((arg_struct *) pargs);
     Consumer *consumer = params->consumer;
@@ -494,6 +502,7 @@ void *Forwarder::run_thread(void *pargs) {
 
 
 void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
+    LOGGER(my_logger::get(), debug) << "Entering setup_publishers function."; 
     //Publishers
     ostringstream full_broker_url;
     full_broker_url << "amqp://" << this->USER_PUB << ":" << this->PASSWD_PUB << this->BASE_BROKER_ADDR;
@@ -535,10 +544,10 @@ void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
 
 //Messages received by Primary Forwarder from Foreman
 void Forwarder::on_foreman_message(string body) {
-    cout << "In forwarder callback that receives msgs from AR foreman" << endl;
-    cout << "-----------Message Body Is:------------" << endl;
-    cout << body << endl;
-    cout << "----------------------" << endl;
+    LOGGER(my_logger::get(), debug) << "In forwarder callback that receives msgs from AR foreman";
+    LOGGER(my_logger::get(), debug) << "-----------Message Body Is:------------";
+    LOGGER(my_logger::get(), debug) << body;
+    LOGGER(my_logger::get(), debug) << "----------------------";
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_foreman_message_actions[message_type];
@@ -547,7 +556,10 @@ void Forwarder::on_foreman_message(string body) {
 
 //Messages received by Primary Forwarder from fetch thread
 void Forwarder::on_fetch_message(string body) {
-    cout << "ON_FETCH: " << body << endl;
+    LOGGER(my_logger::get(), debug) << "In main forwarder callback that receives msgs from fetch thread";
+    LOGGER(my_logger::get(), debug) << "-----------Message Body Is:------------";
+    LOGGER(my_logger::get(), debug) << body;
+    LOGGER(my_logger::get(), debug) << "----------------------";
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_fetch_message_actions[message_type];
@@ -556,7 +568,10 @@ void Forwarder::on_fetch_message(string body) {
 
 //Messages received by Primary Forwarder from format thread
 void Forwarder::on_format_message(string body) {
-    cout << "ON_FORMAT: " << body << endl;
+    LOGGER(my_logger::get(), debug) << "In main forwarder callback that receives msgs from format thread";
+    LOGGER(my_logger::get(), debug) << "-----------Message Body Is:------------";
+    LOGGER(my_logger::get(), debug) << body;
+    LOGGER(my_logger::get(), debug) << "----------------------";
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_format_message_actions[message_type];
@@ -565,7 +580,10 @@ void Forwarder::on_format_message(string body) {
 
 //Messages received by Primary Forwarder from forwardthread
 void Forwarder::on_forward_message(string body) {
-    cout << "ON_FORWARD: " << body << endl;
+    LOGGER(my_logger::get(), debug) << "In main forwarder callback that receives msgs from forward thread";
+    LOGGER(my_logger::get(), debug) << "-----------Message Body Is:------------";
+    LOGGER(my_logger::get(), debug) << body;
+    LOGGER(my_logger::get(), debug) << "----------------------";
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forward_message_actions[message_type];
@@ -576,10 +594,10 @@ void Forwarder::on_forward_message(string body) {
 
 //Messages received by the fetch, format, and forward threads
 void Forwarder::on_forwarder_to_fetch_message(string body) {
-    cout << "In fETCHr callback that receives msgs from main forwarder thread" << endl;
-    cout << "-----------Message Body Is:------------" << endl;
-    cout << body << endl;
-    cout << "----------------------" << endl;
+    LOGGER(my_logger::get(), debug) << "In fetch callback that receives msgs from main forwarder thread";
+    LOGGER(my_logger::get(), debug) << "-----------Message Body Is:------------";
+    LOGGER(my_logger::get(), debug) << body;
+    LOGGER(my_logger::get(), debug) << "----------------------";
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forwarder_to_fetch_message_actions[message_type];
@@ -587,10 +605,10 @@ void Forwarder::on_forwarder_to_fetch_message(string body) {
 }
 
 void Forwarder::on_forwarder_to_format_message(string body) {
-    cout << "In format callback that receives msgs from main forwarder thread" << endl;
-    cout << "-----------Message Body Is:------------" << endl;
-    cout << body << endl;
-    cout << "----------------------" << endl;
+    LOGGER(my_logger::get(), debug) << "In format callback that receives msgs from main forwarder thread";
+    LOGGER(my_logger::get(), debug) << "-----------Message Body Is:------------";
+    LOGGER(my_logger::get(), debug) << body;
+    LOGGER(my_logger::get(), debug) << "----------------------";
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forwarder_to_format_message_actions[message_type];
@@ -598,10 +616,10 @@ void Forwarder::on_forwarder_to_format_message(string body) {
 }
 
 void Forwarder::on_forwarder_to_forward_message(string body) {
-    cout << "In forward callback that receives msgs from main forwarder thread" << endl;
-    cout << "-----------Message Body Is:------------" << endl;
-    cout << body << endl;
-    cout << "----------------------" << endl;
+    LOGGER(my_logger::get(), debug) << "In forward callback that receives msgs from main forwarder thread";
+    LOGGER(my_logger::get(), debug) << "-----------Message Body Is:------------";
+    LOGGER(my_logger::get(), debug) << body;
+    LOGGER(my_logger::get(), debug) << "----------------------";
     Node node = Load(body);
     string message_type = node["MSG_TYPE"].as<string>();
     funcptr action = on_forwarder_to_forward_message_actions[message_type];
@@ -611,11 +629,12 @@ void Forwarder::on_forwarder_to_forward_message(string body) {
 
 //Message action handler methods...
 void Forwarder::process_new_visit(Node n) {
-    cout << "New Visit Message" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_new_visit function."; 
     return;
 }
 
 void Forwarder::process_health_check(Node n) {
+    LOGGER(my_logger::get(), debug) << "Entering process_health_check function."; 
     string ack_id = n["ACK_ID"].as<string>();
     string reply_queue = n["REPLY_QUEUE"].as<string>();
     string message_type = n["MSG_TYPE"].as<string>();
@@ -634,8 +653,8 @@ void Forwarder::process_health_check(Node n) {
 }
 
 void Forwarder::process_xfer_params(Node n) {
-    cout << "Entering process_xfer_params method" << endl;
-    cout << "Incoming Node n is " << n <<  endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_xfer_params function."; 
+    LOGGER(my_logger::get(), debug) << "Incoming message is: " << n;
 
     Node p = n["XFER_PARAMS"];
     cout << "Sub Node p is " << p <<  endl;
@@ -687,8 +706,8 @@ void Forwarder::process_xfer_params(Node n) {
 }
 
 void Forwarder::process_at_xfer_params(Node n) {
-    cout << "Entering process_xfer_params method" << endl;
-    cout << "Incoming Node n is " << n <<  endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_at_xfer_params function."; 
+    LOGGER(my_logger::get(), debug) << "Incoming message is: " << n;
 
     Node p = n["XFER_PARAMS"];
     cout << "Sub Node p is " << p <<  endl;
@@ -734,14 +753,14 @@ cout << "FINISHED SENDING XFER_PARAMS ACK" << endl;
 }
 
 void Forwarder::process_take_images(Node n) {
-    cout << endl << "IN process_take_images" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_take_images function."; 
     this->Num_Images = n["NUM_IMAGES"].as<int>();;
     cout << "Take Image Message...should be some tasty params here" << endl;
     return;
 }
 
 void Forwarder::process_end_readout(Node n) {
-    cout << "IN PROCESS_END_READOUT" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_end_readout function."; 
     // Send IMAGE_ID to fetch thread...use message broker queue as work queue
     //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
     //else, DAQ val will equal a path where files can be found.
@@ -758,7 +777,7 @@ void Forwarder::process_end_readout(Node n) {
 }
 
 void Forwarder::process_at_end_readout(Node n) {
-    cout << "IN PROCESS_AT_END_READOUT" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_at_end_readout function."; 
     // Send IMAGE_ID to fetch thread...use message broker queue as work queue
     //If ForwarderCfg.yaml DAQ val == 'API', draw from actual DAQ emulator,
     //else, DAQ val will equal a path where files can be found.
@@ -780,6 +799,7 @@ void Forwarder::process_at_end_readout(Node n) {
 
 //From forwarder main thread to fetch thread:
 void Forwarder::process_fetch(Node n) {
+    LOGGER(my_logger::get(), debug) << "Entering process_fetch function."; 
     //If message_type FETCH_END_READOUT,
     //  Make dir using image_id as name under work_dir
     //  Fetch data from DAQ or copy from local drive
@@ -839,6 +859,7 @@ void Forwarder::process_fetch(Node n) {
 }
 
 void Forwarder::process_at_fetch(Node n) {
+    LOGGER(my_logger::get(), debug) << "Entering process_at_fetch function."; 
       string image_id = n["IMAGE_ID"].as<string>();
       int retval;
       ostringstream cmd;
@@ -898,6 +919,7 @@ int Forwarder::check_for_image_existence(string image_id) {
 
 int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
 {
+    LOGGER(my_logger::get(), debug) << "Entering fetch_at_reassemble_process function."; 
   int retval = 1;
   IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
@@ -966,6 +988,7 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, st
 
 
 void Forwarder::process_take_images_done(Node n) {
+    LOGGER(my_logger::get(), debug) << "Entering process_take_images_done function."; 
     ostringstream msg;
     string new_msg_type = "FETCH_TAKE_IMAGES_DONE";
     string job_num = n["JOB_NUM"].as<string>();
@@ -984,6 +1007,7 @@ void Forwarder::process_take_images_done(Node n) {
 }
 
 void Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
+    LOGGER(my_logger::get(), debug) << "Entering fetch_readout_image function."; 
   // Iterate through raft_list
   // Foreman divide_work() method might have sent more than one raft,
   // so here we act upon one raft at a time.
@@ -998,6 +1022,7 @@ void Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
 }
 
 void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix) {
+    LOGGER(my_logger::get(), debug) << "Entering fetch_readout_raft function."; 
   // put a map together with raft electronic board (source) for key, and ccd_list as value
   map<string, vector<string>> source_boards;
   if (ccd_list[0] == "ALL") {
@@ -1038,6 +1063,7 @@ for(auto it = source_boards.cbegin(); it != source_boards.cend(); ++it)
 }
 
 void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
+    LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_raft_image function."; 
   ostringstream raft_name;
   raft_name << raft;
   string rafty = raft_name.str();
@@ -1092,6 +1118,7 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
 
 void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image)
 {
+    LOGGER(my_logger::get(), debug) << "Entering get_register_metadata function."; 
 
        // Here are the values and associated indexes
        // into the InstructionList returned by source.registers().
@@ -1151,6 +1178,7 @@ void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::
 
 void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
 {
+    LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_process function."; 
 
   IMS::Source source(location, image);
 
@@ -1252,6 +1280,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
 }
 
 void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix){
+    LOGGER(my_logger::get(), debug) << "Entering fetch_set_up_filehandles function."; 
   for (int i=0; i < 16; i++) {
         /*
         std::string seg;
@@ -1277,6 +1306,7 @@ cout << "FILENAME:  " << fns.str() << endl;
 }
 
 void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix){
+    LOGGER(my_logger::get(), debug) << "Entering fetch_set_up_at_filehandles function."; 
   for (int i=0; i < 16; i++) {
         /*
         std::string seg;
@@ -1311,22 +1341,22 @@ void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
 
 
 void Forwarder::process_fetch_ack(Node n) {
-    cout << "fetch ack being processed" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_fetch_ack function.";
     return;
 }
 
 void Forwarder::process_fetch_health_check(Node n) {
-    cout << "Send helth check to just fetch queue" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_fetch_health_check function.";
     return;
 }
 
 void Forwarder::process_fetch_health_check_ack(Node n) {
-    cout << "Health check ack for fetch" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_fetch_health_check_ack function.";
     return;
 }
 
 void Forwarder::process_format(Node n) {
-    cout << "process_format" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_format function."; 
     string type_msg = n["MSG_TYPE"].as<string>();
     
     if (type_msg == "FORMAT_TAKE_IMAGES_DONE") {
@@ -1346,35 +1376,35 @@ void Forwarder::process_format(Node n) {
 }
 
 void Forwarder::process_forward(Node n) { 
-    cout << "processing foward message" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_forward function.";
 } 
 
 void Forwarder::process_format_ack(Node n) {
-    cout << "processing format ack message" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_format_ack function.";
     return;
 }
 
 void Forwarder::process_format_health_check(Node n) {
-    cout << " Health check sent to Format only" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_format_health_check function.";
     return;
 }
 
 void Forwarder::process_format_health_check_ack(Node n) {
-    cout << "Processing format health check ack message" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_format_health_check_ack function.";
     return;
 }
 
 void Forwarder::process_forward_ack(Node n) {
-  cout << "Processing forward ack message" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_forward_ack function.";
   return;
 }
 
 void Forwarder::process_forward_health_check(Node n) {
-  cout << "Processing forward health check message" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_forward_health_check function.";
 }
 
 void Forwarder::process_forward_health_check_ack(Node n) {
-  cout << "Processing forward health check ack message" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering process_forward_health_check_ack function.";
   return;
 }
 
@@ -1382,6 +1412,7 @@ void Forwarder::process_forward_health_check_ack(Node n) {
 // FORMAT THREAD
 ////////////////////////////////////////////////////////////////////////////////
 void Forwarder::process_header_ready(Node n) { 
+    LOGGER(my_logger::get(), debug) << "Entering process_header_ready function."; 
     try { 
         string main_header_dir = this->Work_Dir + "/header"; 
         const int dir = mkdir(main_header_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
@@ -1488,6 +1519,7 @@ void Forwarder::process_header_ready(Node n) {
 ////////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_process_end_readout(Node node) { 
+    LOGGER(my_logger::get(), debug) << "Entering format_process_end_readout function."; 
     try { 
         string image_id = node["IMAGE_ID"].as<string>(); 
         this->readout_img_ids.push_back(image_id); 
@@ -1499,6 +1531,7 @@ void Forwarder::format_process_end_readout(Node node) {
 } 
 
 void Forwarder::format_get_header(Node node) { 
+    LOGGER(my_logger::get(), debug) << "Entering format_get_header function."; 
     try { 
         string image_id = node["IMAGE_ID"].as<string>(); 
         string filename = node["FILENAME"].as<string>(); 
@@ -1512,6 +1545,7 @@ void Forwarder::format_get_header(Node node) {
 } 
 
 void Forwarder::format_assemble_img(Node n) {
+    LOGGER(my_logger::get(), debug) << "Entering format_assemble_img function."; 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string header = n["HEADER"].as<string>(); 
@@ -1563,7 +1597,7 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
 } 
 
 void Forwarder::format_write_img(string img, string header) { 
-    cout << "[x] fwi" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering format_write_img function."; 
     try { 
         long len = NAXIS1 * NAXIS2;
         int bitpix = LONG_IMG; 
@@ -1723,6 +1757,7 @@ void Forwarder::format_write_img(string img, string header) {
     } 
 } 
 vector<string> Forwarder::format_list_files(string path) { 
+    LOGGER(my_logger::get(), debug) << "Entering format_list_files function."; 
     try { 
         struct dirent *entry; 
         DIR *dir  = opendir(path.c_str()); 
@@ -1744,7 +1779,7 @@ vector<string> Forwarder::format_list_files(string path) {
 } 
 
 void Forwarder::format_send_completed_msg(string image_id) { 
-    cout << "[f] fscm" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering format_send_completed_msg function.";
     try { 
         Emitter msg; 
         msg << BeginMap; 
@@ -1760,7 +1795,7 @@ void Forwarder::format_send_completed_msg(string image_id) {
 ///////////////////////////////////////////////////////////////////////////
 
 void Forwarder::format_look_for_work() { 
-    cout << "[f] flfw" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering format_look_for_work function."; 
     try { 
         vector<string>::iterator it;
         map<string, string>::iterator mit;  
@@ -1799,6 +1834,7 @@ void Forwarder::format_look_for_work() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Forwarder::forward_process_end_readout(Node n) { 
+    LOGGER(my_logger::get(), debug) << "Entering forward_process_end_readout function."; 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
         string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
@@ -1839,7 +1875,7 @@ void Forwarder::forward_process_end_readout(Node n) {
 } 
 
 void Forwarder::forward_process_take_images_done(Node n) { 
-    cout << "get here" << endl;
+    LOGGER(my_logger::get(), debug) << "Entering forward_process_take_images_done function."; 
     ostringstream message;
     string ack_id = n["ACK_ID"].as<string>();
     string reply_queue = n["REPLY_QUEUE"].as<string>();
