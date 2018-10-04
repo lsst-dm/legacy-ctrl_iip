@@ -1,6 +1,7 @@
 [Unit]
 Description=L1 ArchiveController Service
 Requires=l1d-ctrl_dependency.target
+After=l1d-DMCS.service
 BindsTo=l1d-ctrl_iip.target
 
 [Service]

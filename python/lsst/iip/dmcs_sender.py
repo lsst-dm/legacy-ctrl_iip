@@ -14,7 +14,7 @@ class Premium:
     logging.basicConfig()
     broker_url = 'amqp://ARCHIE:ARCHIE@140.252.32.128:5672/%2Ftest_at'
 
-    #self.new_thread = Consumer(broker_url, 'telemetry_queue', 'xthread', self.mycallback, 'YAML')
+    #self.new_thread = Consumer(broker_url, 'at_foreman_consume', 'xthread', self.mycallback, 'YAML')
     #self.new_thread.start()
 
     #cdm = toolsmod.intake_yaml_file("L1SystemCfg.yaml")
@@ -35,7 +35,8 @@ def main():
   premium = Premium()
   sp1 = SimplePublisher('amqp://DMCS:DMCS@140.252.32.128:5672/%2Ftest_at', "YAML")
 
-  #  while 1:
+  #while 1:
+    #pass
   """
   msg = {}
   msg['MSG_TYPE'] = "STANDBY"
@@ -100,8 +101,7 @@ def main():
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   time.sleep(5)
-
-  print("Sender done")
+  #print("Sender done")
 
 
 
