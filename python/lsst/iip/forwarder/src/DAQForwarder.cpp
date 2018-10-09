@@ -1168,64 +1168,66 @@ void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string 
 
 }
 
-void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
-    LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_raft_image function."; 
-  ostringstream raft_name;
-  raft_name << raft;
-  string rafty = raft_name.str();
+void Forwarder::fetch_reassemble_raft_image(string raft, map<string, \
+                                            vector<string>> source_boards, \
+                                            string image_id, \
+                                            string dir_prefix) {
 
-  IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+    LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_raft_image function."; 
+
+    IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
                                      // such as raft01, raft13, etc.
 
-  IMS::Image image(image_id.c_str(), store);
+    IMS::Image image(image_id.c_str(), store);
 
-  DAQ::LocationSet sources = image.sources();
+    DAQ::LocationSet sources = image.sources();
 
-  DAQ::Location location;
+    DAQ::Location location;
 
-  int board = 0; // Only way we know how to access a board is by its integer id.
+    int board = 0; // Only way we know how to access a board is by its integer id.
 
 
-  //The loop below processes each raft board (an individual source) one at a time.
-  //In order to avoid boards that do not have desired CCDs on them, we check within
-  //this loop; if board is not needed, we skip processing it. This is done by
-  //converting the board counter to a string, and checking within the source_boards map
-  //for a key representing the current board. If it exists, send board(location) to
-  //reassemble process
+    //The loop below processes each raft board (an individual source) one at a time.
+    //In order to avoid boards that do not have desired CCDs on them, we check within
+    //this loop; if board is not needed, we skip processing it. This is done by
+    //converting the board counter to a string, and checking within the source_boards map
+    //for a key representing the current board. If it exists, send board(location) to
+    //reassemble process
 
 #ifdef METRIX
   auto start = std::chrono::system_clock::now();
   std::time_t start_time = std::chrono::system_clock::to_time_t(start);
   std::cout << "Started raft fetch at " << std::ctime(&start_time) << endl;
+  LOGGER(my_logger::get(), info) << "Started raft fetch at " << std::ctime(&start_time) << endl;
 #endif
 
-  while(sources.remove(location))
-  {
-      string board_str = std::to_string(board);
+    while(sources.remove(location)) {
+        string board_str = std::to_string(board);
 
-      // Check here if bool val is_naxis_set is false...if so,
-      // pull register InstructionList info from current source, and
-      // set this.naxis1 and this.naxis2.
-      //
-      // otherwise if true, skip register metadata and use current vals
-      if (!is_naxis_set) {
-        this->get_register_metadata(location, image);
-      }
+        // Check here if bool val is_naxis_set is false...if so,
+        // pull register InstructionList info from current source, and
+        // set this.naxis1 and this.naxis2.
+        //
+        // otherwise if true, skip register metadata and use current vals
+        if (!is_naxis_set) {
+            this->get_register_metadata(location, image);
+        }
 
-      if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
-                                           // that we put together in the preceeding method...
+        if(source_boards.count(board_str)) {  // If current board source is in the 
+                                              // source_boards map that we put together 
+                                              // in the preceeding method...
 
+            std::vector<string> ccds_for_board;
 
-          std::vector<string> ccds_for_board;
+            for (auto ii : source_boards[board_str]) {
+                ccds_for_board.push_back(ii);
+            }
 
-          for (auto ii : source_boards[board_str]) {
-              ccds_for_board.push_back(ii);
-          }
-
-        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
-      }
-    board++;
-  }
+            this->fetch_reassemble_process(raft, image_id, location, image, \
+                                           ccds_for_board, dir_prefix);
+        }
+        board++;
+    }
 #ifdef METRIX
   auto end = std::chrono::system_clock::now();
 
@@ -1234,12 +1236,14 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
 
   std::cout << "Finished raft fetch at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
+  LOGGER(my_logger::get(), info) << "Finished raft fetch at " << std::ctime(&end_time) \
+                                 << "elapsed time: " << elapsed_seconds.count() << "s\n";
 #endif
-  return;
+
+    return;
 }
 
-void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image)
-{
+void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image) {
 
        // Here are the values and associated indexes
        // into the InstructionList returned by source.registers().
@@ -1256,33 +1260,32 @@ void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::
        // REG_OVER_COLS = 8,
        // NUM_REGISTERS = 9;
 
-  IMS::Source source(location, image);
+    IMS::Source source(location, image);
 
-  const RMS::InstructionList *reglist = source.registers();
+    const RMS::InstructionList *reglist = source.registers();
 
-  // READ_ROWS + OVER_ROWS
-  const RMS::Instruction *inst0 = reglist->lookup(0);
-  uint32_t operand0 = inst0->operand();
+    // READ_ROWS + OVER_ROWS
+    const RMS::Instruction *inst0 = reglist->lookup(0);
+    uint32_t operand0 = inst0->operand();
 
-  const RMS::Instruction *inst7 = reglist->lookup(7);
-  uint32_t operand7 = inst7->operand();
+    const RMS::Instruction *inst7 = reglist->lookup(7);
+    uint32_t operand7 = inst7->operand();
 
-  this->Naxis_2 = operand0 + operand7;
-;
+    this->Naxis_2 = operand0 + operand7;
 
-  // READ_COLS + READ_COLS2 + OVER_COLS
-  const RMS::Instruction *inst1 = reglist->lookup(1);
-  uint32_t operand1 = inst1->operand();
+    // READ_COLS + READ_COLS2 + OVER_COLS
+    const RMS::Instruction *inst1 = reglist->lookup(1);
+    uint32_t operand1 = inst1->operand();
 
-  const RMS::Instruction *inst6 = reglist->lookup(6);
-  uint32_t operand6 = inst6->operand();
+    const RMS::Instruction *inst6 = reglist->lookup(6);
+    uint32_t operand6 = inst6->operand();
 
-  const RMS::Instruction *inst8 = reglist->lookup(8);
-  uint32_t operand8 = inst8->operand();
+    const RMS::Instruction *inst8 = reglist->lookup(8);
+    uint32_t operand8 = inst8->operand();
 
-  this->Naxis_1 = operand1 + operand6 + operand8;
+    this->Naxis_1 = operand1 + operand6 + operand8;
 
-  this->is_naxis_set = true;
+    this->is_naxis_set = true;
 
 }
 
@@ -1297,44 +1300,47 @@ void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::
 // the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
-{
+void Forwarder::fetch_reassemble_process(std::string raft, string image_id, \
+                                         const DAQ::Location& location, \
+                                         const IMS::Image& image, \
+                                         std::vector<string> ccds_for_board, \
+                                         string dir_prefix) {
 
-  LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_process function."; 
+    LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_process function."; 
 
-  IMS::Source source(location, image);
+    IMS::Source source(location, image);
 
-  IMS::Science slice(source);
+    IMS::Science slice(source);
 
-  if(!slice) return;
+    if(!slice) return;
 
-  // Set up filehandles in Ramdisk work areafor this board. There must be 
-  // a separate filehandle set for each CCD to be fetched. CCDs to be fetched 
-  // are listed in the ccds_for_board vector. Each CCD
-  // will then have a set of 16 filehandles...one filehandle for each amp segment.
+    // Set up filehandles in Ramdisk work areafor this board. There must be 
+    // a separate filehandle set for each CCD to be fetched. CCDs to be fetched 
+    // are listed in the ccds_for_board vector. Each CCD
+    // will then have a set of 16 filehandles...one filehandle for each amp segment.
 
-  uint64_t pixel = 0;
-  uint64_t total_stripes = 0;
-  uint64_t pixel_errors = 0;
+    uint64_t pixel = 0;
+    uint64_t total_stripes = 0;
+    uint64_t pixel_errors = 0;
 
-  //These are for determining if we should skip writing a CCD or not
-  bool do_ccd0 = false;
-  bool do_ccd1 = false;
-  bool do_ccd2 = false;
+    //These are for determining if we should skip writing a CCD or not
+    bool do_ccd0 = false;
+    bool do_ccd1 = false;
+    bool do_ccd2 = false;
 
-  // Used when sending image array ready msg to format process
-  std::map<string, string> ccd0_map;
-  std::map<string, string> ccd1_map;
-  std::map<string, string> ccd2_map;
-  std::ostringstream ccd0_path;
-  std::ostringstream ccd1_path;
-  std::ostringstream ccd2_path;
+    // Used when sending image array ready msg to format process
+    std::map<string, string> ccd0_map;
+    std::map<string, string> ccd1_map;
+    std::map<string, string> ccd2_map;
+    std::ostringstream ccd0_path;
+    std::ostringstream ccd1_path;
+    std::ostringstream ccd2_path;
 
-  std::vector<std::ofstream*> FH0;
-  std::vector<std::ofstream*> FH1;
-  std::vector<std::ofstream*> FH2;
+    std::vector<std::ofstream*> FH0;
+    std::vector<std::ofstream*> FH1;
+    std::vector<std::ofstream*> FH2;
 
-  for (int x = 0; x < ccds_for_board.size(); x++) {
+    for (int x = 0; x < ccds_for_board.size(); x++) {
 
         if (string(1, ccds_for_board[x][0]) == "0") {
             do_ccd0 = true;
@@ -1364,96 +1370,93 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
         }
     }
 
-  do
-  {
-    total_stripes += slice.stripes();
-    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
-    IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
-    IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
+    do  {
+        total_stripes += slice.stripes();
+        IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+        IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
+        IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
 
-    slice.decode012(ccd0, ccd1, ccd2);
-    int num1, num2, num3;
+        slice.decode012(ccd0, ccd1, ccd2);
+        int num1, num2, num3;
 
-    //////////////////////////////////////////////
-    //   NOTICE: Inside these three loops, ccd2 and ccd0 are swapped on purpose
+        //////////////////////////////////////////////
+        //   NOTICE: Inside these three loops, ccd2 and ccd0 are swapped on purpose
 
-    for(int s=0; s<slice.stripes(); ++s)
-    {
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd0) {
-            int32_t X = PIX_MASK ^ ((ccd2[s].segment[amp]));
-            FH0[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+        for(int s=0; s<slice.stripes(); ++s) {
+            for(int amp=0; amp<N_AMPS; ++amp) {
+                if (do_ccd0) {
+                    int32_t X = PIX_MASK ^ ((ccd2[s].segment[amp]));
+                    FH0[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                }
+            }
+
+            for(int amp=0; amp<N_AMPS; ++amp) {
+                if (do_ccd1) {
+                    int32_t X = PIX_MASK ^ ((ccd1[s].segment[amp]));
+                    FH1[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                }
+            }
+
+            for(int amp=0; amp<N_AMPS; ++amp) {
+                if (do_ccd2) {
+                    int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+                    FH2[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                }
+            }
+
         }
-      }
+        delete [] ccd0;
+        delete [] ccd1;
+        delete [] ccd2;
 
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd1) {
-            int32_t X = PIX_MASK ^ ((ccd1[s].segment[amp]));
-            FH1[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
-        }
-      }
+    } while(slice.advance());
 
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd2) {
-            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
-            FH2[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
-        }
-      }
 
+    // FIXXX Change the following 3 blocks to use the Emitter...
+    if (do_ccd0) {
+        this->fetch_close_filehandles(FH0);
+        string new_msg_type = "FORMAT_END_READOUT";
+        ostringstream msg;
+        msg << "{MSG_TYPE: " << new_msg_type
+            << ", IMAGE_ID: " << image_id
+            << ", RAFT: " << ccd0_map["raft"]
+            << ", CCD: " << ccd0_map["ccd"]
+            << ", PATH: " << ccd0_map["path"] << "}";
+        this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
     }
-    delete [] ccd0;
-    delete [] ccd1;
-    delete [] ccd2;
+    if (do_ccd1) {
+        this->fetch_close_filehandles(FH1);
+        string new_msg_type = "FORMAT_END_READOUT";
+        ostringstream msg;
+        msg << "{MSG_TYPE: " << new_msg_type
+            << ", IMAGE_ID: " << image_id
+            << ", RAFT: " << ccd1_map["raft"]
+            << ", CCD: " << ccd1_map["ccd"]
+            << ", PATH: " << ccd1_map["path"] << "}";
+        this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    }
+    if (do_ccd2) {
+        this->fetch_close_filehandles(FH2);
+        string new_msg_type = "FORMAT_END_READOUT";
+        ostringstream msg;
+        msg << "{MSG_TYPE: " << new_msg_type
+            << ", IMAGE_ID: " << image_id
+            << ", RAFT: " << ccd2_map["raft"]
+            << ", CCD: " << ccd2_map["ccd"]
+            << ", PATH: " << ccd2_map["path"] << "}";
+        this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    }
 
-  }
-  while(slice.advance());
-
-
-  if (do_ccd0) {
-    this->fetch_close_filehandles(FH0);
-    string new_msg_type = "FORMAT_END_READOUT";
-    ostringstream msg;
-    msg << "{MSG_TYPE: " << new_msg_type
-        << ", IMAGE_ID: " << image_id
-        << ", RAFT: " << ccd0_map["raft"]
-        << ", CCD: " << ccd0_map["ccd"]
-        << ", PATH: " << ccd0_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-  }
-  if (do_ccd1) {
-    this->fetch_close_filehandles(FH1);
-    string new_msg_type = "FORMAT_END_READOUT";
-    ostringstream msg;
-    msg << "{MSG_TYPE: " << new_msg_type
-        << ", IMAGE_ID: " << image_id
-        << ", RAFT: " << ccd1_map["raft"]
-        << ", CCD: " << ccd1_map["ccd"]
-        << ", PATH: " << ccd1_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-  }
-  if (do_ccd2) {
-    this->fetch_close_filehandles(FH2);
-    string new_msg_type = "FORMAT_END_READOUT";
-    ostringstream msg;
-    msg << "{MSG_TYPE: " << new_msg_type
-        << ", IMAGE_ID: " << image_id
-        << ", RAFT: " << ccd2_map["raft"]
-        << ", CCD: " << ccd2_map["ccd"]
-        << ", PATH: " << ccd2_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-  }
-
-  return;
-
+    return;
 }
+
+
 // This method builds file handle vectors in a RAMDISK.
 // The files are essentially dynamically named arrays in memory, and very fast.
 void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, 
                                           string image_id, string raft, 
-                                          string ccd, string dir_prefix){
+                                          string ccd, string dir_prefix) {
+
     LOGGER(my_logger::get(), debug) << "Entering fetch_set_up_filehandles function."; 
 
     std::ostringstream full_dir_prefix;
@@ -1469,7 +1472,7 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set,
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::binary );
         fh_set.push_back(fh); 
-  }
+    }
 }
 
 void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set, 
@@ -1478,7 +1481,7 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
 
     LOGGER(my_logger::get(), debug) << "Entering fetch_set_up_at_filehandles function."; 
 
-  for (int i=0; i < 16; i++) {
+    for (int i=0; i < 16; i++) {
         std::ostringstream fns;
         fns << full_dir_prefix << "/" \
                           << image_id \
@@ -1488,7 +1491,7 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
 
         std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::binary );
         fh_set.push_back(fh); 
-  }
+    }
     LOGGER(my_logger::get(), debug) << "Finished setting up file handlers for image segments."; 
 }
 
@@ -1496,13 +1499,11 @@ void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set
 void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
     LOGGER(my_logger::get(), debug) << "Entering fetch_close_filehandles function.";
 
-  for (int i = 0; i < 16; i++) {
-    fh_set[i]->close();
-  }
+    for (int i = 0; i < 16; i++) {
+        fh_set[i]->close();
+    }
     LOGGER(my_logger::get(), debug) << "Finished closing file handlers for image segments."; 
 }
-
-
 
 
 void Forwarder::process_fetch_ack(Node n) {
@@ -1510,6 +1511,7 @@ void Forwarder::process_fetch_ack(Node n) {
     cout << "fetch ack being processed" << endl;
     return;
 }
+
 
 void Forwarder::process_fetch_health_check(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_fetch_health_check function.";
