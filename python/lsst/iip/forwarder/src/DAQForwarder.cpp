@@ -135,7 +135,10 @@ class Forwarder {
     string FETCH_USER_PUB, FETCH_USER_PUB_PASSWD, FORMAT_USER_PUB, FORMAT_USER_PUB_PASSWD; 
     string FORWARD_USER_PUB, FORWARD_USER_PUB_PASSWD;
 
-    vector<string> readout_img_ids; 
+    //vector<string> readout_img_ids; 
+    std::map<string, map<string,string>> readout_img_ids; 
+    map<string, vector<string> > img_to_raft_list; 
+    map<string, vector<vector<string> > > img_to_raft_ccd_list; 
     map<string, string> header_info_dict; 
     map<string, string> take_img_done_msg; 
 
@@ -409,7 +412,7 @@ Forwarder::Forwarder() {
 
     try {
         Node cdm;
-        cdm = config_file["ROOT"];
+        cdm = L1_config_file["ROOT"];
         if((cdm["ARCHIVE"]["CHECKSUM_ENABLED"].as<string>()) == "yes") {
             this->Checksum_Enabled = true;
             this->Checksum_Type = cdm["ARCHIVE"]["CHECKSUM_TYPE"].as<string>();
@@ -718,41 +721,43 @@ void Forwarder::process_health_check(Node n) {
 void Forwarder::process_xfer_params(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_xfer_params function."; 
     LOGGER(my_logger::get(), debug) << "Incoming message is: " << n;
-    this->Device_Type = "AR";
-
-    Node p = n["XFER_PARAMS"];
-    LOGGER(my_logger::get(), debug) << "Incoming xfer_params is: " << p;
-
-    this->visit_raft_list.clear();
-    this->visit_raft_list = p["RAFT_LIST"].as<vector<string>>();
-    LOGGER(my_logger::get(), debug) << "RAFT_LIST has been assigned to class variable.";
-
-    this->visit_ccd_list_by_raft.clear();
-    this->visit_ccd_list_by_raft = p["RAFT_CCD_LIST"].as<std::vector<std::vector<string>>>();
-    LOGGER(my_logger::get(), debug) << "RAFT_CCD_LIST has been assigned to class variable.";
-
-    this->Session_ID = n["SESSION_ID"].as<string>();
-    LOGGER(my_logger::get(), debug) << "SESSION_ID has been assigned: " << this->Session_ID;
 
     string Image_ID = n["IMAGE_ID"].as<string>();
     LOGGER(my_logger::get(), debug) << "Image_ID has been assigned: " << Image_ID;
 
-    this->Job_Num = n["JOB_NUM"].as<string>();
-    LOGGER(my_logger::get(), debug) << "JOB_NUM has been assigned: " << this->Job_Num;
+    this->Device_Type = "AR";
+    this->readout_img_ids[Image_ID]["DEVICE"] = "AR";
 
-    this->Target_Location = n["TARGET_LOCATION"].as<string>();
-    LOGGER(my_logger::get(), debug) << "TARGET_LOCATION has been assigned: " << this->Target_Location;
+    Node p = n["XFER_PARAMS"];
+    LOGGER(my_logger::get(), debug) << "Incoming xfer_params is: " << p;
+
+    //this->visit_raft_list.clear();
+    this->img_to_raft_list[Image_ID] = p["RAFT_LIST"].as<vector<string> >();
+    LOGGER(my_logger::get(), debug) << "RAFT_LIST has been assigned to class map variable.";
+
+    //this->visit_ccd_list_by_raft.clear();
+    this->img_to_raft_ccd_list[Image_ID] = p["RAFT_CCD_LIST"].as<std::vector<std::vector<string> > >();
+    LOGGER(my_logger::get(), debug) << "RAFT_CCD_LIST has been assigned to map class variable.";
+
+    //this->Session_ID = n["SESSION_ID"].as<string>();
+    this->readout_img_ids[Image_ID]["SESSION"] = n["SESSION_ID"].as<string>();
+    //LOGGER(my_logger::get(), debug) << "SESSION_ID has been assigned: " << this->Session_ID;
+
+    string Job_Num = n["JOB_NUM"].as<string>();
+    this->readout_img_ids[Image_ID]["JOB_NUM"] = Job_Num;
+    LOGGER(my_logger::get(), debug) << "JOB_NUM has been assigned: " << Job_Num;
+
+    string Target_Location = n["TARGET_LOCATION"].as<string>();
+    this->readout_img_ids[Image_ID]["TARGET_LOCATION"] = Target_Location;
+    LOGGER(my_logger::get(), debug) << "TARGET_LOCATION has been assigned: " << Target_Location;
 
     string reply_queue = n["REPLY_QUEUE"].as<string>();
-    this->Foreman_Reply_Queue = reply_queue;
-    LOGGER(my_logger::get(), debug) << "Foreman_Reply_Queue has been assigned: " \
-                                    << this->Foreman_Reply_Queue;
+    this->readout_img_ids[Image_ID]["REPLY_QUEUE"] = reply_queue;
+    LOGGER(my_logger::get(), debug) << reply_queue <<" has been assigned to: " << Image_ID;
 
     string ack_id = n["ACK_ID"].as<string>();
+    this->readout_img_ids[Image_ID]["ACK_ID"] = ack_id;
     LOGGER(my_logger::get(), debug) << "ACK_ID has been assigned: " << ack_id;
-
-    //this->Daq_Addr = n["DAQ_ADDR"].as<string>();
-    //cout << "After setting DAQ_ADDR" << endl;
 
     //this->Visit_ID = n["VISIT_ID"].as<string>();
     //cout << "After setting VISIT_ID" << endl;
@@ -777,33 +782,45 @@ void Forwarder::process_at_xfer_params(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_at_xfer_params function."; 
     LOGGER(my_logger::get(), debug) << "Incoming message is: " << n;
 
+    string Image_ID = n["IMAGE_ID"].as<string>();
+    LOGGER(my_logger::get(), debug) << "Image_ID has been assigned: " << Image_ID;
+
     this->Device_Type = "AT";
+    this->readout_img_ids[Image_ID]["DEVICE"] = "AT";
 
     Node p = n["XFER_PARAMS"];
     LOGGER(my_logger::get(), debug) << "Incoming xfer_params is: " << p;
 
-    //this->Session_ID = n["SESSION_ID"].as<string>();
-    //cout << "After setting SESSION_ID" << endl;
+    this->img_to_raft_list[Image_ID] = p["RAFT_LIST"].as<vector<string>>();
+    LOGGER(my_logger::get(), debug) << "RAFT_LIST has been assigned to class map variable.";
 
-    this->Job_Num = n["JOB_NUM"].as<string>();
-    cout << "After setting JOB_NUM" << endl;
+    this->img_to_raft_ccd_list[Image_ID] = p["RAFT_CCD_LIST"].as<vector<vector<string>>>();
+    LOGGER(my_logger::get(), debug) << "RAFT_CCD_LIST has been assigned to map class variable.";
 
-    string Image_ID = n["IMAGE_ID"].as<string>();
+    this->readout_img_ids[Image_ID]["SESSION"] = n["SESSION_ID"].as<string>();
 
-    this->Target_Location = n["TARGET_LOCATION"].as<string>();
-    LOGGER(my_logger::get(), debug) << "TARGET_LOCATION has been assigned: " << this->Target_Location;
+    string Job_Num = n["JOB_NUM"].as<string>();
+    this->readout_img_ids[Image_ID]["JOB_NUM"] = Job_Num;
+    LOGGER(my_logger::get(), debug) << "JOB_NUM has been assigned: " << Job_Num;
+
+    string Target_Location = n["TARGET_LOCATION"].as<string>();
+    this->readout_img_ids[Image_ID]["TARGET_LOCATION"] = Target_Location;
+    LOGGER(my_logger::get(), debug) << "TARGET_LOCATION has been assigned: " << Target_Location;
 
     string reply_queue = n["REPLY_QUEUE"].as<string>();
-    LOGGER(my_logger::get(), debug) << "REPLY_QUEUE has been assigned: " << reply_queue;
+    this->readout_img_ids[Image_ID]["REPLY_QUEUE"] = reply_queue;
+    LOGGER(my_logger::get(), debug) << reply_queue <<" has been assigned to: " << Image_ID;
 
     string ack_id = n["ACK_ID"].as<string>();
+    this->readout_img_ids[Image_ID]["ACK_ID"] = ack_id;
     LOGGER(my_logger::get(), debug) << "ACK_ID has been assigned: " << ack_id;
-
-    //this->Daq_Addr = n["DAQ_ADDR"].as<string>();
-    //cout << "After setting DAQ_ADDR" << endl;
 
     //this->Visit_ID = n["VISIT_ID"].as<string>();
     //cout << "After setting VISIT_ID" << endl;
+
+    this->readout_img_ids[Image_ID]["READOUT_FINISHED"] = "no";
+    this->readout_img_ids[Image_ID]["HEADER_FINISHED"] = "no";
+
 
     string message_type = "AT_FWDR_XFER_PARAMS_ACK";
     string ack_bool = "true";
@@ -881,30 +898,13 @@ void Forwarder::process_at_end_readout(Node n) {
 //From forwarder main thread to fetch thread:
 void Forwarder::process_fetch(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_fetch function."; 
-    //If message_type FETCH_END_READOUT,
+    //  If message_type is FETCH_END_READOUT,
     //  Make dir using image_id as name under work_dir
     //  Fetch data from DAQ or copy from local drive
     //  Send message to Format thread with image_id as msg_type FORMAT_END_READOUT
-    //Else if message_type FETCH_TAKE_IMAGES_DONE,
-    //  copy msg ack params and send to Format thread as msg_type FORMAT_TAKE_IMAGES_DONE
 
     string type_msg = n["MSG_TYPE"].as<string>();
 
-    if (type_msg == "FETCH_TAKE_IMAGES_DONE") {
-      string new_msg_type = "FORMAT_TAKE_IMAGES_DONE";
-      string job_num = n["JOB_NUM"].as<string>();
-      string reply_queue = n["REPLY_QUEUE"].as<string>();
-      string ack_id = n["ACK_ID"].as<string>();
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << new_msg_type
-          << ", JOB_NUM: " << job_num
-          << ", REPLY_QUEUE: " << reply_queue
-          << ", ACK_ID: " << ack_id << "}";
-      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-        LOGGER(my_logger::get(), debug) << "FORMAT_TAKE_IMAGES_DONE is sent to: " << this->format_consume_queue; 
-        LOGGER(my_logger::get(), debug) << "Message is: " << msg.str(); 
-      return;
-    }
 
     if (type_msg == "FETCH_END_READOUT") {
       // For raft in raft_list:
@@ -958,8 +958,8 @@ void Forwarder::process_at_fetch(Node n) {
 
     string image_id = n["IMAGE_ID"].as<string>();
     int retval;
-    string raft = this->visit_raft_list[0];
-    string ccd = this->visit_ccd_list_by_raft[0][0]; 
+    string raft = this->img_to_raft_list[image_id][0];
+    string ccd = this->img_to_raft_ccd_list[image_id][0][0]; 
     ostringstream cmd;
     ostringstream rmcmd;
     ostringstream filepath;
@@ -977,11 +977,8 @@ void Forwarder::process_at_fetch(Node n) {
     LOGGER(my_logger::get(), debug) << "Directory " << filepath << " is created.";
     LOGGER(my_logger::get(), debug) << "Created directories for image segments."; 
 
-    // FIXX FIXX FIXX This should be "ats"in the incoming raft list!
-    // Check that "ats" is being passed in from L1CfgSys.yaml
-    // NOTE: This var raft is set 20 lines above!
-    raft = "ats";
     retval = this->fetch_at_reassemble_process(raft, image_id, filepath.str());
+
     if(retval == 1) {
            ostringstream desc;
            desc << "Forwarder Fetch Error: Found no image in Catalog for " \
@@ -1001,6 +998,9 @@ void Forwarder::process_at_fetch(Node n) {
     string new_msg_type = "FORMAT_END_READOUT";
     ostringstream msg;
     msg << "{MSG_TYPE: " << new_msg_type
+        << ", RAFT: " << raft
+        << "' CCD: "  << ccd
+        << ", PATH: " << filepath.str()
         << ", IMAGE_ID: " << image_id << "}";
     this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
     LOGGER(my_logger::get(), debug) << "FORMAT_END_READOUT is sent to: " \
@@ -1019,7 +1019,7 @@ int Forwarder::check_for_image_existence(string image_id) {
 }
 
 
-int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string dir_prefix)
+int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string filepath)
 {
   LOGGER(my_logger::get(), debug) << "Entering fetch_at_reassemble_process function."; 
   int retval = 0;
@@ -1054,7 +1054,7 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, st
   // the ccd name will be the first ccd string in the list for
   // the first (and only) raft.
   //
-  string ccd = this->visit_ccd_list_by_raft[0][0];
+  //string ccd = this->visit_ccd_list_by_raft[0][0];
 
   while(sources.remove(location)) {
 
@@ -1066,13 +1066,14 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, st
       IMS::WaveFront slice(source);
       if(!slice) return(2);
 
-      ccd_path << dir_prefix << "/" << raft << "/" << ccd;
+      //ccd_path << dir_prefix << "/" << raft << "/" << ccd;
   
       // Filehandle set for ATS CCD will then have a set of 
       // 16 filehandles...one filehandle for each amp segment.
   
       std::vector<std::ofstream*> FH_ATS;
-      this->fetch_set_up_at_filehandles(FH_ATS, image_id, ccd_path.str());
+      //this->fetch_set_up_at_filehandles(FH_ATS, image_id, ccd_path.str());
+      this->fetch_set_up_at_filehandles(FH_ATS, image_id, filepath);
   
           do
           {
@@ -1709,7 +1710,7 @@ void Forwarder::format_process_end_readout(Node node) {
     LOGGER(my_logger::get(), debug) << "Entering format_process_end_readout function."; 
     try { 
         string image_id = node["IMAGE_ID"].as<string>(); 
-        this->readout_img_ids.push_back(image_id); 
+        //this->readout_img_ids.push_back(image_id); 
         this->format_look_for_work(); 
         LOGGER(my_logger::get(), debug) << "Looking header file for current ImageID " << image_id; 
         LOGGER(my_logger::get(), debug) << "Looking work for current Readout pixels is complete."; 
