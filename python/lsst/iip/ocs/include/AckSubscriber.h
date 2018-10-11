@@ -48,5 +48,8 @@ class AckSubscriber : public OCS_Bridge {
 
         static void *run_telemetry_consumer(void *); 
         static void *run_ack_consumer(void *); 
+
+        // recover from fault
+        void process_recover_from_fault_ack(YAML::Node); 
 }; 
 

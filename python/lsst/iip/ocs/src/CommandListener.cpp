@@ -18,6 +18,16 @@ int next_timed_ack_id = 0;
 template <typename T, typename U> 
 using funcptr = int (T::*)(U*); 
 
+map<string, string> camel_cases = { 
+    {"START", "start"}, 
+    {"ENABLE", "enable"},
+    {"DISABLE", "disable"},
+    {"ENTER_CONTROL", "enterControl"}, 
+    {"EXIT_CONTROL", "exitControl"}, 
+    {"ABORT", "abort"}, 
+    {"RESET_FROM_FAULT", "resetFromFault"} 
+}; 
+
 template <typename SAL_device, typename SAL_struct>
 void listenCommand(SAL_device mgr, string device, string command_name, SimplePublisher* publisher, string publish_q, 
 string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){ 
@@ -25,7 +35,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
     int cmdId = -1; 
     SAL_struct SALInstance; 
 
-    string processor = CommandListener::get_device(device) + "_command_" + command_name; 
+    string processor = CommandListener::get_device(device) + "_command_" + camel_cases[command_name]; 
     mgr.salProcessor(const_cast<char *>(processor.c_str())); 
     while (1) { 
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
@@ -127,9 +137,8 @@ CommandListener::~CommandListener(){
 }
 
 void CommandListener::setup_archiver_listeners() { 
-    pthread_t ar_start, ar_stop, ar_enable, ar_disable, ar_standby, ar_enterControl, ar_exitControl, ar_abort; 
+    pthread_t ar_start, ar_enable, ar_disable, ar_standby, ar_enterControl, ar_exitControl, ar_abort; 
     pthread_create(&ar_start, NULL, &CommandListener::run_ar_start, command_args); 
-    pthread_create(&ar_stop, NULL, &CommandListener::run_ar_stop, command_args); 
     pthread_create(&ar_enable, NULL, &CommandListener::run_ar_enable, command_args); 
     pthread_create(&ar_disable, NULL, &CommandListener::run_ar_disable, command_args); 
     pthread_create(&ar_standby, NULL, &CommandListener::run_ar_standby, command_args); 
@@ -139,9 +148,8 @@ void CommandListener::setup_archiver_listeners() {
 } 
 
 void CommandListener::setup_catchuparchiver_listeners() { 
-    pthread_t cu_start, cu_stop, cu_enable, cu_disable, cu_standby, cu_enterControl, cu_exitControl, cu_abort; 
+    pthread_t cu_start, cu_enable, cu_disable, cu_standby, cu_enterControl, cu_exitControl, cu_abort; 
     pthread_create(&cu_start, NULL, &CommandListener::run_cu_start, command_args); 
-    pthread_create(&cu_stop, NULL, &CommandListener::run_cu_stop, command_args); 
     pthread_create(&cu_enable, NULL, &CommandListener::run_cu_enable, command_args); 
     pthread_create(&cu_disable, NULL, &CommandListener::run_cu_disable, command_args); 
     pthread_create(&cu_standby, NULL, &CommandListener::run_cu_standby, command_args); 
@@ -151,9 +159,8 @@ void CommandListener::setup_catchuparchiver_listeners() {
 }
 
 void CommandListener::setup_processingcluster_listeners() { 
-    pthread_t pp_start, pp_stop, pp_enable, pp_disable, pp_standby, pp_enterControl, pp_exitControl, pp_abort; 
+    pthread_t pp_start, pp_enable, pp_disable, pp_standby, pp_enterControl, pp_exitControl, pp_abort; 
     pthread_create(&pp_start, NULL, &CommandListener::run_pp_start, command_args); 
-    pthread_create(&pp_stop, NULL, &CommandListener::run_pp_stop, command_args); 
     pthread_create(&pp_enable, NULL, &CommandListener::run_pp_enable, command_args); 
     pthread_create(&pp_disable, NULL, &CommandListener::run_pp_disable, command_args); 
     pthread_create(&pp_standby, NULL, &CommandListener::run_pp_standby, command_args); 
@@ -163,15 +170,16 @@ void CommandListener::setup_processingcluster_listeners() {
 }
 
 void CommandListener::setup_atArchiver_listeners() { 
-    pthread_t atar_start, atar_stop, atar_enable, atar_disable, atar_standby, atar_enterControl, atar_exitControl, atar_abort; 
+    pthread_t atar_start, atar_enable, atar_disable, atar_standby, 
+              atar_enterControl, atar_exitControl, atar_abort, atar_resetFromFault; 
     pthread_create(&atar_start, NULL, &CommandListener::run_atar_start, command_args); 
-    // pthread_create(&atar_stop, NULL, &CommandListener::run_atar_stop, command_args); 
     pthread_create(&atar_enable, NULL, &CommandListener::run_atar_enable, command_args); 
     pthread_create(&atar_disable, NULL, &CommandListener::run_atar_disable, command_args); 
     pthread_create(&atar_standby, NULL, &CommandListener::run_atar_standby, command_args); 
     pthread_create(&atar_enterControl, NULL, &CommandListener::run_atar_enterControl, command_args); 
     pthread_create(&atar_exitControl, NULL, &CommandListener::run_atar_exitControl, command_args); 
     pthread_create(&atar_abort, NULL, &CommandListener::run_atar_abort, command_args); 
+    pthread_create(&atar_resetFromFault, NULL, &CommandListener::run_atar_resetFromFault, command_args); 
 } 
 
 void *CommandListener::run_ar_start(void *pargs) {
@@ -183,18 +191,6 @@ void *CommandListener::run_ar_start(void *pargs) {
     
     funcptr<SAL_archiver, archiver_command_startC> ar_start = &SAL_archiver::acceptCommand_start;   
     listenCommand_start(ar, "AR", "START", rabbit_publisher, publish_q, consume_q, ar_start);  
-    return 0; 
-} 
-
-void *CommandListener::run_ar_stop(void *pargs) {
-    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
-    SimplePublisher* rabbit_publisher = params->publisher; 
-    string publish_q = params->publish_queue; 
-    string consume_q = params->consume_queue; 
-    SAL_archiver ar = params->ar; 
-    
-    funcptr<SAL_archiver, archiver_command_stopC> ar_stop = &SAL_archiver::acceptCommand_stop;   
-    listenCommand(ar,"AR", "STOP", rabbit_publisher, publish_q, consume_q, ar_stop);  
     return 0; 
 } 
 
@@ -282,18 +278,6 @@ void *CommandListener::run_cu_start(void *pargs) {
     return 0; 
 } 
 
-void *CommandListener::run_cu_stop(void *pargs) {
-    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
-    SimplePublisher* rabbit_publisher = params->publisher; 
-    string publish_q = params->publish_queue; 
-    string consume_q = params->consume_queue; 
-    SAL_catchuparchiver cu = params->cu; 
-    
-    funcptr<SAL_catchuparchiver, catchuparchiver_command_stopC> cu_stop = &SAL_catchuparchiver::acceptCommand_stop;   
-    listenCommand(cu, "CU", "STOP", rabbit_publisher, publish_q, consume_q, cu_stop);  
-    return 0; 
-} 
-
 void *CommandListener::run_cu_enable(void *pargs) {
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
     SimplePublisher* rabbit_publisher = params->publisher; 
@@ -375,18 +359,6 @@ void *CommandListener::run_pp_start(void *pargs) {
     
     funcptr<SAL_processingcluster, processingcluster_command_startC> pp_start = &SAL_processingcluster::acceptCommand_start;   
     listenCommand_start(pp, "PP", "START", rabbit_publisher, publish_q, consume_q, pp_start);  
-    return 0; 
-} 
-
-void *CommandListener::run_pp_stop(void *pargs) {
-    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
-    SimplePublisher* rabbit_publisher = params->publisher; 
-    string publish_q = params->publish_queue; 
-    string consume_q = params->consume_queue; 
-    SAL_processingcluster pp = params->pp; 
-    
-    funcptr<SAL_processingcluster, processingcluster_command_stopC> pp_stop = &SAL_processingcluster::acceptCommand_stop;   
-    listenCommand(pp, "PP", "STOP", rabbit_publisher, publish_q, consume_q, pp_stop);  
     return 0; 
 } 
 
@@ -474,20 +446,6 @@ void *CommandListener::run_atar_start(void *pargs) {
     return 0; 
 } 
 
-void *CommandListener::run_atar_stop(void *pargs) {
-    /** 
-    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
-    SimplePublisher* rabbit_publisher = params->publisher; 
-    string publish_q = params->publish_queue; 
-    string consume_q = params->consume_queue; 
-    SAL_atArchiver atar = params->atar; 
-    
-    funcptr<SAL_atArchiver, atArchiver_command_stopC> atar_stop = &SAL_atArchiver::acceptCommand_stop;   
-    listenCommand(atar,"AT", "STOP", rabbit_publisher, publish_q, consume_q, atar_stop);  
-    */ 
-    return 0; 
-} 
-
 void *CommandListener::run_atar_enable(void *pargs) {
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
     SimplePublisher* rabbit_publisher = params->publisher; 
@@ -556,9 +514,22 @@ void *CommandListener::run_atar_abort(void *pargs) {
     SAL_atArchiver atar = params->atar; 
     
     funcptr<SAL_atArchiver, atArchiver_command_abortC> atar_abort = &SAL_atArchiver::acceptCommand_abort;   
-    listenCommand(atar,"AT", "ABORT", rabbit_publisher, publish_q, consume_q, atar_abort);  
+    listenCommand(atar, "AT", "ABORT", rabbit_publisher, publish_q, consume_q, atar_abort);  
     return 0; 
 } 
+
+void *CommandListener::run_atar_resetFromFault(void *pargs) {
+    ocs_thread_args *params = ((ocs_thread_args *)pargs); 
+    SimplePublisher* rabbit_publisher = params->publisher; 
+    string publish_q = params->publish_queue; 
+    string consume_q = params->consume_queue; 
+    SAL_atArchiver atar = params->atar; 
+    
+    funcptr<SAL_atArchiver, atArchiver_command_resetFromFaultC> atar_resetFromFault = &SAL_atArchiver::acceptCommand_resetFromFault;   
+    listenCommand(atar, "AT", "RESET_FROM_FAULT", rabbit_publisher, publish_q, consume_q, atar_resetFromFault);  
+    return 0; 
+} 
+
 void CommandListener::setup_resolve_publisher() { 
     cout << "Setting up OCS RESOLVE publisher" << endl; 
     pthread_t resolvethread; 

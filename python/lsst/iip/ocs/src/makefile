@@ -58,7 +58,7 @@ AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod
 	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(OCS_OBJ) $(AT_OBJ) $(DM_OBJ) -Wall -g -o AckSubscriber AckSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
 
 EventSubscriber: EventSubscriber.cpp SimplePublisher
-	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(CAMERA)/src/.obj/CheckStatus.o $(OBJ_DIR)/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
+	$(CC) $(COMPVERS) $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(CAMERA)/src/.obj/SAL_camera.o $(ATCAMERA)/src/.obj/SAL_atcamera.o $(EFD)/src/.obj/SAL_efd.o $(ARCHIVE)/src/.obj/CheckStatus.o $(OBJ_DIR)/SimplePublisher.o -Wall -g -o EventSubscriber EventSubscriber.cpp $(SAL_LDLIB) $(DM_LDLIB)
 
 
 clean:
