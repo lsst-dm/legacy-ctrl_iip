@@ -143,10 +143,12 @@ void AckSubscriber::process_ack(Node n) {
 	long cmdId = stol(n["CMD_ID"].as<string>()); 
 	string device = n["DEVICE"].as<string>(); 
 	string ack_id = n["ACK_ID"].as<string>(); 
-	string ack_bool = n["ACK_BOOL"].as<string>(); 
+	// string ack_bool = n["ACK_BOOL"].as<string>(); 
+	int ack_bool = n["ACK_BOOL"].as<int>(); 
 	string ack_statement = n["ACK_STATEMENT"].as<string>();
 
-        salLONG error_code = (ack_bool == "true") ? 0: -302; 
+        // salLONG error_code = (ack_bool == "true") ? 0: -302; 
+        salLONG error_code = ack_bool; 
 
         if (device == "AR") { 
             Command<SAL_archiver> sender; 

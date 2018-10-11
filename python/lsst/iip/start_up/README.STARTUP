@@ -1,5 +1,26 @@
 #############################################################################################
-## This is a file for listing the procedure for doing a bare metal install of the ATS system.
+## Useful Script Actions:
+##
+
+Check if services are running:
+./list_services
+
+Purge rabbitmq queues:
+../scripts/at_rmq_purge_queues.sh
+
+Stop all of our component services (Not redis or rabbit):
+systemctl stop l1d-ctrl_iip.target
+
+Start all of our component services: 
+systemctl start (or restart) l1d-ctrl_iip.target
+
+Add a queue:
+Mess with commenting out current queues in:
+../scripts/at_Setup.py
+
+
+#############################################################################################
+## Below is a file for listing the procedure for doing a bare metal install of the ATS system.
 ## It is not a script, of course, but the description of the procedure.
 ##
 

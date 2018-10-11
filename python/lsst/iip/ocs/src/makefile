@@ -51,7 +51,7 @@ Consumer: Consumer.cpp
 Toolsmod: Toolsmod.cpp
 	$(CC) $(COMPVERS) $(INCLUDE) -c -o ../obj/Toolsmod.o Toolsmod.cpp
 
-CommandListener: CommandListener.cpp OCS_Bridge Toolsmod
+CommandListener: CommandListener.cpp OCS_Bridge Toolsmod SimplePublisher
 	g++ -std=c++11 $(INCLUDE) $(SALINC) $(SAL_LDPATH) $(DM_LDPATH) $(OCS_OBJ) $(AT_OBJ) $(OBJ_DIR)/Toolsmod.o $(OBJ_DIR)/SimplePublisher.o $(OBJ_DIR)/OCS_Bridge.o CommandListener.cpp -o CommandListener $(SAL_LDLIB) $(DM_LDLIB)
 
 AckSubscriber: AckSubscriber.cpp Consumer SimplePublisher OCS_Bridge Toolsmod

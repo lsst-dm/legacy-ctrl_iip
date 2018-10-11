@@ -1,3 +1,45 @@
+###############################################################################
+###############################################################################
+## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
+## All rights reserved.
+##
+## Developed by:
+##
+##   LSST Image Ingest and Distribution Team
+##   National Center for Supercomputing Applications
+##   University of Illinois
+##   http://www.ncsa.illinois.edu/enabling/data/lsst
+##
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal with the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+##
+##   Redistributions of source code must retain the above copyright
+##   notice, this list of conditions and the following disclaimers.
+##
+##   Redistributions in binary form must reproduce the above copyright
+##   notice, this list of conditions and the following disclaimers in the
+##   documentation and/or other materials provided with the distribution.
+##
+##   Neither the names of the National Center for Supercomputing
+##   Applications, the University of Illinois, nor the names of its
+##   contributors may be used to endorse or promote products derived from
+##   this Software without specific prior written permission.
+##
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+## IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+## ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+## CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
+
+
+
 import toolsmod
 from toolsmod import get_timestamp
 import logging
@@ -9,6 +51,7 @@ import os
 from copy import deepcopy
 from pprint import pprint, pformat
 import time
+import datetime
 from time import sleep
 import threading
 from threading import Lock
@@ -43,11 +86,13 @@ class AuxDevice:
     AT_FOREMAN_ACK_PUBLISH = "at_foreman_ack_publish"
     DMCS_ACK_CONSUME = "dmcs_ack_consume"
     DMCS_FAULT_CONSUME = "dmcs_fault_consume"
+    TELEMETRY_QUEUE = "telemetry_queue"
     START_INTEGRATION_XFER_PARAMS = {}
     ACK_QUEUE = []
     CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
     DP = toolsmod.DP
+    METRIX = toolsmod.METRIX
     RAFT_LIST = []
     RAFT_CCD_LIST = ['00']
     date_format='date +%F_%H_%R:%S-'  # Used to generate unique ack_ids
@@ -95,6 +140,8 @@ class AuxDevice:
                               'AT_HEADER_READY': self.process_header_ready_event,
                               'AT_FWDR_HEADER_READY_ACK': self.process_header_ready_ack,
                               'NEW_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AR_ARCHIVE_ITEM_ACK': self.process_ack, 
+                              'NEW_AT_ARCHIVE_ITEM_ACK': self.process_new_at_item_ack, 
                               'AT_END_READOUT': self.process_at_end_readout }
 
 
@@ -181,7 +228,10 @@ class AuxDevice:
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback: RECEIVING ACK MESSAGE')
-        LOGGER.debug('Message from ACK callback message body is: %s', pformat(str(msg_dict)))
+        LOGGER.info('Message in an ACK callback message body is: %s', pformat(str(msg_dict)))
+
+        if self.DP:
+            print("\n\nIn AuxDevice on_ack_message - receiving this message: %s" % body)
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -202,6 +252,7 @@ class AuxDevice:
         start_int_ack_id = params[ACK_ID]
         session_id = params['SESSION_ID']
         job_number = params['JOB_NUM']
+        image_id = params['IMAGE_ID']
 
         if self.DP: print("Incoming AUX AT_Start Int msg")
         # next, run health check
@@ -212,54 +263,59 @@ class AuxDevice:
         num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
 
-
         # Give fwdrs enough time to respond...
-        #self.ack_timer(1.4)
-        sleep(3)
-
+        ## FIX - Note: Incorporate way for simple_prog timer to do health checks.
+        self.ack_timer(2.0)
+        #fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
 
 
         if (self.set_current_fwdr() == False):
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
             desc = "No health check response from ANY fwdr"
             type = 'FAULT'
-            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 'no health check response any fwdrs'
+            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 
+                                                                          # 'no health check 
+                                                                          # response any fwdrs'
             return
-        print("  ")
 
         # Add archive check when necessary...
-        #if self.use_archive_ctrl == False:
-        #    pass
-        #self.clear_archive_ack()
+        if self.use_archive_ctrl == False:
+            pass
+        self.clear_archive_ack()
+
         # send new_archive_item msg to archive controller
-        #start_int_params = {}
-        #ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
-        #start_int_params[MSG_TYPE] = 'NEW_ARCHIVE_ITEM'
-        #start_int_params['ACK_ID'] = ac_timed_ack
-        #start_int_params['JOB_NUM'] = job_number
-        #start_int_params['SESSION_ID'] = session_id
-        #start_int_params['VISIT_ID'] = visit_id
-        #start_int_params['IMAGE_ID'] = image_id
-        #start_int_params['REPLY_QUEUE'] = self.AUX_FOREMAN_ACK_PUBLISH
-        #self.JOB_SCBD.set_job_state(job_number, 'AR_NEW_ITEM_QUERY')
-        #self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
+        start_int_params = {}
+        ac_timed_ack = self.get_next_timed_ack_id('AUX_CTRL_NEW_ITEM')
+        start_int_params[MSG_TYPE] = 'NEW_AT_ARCHIVE_ITEM'
+        start_int_params['ACK_ID'] = ac_timed_ack
+        start_int_params['JOB_NUM'] = job_number
+        start_int_params['SESSION_ID'] = session_id
+        start_int_params['IMAGE_ID'] = image_id
+        start_int_params['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
+        self._publisher.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
 
-        #ar_response = self.progressive_ack_timer(ac_timed_ack, 1, 2.0)
+        ar_response = self.simple_progressive_ack_timer(self.ARCHIVE, 4.0)
 
-        #if ar_response == None:
-        #   FIXME raise L1 exception and bail out
-        #   print("B-B-BAD Trouble; no ar_response")
-        #self.archive_xfer_root = ar_response['ARCHIVE_CTRL']['TARGET_DIR']
+        if ar_response == False:
+            description = ("Non-Fatal Error - No NEW_AT_ARCHIVE_ITEM response from ArchiveCtrl." + \
+                           "Using default Archive Dir location from CFG file: %s" \
+                            % self.archive_xfer_root)
+            LOGGER.critical(description)
+            self.send_telemetry("4451", description) 
+            target_dir = self.archive_xfer_root 
+ 
+        else:
+            target_dir = self._archive_ack['TARGET_DIR']
           
  
-        target_dir = self.archive_xfer_root 
-        
         xfer_params_ack_id = self.get_next_timed_ack_id("AT_FWDR_XFER_PARAMS_ACK") 
 
         fwdr_new_target_params = {} 
         fwdr_new_target_params['XFER_PARAMS'] = {}
         fwdr_new_target_params[MSG_TYPE] = 'AT_FWDR_XFER_PARAMS'
         fwdr_new_target_params[SESSION_ID] = params['SESSION_ID']
+        fwdr_new_target_params[IMAGE_ID] = image_id
+        fwdr_new_target_params['DEVICE'] = self.DEVICE
         fwdr_new_target_params[JOB_NUM] = params[JOB_NUM]
         fwdr_new_target_params[ACK_ID] = xfer_params_ack_id
         fwdr_new_target_params[REPLY_QUEUE] = self.AT_FOREMAN_ACK_PUBLISH
@@ -269,7 +325,8 @@ class AuxDevice:
         # This may look curious, but in the other devices, a raft_list is a list of rafts,
         # but a raft_ccd_list is a list of lists, where each ccd sublist refers to 
         # a raft by the same list index
-        #This business is really so that unit tests can compare messages to 
+        #
+        # This business is really so that unit tests can compare messages to 
         # the canonical versions...as dicts are open ended and can correctly
         # contain more keys than the canonical example and hence fail incorrectly,
         # using lists eliminates this likely possibility.
@@ -284,15 +341,23 @@ class AuxDevice:
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
         self.prp.pprint(fwdr_new_target_params)
+        self.clear_fwdr_state()
         self._publisher.publish_message(route_key, fwdr_new_target_params)
        
 
         
         # receive ack back from forwarder that it has job params
-        self.clear_fwdr_state()
-        self.ack_timer(8.4)
+        if self.METRIX:
+            z1 = datetime.datetime.now()
 
-        if self.did_current_fwdr_respond() == False:
+        fwdr_response = self.simple_progressive_ack_timer(self.FWDR, 30.0)
+
+        if self.METRIX: 
+            z2 = datetime.datetime.now()
+            z3 = z2 - z1
+            LOGGER.info("METRIX: In StartInt - waited %s for xfer_params ack to return." % z3)
+
+        if fwdr_response == False:
             name = self._current_fwdr['FQN']
             type = "FAULT"
             desc = "No xfer_params response from fwdr."
@@ -309,9 +374,6 @@ class AuxDevice:
         st_int_params_ack['JOB_NUM'] = job_number
         st_int_params_ack['SESSION_ID'] = session_id
         st_int_params_ack['COMPONENT'] = self.COMPONENT_NAME
-        print("000000000000000000000000")
-        print("Acking positive to start integration")
-        print("000000000000000000000000")
         self.accept_job(st_int_params_ack)
 
 
@@ -410,8 +472,13 @@ class AuxDevice:
         route_key = self._current_fwdr['CONSUME_QUEUE']
         self._publisher.publish_message(route_key, msg)
 
+        # Now, ack processor will deal with result sets if they arrive...if end readout ack
+        # does not arrive, then lack of ack is noted against that job_num, IF checksumming
+        # is set to true.
+        return
 
-        readout_response = self.simple_progressive_ack_timer(self.FWDR, 20.0)
+        """
+        readout_response = self.simple_progressive_ack_timer(self.FWDR, 30.0)
 
         if readout_response == False:
             name = self._current_fwdr['FQN']
@@ -422,7 +489,6 @@ class AuxDevice:
             self.send_fault_state_event(5752, desc, type, name)
 
             return
-
 
         result_set = self.did_current_fwdr_send_result_set()
         if result_set == None:  #fail, ack_bool is false, and filename_list is None
@@ -455,8 +521,9 @@ class AuxDevice:
                 self._publisher.publish_message(reply_queue, final_msg)
                 return
             else:
+                pass
                 self.process_readout_responses(readout_ack_id, msgtype, reply_queue, image_id, job_number, result_set)
-
+        """
 
     def process_readout_responses(self, readout_ack_id, msgtype, reply_queue, image_id, job_number, result_set):
         self.clear_archive_ack()
@@ -552,6 +619,9 @@ class AuxDevice:
 
  
     def set_fwdr_state(self, component, state):
+        if self.DP:
+            print("\n\nIn set_fwdr_state - Setting %s state to RESPONSIVE\n" % component)
+        LOGGER.info("set_fwdr_state - setting component %s to RESPONSIVE\n" % component)
         self._fwdr_state_dict[component]['RESPONSE'] = state
 
 
@@ -632,10 +702,20 @@ class AuxDevice:
         self.set_fwdr_state(component, HEALTHY)
        
  
+    def process_new_at_item_ack(self, params):
+        self._archive_ack['RESPONSE'] = 'RESPONSIVE'
+        self._archive_ack['TARGET_DIR'] = params['TARGET_DIR']
+        
+
     def process_xfer_params_ack(self, params):
+        if self.DP:
+            print("\n\nIn process_xfer_params_ack - auxdevice setting state of %s to RESPONSIVE\n" \
+                   % params['COMPONENT'])
+        LOGGER.info('process_xfer_params_ack: state of %s being set to RESPONSIVE' %  params['COMPONENT'])
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
-    
+   
+ 
     
     def process_at_fwdr_end_readout_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
@@ -659,15 +739,18 @@ class AuxDevice:
                 LOGGER.debug('Releasing mutex...')
                 self.my_mutex_lock.release()
     
+
     
     def process_at_items_xferd_ack(self, params):
         self._archive_ack['RESPONSE'] = 'RESPONSIVE'
         self._archive_ack['RESULT_SET'] = params['RESULT_SET']
+
    
  
     def process_header_ready_ack(self, params):
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, RESPONSIVE)
+
 
 
     def get_next_timed_ack_id(self, ack_type):
@@ -682,6 +765,7 @@ class AuxDevice:
         self._next_timed_ack_id = self._next_timed_ack_id + 1
         #return (ack_type + "_" + datestring + str(self._next_timed_ack_id.zfill(6)))
         return (ack_type + "_" + str(datestring) + str(self._next_timed_ack_id).zfill(6))
+
 
 
     def set_session(self, params):
@@ -704,6 +788,7 @@ class AuxDevice:
         """
 
 
+
     def set_visit(self, params):
         """ Set current visit_id in JobScoreboard.
             Send AR_NEXT_VISIT_ACK message with ack_bool equals True to specified reply queue.
@@ -723,6 +808,7 @@ class AuxDevice:
         msg['ACK_BOOL'] = True
         route_key = params['REPLY_QUEUE'] 
         self._publisher.publish_message(route_key, msg)
+
 
 
     def get_current_visit(self):
@@ -912,6 +998,14 @@ class AuxDevice:
         self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
         self.thread_manager.start()
 
+
+    def send_telemetry(self, status_code, description):
+        msg = {}
+        msg['MSG_TYPE'] = 'TELEMETRY'
+        msg['DEVICE'] = self.DEVICE
+        msg['STATUS_CODE'] = status_code
+        msg['DESCRIPTION'] = description
+        self._publisher.publish_message(self.TELEMETRY_QUEUE, msg)
 
 
     def shutdown(self):

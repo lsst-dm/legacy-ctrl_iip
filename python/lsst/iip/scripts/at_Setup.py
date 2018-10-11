@@ -21,15 +21,16 @@ class Setup:
         bunny_channel.exchange_declare(exchange='message', exchange_type='direct', durable=True)
         test_channel.exchange_declare(exchange='message', exchange_type='direct', durable=True)
 
-
         queues = ["at_foreman_consume",
                   "at_foreman_ack_publish",
                   "archive_ctrl_publish",
+                  "archive_ctrl_consume",
                   "dmcs_consume",
                   "dmcs_ack_consume",
                   "ocs_dmcs_consume",
                   "dmcs_ocs_publish",
                   "dmcs_fault_consume",
+                  "gen_dmcs_consume",
                   "at_forwarder_publish",
                   "f91_consume",
                   "f92_consume",
@@ -52,6 +53,7 @@ class Setup:
                   "f99_consume_from_forward",
                   "ar_foreman_ack_publish",
                   "test_dmcs_ocs_publish"] # optional test queue for dmcs_ocs test ,
+
 
         for queue in queues: 
             bunny_channel.queue_declare(queue=queue,durable=True)

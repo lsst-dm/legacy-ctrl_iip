@@ -10,6 +10,8 @@ rabbitmqctl add_vhost /test_at
 
 declare -a users=("BASE"
                   "BASE_PUB"
+                  "ARCHIE"
+                  "ARCHIE_PUB"
                   "AUX"
                   "AUX_PUB"
                   "DMCS"

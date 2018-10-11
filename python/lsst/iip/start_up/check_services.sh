@@ -12,7 +12,7 @@ while true; do
         status=$(systemctl is-active ${sv})
         case $status in
             active)
-                if ["$1" == "-v"] 
+                if [ "$1" == "-v" ];
 		then
                     echo "${sv} is running." 
                 fi
