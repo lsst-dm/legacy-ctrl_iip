@@ -29,7 +29,7 @@ map<string, ack_funcptr> action_handler = {
     {"STANDBY_ACK", &AckSubscriber::process_ack}, 
     {"EXIT_CONTROL_ACK", &AckSubscriber::process_ack}, 
     {"ABORT_ACK", &AckSubscriber::process_ack}, 
-    {"RECOVER_FROM_FAULT_ACK", &AckSubscriber::process_recover_from_fault_ack}, 
+    {"RESET_FROM_FAULT_ACK", &AckSubscriber::process_recover_from_fault_ack}, 
     {"SUMMARY_STATE_EVENT", &AckSubscriber::process_summary_state}, 
     {"RECOMMENDED_SETTINGS_VERSION_EVENT", &AckSubscriber::process_recommended_settings_version}, 
     {"SETTINGS_APPLIED_EVENT", &AckSubscriber::process_settings_applied}, 
@@ -46,7 +46,6 @@ class Command {
 
         map<string, funcptr> action_handler = { 
             {"START_ACK", &T::ackCommand_start}, 
-            // {"STOP_ACK", &T::ackCommand_stop}, 
             {"ENABLE_ACK", &T::ackCommand_enable}, 
             {"DISABLE_ACK", &T::ackCommand_disable}, 
             {"ENTER_CONTROL_ACK", &T::ackCommand_enterControl}, 
@@ -440,7 +439,7 @@ void AckSubscriber::process_resolve_ack(Node n) {
     }
 }
 // ****************************************************************************
-// RECOVER_FROM_FAULT_ACK
+// RESET_FROM_FAULT_ACK
 // ****************************************************************************
 void AckSubscriber::process_recover_from_fault_ack(Node n) {
     try { 
@@ -454,7 +453,7 @@ void AckSubscriber::process_recover_from_fault_ack(Node n) {
         salLONG error_code = (ack_bool == "true") ? 0: -302; 
 
         Command<SAL_atArchiver> sender; 
-        at.ackCommand_recoverFromFault(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
+        at.ackCommand_resetFromFault(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
 
 	cout << "=== PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id 
              << "::" << message_value << "::" << ack_statement << endl; 

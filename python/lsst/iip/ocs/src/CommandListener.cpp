@@ -25,7 +25,7 @@ map<string, string> camel_cases = {
     {"ENTER_CONTROL", "enterControl"}, 
     {"EXIT_CONTROL", "exitControl"}, 
     {"ABORT", "abort"}, 
-    {"RECOVER_FROM_FAULT", "recoverFromFault"} 
+    {"RESET_FROM_FAULT", "resetFromFault"} 
 }; 
 
 template <typename SAL_device, typename SAL_struct>
@@ -171,7 +171,7 @@ void CommandListener::setup_processingcluster_listeners() {
 
 void CommandListener::setup_atArchiver_listeners() { 
     pthread_t atar_start, atar_enable, atar_disable, atar_standby, 
-              atar_enterControl, atar_exitControl, atar_abort, atar_recoverFromFault; 
+              atar_enterControl, atar_exitControl, atar_abort, atar_resetFromFault; 
     pthread_create(&atar_start, NULL, &CommandListener::run_atar_start, command_args); 
     pthread_create(&atar_enable, NULL, &CommandListener::run_atar_enable, command_args); 
     pthread_create(&atar_disable, NULL, &CommandListener::run_atar_disable, command_args); 
@@ -179,7 +179,7 @@ void CommandListener::setup_atArchiver_listeners() {
     pthread_create(&atar_enterControl, NULL, &CommandListener::run_atar_enterControl, command_args); 
     pthread_create(&atar_exitControl, NULL, &CommandListener::run_atar_exitControl, command_args); 
     pthread_create(&atar_abort, NULL, &CommandListener::run_atar_abort, command_args); 
-    pthread_create(&atar_recoverFromFault, NULL, &CommandListener::run_atar_recoverFromFault, command_args); 
+    pthread_create(&atar_resetFromFault, NULL, &CommandListener::run_atar_resetFromFault, command_args); 
 } 
 
 void *CommandListener::run_ar_start(void *pargs) {
@@ -518,15 +518,15 @@ void *CommandListener::run_atar_abort(void *pargs) {
     return 0; 
 } 
 
-void *CommandListener::run_atar_recoverFromFault(void *pargs) {
+void *CommandListener::run_atar_resetFromFault(void *pargs) {
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
     SimplePublisher* rabbit_publisher = params->publisher; 
     string publish_q = params->publish_queue; 
     string consume_q = params->consume_queue; 
     SAL_atArchiver atar = params->atar; 
     
-    funcptr<SAL_atArchiver, atArchiver_command_recoverFromFaultC> atar_recoverFromFault = &SAL_atArchiver::acceptCommand_recoverFromFault;   
-    listenCommand(atar, "AT", "RECOVER_FROM_FAULT", rabbit_publisher, publish_q, consume_q, atar_recoverFromFault);  
+    funcptr<SAL_atArchiver, atArchiver_command_resetFromFaultC> atar_resetFromFault = &SAL_atArchiver::acceptCommand_resetFromFault;   
+    listenCommand(atar, "AT", "RESET_FROM_FAULT", rabbit_publisher, publish_q, consume_q, atar_resetFromFault);  
     return 0; 
 } 
 

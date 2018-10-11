@@ -68,5 +68,5 @@ class CommandListener : public OCS_Bridge {
 	static void *run_atar_enterControl(void *); 
 	static void *run_atar_exitControl(void *); 
 	static void *run_atar_abort(void *); 
-	static void *run_atar_recoverFromFault(void *); 
+	static void *run_atar_resetFromFault(void *); 
 };
