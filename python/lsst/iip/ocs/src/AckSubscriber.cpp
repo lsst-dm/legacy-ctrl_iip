@@ -34,7 +34,7 @@ map<string, ack_funcptr> action_handler = {
     {"STANDBY_ACK", &AckSubscriber::process_ack}, 
     {"EXIT_CONTROL_ACK", &AckSubscriber::process_ack}, 
     {"ABORT_ACK", &AckSubscriber::process_ack}, 
-    {"RESET_FROM_FAULT_ACK", &AckSubscriber::process_recover_from_fault_ack}, 
+    {"RESET_FROM_FAULT_ACK", &AckSubscriber::process_reset_from_fault_ack}, 
     {"SUMMARY_STATE_EVENT", &AckSubscriber::process_summary_state}, 
     {"RECOMMENDED_SETTINGS_VERSION_EVENT", &AckSubscriber::process_recommended_settings_version}, 
     {"SETTINGS_APPLIED_EVENT", &AckSubscriber::process_settings_applied}, 
@@ -121,11 +121,11 @@ void AckSubscriber::run() {
     } 
 
     // These two events do not exist in other devices
-    at.salProcessor(const_cast<char *>("atArchiver_command_recoverFromFault"));
+    at.salProcessor(const_cast<char *>("atArchiver_command_resetFromFault"));
     at.salEventPub(const_cast<char *>("atArchiver_logevent_settingsApplied")); 
 
     // telemetry 
-    at.salEventPub("atArchiver_logevent_telemetry");
+    at.salEventPub("atArchiver_logevent_processingStatus");
 
     cout << "============> running CONSUMER <=============" << endl; 
     Consumer *telemetry_consumer = new Consumer(base_broker_addr, "telemetry_consume"); 
@@ -498,7 +498,7 @@ void AckSubscriber::process_resolve_ack(Node n) {
 // ****************************************************************************
 // RESET_FROM_FAULT_ACK
 // ****************************************************************************
-void AckSubscriber::process_recover_from_fault_ack(Node n) {
+void AckSubscriber::process_reset_from_fault_ack(Node n) {
     try { 
 	string message_value = n["MSG_TYPE"].as<string>(); 
 	long cmdId = stol(n["CMD_ID"].as<string>()); 
@@ -529,11 +529,11 @@ void AckSubscriber::process_telemetry(Node n) {
         int status_code = n["STATUS_CODE"].as<int>(); 
         string description = n["DESCRIPTION"].as<string>(); 
 
-        atArchiver_logevent_telemetryC data; 
+        atArchiver_logevent_processingStatusC data; 
         data.statusCode = status_code; 
         data.description = description; 
         data.priority = priority; 
-        at.logEvent_telemetry(&data, priority);
+        at.logEvent_processingStatus(&data, priority);
     } 
     catch (exception& e) { 
         cout << "In process_telemetry, Cannot publish messages back to OCS." << endl; 
