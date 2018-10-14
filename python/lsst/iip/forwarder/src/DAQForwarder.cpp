@@ -1998,15 +1998,30 @@ void Forwarder::format_send_completed_msg(string image_id) {
 void Forwarder::format_look_for_work() { 
     LOGGER(my_logger::get(), debug) << "Entering format_look_for_work function."; 
     try { 
+
+            // Set up vector of outer map keys...
+            vector<string> keys;
+            map <string, map <string, string> >::iterator it = this->readout_img_ids.begin();
+            for( ; it != outer.end(); ++it) {
+                keys.push_back(it->first);
+            }
+
+
+
         vector<string>::iterator it;
         map<string, string>::iterator mit;  
         map<string, string>::iterator tid; 
-        if (this->readout_img_ids.size() != 0 && this->header_info_dict.size() != 0) { 
-            for (it = this->readout_img_ids.begin(); it != this->readout_img_ids.end(); ) { 
+        // if there are elements in both keys and header_info vectors...
+        // we check if the current iterator img_id value has been readout yet.
+        // if so, we get the header name, delete it from header_info, and process.
+        // readout_img_ids entry stays around as forward process will use it.
+        if (this->keys.size() != 0 && this->header_info_dict.size() != 0) { 
+            for (it = keys.begin(); it != keys.end(); ) { 
                 string img_id = *it; 
                 mit = this->header_info_dict.find(img_id); 
-                if (mit != this->header_info_dict.end()) { 
-                    this->readout_img_ids.erase(it); 
+                if ((this-> readout_img_ids[img_id]["READOUT"] == "yes") \
+                   && mit != this->header_info_dict.end()) { 
+                    //this->readout_img_ids.erase(it); 
                     string header_filename = this->header_info_dict[img_id]; 
                     this->header_info_dict.erase(mit); 
 
