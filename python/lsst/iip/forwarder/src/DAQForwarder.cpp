@@ -186,10 +186,10 @@ class Forwarder {
     void run();
     static void *run_thread(void *);
 
-    void fetch_readout_image(string image_id, string dir_prefix);
-    void fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
-    void fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
-    void fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
+    int fetch_readout_image(string image_id, string dir_prefix);
+    int fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
+    int fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
+    int fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
     int fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
     void get_register_metadata(const DAQ::Location& location, const IMS::Image& image);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
@@ -759,8 +759,12 @@ void Forwarder::process_xfer_params(Node n) {
     this->readout_img_ids[Image_ID]["ACK_ID"] = ack_id;
     LOGGER(my_logger::get(), debug) << "ACK_ID has been assigned: " << ack_id;
 
+    // Set READOUT initial state to "no"
+    this->readout_img_ids[Image_ID]["READOUT"] = "no";
+
     //this->Visit_ID = n["VISIT_ID"].as<string>();
     //cout << "After setting VISIT_ID" << endl;
+
 
     string message_type = "AR_FWDR_XFER_PARAMS_ACK";
     string ack_bool = "false";
@@ -820,6 +824,9 @@ void Forwarder::process_at_xfer_params(Node n) {
 
     this->readout_img_ids[Image_ID]["READOUT_FINISHED"] = "no";
     this->readout_img_ids[Image_ID]["HEADER_FINISHED"] = "no";
+
+    // Set READOUT initial state to "no"
+    this->readout_img_ids[Image_ID]["READOUT"] = "no";
 
 
     string message_type = "AT_FWDR_XFER_PARAMS_ACK";
@@ -904,6 +911,7 @@ void Forwarder::process_fetch(Node n) {
     //  Send message to Format thread with image_id as msg_type FORMAT_END_READOUT
 
     string type_msg = n["MSG_TYPE"].as<string>();
+    int retval = 0;
 
 
     if (type_msg == "FETCH_END_READOUT") {
@@ -937,8 +945,27 @@ void Forwarder::process_fetch(Node n) {
       LOGGER(my_logger::get(), debug) << "Created directories for image segments."; 
 
 
-      this->fetch_readout_image(image_id, dir_prefix.str());
+      retval = this->fetch_readout_image(image_id, dir_prefix.str());
 
+      if(retval == 1) {
+           ostringstream desc;
+           desc << "Forwarder Fetch Error: Found no image in Catalog for " \
+                << image_id << ". Bailing from Readout." << endl;
+           this->send_telemetry(1, desc.str());
+           this->readout_img_ids.erase(image_id); 
+           return;
+       }
+       if(retval == 2) {
+           ostringstream desc;
+           desc << "Forwarder Fetch Error: No data slices available for " \
+                << image_id << ". Bailing from Readout." << endl;
+           this->send_telemetry(2, desc.str());
+           this->readout_img_ids.erase(image_id); 
+           return;
+       }
+
+      // Readout was a good one, so mark img_id as done
+      this->readout_img_ids[image_id]["READOUT"] = "yes";
 
       string new_msg_type = "FORMAT_END_READOUT";
       ostringstream msg;
@@ -957,9 +984,10 @@ void Forwarder::process_at_fetch(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_at_fetch function."; 
 
     string image_id = n["IMAGE_ID"].as<string>();
-    int retval;
+    int retval = 0;
     string raft = this->img_to_raft_list[image_id][0];
     string ccd = this->img_to_raft_ccd_list[image_id][0][0]; 
+    LOGGER(my_logger::get(), debug) << "*****Process_AT_Fetch*****, RAFT string is: " << raft << ", and CCD is: " << ccd;
     ostringstream cmd;
     ostringstream rmcmd;
     ostringstream filepath;
@@ -984,6 +1012,7 @@ void Forwarder::process_at_fetch(Node n) {
            desc << "Forwarder Fetch Error: Found no image in Catalog for " \
                 << image_id << ". Bailing from Readout." << endl;
            this->send_telemetry(1, desc.str());
+           this->readout_img_ids.erase(image_id); 
            return;
      }
      if(retval == 2) {
@@ -991,8 +1020,12 @@ void Forwarder::process_at_fetch(Node n) {
            desc << "Forwarder Fetch Error: No data slices available for " \
                 << image_id << ". Bailing from Readout." << endl;
            this->send_telemetry(2, desc.str());
+           this->readout_img_ids.erase(image_id); 
            return;
      }
+
+    // Readout was a good one, so mark img_id as done
+    this->readout_img_ids[image_id]["READOUT"] = "yes";
 
     // When readout is finished, inform formatter...
     string new_msg_type = "FORMAT_END_READOUT";
@@ -1037,7 +1070,7 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, st
         cout << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
         ostringstream desc;
         desc << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
-        return retval;
+        return(1);
       }
 
   IMS::Image image(image_id.c_str(), store);
@@ -1064,6 +1097,8 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, st
       IMS::Source source(location, image);
   
       IMS::WaveFront slice(source);
+
+      // Bail out if we have no slice to process
       if(!slice) return(2);
 
       //ccd_path << dir_prefix << "/" << raft << "/" << ccd;
@@ -1123,25 +1158,30 @@ void Forwarder::process_take_images_done(Node n) {
     LOGGER(my_logger::get(), debug) << "Message is: " << msg; 
 }
 
-void Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
+int Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
     LOGGER(my_logger::get(), debug) << "Entering fetch_readout_image function."; 
   // Iterate through raft_list
   // Foreman divide_work() method might have sent more than one raft,
   // so here we act upon one raft at a time.
   // The ccd_list is a vector that holds the ccds desired from this raft.
   // It might have the string 'ALL'...if so, fetch all ccds for this raft.
+  int retval = 0;
 
   for (int i = 0; i < this->visit_raft_list.size(); i++) {
     vector<string> ccd_list = this->visit_ccd_list_by_raft[i];
-    fetch_readout_raft(this->visit_raft_list[i], ccd_list, image_id, dir_prefix);
+    retval = fetch_readout_raft(this->visit_raft_list[i], ccd_list, image_id, dir_prefix);
+    if(retval > 0)
+        return retval;
   }
+  return retval;
 
 }
 
-void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix) {
+int Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix) {
     LOGGER(my_logger::get(), debug) << "Entering fetch_readout_raft function."; 
   // put a map together with raft electronic board (source) for key, and ccd_list as value
   map<string, vector<string>> source_boards;
+  int retval = 0;
   if (ccd_list[0] == "ALL") {
     source_boards = All_Boards; //All_Boards is a class visible map
   }
@@ -1164,12 +1204,14 @@ void Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string 
   // map of ccds by source boards is complete. Note: There are 3 source boards in a typical raft,
   // but the source_boards map generated above, may not include keys for all 3 source boards.
   // If ccd list is especially sparse, only one board might be included in map.
-  this->fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
+  retval = this->fetch_reassemble_raft_image(raft, source_boards, image_id, dir_prefix);
 
 }
 
-void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
-    LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_raft_image function."; 
+int Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
+  LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_raft_image function."; 
+
+  int retval = 0;
   ostringstream raft_name;
   raft_name << raft;
   string rafty = raft_name.str();
@@ -1222,7 +1264,9 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
               ccds_for_board.push_back(ii);
           }
 
-        this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
+        retval = this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
+        if(retval > 0)
+            return retval;
       }
     board++;
   }
@@ -1235,7 +1279,7 @@ void Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<stri
   std::cout << "Finished raft fetch at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
 #endif
-  return;
+  return retval;
 }
 
 void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image)
@@ -1297,16 +1341,30 @@ void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::
 // the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
+int Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
 {
+  int retval = 0;
 
   LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_process function."; 
+
+  // This tmp code checks for the existence of the image name in the DAQ catalog.
+  if ((this->check_for_image_existence(image_id)) == 0) {
+      cout << "Found an image that exists in Catalog. Fetching " << image_id << " now." << endl;
+      retval = 0;
+  }
+  else {
+      cout << "ALERT - ALERT" << endl;
+      cout << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
+      ostringstream desc;
+      desc << "ALERT - Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
+      return(1);
+      }
 
   IMS::Source source(location, image);
 
   IMS::Science slice(source);
 
-  if(!slice) return;
+  if(!slice) return(2);
 
   // Set up filehandles in Ramdisk work areafor this board. There must be 
   // a separate filehandle set for each CCD to be fetched. CCDs to be fetched 
@@ -1446,7 +1504,7 @@ void Forwarder::fetch_reassemble_process(std::string raft, string image_id, cons
     this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
   }
 
-  return;
+  return retval;
 
 }
 // This method builds file handle vectors in a RAMDISK.
@@ -2002,22 +2060,22 @@ void Forwarder::format_look_for_work() {
             // Set up vector of outer map keys...
             vector<string> keys;
             map <string, map <string, string> >::iterator it = this->readout_img_ids.begin();
-            for( ; it != outer.end(); ++it) {
+            for( ; it != readout_img_ids.end(); ++it) {
                 keys.push_back(it->first);
             }
 
 
 
-        vector<string>::iterator it;
+        std::vector<string>::iterator iit;
         map<string, string>::iterator mit;  
         map<string, string>::iterator tid; 
         // if there are elements in both keys and header_info vectors...
         // we check if the current iterator img_id value has been readout yet.
         // if so, we get the header name, delete it from header_info, and process.
         // readout_img_ids entry stays around as forward process will use it.
-        if (this->keys.size() != 0 && this->header_info_dict.size() != 0) { 
-            for (it = keys.begin(); it != keys.end(); ) { 
-                string img_id = *it; 
+        if (keys.size() != 0 && this->header_info_dict.size() != 0) { 
+            for (iit = keys.begin(); iit != keys.end(); ) { 
+                string img_id = *iit; 
                 mit = this->header_info_dict.find(img_id); 
                 if ((this-> readout_img_ids[img_id]["READOUT"] == "yes") \
                    && mit != this->header_info_dict.end()) { 
@@ -2031,7 +2089,7 @@ void Forwarder::format_look_for_work() {
                     n["HEADER"] = header_filename; 
                     format_assemble_img(n); 
                 } 
-                else it++; 
+                else iit++; 
             } 
         } 
         else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
