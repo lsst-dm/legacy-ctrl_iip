@@ -140,7 +140,7 @@ class Forwarder {
 
     //vector<string> readout_img_ids; 
     std::map<string, map<string,string>> readout_img_ids; 
-    std::map<string, pair<string,string>> img_to_raft_ccd_pair; 
+    map<pair<string, pair<string,string> > > img_to_raft_ccd_pair; 
     map<string, vector<string> > img_to_raft_list; 
     map<string, vector<vector<string> > > img_to_raft_ccd_list; 
     map<string, string> header_info_dict; 
