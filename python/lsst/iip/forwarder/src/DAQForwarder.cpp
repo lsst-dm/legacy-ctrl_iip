@@ -203,14 +203,14 @@ class Forwarder {
     void send_telemetry(int, std::string);
 
     long* format_read_img_segment(const char*);
-    unsigned char** format_assemble_pixels(char *);
-    void format_write_img(std::string, std::string);
+    void format_write_img(std::string, std::string, std::string);
     void format_assemble_img(Node);
     void format_send_completed_msg(std::string);
-    void format_look_for_work(); 
+    void format_look_for_work(std::string); 
     void format_process_end_readout(Node); 
     void format_get_header(Node); 
     vector<string> format_list_files(string); 
+    string format_get_binary_path(std::string); 
 
     void forward_process_end_readout(Node); 
     void forward_process_take_images_done(Node); 
@@ -1763,7 +1763,7 @@ void Forwarder::format_process_end_readout(Node node) {
     try { 
         string image_id = node["IMAGE_ID"].as<string>(); 
         //this->readout_img_ids.push_back(image_id); 
-        this->format_look_for_work(); 
+        this->format_look_for_work(image_id); 
         LOGGER(my_logger::get(), debug) << "Looking header file for current ImageID " << image_id; 
         LOGGER(my_logger::get(), debug) << "Looking work for current Readout pixels is complete."; 
     } 
@@ -1779,7 +1779,7 @@ void Forwarder::format_get_header(Node node) {
         string filename = node["FILENAME"].as<string>(); 
         LOGGER(my_logger::get(), debug) << "Got ImageID " << image_id << " and Filename " << filename << " for processing.";
         this->header_info_dict[image_id] = filename; 
-        this->format_look_for_work(); 
+        this->format_look_for_work(image_id); 
         LOGGER(my_logger::get(), debug) << "Looking work for current Header file is complete."; 
     } 
     catch (exception& e) { 
@@ -1792,12 +1792,14 @@ void Forwarder::format_assemble_img(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering format_assemble_img function."; 
     try { 
         string img_id = n["IMAGE_ID"].as<string>(); 
-        string header = n["HEADER"].as<string>(); 
+        string header_path = n["HEADER_PATH"].as<string>(); 
+        string binary_path = n["BINARY_PATH"].as<string>(); 
+
         // create dir  /mnt/ram/FITS/IMG_10
         string fits_dir = Work_Dir + "/FITS"; 
         const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
         LOGGER(my_logger::get(), debug) << "Created directory " << fits_dir << " for assembling images."; 
-        format_write_img(img_id, header);
+        format_write_img(img_id, header_path, binary_path);
         LOGGER(my_logger::get(), debug) << "Start formatting ..."; 
     } 
     catch (exception& e) { 
@@ -1806,44 +1808,7 @@ void Forwarder::format_assemble_img(Node n) {
     } 
 }
 
-
-long* Forwarder::format_read_img_segment(const char *file_path) { 
-    try { 
-        fstream img_file(file_path, fstream::in | fstream::binary); 
-        long len = NAXIS2 * NAXIS1; 
-        long *buffer = new long[len]; 
-        img_file.seekg(0, ios::beg); 
-        img_file.read((char *)buffer, len); 
-        img_file.close();
-        return buffer;
-    } 
-    catch (exception& e) { 
-        cerr << e.what() << endl; 
-    } 
-} 
-
-unsigned char** Forwarder::format_assemble_pixels(char *buffer) { 
-    try { 
-        unsigned char **array = new unsigned char*[NAXIS1]; 
-        array[0] = (unsigned char *) malloc( NAXIS2 * NAXIS1 * sizeof(unsigned char)); 
-
-        for (int i = 1; i < NAXIS1; i++) { 
-            array[i] = array[i-1] + NAXIS2; 
-        } 
-
-        for (int j = 0; j < NAXIS1; j++) {
-            for (int i = 0; i < NAXIS2; i++) {
-                array[j][i]= buffer[i+j]; 
-            } 
-        }
-        return array;
-    } 
-    catch (exception& e) { 
-        cerr << e.what() << endl; 
-    } 
-} 
-
-void Forwarder::format_write_img(string img, string header) { 
+void Forwarder::format_write_img(string img_id, string header_file_path, string binary_file_path) { 
     LOGGER(my_logger::get(), debug) << "Entering format_write_img function."; 
     try { 
         long len = NAXIS1 * NAXIS2;
@@ -1858,10 +1823,9 @@ void Forwarder::format_write_img(string img, string header) {
         fitsfile *iptr, *optr; 
 
         // /mnt/ram/IMG_31
-        string img_path = Work_Dir + "/" + img;
-        string header_path = header;
-        string destination = Work_Dir + "/FITS/" + img + ".fits";
-        LOGGER(my_logger::get(), debug) << "Image file path is " << img_path; 
+        string header_path = header_file_path;
+        string destination = Work_Dir + "/FITS/" + img_id + ".fits";
+        LOGGER(my_logger::get(), debug) << "Image file path is " << binary_file_path; 
         LOGGER(my_logger::get(), debug) << "Header file path is " << header_path; 
         LOGGER(my_logger::get(), debug) << "Destination file path is " << destination; 
 
@@ -1883,7 +1847,7 @@ void Forwarder::format_write_img(string img, string header) {
         fits_copy_hdu(iptr, optr, 0, &status); 
         LOGGER(my_logger::get(), debug) << "Finished copying primary hdu to file."; 
 
-        vector<string> file_names = format_list_files(img_path); 
+        vector<string> file_names = format_list_files(binary_file_path); 
         vector<string>::iterator it; 
         vector<string> exclude_keywords = {"BITPIX", "NAXIS"}; 
         vector<string>::iterator eit; 
@@ -1923,10 +1887,8 @@ void Forwarder::format_write_img(string img, string header) {
                     string search_string = prefix + digits; 
                     vector<string>::iterator bit = find(file_names.begin(), file_names.end(), search_string); 
                     if (bit != file_names.end()){ 
-
-
                         // do assembly 
-                        string img_segment_name = img_path + "/" + *bit 
+                        string img_segment_name = binary_file_path + "/" + *bit 
                                                   + "[jL" + STRING(NAXIS1) 
                                                   + "," + STRING(NAXIS2) + "]"; 
                         if (fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status)) { 
@@ -1951,51 +1913,11 @@ void Forwarder::format_write_img(string img, string header) {
 	    else { 
                 cout << "Cannot find Extname keyword in header file" << endl; 
             } 
-	
             hdunum++;
 	} 
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
         LOGGER(my_logger::get(), debug) << "Formatting image segments into fits file is completed."; 
-	/** 
-        for (it = file_names.begin(); it != file_names.end(); it++) { 
-            fitsfile *pix_file_ptr; 
-            int *img_buffer = new int[len];
-            string img_segment_name = img_path + "/" + *it 
-                                      + "[jL" + STRING(NAXIS1) 
-                                      + "," + STRING(NAXIS2) + "]"; 
-
-            // get img pixels
-            fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status); 
-            fits_read_img(pix_file_ptr, TINT, 1, len, NULL, img_buffer, 0, &status); 
-            fits_create_img(optr, bitpix, naxis, naxes, &status); 
-            fits_write_img(optr, TINT, 1, len, img_buffer, &status);
-
-            // get header 
-            fits_movabs_hdu(iptr, hdunum, NULL, &status); 
-            fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
-            for (int i = 1; i <= nkeys; i++) { 
-                fits_read_record(iptr, i, card, &status); 
-	        string card_str = string(card); 
-                if (card_str.find("BITPIX") == 0) {} 
-                else if (card_str.find("NAXIS") == 0) {} 
-                else if (card_str.find("PCOUNT") == 0) {} 
-                else if (card_str.find("GCOUNT") == 0) {} 
-                else if (card_str.find("XTENSION") == 0) {} 
-                else { 
-		    fits_write_record(optr, card, &status); 
-                } 
-            }
-            hdunum++;
-
-            // clean up 
-            fits_close_file(pix_file_ptr, &status); 
-            delete[] img_buffer; 
-        } 
-        fits_close_file(iptr, &status); 
-        fits_close_file(optr, &status); 
-	*/ 
-
         format_send_completed_msg(img);
         LOGGER(my_logger::get(), debug) << "Sending format complete message to forward thread."; 
     } 
@@ -2004,6 +1926,7 @@ void Forwarder::format_write_img(string img, string header) {
         cerr << e.what() << endl; 
     } 
 } 
+
 vector<string> Forwarder::format_list_files(string path) { 
     LOGGER(my_logger::get(), debug) << "Entering format_list_files function."; 
     try { 
@@ -2047,18 +1970,53 @@ void Forwarder::format_send_completed_msg(string image_id) {
 } 
 ///////////////////////////////////////////////////////////////////////////
 
-void Forwarder::format_look_for_work() { 
+string Forwarder::format_get_binary_path(string image_id) { 
+    /**
+     * Returns the path to the binary image segments for formatter. If it exists
+     * in the raft_ccd_to_pair dictionary, returns the path string or else empty string.
+     */ 
+    string binary_path; 
+    map<pair<string, pair<string, string>>, string>::iterator it; 
+    for (it = this->img_to_raft_ccd_pair.begin(); it != this->img_to_raft_ccd_pair.end(); it++) { 
+        pair<string, pair<string, string>> imgid_raft_ccd = it->first; 
+        string img_id = imgid_raft_ccd.first; 
+        if (img_id == image_id) { 
+            binary_path = it->second;          
+
+            // delete the iterator
+            img_to_raft_ccd_pair.erase(it); 
+            break; 
+        } 
+    } 
+    return binary_path; 
+} 
+
+void Forwarder::format_look_for_work(string image_id) { 
+    /**
+     * Triggered when HEADER_READY or FORMAT_END_READOUT is 
+     * issued. When either method calls, this method checks if there is an entry in 
+     * img_to_raft_ccd_pair and header_info_dict and do the work.
+     */ 
     LOGGER(my_logger::get(), debug) << "Entering format_look_for_work function."; 
     try { 
+        map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
+        string binary_path = format_get_binary_path(image_id); 
+        if (header_it != this->header_info_dict.end() && !binary_path.empty()) { 
+            LOGGER(my_logger::get(), debug) << "Found both header and binary paths to start assembling."; 
+            Node n; 
+            n["IMAGE_ID"] = img_id; 
+            n["HEADER_PATH"] = header_it->second; 
+            n["BINARY_PATH"] = binary_path; 
+            format_assemble_img(n); 
+        } 
+        /** 
 
-            // Set up vector of outer map keys...
-            vector<string> keys;
-            map <string, map <string, string> >::iterator it = this->readout_img_ids.begin();
-            for( ; it != readout_img_ids.end(); ++it) {
-                keys.push_back(it->first);
-            }
-
-
+        // Set up vector of outer map keys...
+        vector<string> keys;
+        map <string, map <string, string> >::iterator it = this->readout_img_ids.begin();
+        for( ; it != readout_img_ids.end(); ++it) {
+            keys.push_back(it->first);
+        }
 
         std::vector<string>::iterator iit;
         map<string, string>::iterator mit;  
@@ -2090,6 +2048,7 @@ void Forwarder::format_look_for_work() {
             LOGGER(my_logger::get(), debug) << "No img data from DAQ yet. Waiting to process."; 
             return; 
         } 
+        */ 
     } 
     catch (exception& e) { 
         LOGGER(my_logger::get(), critical) << e.what() << endl; 
