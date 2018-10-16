@@ -88,7 +88,7 @@ class Forwarder {
     long Naxis_2 = NAXIS2;
     int Num_Images = 0; 
     int ERROR_CODE_PREFIX; 
-     std::string Telemetry_Queue = "telemetry_queue";
+    std::string Telemetry_Queue = "telemetry_queue";
     std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
                                          "10","11","12","13","14","15","16","17"};
 
@@ -129,14 +129,18 @@ class Forwarder {
     SimplePublisher *fmt_pub;
     SimplePublisher *fwd_pub;
     
-    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR, CONSUME_QUEUE, USER_FORWARD_PUB, PASSWD_FORWARD_PUB;
-    string USER_PUB, PASSWD_PUB, USER_FETCH_PUB, PASSWD_FETCH_PUB, USER_FORMAT_PUB, PASSWD_FORMAT_PUB;
-    string FETCH_USER, FETCH_USER_PASSWD, FORMAT_USER, FORMAT_USER_PASSWD,  FORWARD_USER, FORWARD_USER_PASSWD;
+    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME; 
+    string IP_ADDR, CONSUME_QUEUE, USER_FORWARD_PUB, PASSWD_FORWARD_PUB;
+    string USER_PUB, PASSWD_PUB, USER_FETCH_PUB, PASSWD_FETCH_PUB; 
+    string USER_FORMAT_PUB, PASSWD_FORMAT_PUB;
+    string FETCH_USER, FETCH_USER_PASSWD, FORMAT_USER, FORMAT_USER_PASSWD;  
+    string FORWARD_USER, FORWARD_USER_PASSWD;
     string FETCH_USER_PUB, FETCH_USER_PUB_PASSWD, FORMAT_USER_PUB, FORMAT_USER_PUB_PASSWD; 
     string FORWARD_USER_PUB, FORWARD_USER_PUB_PASSWD;
 
     //vector<string> readout_img_ids; 
     std::map<string, map<string,string>> readout_img_ids; 
+    std::map<string, pair<string,string>> img_to_raft_ccd_pair; 
     map<string, vector<string> > img_to_raft_list; 
     map<string, vector<vector<string> > > img_to_raft_ccd_list; 
     map<string, string> header_info_dict; 
@@ -190,7 +194,7 @@ class Forwarder {
     int fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
     int fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
     int fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
-    int fetch_at_reassemble_process(string raft, string image_id, string dir_prefix);
+    int fetch_at_reassemble_process(string raft, string ccd, string image_id, string dir_prefix);
     void get_register_metadata(const DAQ::Location& location, const IMS::Image& image);
     void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
     void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
@@ -902,6 +906,183 @@ void Forwarder::process_at_end_readout(Node n) {
 // FETCH THREAD
 ///////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////
+//  FETCH METHODS FOR AT PROCESSING
+//////////////////////////////////////
+void Forwarder::process_at_fetch(Node n) {
+    LOGGER(my_logger::get(), debug) << "Entering process_at_fetch function."; 
+
+    string image_id = n["IMAGE_ID"].as<string>();
+    int retval = 0;
+    string raft = this->img_to_raft_list[image_id][0];
+    string ccd = this->img_to_raft_ccd_list[image_id][0][0]; 
+    LOGGER(my_logger::get(), debug) << "Process_AT_Fetch, RAFT string is: " << raft << ", and CCD is: " << ccd;
+    ostringstream cmd;
+    ostringstream rmcmd;
+    ostringstream filepath;
+    ostringstream dir_prefix;
+
+    dir_prefix << this->Work_Dir << "/" << image_id;
+    filepath << dir_prefix.str() << "/" \
+                                 << raft << "/" \
+                                 << ccd;
+    cmd << "mkdir -p " << filepath.str();
+    const std::string tmpstr = cmd.str();
+    const char* cmdstr = tmpstr.c_str();
+    system(cmdstr);
+
+    LOGGER(my_logger::get(), debug) << "Directory " << filepath << " is created.";
+    LOGGER(my_logger::get(), debug) << "Created directories for image segments."; 
+
+    retval = this->fetch_at_reassemble_process(raft, string ccd, image_id, filepath.str());
+
+    if(retval == 1) {
+           ostringstream desc;
+           desc << "Forwarder Fetch Error: Found no image in Catalog for " \
+                << image_id << ". Bailing from Readout." << endl;
+           this->send_telemetry(1, desc.str());
+           this->readout_img_ids.erase(image_id); 
+           return;
+     }
+     if(retval == 2) {
+           ostringstream desc;
+           desc << "Forwarder Fetch Error: No data slices available for " \
+                << image_id << ". Bailing from Readout." << endl;
+           this->send_telemetry(2, desc.str());
+           this->readout_img_ids.erase(image_id); 
+           return;
+     }
+    return;
+}
+
+
+int Forwarder::fetch_at_reassemble_process(std::string raft, string ccd, \
+                                           string image_id, string filepath) {
+
+    LOGGER(my_logger::get(), debug) << "Entering fetch_at_reassemble_process function."; 
+    int retval = 0;
+
+    IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+                                    // such as raft01, raft13, etc.
+
+    // This tmp code checks for the existence of the image name in the DAQ catalog.
+    if ((this->check_for_image_existence(image_id)) == 0) {
+        cout << "Found an image that exists in Catalog. Fetching " << image_id << " now." << endl;
+        retval = 0;
+    }
+    else {
+        cout << "ALERT - ALERT" << endl;
+        cout << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
+        ostringstream desc;
+        desc << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
+        return(1);
+    }
+
+    IMS::Image image(image_id.c_str(), store);
+
+    DAQ::LocationSet sources = image.sources();
+
+    uint64_t total_stripes = 0;
+
+    DAQ::Location location;
+
+    while(sources.remove(location)) {
+
+        // Set image array NAXIS values for format thread...
+        this->get_register_metadata(location, image);
+
+        IMS::Source source(location, image);
+  
+        IMS::WaveFront slice(source);
+
+        // Bail out if we have no slice to process
+        if(!slice) return(2);
+
+        // Filehandle set for ATS CCD will then have a set of 
+        // 16 filehandles...one filehandle for each amp segment.
+  
+        std::vector<std::ofstream*> FH_ATS;
+        this->fetch_set_up_at_filehandles(FH_ATS, image_id, filepath);
+  
+            do {
+                total_stripes += slice.stripes();
+                IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+    
+                slice.decode(ccd0);
+    
+                for(int s=0; s<slice.stripes(); ++s) {
+                    for(int amp=0; amp<N_AMPS; ++amp) {
+                        int32_t X = STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp]));
+                        FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                    }
+                }
+    
+                delete [] ccd0;
+            } while(slice.advance());
+  
+      this->fetch_close_filehandles(FH_ATS);
+      this->img_to_raft_ccd_pair[image_id][make_pair(raft,ccd)] = filepath;
+      string new_msg_type = "FORMAT_END_READOUT";
+      ostringstream msg;
+      msg << "{MSG_TYPE: " << new_msg_type
+          << ", IMAGE_ID: " << image_id
+          << ", RAFT: " << raft
+          << ", CCD: " << ccd
+          << ", PATH: " << filepath << "}";
+      this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+      LOGGER(my_logger::get(), debug) << "FORMAT_END_READOUT is sent to: " \
+                                      << this->format_consume_queue; 
+      LOGGER(my_logger::get(), debug) << "Message is: " << msg; 
+  }
+  return retval;
+}
+
+
+void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set, 
+                                             string image_id, 
+                                             string full_dir_prefix){
+
+    LOGGER(my_logger::get(), debug) << "Entering fetch_set_up_at_filehandles function."; 
+
+    for (int i=0; i < 16; i++) {
+        std::ostringstream fns;
+        fns << full_dir_prefix << "/" \
+                               << image_id \
+                               << "--AUXTEL" \
+                               << "-ccd.ATS_CCD" \
+                               << "_segment." << this->ATS_Segment_Names[i];
+
+        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::binary );
+        fh_set.push_back(fh); 
+    }
+    LOGGER(my_logger::get(), debug) << "Finished setting up file handlers for image segments."; 
+}
+
+
+void Forwarder::process_take_images_done(Node n) {
+    LOGGER(my_logger::get(), debug) << "Entering process_take_images_done function."; 
+    ostringstream msg;
+    string new_msg_type = "FETCH_TAKE_IMAGES_DONE";
+    string job_num = n["JOB_NUM"].as<string>();
+    string ack_id = n["ACK_ID"].as<string>();
+    string reply_queue = n["REPLY_QUEUE"].as<string>();
+    // 1) Message fetch to pass along this message when work queue is complete
+    // 2) Later, forward thread must generate report
+    // 3) Send filename_list of files transferred in report
+    // 4) Send checksum_list that corressponds to each file in report
+
+    msg << "{MSG_TYPE: " << new_msg_type 
+        << ", JOB_NUM: " << job_num
+        << ", REPLY_QUEUE: " << reply_queue
+        << ", ACK_ID: " << ack_id << "}";
+    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.str());
+    LOGGER(my_logger::get(), debug) << "FETCH_TAKE_IMAGES_DONE is sent to: " << this->fetch_consume_queue; 
+    LOGGER(my_logger::get(), debug) << "Message is: " << msg; 
+}
+
+/////////////////////////////////////////////////////
+//  FETCH METHODS FOR AR PROCESSING
+/////////////////////////////////////////////////////
 //From forwarder main thread to fetch thread:
 void Forwarder::process_fetch(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_fetch function."; 
@@ -912,7 +1093,6 @@ void Forwarder::process_fetch(Node n) {
 
     string type_msg = n["MSG_TYPE"].as<string>();
     int retval = 0;
-
 
     if (type_msg == "FETCH_END_READOUT") {
       // For raft in raft_list:
@@ -928,13 +1108,13 @@ void Forwarder::process_fetch(Node n) {
       string image_id = n["IMAGE_ID"].as<string>();
       ostringstream dir_prefix;
       dir_prefix << this->Work_Dir << "/" << image_id;
-      for (int i = 0; i < this->visit_raft_list.size(); i++) {
-          for (int j = 0; j < this->visit_ccd_list_by_raft[i].size(); j++) {
+      for (int i = 0; i < this->img_to_raft_list[image_id]..size(); i++) {
+          for (int j = 0; j < this->img_to_raft_ccd_list[i].size(); j++) {
               ostringstream cmd;
               ostringstream filepath;
               filepath << dir_prefix.str() << "/" \
-                       << this->visit_raft_list[i] << "/" \
-                       << this->visit_ccd_list_by_raft[i][j];
+                       << this->img_to_raft_list[i] << "/" \
+                       << this->img_to_raft_ccd_list[i][j];
               cmd << "mkdir -p " << filepath.str();
               const std::string tmpstr = cmd.str();
               const char* cmdstr = tmpstr.c_str();
@@ -980,183 +1160,6 @@ void Forwarder::process_fetch(Node n) {
     }
 }
 
-void Forwarder::process_at_fetch(Node n) {
-    LOGGER(my_logger::get(), debug) << "Entering process_at_fetch function."; 
-
-    string image_id = n["IMAGE_ID"].as<string>();
-    int retval = 0;
-    string raft = this->img_to_raft_list[image_id][0];
-    string ccd = this->img_to_raft_ccd_list[image_id][0][0]; 
-    LOGGER(my_logger::get(), debug) << "*****Process_AT_Fetch*****, RAFT string is: " << raft << ", and CCD is: " << ccd;
-    ostringstream cmd;
-    ostringstream rmcmd;
-    ostringstream filepath;
-    ostringstream dir_prefix;
-
-    dir_prefix << this->Work_Dir << "/" << image_id;
-    filepath << dir_prefix.str() << "/" \
-                                 << raft << "/" \
-                                 << ccd;
-    cmd << "mkdir -p " << filepath.str();
-    const std::string tmpstr = cmd.str();
-    const char* cmdstr = tmpstr.c_str();
-    system(cmdstr);
-
-    LOGGER(my_logger::get(), debug) << "Directory " << filepath << " is created.";
-    LOGGER(my_logger::get(), debug) << "Created directories for image segments."; 
-
-    retval = this->fetch_at_reassemble_process(raft, image_id, filepath.str());
-
-    if(retval == 1) {
-           ostringstream desc;
-           desc << "Forwarder Fetch Error: Found no image in Catalog for " \
-                << image_id << ". Bailing from Readout." << endl;
-           this->send_telemetry(1, desc.str());
-           this->readout_img_ids.erase(image_id); 
-           return;
-     }
-     if(retval == 2) {
-           ostringstream desc;
-           desc << "Forwarder Fetch Error: No data slices available for " \
-                << image_id << ". Bailing from Readout." << endl;
-           this->send_telemetry(2, desc.str());
-           this->readout_img_ids.erase(image_id); 
-           return;
-     }
-
-    // Readout was a good one, so mark img_id as done
-    this->readout_img_ids[image_id]["READOUT"] = "yes";
-
-    // When readout is finished, inform formatter...
-    string new_msg_type = "FORMAT_END_READOUT";
-    ostringstream msg;
-    msg << "{MSG_TYPE: " << new_msg_type
-        << ", RAFT: " << raft
-        << "' CCD: "  << ccd
-        << ", PATH: " << filepath.str()
-        << ", IMAGE_ID: " << image_id << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-    LOGGER(my_logger::get(), debug) << "FORMAT_END_READOUT is sent to: " \
-                                    << this->format_consume_queue; 
-    LOGGER(my_logger::get(), debug) << "Message is: " << msg; 
-
-    return;
-}
-
-int Forwarder::check_for_image_existence(string image_id) {
-  int x;
-  std::string line = "./ims.sh ";
-  line += image_id;
-  x = system(line.c_str());
-  return x;
-}
-
-
-int Forwarder::fetch_at_reassemble_process(std::string raft, string image_id, string filepath)
-{
-  LOGGER(my_logger::get(), debug) << "Entering fetch_at_reassemble_process function."; 
-  int retval = 0;
-
-  IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
-                                  // such as raft01, raft13, etc.
-
-      // This tmp code checks for the existence of the image name in the DAQ catalog.
-      if ((this->check_for_image_existence(image_id)) == 0) {
-        cout << "Found an image that exists in Catalog. Fetching " << image_id << " now." << endl;
-        retval = 0;
-      }
-      else {
-        cout << "ALERT - ALERT" << endl;
-        cout << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
-        ostringstream desc;
-        desc << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
-        return(1);
-      }
-
-  IMS::Image image(image_id.c_str(), store);
-
-  DAQ::LocationSet sources = image.sources();
-
-  uint64_t total_stripes = 0;
-
-  DAQ::Location location;
-
-  std::ostringstream ccd_path;
-
-  // As spectrograph camera is just one sensor on one partition,
-  // the ccd name will be the first ccd string in the list for
-  // the first (and only) raft.
-  //
-  //string ccd = this->visit_ccd_list_by_raft[0][0];
-
-  while(sources.remove(location)) {
-
-      // Set image array NAXIS values for format thread...
-      this->get_register_metadata(location, image);
-
-      IMS::Source source(location, image);
-  
-      IMS::WaveFront slice(source);
-
-      // Bail out if we have no slice to process
-      if(!slice) return(2);
-
-      //ccd_path << dir_prefix << "/" << raft << "/" << ccd;
-  
-      // Filehandle set for ATS CCD will then have a set of 
-      // 16 filehandles...one filehandle for each amp segment.
-  
-      std::vector<std::ofstream*> FH_ATS;
-      //this->fetch_set_up_at_filehandles(FH_ATS, image_id, ccd_path.str());
-      this->fetch_set_up_at_filehandles(FH_ATS, image_id, filepath);
-  
-          do
-          {
-              total_stripes += slice.stripes();
-              IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
-    
-              slice.decode(ccd0);
-    
-              for(int s=0; s<slice.stripes(); ++s)
-              {
-                  for(int amp=0; amp<N_AMPS; ++amp)
-                  {
-                      int32_t X = STRAIGHT_PIX_MASK ^ ((ccd0[s].segment[amp]));
-                      FH_ATS[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
-                  }
-              }
-    
-              delete [] ccd0;
-    
-            }
-            while(slice.advance());
-  
-      this->fetch_close_filehandles(FH_ATS);
-  }
-  return retval;
-}
-
-
-void Forwarder::process_take_images_done(Node n) {
-    LOGGER(my_logger::get(), debug) << "Entering process_take_images_done function."; 
-    ostringstream msg;
-    string new_msg_type = "FETCH_TAKE_IMAGES_DONE";
-    string job_num = n["JOB_NUM"].as<string>();
-    string ack_id = n["ACK_ID"].as<string>();
-    string reply_queue = n["REPLY_QUEUE"].as<string>();
-    // 1) Message fetch to pass along this message when work queue is complete
-    // 2) Later, forward thread must generate report
-    // 3) Send filename_list of files transferred in report
-    // 4) Send checksum_list that corressponds to each file in report
-
-    msg << "{MSG_TYPE: " << new_msg_type 
-        << ", JOB_NUM: " << job_num
-        << ", REPLY_QUEUE: " << reply_queue
-        << ", ACK_ID: " << ack_id << "}";
-    this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, msg.str());
-    LOGGER(my_logger::get(), debug) << "FETCH_TAKE_IMAGES_DONE is sent to: " << this->fetch_consume_queue; 
-    LOGGER(my_logger::get(), debug) << "Message is: " << msg; 
-}
 
 int Forwarder::fetch_readout_image(string image_id, string dir_prefix) {
     LOGGER(my_logger::get(), debug) << "Entering fetch_readout_image function."; 
@@ -1208,126 +1211,93 @@ int Forwarder::fetch_readout_raft(string raft, vector<string> ccd_list, string i
 
 }
 
-int Forwarder::fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix) {
-  LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_raft_image function."; 
+int Forwarder::fetch_reassemble_raft_image(string raft, \
+                                           map<string,vector<string> > source_boards, \
+                                           string image_id, \
+                                           string dir_prefix) {
 
-  int retval = 0;
-  ostringstream raft_name;
-  raft_name << raft;
-  string rafty = raft_name.str();
+    LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_raft_image function."; 
 
-  IMS::Store store(rafty.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
-                                     // such as raft01, raft13, etc.
+    int retval = 0;
 
-  IMS::Image image(image_id.c_str(), store);
+    // This tmp code checks for the existence of the image name in the DAQ catalog.
+    if ((this->check_for_image_existence(image_id)) == 0) {
+        cout << "Found an image that exists in Catalog. Fetching " << image_id << " now." << endl;
+        retval = 0;
+    }
+    else {
+        cout << "ALERT - ALERT" << endl;
+        cout << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
+        ostringstream desc;
+        desc << "ALERT - Found no image in Catalog for " << image_id \
+             << ". Bailing from Readout." << endl;
+        return(1);
+    }
 
-  DAQ::LocationSet sources = image.sources();
+    IMS::Store store(raft.c_str()); //DAQ Partitions must be set up to reflect DM name for a raft,
+                                    // such as raft01, raft13, etc.
 
-  DAQ::Location location;
+    IMS::Image image(image_id.c_str(), store);
 
-  int board = 0; // Only way we know how to access a board is by its integer id.
+    DAQ::LocationSet sources = image.sources();
 
+    DAQ::Location location;
 
-  //The loop below processes each raft board (an individual source) one at a time.
-  //In order to avoid boards that do not have desired CCDs on them, we check within
-  //this loop; if board is not needed, we skip processing it. This is done by
-  //converting the board counter to a string, and checking within the source_boards map
-  //for a key representing the current board. If it exists, send board(location) to
-  //reassemble process
+    int board = 0; // Only way we know how to access a board is by its integer id.
+
 
 #ifdef METRIX
-  auto start = std::chrono::system_clock::now();
-  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
-  std::cout << "Started raft fetch at " << std::ctime(&start_time) << endl;
+    auto start = std::chrono::system_clock::now();
+    std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+    std::cout << "Started raft fetch at " << std::ctime(&start_time) << endl;
+    LOGGER(my_logger::get(), debug) << "Started raft fetch at " << std::ctime(&start_time) << endl; 
 #endif
 
-  while(sources.remove(location))
-  {
-      string board_str = std::to_string(board);
+    //The loop below processes each raft board (an individual source) one at a time.
+    //In order to avoid boards that do not have desired CCDs on them, we check within
+    //this loop; if board is not needed, we skip processing it. This is done by
+    //converting the board counter to a string, and checking within the source_boards map
+    //for a key representing the current board. If it exists, send board(location) to
+    //reassemble process
 
-      // Check here if bool val is_naxis_set is false...if so,
-      // pull register InstructionList info from current source, and
-      // set this.naxis1 and this.naxis2.
-      //
-      // otherwise if true, skip register metadata and use current vals
-      if (!is_naxis_set) {
-        this->get_register_metadata(location, image);
-      }
+    while(sources.remove(location)) {
+        string board_str = std::to_string(board);
 
-      if(source_boards.count(board_str)) {  // If current board source is in the source_boards mape
-                                           // that we put together in the preceeding method...
+        // Check here if bool val is_naxis_set is false...if so,
+        // pull register InstructionList info from current source, and
+        // set this.naxis1 and this.naxis2.
+        //
+        // otherwise if true, skip register metadata and use current vals
+        if (!is_naxis_set) {
+            this->get_register_metadata(location, image);
+        }
 
+        // If current board source is in the source_boards map
+        // that we put together in the preceeding method...
+        if(source_boards.count(board_str)) { 
+            std::vector<string> ccds_for_board;
+            for (auto ii : source_boards[board_str]) {
+                ccds_for_board.push_back(ii);
+            }
+            retval = this->fetch_reassemble_process(raft, image_id, location, image, \
+                                                    ccds_for_board, dir_prefix);
+            if(retval > 0)
+                return retval;
+        }
+        board++;
+    }
 
-          std::vector<string> ccds_for_board;
-
-          for (auto ii : source_boards[board_str]) {
-              ccds_for_board.push_back(ii);
-          }
-
-        retval = this->fetch_reassemble_process(raft, image_id, location, image, ccds_for_board, dir_prefix);
-        if(retval > 0)
-            return retval;
-      }
-    board++;
-  }
 #ifdef METRIX
-  auto end = std::chrono::system_clock::now();
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
 
-  std::chrono::duration<double> elapsed_seconds = end-start;
-  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
-  std::cout << "Finished raft fetch at " << std::ctime(&end_time)
+    std::cout << "Finished raft fetch at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
+    LOGGER(my_logger::get(), debug) << "Finished raft fetch at " << std::ctime(&end_time) \
+                                    << "elapsed time: " << elapsed_seconds.count() << "s\n";
 #endif
-  return retval;
-}
-
-void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image)
-{
-
-       // Here are the values and associated indexes
-       // into the InstructionList returned by source.registers().
-       // These index values are used in the lookup() call below.
-       // They are subject to change...
-       // REG_READ_ROWS = 0,
-       // REG_READ_COLS = 1,
-       // REG_PRE_ROWS = 2,
-       // REG_PRE_COLS = 3,
-       // REG_POST_ROWS = 4,
-       // REG_POST_COLS = 5,
-       // REG_READ_COLS2 = 6,
-       // REG_OVER_ROWS = 7,
-       // REG_OVER_COLS = 8,
-       // NUM_REGISTERS = 9;
-
-  IMS::Source source(location, image);
-
-  const RMS::InstructionList *reglist = source.registers();
-
-  // READ_ROWS + OVER_ROWS
-  const RMS::Instruction *inst0 = reglist->lookup(0);
-  uint32_t operand0 = inst0->operand();
-
-  const RMS::Instruction *inst7 = reglist->lookup(7);
-  uint32_t operand7 = inst7->operand();
-
-  this->Naxis_2 = operand0 + operand7;
-;
-
-  // READ_COLS + READ_COLS2 + OVER_COLS
-  const RMS::Instruction *inst1 = reglist->lookup(1);
-  uint32_t operand1 = inst1->operand();
-
-  const RMS::Instruction *inst6 = reglist->lookup(6);
-  uint32_t operand6 = inst6->operand();
-
-  const RMS::Instruction *inst8 = reglist->lookup(8);
-  uint32_t operand8 = inst8->operand();
-
-  this->Naxis_1 = operand1 + operand6 + operand8;
-
-  this->is_naxis_set = true;
-
+    return retval;
 }
 
 
@@ -1340,59 +1310,50 @@ void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::
 // First, determine the number of CCDs in the ccds_for_board vector arg.
 // the number of ccds + the name of each CCD in the vector will tell us how to decode the slice.
 //////////////////////////////////////////////////////////////////////////////////////////////////
+int Forwarder::fetch_reassemble_process(std::string raft, \
+                                        string image_id, \
+                                        const DAQ::Location& location, \
+                                        const IMS::Image& image, \
+                                        std::vector<string> ccds_for_board, \
+                                        string dir_prefix) {
+    int retval = 0;
 
-int Forwarder::fetch_reassemble_process(std::string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix)
-{
-  int retval = 0;
+    LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_process function."; 
 
-  LOGGER(my_logger::get(), debug) << "Entering fetch_reassemble_process function."; 
+    IMS::Source source(location, image);
 
-  // This tmp code checks for the existence of the image name in the DAQ catalog.
-  if ((this->check_for_image_existence(image_id)) == 0) {
-      cout << "Found an image that exists in Catalog. Fetching " << image_id << " now." << endl;
-      retval = 0;
-  }
-  else {
-      cout << "ALERT - ALERT" << endl;
-      cout << "Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
-      ostringstream desc;
-      desc << "ALERT - Found no image in Catalog for " << image_id << ". Bailing from Readout." << endl;
-      return(1);
-      }
+    IMS::Science slice(source);
 
-  IMS::Source source(location, image);
+    if(!slice) return(2);
 
-  IMS::Science slice(source);
+    // Set up filehandles in Ramdisk work areafor this board. There must be 
+    // a separate filehandle set for each CCD to be fetched. CCDs to be fetched 
+    // are listed in the ccds_for_board vector. Each CCD
+    // will then have a set of 16 filehandles...one filehandle for each amp segment.
 
-  if(!slice) return(2);
+    uint64_t pixel = 0;
+    uint64_t total_stripes = 0;
+    uint64_t pixel_errors = 0;
 
-  // Set up filehandles in Ramdisk work areafor this board. There must be 
-  // a separate filehandle set for each CCD to be fetched. CCDs to be fetched 
-  // are listed in the ccds_for_board vector. Each CCD
-  // will then have a set of 16 filehandles...one filehandle for each amp segment.
+    //These are for determining if we should skip writing a CCD or not
+    bool do_ccd0 = false;
+    bool do_ccd1 = false;
+    bool do_ccd2 = false;
 
-  uint64_t pixel = 0;
-  uint64_t total_stripes = 0;
-  uint64_t pixel_errors = 0;
+    // Used when sending image array ready msg to format process
+    std::map<string, string> ccd0_map;
+    std::map<string, string> ccd1_map;
+    std::map<string, string> ccd2_map;
+    std::ostringstream ccd0_path;
+    std::ostringstream ccd1_path;
+    std::ostringstream ccd2_path;
 
-  //These are for determining if we should skip writing a CCD or not
-  bool do_ccd0 = false;
-  bool do_ccd1 = false;
-  bool do_ccd2 = false;
+    std::vector<std::ofstream*> FH0;
+    std::vector<std::ofstream*> FH1;
+    std::vector<std::ofstream*> FH2;
 
-  // Used when sending image array ready msg to format process
-  std::map<string, string> ccd0_map;
-  std::map<string, string> ccd1_map;
-  std::map<string, string> ccd2_map;
-  std::ostringstream ccd0_path;
-  std::ostringstream ccd1_path;
-  std::ostringstream ccd2_path;
-
-  std::vector<std::ofstream*> FH0;
-  std::vector<std::ofstream*> FH1;
-  std::vector<std::ofstream*> FH2;
-
-  for (int x = 0; x < ccds_for_board.size(); x++) {
+    // Set up file handles for each amp segment per CCD...
+    for (int x = 0; x < ccds_for_board.size(); x++) {
 
         if (string(1, ccds_for_board[x][0]) == "0") {
             do_ccd0 = true;
@@ -1422,89 +1383,89 @@ int Forwarder::fetch_reassemble_process(std::string raft, string image_id, const
         }
     }
 
-  do
-  {
-    total_stripes += slice.stripes();
-    IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
-    IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
-    IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
+    do {
+        total_stripes += slice.stripes();
+        IMS::Stripe* ccd0 = new IMS::Stripe [slice.stripes()];
+        IMS::Stripe* ccd1 = new IMS::Stripe [slice.stripes()];
+        IMS::Stripe* ccd2 = new IMS::Stripe [slice.stripes()];
 
-    slice.decode012(ccd0, ccd1, ccd2);
-    int num1, num2, num3;
+        slice.decode012(ccd0, ccd1, ccd2);
+        int num1, num2, num3;
 
-    //////////////////////////////////////////////
-    //   NOTICE: Inside these three loops, ccd2 and ccd0 are swapped on purpose
+        //////////////////////////////////////////////
+        //  NOTICE: Inside these three loops, ccd2 and ccd0 are swapped on purpose
 
-    for(int s=0; s<slice.stripes(); ++s)
-    {
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd0) {
-            int32_t X = PIX_MASK ^ ((ccd2[s].segment[amp]));
-            FH0[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+        for(int s=0; s<slice.stripes(); ++s) {
+
+            for(int amp=0; amp<N_AMPS; ++amp) {
+                if (do_ccd0) {
+                    int32_t X = PIX_MASK ^ ((ccd2[s].segment[amp]));
+                    FH0[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                }
+            }
+
+            for(int amp=0; amp<N_AMPS; ++amp) {
+                if (do_ccd1) {
+                    int32_t X = PIX_MASK ^ ((ccd1[s].segment[amp]));
+                    FH1[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                }
+            }
+
+            for(int amp=0; amp<N_AMPS; ++amp) {
+                if (do_ccd2) {
+                    int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
+                    FH2[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
+                }
+            }
         }
-      }
+        delete [] ccd0;
+        delete [] ccd1;
+        delete [] ccd2;
 
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd1) {
-            int32_t X = PIX_MASK ^ ((ccd1[s].segment[amp]));
-            FH1[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
-        }
-      }
+    } while(slice.advance());
 
-      for(int amp=0; amp<N_AMPS; ++amp)
-      {
-        if (do_ccd2) {
-            int32_t X = PIX_MASK ^ ((ccd0[s].segment[amp]));
-            FH2[amp]->write(reinterpret_cast<const char *>(&X), 4); //32 bits...
-        }
-      }
 
+    if (do_ccd0) {
+        this->fetch_close_filehandles(FH0);
+        this->img_to_raft_ccd_pair[image_id][make_pair(ccd0_map["raft"], \
+                                                       ccd0_map["ccd"]]) = ccd0_map["path"];
+        string new_msg_type = "FORMAT_END_READOUT";
+        ostringstream msg;
+        msg << "{MSG_TYPE: " << new_msg_type
+            << ", IMAGE_ID: " << image_id
+            << ", RAFT: " << ccd0_map["raft"]
+            << ", CCD: " << ccd0_map["ccd"]
+            << ", PATH: " << ccd0_map["path"] << "}";
+        this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
     }
-    delete [] ccd0;
-    delete [] ccd1;
-    delete [] ccd2;
+    if (do_ccd1) {
+        this->fetch_close_filehandles(FH1);
+        this->img_to_raft_ccd_pair[image_id][make_pair(ccd1_map["raft"], \
+                                                       ccd1_map["ccd"]]) = ccd1_map["path"];
+        string new_msg_type = "FORMAT_END_READOUT";
+        ostringstream msg;
+        msg << "{MSG_TYPE: " << new_msg_type
+            << ", IMAGE_ID: " << image_id
+            << ", RAFT: " << ccd1_map["raft"]
+            << ", CCD: " << ccd1_map["ccd"]
+            << ", PATH: " << ccd1_map["path"] << "}";
+        this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    }
+    if (do_ccd2) {
+        this->fetch_close_filehandles(FH2);
+        this->img_to_raft_ccd_pair[image_id][make_pair(ccd2_map["raft"], \
+                                                       ccd2_map["ccd"]]) = ccd2_map["path"];
+        string new_msg_type = "FORMAT_END_READOUT";
+        ostringstream msg;
+        msg << "{MSG_TYPE: " << new_msg_type
+            << ", IMAGE_ID: " << image_id
+            << ", RAFT: " << ccd2_map["raft"]
+            << ", CCD: " << ccd2_map["ccd"]
+            << ", PATH: " << ccd2_map["path"] << "}";
+        this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
+    }
 
-  }
-  while(slice.advance());
-
-
-  if (do_ccd0) {
-    this->fetch_close_filehandles(FH0);
-    string new_msg_type = "FORMAT_END_READOUT";
-    ostringstream msg;
-    msg << "{MSG_TYPE: " << new_msg_type
-        << ", IMAGE_ID: " << image_id
-        << ", RAFT: " << ccd0_map["raft"]
-        << ", CCD: " << ccd0_map["ccd"]
-        << ", PATH: " << ccd0_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-  }
-  if (do_ccd1) {
-    this->fetch_close_filehandles(FH1);
-    string new_msg_type = "FORMAT_END_READOUT";
-    ostringstream msg;
-    msg << "{MSG_TYPE: " << new_msg_type
-        << ", IMAGE_ID: " << image_id
-        << ", RAFT: " << ccd1_map["raft"]
-        << ", CCD: " << ccd1_map["ccd"]
-        << ", PATH: " << ccd1_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-  }
-  if (do_ccd2) {
-    this->fetch_close_filehandles(FH2);
-    string new_msg_type = "FORMAT_END_READOUT";
-    ostringstream msg;
-    msg << "{MSG_TYPE: " << new_msg_type
-        << ", IMAGE_ID: " << image_id
-        << ", RAFT: " << ccd2_map["raft"]
-        << ", CCD: " << ccd2_map["ccd"]
-        << ", PATH: " << ccd2_map["path"] << "}";
-    this->fetch_pub->publish_message(this->format_consume_queue, msg.str());
-  }
-
-  return retval;
+    return retval;
 
 }
 // This method builds file handle vectors in a RAMDISK.
@@ -1530,27 +1491,6 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set,
   }
 }
 
-void Forwarder::fetch_set_up_at_filehandles( std::vector<std::ofstream*> &fh_set, 
-                                             string image_id, 
-                                             string full_dir_prefix){
-
-    LOGGER(my_logger::get(), debug) << "Entering fetch_set_up_at_filehandles function."; 
-
-  for (int i=0; i < 16; i++) {
-        std::ostringstream fns;
-        fns << full_dir_prefix << "/" \
-                          << image_id \
-                          << "--AUXTEL" \
-                          << "-ccd.ATS_CCD" \
-                          << "_segment." << this->ATS_Segment_Names[i];
-
-        std::ofstream * fh = new std::ofstream(fns.str(), std::ios::out | std::ios::binary );
-        fh_set.push_back(fh); 
-  }
-    LOGGER(my_logger::get(), debug) << "Finished setting up file handlers for image segments."; 
-}
-
-
 void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
     LOGGER(my_logger::get(), debug) << "Entering fetch_close_filehandles function.";
 
@@ -1561,6 +1501,60 @@ void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
 }
 
 
+int Forwarder::check_for_image_existence(string image_id) {
+  int x;
+  std::string line = "./ims.sh ";
+  line += image_id;
+  x = system(line.c_str());
+  return x;
+}
+
+
+void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image) {
+
+        // Here are the values and associated indexes
+        // into the InstructionList returned by source.registers().
+        // These index values are used in the lookup() call below.
+        // They are subject to change...
+        // REG_READ_ROWS = 0,
+        // REG_READ_COLS = 1,
+        // REG_PRE_ROWS = 2,
+        // REG_PRE_COLS = 3,
+        // REG_POST_ROWS = 4,
+        // REG_POST_COLS = 5,
+        // REG_READ_COLS2 = 6,
+        // REG_OVER_ROWS = 7,
+        // REG_OVER_COLS = 8,
+        // NUM_REGISTERS = 9;
+
+    IMS::Source source(location, image);
+
+    const RMS::InstructionList *reglist = source.registers();
+
+    // READ_ROWS + OVER_ROWS
+    const RMS::Instruction *inst0 = reglist->lookup(0);
+    uint32_t operand0 = inst0->operand();
+
+    const RMS::Instruction *inst7 = reglist->lookup(7);
+    uint32_t operand7 = inst7->operand();
+
+    this->Naxis_2 = operand0 + operand7;
+
+    // READ_COLS + READ_COLS2 + OVER_COLS
+    const RMS::Instruction *inst1 = reglist->lookup(1);
+    uint32_t operand1 = inst1->operand();
+
+    const RMS::Instruction *inst6 = reglist->lookup(6);
+    uint32_t operand6 = inst6->operand();
+
+    const RMS::Instruction *inst8 = reglist->lookup(8);
+    uint32_t operand8 = inst8->operand();
+
+    this->Naxis_1 = operand1 + operand6 + operand8;
+
+    this->is_naxis_set = true;
+
+}
 
 
 void Forwarder::process_fetch_ack(Node n) {
@@ -2077,7 +2071,7 @@ void Forwarder::format_look_for_work() {
             for (iit = keys.begin(); iit != keys.end(); ) { 
                 string img_id = *iit; 
                 mit = this->header_info_dict.find(img_id); 
-                if ((this-> readout_img_ids[img_id]["READOUT"] == "yes") \
+                if ((this->readout_img_ids[img_id]["READOUT"] == "yes") \
                    && mit != this->header_info_dict.end()) { 
                     //this->readout_img_ids.erase(it); 
                     string header_filename = this->header_info_dict[img_id]; 
