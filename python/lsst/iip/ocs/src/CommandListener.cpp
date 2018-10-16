@@ -91,7 +91,8 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	    ack_msg << Key << "DEVICE" << Value << device;
             ack_msg << Key << "CMD_ID" << Value << to_string(cmdId); 
 	    ack_msg << Key << "ACK_ID" << Value << ack_id; 
-	    ack_msg << Key << "CFG_KEY" << Value << SALInstance.configuration; 
+	    ack_msg << Key << "CFG_KEY" << Value << SALInstance.settingsToApply; 
+	    // ack_msg << Key << "CFG_KEY" << Value << SALInstance.configuration; 
             ack_msg << EndMap; 
 	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
 
@@ -125,9 +126,9 @@ CommandListener::CommandListener() : OCS_Bridge() {
     command_args->pp = SAL_processingcluster(); 
     command_args->atar = SAL_atArchiver(); 
 
-    setup_archiver_listeners();
-    setup_catchuparchiver_listeners(); 
-    setup_processingcluster_listeners();  
+    // setup_archiver_listeners();
+    // setup_catchuparchiver_listeners(); 
+    // setup_processingcluster_listeners();  
     setup_atArchiver_listeners();
     setup_resolve_publisher(); 
     cout << "=== dm COMMAND controller ready" << endl; 
@@ -136,6 +137,7 @@ CommandListener::CommandListener() : OCS_Bridge() {
 CommandListener::~CommandListener(){ 
 }
 
+/** 
 void CommandListener::setup_archiver_listeners() { 
     pthread_t ar_start, ar_enable, ar_disable, ar_standby, ar_enterControl, ar_exitControl, ar_abort; 
     pthread_create(&ar_start, NULL, &CommandListener::run_ar_start, command_args); 
@@ -168,6 +170,7 @@ void CommandListener::setup_processingcluster_listeners() {
     pthread_create(&pp_exitControl, NULL, &CommandListener::run_pp_exitControl, command_args); 
     pthread_create(&pp_abort, NULL, &CommandListener::run_pp_abort, command_args); 
 }
+*/
 
 void CommandListener::setup_atArchiver_listeners() { 
     pthread_t atar_start, atar_enable, atar_disable, atar_standby, 
@@ -182,6 +185,7 @@ void CommandListener::setup_atArchiver_listeners() {
     pthread_create(&atar_resetFromFault, NULL, &CommandListener::run_atar_resetFromFault, command_args); 
 } 
 
+/** 
 void *CommandListener::run_ar_start(void *pargs) {
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 
     SimplePublisher* rabbit_publisher = params->publisher; 
@@ -433,6 +437,7 @@ void *CommandListener::run_pp_abort(void *pargs) {
     listenCommand(pp, "PP", "ABORT", rabbit_publisher, publish_q, consume_q, pp_abort);  
     return 0; 
 } 
+*/ 
 
 void *CommandListener::run_atar_start(void *pargs) {
     ocs_thread_args *params = ((ocs_thread_args *)pargs); 

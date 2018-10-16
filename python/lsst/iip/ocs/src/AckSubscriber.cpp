@@ -128,7 +128,7 @@ void AckSubscriber::run() {
     at.salEventPub("atArchiver_logevent_processingStatus");
 
     cout << "============> running CONSUMER <=============" << endl; 
-    Consumer *telemetry_consumer = new Consumer(base_broker_addr, "telemetry_consume"); 
+    Consumer *telemetry_consumer = new Consumer(base_broker_addr, "telemetry_queue"); 
 
     consumer_thread_args *telemetry_args = new consumer_thread_args; 
     telemetry_args->consumer = telemetry_consumer; 
@@ -264,7 +264,7 @@ void AckSubscriber::process_summary_state(Node n) {
         }
         else if (device == "AT") { 
             atArchiver_logevent_summaryStateC data; 
-            data.summaryStateValue = summary_states[summary_state]; 
+            data.summaryState = summary_states[summary_state]; 
             data.priority = priority; 
             at.logEvent_summaryState(&data, priority); 
         }
