@@ -140,7 +140,8 @@ class Forwarder {
 
     //vector<string> readout_img_ids; 
     std::map<string, map<string,string>> readout_img_ids; 
-    map<pair<string, pair<string,string> > > img_to_raft_ccd_pair; 
+    //map<(pair<string, pair<string,string> >),string> img_to_raft_ccd_pair; 
+    map<pair<string,pair<string,string> >, string> img_to_raft_ccd_pair; 
     map<string, vector<string> > img_to_raft_list; 
     map<string, vector<vector<string> > > img_to_raft_ccd_list; 
     map<string, string> header_info_dict; 
@@ -934,7 +935,7 @@ void Forwarder::process_at_fetch(Node n) {
     LOGGER(my_logger::get(), debug) << "Directory " << filepath << " is created.";
     LOGGER(my_logger::get(), debug) << "Created directories for image segments."; 
 
-    retval = this->fetch_at_reassemble_process(raft, string ccd, image_id, filepath.str());
+    retval = this->fetch_at_reassemble_process(raft, ccd, image_id, filepath.str());
 
     if(retval == 1) {
            ostringstream desc;
@@ -1021,7 +1022,8 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string ccd, \
             } while(slice.advance());
   
       this->fetch_close_filehandles(FH_ATS);
-      this->img_to_raft_ccd_pair[image_id][make_pair(raft,ccd)] = filepath;
+      //this->img_to_raft_ccd_pair[image_id][make_pair(raft,ccd)] = filepath;
+      this->img_to_raft_ccd_pair[make_pair(image_id,make_pair(raft,ccd))] = filepath;
       string new_msg_type = "FORMAT_END_READOUT";
       ostringstream msg;
       msg << "{MSG_TYPE: " << new_msg_type
@@ -1106,15 +1108,21 @@ void Forwarder::process_fetch(Node n) {
       //   a vector of which CCDs should be pulled
 
       string image_id = n["IMAGE_ID"].as<string>();
+      vector<string> vec_rafts = this->img_to_raft_list[image_id];
+      vector<vector<string> > vec_ccds = this->img_to_raft_ccd_list[image_id];
+      vector<string> vec;
       ostringstream dir_prefix;
       dir_prefix << this->Work_Dir << "/" << image_id;
-      for (int i = 0; i < this->img_to_raft_list[image_id]..size(); i++) {
-          for (int j = 0; j < this->img_to_raft_ccd_list[i].size(); j++) {
+      for (int i = 0; i < vec_rafts.size(); i++) {
+          vec.clear();
+          vec = vec_ccds[i];
+          //for (int j = 0; j < this->img_to_raft_ccd_list[i].size(); j++) {
+          for (int j = 0; j < vec.size(); j++) {
               ostringstream cmd;
               ostringstream filepath;
               filepath << dir_prefix.str() << "/" \
-                       << this->img_to_raft_list[i] << "/" \
-                       << this->img_to_raft_ccd_list[i][j];
+                       << vec_rafts[i] << "/" \
+                       << vec[j];
               cmd << "mkdir -p " << filepath.str();
               const std::string tmpstr = cmd.str();
               const char* cmdstr = tmpstr.c_str();
@@ -1427,8 +1435,12 @@ int Forwarder::fetch_reassemble_process(std::string raft, \
 
     if (do_ccd0) {
         this->fetch_close_filehandles(FH0);
-        this->img_to_raft_ccd_pair[image_id][make_pair(ccd0_map["raft"], \
-                                                       ccd0_map["ccd"]]) = ccd0_map["path"];
+        //this->img_to_raft_ccd_pair[image_id][make_pair(ccd0_map["raft"], \
+        //                                               ccd0_map["ccd"]]) = ccd0_map["path"];
+        // Add entry to tracking map 
+        pair<string,string> ccd0_pair (ccd0_map["raft"],ccd0_map["ccd"]);
+        pair<string,pair<string,string> > map_entry (image_id,ccd0_pair);
+        this->img_to_raft_ccd_pair[map_entry] = ccd0_map["path"];
         string new_msg_type = "FORMAT_END_READOUT";
         ostringstream msg;
         msg << "{MSG_TYPE: " << new_msg_type
@@ -1440,8 +1452,12 @@ int Forwarder::fetch_reassemble_process(std::string raft, \
     }
     if (do_ccd1) {
         this->fetch_close_filehandles(FH1);
-        this->img_to_raft_ccd_pair[image_id][make_pair(ccd1_map["raft"], \
-                                                       ccd1_map["ccd"]]) = ccd1_map["path"];
+        //this->img_to_raft_ccd_pair[image_id][make_pair(ccd1_map["raft"], \
+        //                                               ccd1_map["ccd"]]) = ccd1_map["path"];
+        // Add entry to tracking map 
+        pair<string,string> ccd1_pair (ccd1_map["raft"],ccd1_map["ccd"]);
+        pair<string,pair<string,string> > map_entry (image_id,ccd1_pair);
+        this->img_to_raft_ccd_pair[map_entry] = ccd1_map["path"];
         string new_msg_type = "FORMAT_END_READOUT";
         ostringstream msg;
         msg << "{MSG_TYPE: " << new_msg_type
@@ -1453,8 +1469,15 @@ int Forwarder::fetch_reassemble_process(std::string raft, \
     }
     if (do_ccd2) {
         this->fetch_close_filehandles(FH2);
-        this->img_to_raft_ccd_pair[image_id][make_pair(ccd2_map["raft"], \
-                                                       ccd2_map["ccd"]]) = ccd2_map["path"];
+        //this->img_to_raft_ccd_pair[image_id][make_pair(ccd2_map["raft"], \
+        //                                               ccd2_map["ccd"]]) = ccd2_map["path"];
+       
+        // Add entry to tracking map 
+        pair<string,string> ccd2_pair (ccd2_map["raft"],ccd2_map["ccd"]);
+        pair<string,pair<string,string> > map_entry (image_id,ccd2_pair);
+        this->img_to_raft_ccd_pair[map_entry] = ccd2_map["path"];
+        //this->img_to_raft_ccd_pair.insert(pair<string,pair<string,string>(ccd2_map["raft"], \
+        //                                               ccd2_map["ccd"])>)) = ccd2_map["path"];
         string new_msg_type = "FORMAT_END_READOUT";
         ostringstream msg;
         msg << "{MSG_TYPE: " << new_msg_type
@@ -1918,7 +1941,7 @@ void Forwarder::format_write_img(string img_id, string header_file_path, string 
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
         LOGGER(my_logger::get(), debug) << "Formatting image segments into fits file is completed."; 
-        format_send_completed_msg(img);
+        format_send_completed_msg(img_id);
         LOGGER(my_logger::get(), debug) << "Sending format complete message to forward thread."; 
     } 
     catch (exception& e) { 
@@ -1981,6 +2004,7 @@ string Forwarder::format_get_binary_path(string image_id) {
         pair<string, pair<string, string>> imgid_raft_ccd = it->first; 
         string img_id = imgid_raft_ccd.first; 
         if (img_id == image_id) { 
+//////// Shouldn't this build the key with make_pair and then get path from overall map?
             binary_path = it->second;          
 
             // delete the iterator
@@ -2001,10 +2025,11 @@ void Forwarder::format_look_for_work(string image_id) {
     try { 
         map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
         string binary_path = format_get_binary_path(image_id); 
+        LOGGER(my_logger::get(), debug) << "Found the following binary path: " << binary_path;
         if (header_it != this->header_info_dict.end() && !binary_path.empty()) { 
             LOGGER(my_logger::get(), debug) << "Found both header and binary paths to start assembling."; 
             Node n; 
-            n["IMAGE_ID"] = img_id; 
+            n["IMAGE_ID"] = image_id; 
             n["HEADER_PATH"] = header_it->second; 
             n["BINARY_PATH"] = binary_path; 
             format_assemble_img(n); 
