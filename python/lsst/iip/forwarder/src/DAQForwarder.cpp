@@ -204,14 +204,14 @@ class Forwarder {
     void send_telemetry(int, std::string);
 
     long* format_read_img_segment(const char*);
-    void format_write_img(std::string, std::string, std::string);
+    void format_write_img(Node);
     void format_assemble_img(Node);
-    void format_send_completed_msg(std::string);
+    void format_send_completed_msg(std::string, std::string);
     void format_look_for_work(std::string); 
     void format_process_end_readout(Node); 
     void format_get_header(Node); 
     vector<string> format_list_files(string); 
-    string format_get_binary_path(std::string); 
+    Node format_get_binary_path(std::string); 
 
     void forward_process_end_readout(Node); 
     void forward_process_take_images_done(Node); 
@@ -1818,11 +1818,11 @@ void Forwarder::format_assemble_img(Node n) {
         string header_path = n["HEADER_PATH"].as<string>(); 
         string binary_path = n["BINARY_PATH"].as<string>(); 
 
-        // create dir  /mnt/ram/FITS/IMG_10
-        string fits_dir = Work_Dir + "/FITS"; 
+        // create dir  /mnt/ram/fits/IMG_10
+        string fits_dir = Work_Dir + "/fits"; 
         const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
         LOGGER(my_logger::get(), debug) << "Created directory " << fits_dir << " for assembling images."; 
-        format_write_img(img_id, header_path, binary_path);
+        format_write_img(n);
         LOGGER(my_logger::get(), debug) << "Start formatting ..."; 
     } 
     catch (exception& e) { 
@@ -1831,9 +1831,15 @@ void Forwarder::format_assemble_img(Node n) {
     } 
 }
 
-void Forwarder::format_write_img(string img_id, string header_file_path, string binary_file_path) { 
+void Forwarder::format_write_img(Node n) { 
     LOGGER(my_logger::get(), debug) << "Entering format_write_img function."; 
     try { 
+        string header_file_path = n["HEADER_PATH"].as<string>(); 
+        string binary_file_path = n["BINARY_PATH"].as<string>();
+        string img_id = n["IMAGE_ID"].as<string>();
+        string raft = n["RAFT"].as<string>();
+        string ccd = n["CCD"].as<string>();
+
         long len = NAXIS1 * NAXIS2;
         int bitpix = LONG_IMG; 
         long naxis = 2;
@@ -1846,8 +1852,9 @@ void Forwarder::format_write_img(string img_id, string header_file_path, string 
         fitsfile *iptr, *optr; 
 
         // /mnt/ram/IMG_31
+        string img_name = img_id + "-" + raft + "-" + ccd;
         string header_path = header_file_path;
-        string destination = Work_Dir + "/FITS/" + img_id + ".fits";
+        string destination = Work_Dir + "/fits/" + img_name + ".fits";
         LOGGER(my_logger::get(), debug) << "Image file path is " << binary_file_path; 
         LOGGER(my_logger::get(), debug) << "Header file path is " << header_path; 
         LOGGER(my_logger::get(), debug) << "Destination file path is " << destination; 
@@ -1941,7 +1948,7 @@ void Forwarder::format_write_img(string img_id, string header_file_path, string 
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
         LOGGER(my_logger::get(), debug) << "Formatting image segments into fits file is completed."; 
-        format_send_completed_msg(img_id);
+        format_send_completed_msg(img_id, img_name);
         LOGGER(my_logger::get(), debug) << "Sending format complete message to forward thread."; 
     } 
     catch (exception& e) { 
@@ -1974,12 +1981,13 @@ vector<string> Forwarder::format_list_files(string path) {
     } 
 } 
 
-void Forwarder::format_send_completed_msg(string image_id) { 
+void Forwarder::format_send_completed_msg(string image_id, string image_name) { 
     LOGGER(my_logger::get(), debug) << "Entering format_send_completed_msg function.";
     try { 
         Emitter msg; 
         msg << BeginMap; 
         msg << Key << "MSG_TYPE" << Value << "FORWARD_END_READOUT"; 
+        msg << Key << "IMAGE_NAME" << Value << image_name; 
         msg << Key << "IMAGE_ID" << Value << image_id; 
         msg << EndMap; 
         fmt_pub->publish_message(this->forward_consume_queue, msg.c_str()); 
@@ -1993,11 +2001,12 @@ void Forwarder::format_send_completed_msg(string image_id) {
 } 
 ///////////////////////////////////////////////////////////////////////////
 
-string Forwarder::format_get_binary_path(string image_id) { 
+Node Forwarder::format_get_binary_path(string image_id) { 
     /**
      * Returns the path to the binary image segments for formatter. If it exists
      * in the raft_ccd_to_pair dictionary, returns the path string or else empty string.
      */ 
+    Node n; 
     string binary_path; 
     map<pair<string, pair<string, string>>, string>::iterator it; 
     for (it = this->img_to_raft_ccd_pair.begin(); it != this->img_to_raft_ccd_pair.end(); it++) { 
@@ -2006,14 +2015,21 @@ string Forwarder::format_get_binary_path(string image_id) {
         if (img_id == image_id) { 
 //////// Shouldn't this build the key with make_pair and then get path from overall map?
             binary_path = it->second;          
+            cout << "In binary: got image_id: " << img_id << endl; 
+            cout << "In binary: got raft: " << imgid_raft_ccd.second.first << endl; 
+            cout << "In binary: got ccd: " << imgid_raft_ccd.second.second << endl; 
+            cout << "In binary: got binary_path: " << binary_path << endl; 
+            n["RAFT"] = imgid_raft_ccd.second.first; 
+            n["CCD"] = imgid_raft_ccd.second.second; 
+            n["BINARY_PATH"] = binary_path; 
 
-            // delete the iterator
-            img_to_raft_ccd_pair.erase(it); 
             break; 
         } 
     } 
-    return binary_path; 
+    cout << "In binary: got binary_path: " << binary_path << endl;
+    return n; 
 } 
+
 
 void Forwarder::format_look_for_work(string image_id) { 
     /**
@@ -2024,14 +2040,23 @@ void Forwarder::format_look_for_work(string image_id) {
     LOGGER(my_logger::get(), debug) << "Entering format_look_for_work function."; 
     try { 
         map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
-        string binary_path = format_get_binary_path(image_id); 
-        LOGGER(my_logger::get(), debug) << "Found the following binary path: " << binary_path;
-        if (header_it != this->header_info_dict.end() && !binary_path.empty()) { 
+        Node binary_node  = format_get_binary_path(image_id); 
+        LOGGER(my_logger::get(), debug) << "Found the following binary path: " << binary_node["BINARY_PATH"].as<string>();
+        if (header_it != this->header_info_dict.end() && !binary_node.IsNull()) { 
             LOGGER(my_logger::get(), debug) << "Found both header and binary paths to start assembling."; 
+
+            string raft = binary_node["RAFT"].as<string>(); 
+            string ccd = binary_node["CCD"].as<string>();
             Node n; 
             n["IMAGE_ID"] = image_id; 
             n["HEADER_PATH"] = header_it->second; 
-            n["BINARY_PATH"] = binary_path; 
+            n["BINARY_PATH"] = binary_node["BINARY_PATH"].as<string>(); 
+            n["RAFT"] = raft; 
+            n["CCD"] = ccd; 
+            
+            // do the deletion
+            this->img_to_raft_ccd_pair.erase(make_pair(image_id, make_pair(raft, ccd))); 
+
             format_assemble_img(n); 
         } 
         /** 
@@ -2092,9 +2117,10 @@ void Forwarder::forward_process_end_readout(Node n) {
 
     string new_csum = "0";
     try { 
+        string img_name = n["IMAGE_NAME"].as<string>();
         string img_id = n["IMAGE_ID"].as<string>(); 
-        string img_path = this->Work_Dir + "/FITS/" + img_id + ".fits"; 
-        string dest_path = this->Target_Location + "/" + img_id + ".fits"; 
+        string img_path = this->Work_Dir + "/fits/" + img_name + ".fits"; 
+        string dest_path = this->Target_Location + "/" + img_name + ".fits"; 
       
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
@@ -2155,12 +2181,12 @@ std::string Forwarder::forward_send_result_set(string image_id, string filenames
     string reply_queue = this->Foreman_Reply_Queue;
     string device_type = this->Device_Type;
 
-    msg_type << device_type << " _FWDR_END_READOUT_ACK ";
+    msg_type << device_type << "_FWDR_END_READOUT_ACK";
     string ack_bool = "True";
 
     Emitter msg;
     msg << BeginMap;
-    msg << Key << "MSG_TYPE" << Value << msg_type;
+    msg << Key << "MSG_TYPE" << Value << msg_type.str();
     msg << Key << "COMPONENT" << Value << this->Component;
     msg << Key << "IMAGE_ID" << Value << image_id;
     msg << Key << "JOB_NUM" << Value << job_num;
