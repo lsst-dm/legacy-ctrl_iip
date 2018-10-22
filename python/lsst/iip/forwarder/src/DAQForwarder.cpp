@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////
-//
+////
 #include <sys/stat.h> 
 #include <dirent.h>
 #include <stdio.h>
@@ -1811,6 +1811,116 @@ void Forwarder::format_get_header(Node node) {
     } 
 } 
 
+
+void Forwarder::format_look_for_work(string image_id) { 
+    /**
+     * Triggered when HEADER_READY or FORMAT_END_READOUT is 
+     * issued. When either method calls, this method checks if there is an entry in 
+     * img_to_raft_ccd_pair and header_info_dict and do the work.
+     */ 
+    LOGGER(my_logger::get(), debug) << "Entering format_look_for_work function."; 
+    try { 
+        map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
+        cout << "In look for work - just before get_binary_path call." << endl;
+        Node binary_node  = format_get_binary_path(image_id); 
+        cout << "In look for work - just AFTER get_binary_path call." << endl;
+        LOGGER(my_logger::get(), debug) << "Found the following binary path: " << binary_node["BINARY_PATH"].as<string>();
+        if (header_it != this->header_info_dict.end() && !binary_node.IsNull()) { 
+            LOGGER(my_logger::get(), debug) << "Found both header and binary paths to start assembling."; 
+
+            string raft = binary_node["RAFT"].as<string>(); 
+            string ccd = binary_node["CCD"].as<string>();
+            Node n; 
+            n["IMAGE_ID"] = image_id; 
+            n["HEADER_PATH"] = header_it->second; 
+            n["BINARY_PATH"] = binary_node["BINARY_PATH"].as<string>(); 
+            n["RAFT"] = raft; 
+            n["CCD"] = ccd; 
+            
+            // do the deletion
+            this->img_to_raft_ccd_pair.erase(make_pair(image_id, make_pair(raft, ccd))); 
+            cout << "In look for work - just AFTER img_to_raft_ccd_pair ERASE call." << endl;
+
+            format_assemble_img(n); 
+        } 
+        /** 
+
+        // Set up vector of outer map keys...
+        vector<string> keys;
+        map <string, map <string, string> >::iterator it = this->readout_img_ids.begin();
+        for( ; it != readout_img_ids.end(); ++it) {
+            keys.push_back(it->first);
+        }
+
+        std::vector<string>::iterator iit;
+        map<string, string>::iterator mit;  
+        map<string, string>::iterator tid; 
+        // if there are elements in both keys and header_info vectors...
+        // we check if the current iterator img_id value has been readout yet.
+        // if so, we get the header name, delete it from header_info, and process.
+        // readout_img_ids entry stays around as forward process will use it.
+        if (keys.size() != 0 && this->header_info_dict.size() != 0) { 
+            for (iit = keys.begin(); iit != keys.end(); ) { 
+                string img_id = *iit; 
+                mit = this->header_info_dict.find(img_id); 
+                if ((this->readout_img_ids[img_id]["READOUT"] == "yes") \
+                   && mit != this->header_info_dict.end()) { 
+                    //this->readout_img_ids.erase(it); 
+                    string header_filename = this->header_info_dict[img_id]; 
+                    this->header_info_dict.erase(mit); 
+
+                    // do the work 
+                    Node n; 
+                    n["IMAGE_ID"] = img_id; 
+                    n["HEADER"] = header_filename; 
+                    format_assemble_img(n); 
+                } 
+                else iit++; 
+            } 
+        } 
+        else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
+            LOGGER(my_logger::get(), debug) << "No img data from DAQ yet. Waiting to process."; 
+            return; 
+        } 
+        */ 
+    } 
+    catch (exception& e) { 
+        LOGGER(my_logger::get(), critical) << e.what() << endl; 
+        cerr << e.what() << endl; 
+    } 
+}
+
+
+Node Forwarder::format_get_binary_path(string image_id) { 
+    /**
+     * Returns the path to the binary image segments for formatter. If it exists
+     * in the raft_ccd_to_pair dictionary, returns the path string or else empty string.
+     */ 
+    Node n; 
+    string binary_path; 
+    map<pair<string, pair<string, string>>, string>::iterator it; 
+    for (it = this->img_to_raft_ccd_pair.begin(); it != this->img_to_raft_ccd_pair.end(); it++) { 
+        pair<string, pair<string, string>> imgid_raft_ccd = it->first; 
+        string img_id = imgid_raft_ccd.first; 
+        if (img_id == image_id) { 
+//////// Shouldn't this build the key with make_pair and then get path from overall map?
+            binary_path = it->second;          
+            cout << "In binary: got image_id: " << img_id << endl; 
+            cout << "In binary: got raft: " << imgid_raft_ccd.second.first << endl; 
+            cout << "In binary: got ccd: " << imgid_raft_ccd.second.second << endl; 
+            cout << "In binary: got binary_path: " << binary_path << endl; 
+            n["RAFT"] = imgid_raft_ccd.second.first; 
+            n["CCD"] = imgid_raft_ccd.second.second; 
+            n["BINARY_PATH"] = binary_path; 
+
+            break; 
+        } 
+    } 
+    cout << "In binary: got binary_path: " << binary_path << endl;
+    return n; 
+} 
+
+ 
 void Forwarder::format_assemble_img(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering format_assemble_img function."; 
     try { 
@@ -2001,112 +2111,6 @@ void Forwarder::format_send_completed_msg(string image_id, string image_name) {
 } 
 ///////////////////////////////////////////////////////////////////////////
 
-Node Forwarder::format_get_binary_path(string image_id) { 
-    /**
-     * Returns the path to the binary image segments for formatter. If it exists
-     * in the raft_ccd_to_pair dictionary, returns the path string or else empty string.
-     */ 
-    Node n; 
-    string binary_path; 
-    map<pair<string, pair<string, string>>, string>::iterator it; 
-    for (it = this->img_to_raft_ccd_pair.begin(); it != this->img_to_raft_ccd_pair.end(); it++) { 
-        pair<string, pair<string, string>> imgid_raft_ccd = it->first; 
-        string img_id = imgid_raft_ccd.first; 
-        if (img_id == image_id) { 
-//////// Shouldn't this build the key with make_pair and then get path from overall map?
-            binary_path = it->second;          
-            cout << "In binary: got image_id: " << img_id << endl; 
-            cout << "In binary: got raft: " << imgid_raft_ccd.second.first << endl; 
-            cout << "In binary: got ccd: " << imgid_raft_ccd.second.second << endl; 
-            cout << "In binary: got binary_path: " << binary_path << endl; 
-            n["RAFT"] = imgid_raft_ccd.second.first; 
-            n["CCD"] = imgid_raft_ccd.second.second; 
-            n["BINARY_PATH"] = binary_path; 
-
-            break; 
-        } 
-    } 
-    cout << "In binary: got binary_path: " << binary_path << endl;
-    return n; 
-} 
-
-
-void Forwarder::format_look_for_work(string image_id) { 
-    /**
-     * Triggered when HEADER_READY or FORMAT_END_READOUT is 
-     * issued. When either method calls, this method checks if there is an entry in 
-     * img_to_raft_ccd_pair and header_info_dict and do the work.
-     */ 
-    LOGGER(my_logger::get(), debug) << "Entering format_look_for_work function."; 
-    try { 
-        map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
-        Node binary_node  = format_get_binary_path(image_id); 
-        LOGGER(my_logger::get(), debug) << "Found the following binary path: " << binary_node["BINARY_PATH"].as<string>();
-        if (header_it != this->header_info_dict.end() && !binary_node.IsNull()) { 
-            LOGGER(my_logger::get(), debug) << "Found both header and binary paths to start assembling."; 
-
-            string raft = binary_node["RAFT"].as<string>(); 
-            string ccd = binary_node["CCD"].as<string>();
-            Node n; 
-            n["IMAGE_ID"] = image_id; 
-            n["HEADER_PATH"] = header_it->second; 
-            n["BINARY_PATH"] = binary_node["BINARY_PATH"].as<string>(); 
-            n["RAFT"] = raft; 
-            n["CCD"] = ccd; 
-            
-            // do the deletion
-            this->img_to_raft_ccd_pair.erase(make_pair(image_id, make_pair(raft, ccd))); 
-
-            format_assemble_img(n); 
-        } 
-        /** 
-
-        // Set up vector of outer map keys...
-        vector<string> keys;
-        map <string, map <string, string> >::iterator it = this->readout_img_ids.begin();
-        for( ; it != readout_img_ids.end(); ++it) {
-            keys.push_back(it->first);
-        }
-
-        std::vector<string>::iterator iit;
-        map<string, string>::iterator mit;  
-        map<string, string>::iterator tid; 
-        // if there are elements in both keys and header_info vectors...
-        // we check if the current iterator img_id value has been readout yet.
-        // if so, we get the header name, delete it from header_info, and process.
-        // readout_img_ids entry stays around as forward process will use it.
-        if (keys.size() != 0 && this->header_info_dict.size() != 0) { 
-            for (iit = keys.begin(); iit != keys.end(); ) { 
-                string img_id = *iit; 
-                mit = this->header_info_dict.find(img_id); 
-                if ((this->readout_img_ids[img_id]["READOUT"] == "yes") \
-                   && mit != this->header_info_dict.end()) { 
-                    //this->readout_img_ids.erase(it); 
-                    string header_filename = this->header_info_dict[img_id]; 
-                    this->header_info_dict.erase(mit); 
-
-                    // do the work 
-                    Node n; 
-                    n["IMAGE_ID"] = img_id; 
-                    n["HEADER"] = header_filename; 
-                    format_assemble_img(n); 
-                } 
-                else iit++; 
-            } 
-        } 
-        else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
-            LOGGER(my_logger::get(), debug) << "No img data from DAQ yet. Waiting to process."; 
-            return; 
-        } 
-        */ 
-    } 
-    catch (exception& e) { 
-        LOGGER(my_logger::get(), critical) << e.what() << endl; 
-        cerr << e.what() << endl; 
-    } 
-// ADD RESULT SET CODE HERE...
-} 
-
 ///////////////////////////////////////////////////////////////////////////////
 // Forward part 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2120,7 +2124,12 @@ void Forwarder::forward_process_end_readout(Node n) {
         string img_name = n["IMAGE_NAME"].as<string>();
         string img_id = n["IMAGE_ID"].as<string>(); 
         string img_path = this->Work_Dir + "/fits/" + img_name + ".fits"; 
-        string dest_path = this->Target_Location + "/" + img_name + ".fits"; 
+        string target_location = this->readout_img_ids[img_id]["TARGET_LOCATION"];
+        string dest_path = target_location + "/" + img_name + ".fits"; 
+        LOGGER(my_logger::get(), debug) << "About to send file from img_path: " << img_path; 
+        LOGGER(my_logger::get(), debug) << "About to send file to: " << dest_path; 
+        LOGGER(my_logger::get(), debug) << "About to send file with image_name: " << img_name; 
+        LOGGER(my_logger::get(), debug) << "About to send file with image_id: " << img_id; 
       
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
@@ -2133,16 +2142,18 @@ void Forwarder::forward_process_end_readout(Node n) {
         bbcp_cmd << img_path
                  << " " 
                  << dest_path; 
+        LOGGER(my_logger::get(), debug) << "bbcp command is: " << bbcp_cmd.str(); 
 
+        /*
         // If enabled, calculate checksum for verification use at Archive
-        if (this->Checksum_Enabled == true) {
+        if (this->Checksum_Enabled == "yes") {
             if(this->Checksum_Type == "MD5") {
                 new_csum = this->forward_calculate_md5_checksum(img_path);
             }
             else if(this->Checksum_Type == "CRC32") {
                 new_csum = this->forward_calculate_crc32_checksum(img_path);
             }
-        }
+        } */
 
         int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
         LOGGER(my_logger::get(), debug) << "Command to copy file is " << bbcp_cmd.str(); 
@@ -2151,9 +2162,15 @@ void Forwarder::forward_process_end_readout(Node n) {
 
         if (bbcp_cmd_status == 256) { 
             throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
+        LOGGER(my_logger::get(), critical) << "CANNOT Copy File to Archive." << endl; 
         } 
+        ostringstream description;
+        description << "File " << img_name << ".fits successfully copied to " << dest_path;
+        this->send_telemetry(100, description.str());
         this->finished_image_work_list.push_back(img_id);
-        this->forward_send_result_set(img_id, dest_path, new_csum);
+
+        // FIXXX - NO Result Sets for now
+        //this->forward_send_result_set(img_id, dest_path, new_csum);
         LOGGER(my_logger::get(), info) << "READOUT COMPLETE.";
 
     } 
@@ -2176,10 +2193,10 @@ std::string Forwarder::forward_send_result_set(string image_id, string filenames
     // Get device from xfer_params vars
     // Use device to know where to send end readout and which msg_type to use
     ostringstream msg_type;
-    string job_num = this->image_ids_to_jobs_map[image_id]["JOB_NUM"];
-    string ack_id = this->image_ids_to_jobs_map[image_id]["ACK_ID"];
-    string reply_queue = this->Foreman_Reply_Queue;
-    string device_type = this->Device_Type;
+    string job_num = this->readout_img_ids[image_id]["JOB_NUM"];
+    string ack_id = this->readout_img_ids[image_id]["ACK_ID"];
+    string reply_queue = this->readout_img_ids[image_id]["REPLY_QUEUE"];
+    string device_type = this->readout_img_ids[image_id]["DEVICE"];
 
     msg_type << device_type << "_FWDR_END_READOUT_ACK";
     string ack_bool = "True";
@@ -2201,8 +2218,8 @@ std::string Forwarder::forward_send_result_set(string image_id, string filenames
     cout << "[x] tid msg: " << endl;
     cout << msg.c_str() << endl;
 
-    this->fwd_pub->publish_message(reply_queue, msg.c_str());
-    cout << "msg is replied to ..." << reply_queue << endl;
+    //this->fwd_pub->publish_message(reply_queue, msg.c_str());
+    //cout << "msg is replied to ..." << reply_queue << endl;
 }
 
 std::string Forwarder::forward_calculate_md5_checksum(const string img_path ) {
