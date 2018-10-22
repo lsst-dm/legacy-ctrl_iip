@@ -1720,6 +1720,7 @@ void Forwarder::format_write_img(string img, string header) {
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
+        send_telemetry(-1, "Forwarder cannot format binaries to fits file."); 
     } 
 } 
 vector<string> Forwarder::format_list_files(string path) { 
@@ -1826,15 +1827,17 @@ void Forwarder::forward_process_end_readout(Node n) {
         } 
         this->finished_image_work_list.push_back(img_id);
         cout << "[X] READOUT COMPLETE." << endl;
-
+        send_telemetry(0, "Readout complete for image id " + img_id); 
     } 
     catch (L1CannotCopyFileError& e) { 
         int ERROR_CODE = ERROR_CODE_PREFIX + 21; 
         cerr << e.what() << endl; 
         cerr << "Forwarder encountering error code: " << to_string(ERROR_CODE) << endl; 
+        send_telemetry(-1, "Forwarder cannot transfer file to archiver."); 
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
+        send_telemetry(-1, "Forwarder cannot transfer file to archiver."); 
     } 
 } 
 

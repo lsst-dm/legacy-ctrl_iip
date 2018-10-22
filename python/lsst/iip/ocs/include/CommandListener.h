@@ -38,7 +38,6 @@ class CommandListener : public OCS_Bridge {
 	static string get_device(string); 
 
 	static void *run_ar_start(void *); 
-	static void *run_ar_stop(void *); 
 	static void *run_ar_enable(void *); 
 	static void *run_ar_disable(void *); 
 	static void *run_ar_standby(void *); 
@@ -47,7 +46,6 @@ class CommandListener : public OCS_Bridge {
 	static void *run_ar_abort(void *); 
 
 	static void *run_cu_start(void *); 
-	static void *run_cu_stop(void *); 
 	static void *run_cu_enable(void *); 
 	static void *run_cu_disable(void *); 
 	static void *run_cu_standby(void *); 
@@ -56,7 +54,6 @@ class CommandListener : public OCS_Bridge {
 	static void *run_cu_abort(void *); 
 
 	static void *run_pp_start(void *); 
-	static void *run_pp_stop(void *); 
 	static void *run_pp_enable(void *); 
 	static void *run_pp_disable(void *); 
 	static void *run_pp_standby(void *); 
@@ -65,11 +62,11 @@ class CommandListener : public OCS_Bridge {
 	static void *run_pp_abort(void *); 
 
 	static void *run_atar_start(void *); 
-	static void *run_atar_stop(void *); 
 	static void *run_atar_enable(void *); 
 	static void *run_atar_disable(void *); 
 	static void *run_atar_standby(void *); 
 	static void *run_atar_enterControl(void *); 
 	static void *run_atar_exitControl(void *); 
 	static void *run_atar_abort(void *); 
+	static void *run_atar_resetFromFault(void *); 
 };

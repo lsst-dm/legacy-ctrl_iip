@@ -52,6 +52,7 @@ class Setup:
                   "f99_consume_from_format",
                   "f99_consume_from_forward",
                   "ar_foreman_ack_publish",
+                  "telemetry_queue",
                   "test_dmcs_ocs_publish"] # optional test queue for dmcs_ocs test ,
 
 

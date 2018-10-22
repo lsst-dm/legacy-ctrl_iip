@@ -372,39 +372,6 @@ void *EventSubscriber::run_getHeaderService(void *args) {
     */
     return 0;
 } 
-/** 
-void *EventSubscriber::run_getHeaderService(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_efd mgr = SAL_efd(); 
-    efd_logevent_LargeFileObjectAvailableC SALInstance; 
-
-    mgr.salEvent("efd_logevent_LargeFileObjectAvailable"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
-
-        if (status == SAL__OK) { 
-            cout << "=== Event EFD HeaderService received = " << endl;
-            Emitter msg;
-            msg << BeginMap; 
-            msg << Key << "MSG_TYPE" << Value << "DMCS_HEADER_READY"; 
-            msg << Key << "FILENAME" << Value << SALInstance.URL; 
-            msg << EndMap; 	
-	    cout << "HR: " << msg.c_str() << endl; 
-            publisher->publish_message(queue, msg.c_str()); 
-        } 
-        os_nanoSleep(delay_10ms);
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
-*/ 
 
 void *EventSubscriber::run_atcamera_startIntegration(void *args) { 
     event_args *params = ((event_args *)args); 

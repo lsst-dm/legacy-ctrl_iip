@@ -189,6 +189,20 @@ ROOT:
         ACK_BOOL:
         ACK_STATEMENT:
 
+    RESET_FROM_FAULT:
+        MSG_TYPE: RESET_FROM_FAULT
+        DEVICE: AT, AR, PP, or CU
+        CMD_ID:
+        ACK_ID:
+
+    RESET_FROM_FAULT_ACK:
+        MSG_TYPE: RESET_FROM_FAULT_ACK
+        DEVICE: AT, AR, PP, or CU
+        CMD_ID:
+        ACK_ID:
+        ACK_BOOL:
+        ACK_STATEMENT:
+
     DMCS_TCS_TARGET:
         MSG_TYPE: DMCS_TCS_TARGET
         TARGET_ID: 
