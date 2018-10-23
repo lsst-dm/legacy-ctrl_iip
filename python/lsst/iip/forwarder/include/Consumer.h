@@ -1,12 +1,10 @@
 #include <SimpleAmqpClient/SimpleAmqpClient.h>
-#include "SAL_archiver.h" 
-#include "SAL_catchuparchiver.h" 
-#include "SAL_processingcluster.h" 
 
 /** callback function to implement in the client class to retrieve messages
   * @param body message body that is passed from rabbitmq queue
   */ 
-typedef void (*callback)(std::string, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
+template <typename T>
+using callback = void (T::*)(std::string); 
 
 /** Rabbitmq message consumer for C++ interface, used to listen to messages from the queue
   * Consumer object uses AmqpClient Channel object, which is intended for one channel per object.
@@ -77,14 +75,9 @@ class Consumer {
           * run implements connection to the broker and message listening
           * @param callback function to pass as a listener for message
           */ 
-        void run(callback, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
+        template <typename T>
+        void run(T*, callback<T>); 
         
         /** bind queue with exchange */ 
         void on_bind_declareok();
-        
-        /** start_consuming is the ioloop that checks the queue 
-          * as soon as messages are queued, start_consuming unpacks its BasicMessage into string of message body
-          * and passes the return value to the callback function 
-          */ 
-        void start_consuming(callback, SAL_archiver, SAL_catchuparchiver, SAL_processingcluster); 
 }; 
