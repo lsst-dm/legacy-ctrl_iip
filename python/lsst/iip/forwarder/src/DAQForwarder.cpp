@@ -45,7 +45,13 @@
 #define PIX_MASK 0x3FFFF
 #define STRAIGHT_PIX_MASK 0x20000
 #define DEBUG 1
+
+// Macros for Logger
+#define LOG_INF  LOGGER(my_logger::get(), info)  
+#define LOG_DBG  LOGGER(my_logger::get(), debug)  
+#define LOG_CRT  LOGGER(my_logger::get(), critical)  
 #define METRIX 1
+#define DUMP_MAP 1
 #define PRIVATE_BUFFER_SIZE  1024  // Used by crc32 code
 #define L1_CFG_FILE_LOCATION  "../../L1SystemCfg.yaml"
 
@@ -63,7 +69,6 @@ class Forwarder {
     std::vector<string> image_id_list;
 
     std::vector<string> current_image_work_list;
-    std::vector<string> finished_image_work_list;
     std::vector<string> files_transferred_list;
     std::vector<string> checksum_list;
     std::map<string, map<string,string> > image_ids_to_jobs_map;
@@ -167,7 +172,6 @@ class Forwarder {
     void process_health_check(Node n);
     void process_xfer_params(Node n);
     void process_at_xfer_params(Node n);
-    void process_take_images(Node n);
     void process_take_images_done(Node n);
     void process_end_readout(Node n);
     void process_at_end_readout(Node n);
@@ -192,13 +196,19 @@ class Forwarder {
     static void *run_thread(void *);
 
     int fetch_readout_image(string image_id, string dir_prefix);
-    int fetch_readout_raft(string raft, vector<string> ccd_list, string image_id, string dir_prefix);
-    int fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, string image_id, string dir_prefix);
-    int fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, const IMS::Image& image, std::vector<string> ccds_for_board, string dir_prefix);
+    int fetch_readout_raft(string raft, vector<string> ccd_list, \
+                           string image_id, string dir_prefix);
+    int fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, \
+                                    string image_id, string dir_prefix);
+    int fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, \
+                                 const IMS::Image& image, std::vector<string> ccds_for_board, \
+                                 string dir_prefix);
     int fetch_at_reassemble_process(string raft, string ccd, string image_id, string dir_prefix);
     void get_register_metadata(const DAQ::Location& location, const IMS::Image& image);
-    void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string raft, string ccd, string dir_prefix);
-    void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, string dir_prefix);
+    void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, 
+                                  string raft, string ccd, string dir_prefix);
+    void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, 
+                                     string dir_prefix);
     void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
     int check_for_image_existence(std::string);
     void send_telemetry(int, std::string);
@@ -218,6 +228,7 @@ class Forwarder {
     std::string forward_send_result_set(std::string, std::string, std::string);
     std::string forward_calculate_md5_checksum(std::string);
     std::string forward_calculate_crc32_checksum(std::string);
+    void dump_map(string description);
 };
 
 using funcptr = void(Forwarder::*)(Node);
@@ -239,9 +250,6 @@ map<string, funcptr> on_foreman_message_actions = {
     { "AR_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "PP_FWDR_XFER_PARAMS", &Forwarder::process_xfer_params},
     { "AT_FWDR_XFER_PARAMS", &Forwarder::process_at_xfer_params},
-    { "AR_FWDR_TAKE_IMAGES", &Forwarder::process_take_images},
-    { "PP_TAKE_IMAGES", &Forwarder::process_take_images},
-    { "AT_TAKE_IMAGES", &Forwarder::process_take_images},
     { "AR_FWDR_END_READOUT", &Forwarder::process_end_readout},
     { "PP_FWDR_END_READOUT", &Forwarder::process_end_readout},
     { "AT_FWDR_END_READOUT", &Forwarder::process_at_end_readout},
@@ -434,7 +442,7 @@ Forwarder::Forwarder() {
 
     setup_consumers(BASE_BROKER_ADDR);
     setup_publishers(BASE_BROKER_ADDR);
-    LOGGER(my_logger::get(), debug) << "Forwarder construction complete.";  
+    LOG_DBG << "Forwarder construction complete.";  
     
 }
 
@@ -459,7 +467,7 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     ostringstream consume_queue3;
     consume_queue3 << this->consume_queue << "_from_forward";
     ostringstream from_fwd_broker_url;
-    from_fwd_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
+    from_fwd_broker_url << "amqp://" << this->USER << ":" << this->PASSWD <<this->BASE_BROKER_ADDR ;
     from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
     LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << from_fwd_broker_url.str();
     LOGGER(my_logger::get(), debug) << "Consuming from queue: " << consume_queue3.str();
@@ -468,20 +476,23 @@ void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     //ostringstream consume_queue;
 
     ostringstream full_broker_url2;
-    full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD << this->BASE_BROKER_ADDR ;
+    full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD \
+                     << this->BASE_BROKER_ADDR ;
     from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
     LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url2.str();
     LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->fetch_consume_queue;
 
     ostringstream full_broker_url3;
-    full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD << this->BASE_BROKER_ADDR;
+    full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD \
+                     << this->BASE_BROKER_ADDR;
     from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
     LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url3.str();
     LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->format_consume_queue;
     //cout << this->format_consume_queue << endl; 
 
     ostringstream full_broker_url4;
-    full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD << this->BASE_BROKER_ADDR ;
+    full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD \
+                                  << this->BASE_BROKER_ADDR ;
     from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
     LOGGER(my_logger::get(), debug) << "Consumer broker URL is: " << full_broker_url4.str();
     LOGGER(my_logger::get(), debug) << "Consuming from queue: " << this->forward_consume_queue;
@@ -701,6 +712,7 @@ void Forwarder::process_new_visit(Node n) {
     return;
 }
 
+
 void Forwarder::process_health_check(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_health_check function."; 
     string ack_id = n["ACK_ID"].as<string>();
@@ -722,6 +734,7 @@ void Forwarder::process_health_check(Node n) {
     LOGGER(my_logger::get(), info) << "Processing health check message complete."; 
     return;
 }
+
 
 void Forwarder::process_xfer_params(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_xfer_params function."; 
@@ -850,12 +863,6 @@ void Forwarder::process_at_xfer_params(Node n) {
     return;
 }
 
-void Forwarder::process_take_images(Node n) {
-    LOGGER(my_logger::get(), debug) << "Entering process_take_images function."; 
-    this->Num_Images = n["NUM_IMAGES"].as<int>();;
-    cout << "Take Image Message...should be some tasty params here" << endl;
-    return;
-}
 
 void Forwarder::process_end_readout(Node n) {
     LOGGER(my_logger::get(), debug) << "Entering process_end_readout function."; 
@@ -879,7 +886,7 @@ void Forwarder::process_end_readout(Node n) {
     message << "{MSG_TYPE: " << msg_type
             << ", IMAGE_ID: " << image_id << "}";
     this->FWDR_to_fetch_pub->publish_message(this->fetch_consume_queue, message.str());
-    LOGGER(my_logger::get(), debug) << "FETCH_END_READOUT is sent to: " << this->fetch_consume_queue; 
+    LOGGER(my_logger::get(), debug) << "FETCH_END_READOUT is sent to: "<< this->fetch_consume_queue; 
     LOGGER(my_logger::get(), debug) << "Message is: " << message.str(); 
     return;
 }
@@ -903,6 +910,7 @@ void Forwarder::process_at_end_readout(Node n) {
     return;
 }
 
+
 ///////////////////////////////////////////////////////////////////
 // FETCH THREAD
 ///////////////////////////////////////////////////////////////////
@@ -917,7 +925,8 @@ void Forwarder::process_at_fetch(Node n) {
     int retval = 0;
     string raft = this->img_to_raft_list[image_id][0];
     string ccd = this->img_to_raft_ccd_list[image_id][0][0]; 
-    LOGGER(my_logger::get(), debug) << "Process_AT_Fetch, RAFT string is: " << raft << ", and CCD is: " << ccd;
+    LOGGER(my_logger::get(), debug) << "Process_AT_Fetch, RAFT string is: " \
+                                    << raft << ", and CCD is: " << ccd;
     ostringstream cmd;
     ostringstream rmcmd;
     ostringstream filepath;
@@ -942,7 +951,7 @@ void Forwarder::process_at_fetch(Node n) {
            desc << "Forwarder Fetch Error: Found no image in Catalog for " \
                 << image_id << ". Bailing from Readout." << endl;
            this->send_telemetry(1, desc.str());
-           this->readout_img_ids.erase(image_id); 
+           //this->readout_img_ids.erase(image_id); 
            return;
      }
      if(retval == 2) {
@@ -950,7 +959,7 @@ void Forwarder::process_at_fetch(Node n) {
            desc << "Forwarder Fetch Error: No data slices available for " \
                 << image_id << ". Bailing from Readout." << endl;
            this->send_telemetry(2, desc.str());
-           this->readout_img_ids.erase(image_id); 
+           //this->readout_img_ids.erase(image_id); 
            return;
      }
     return;
@@ -1023,7 +1032,9 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string ccd, \
   
       this->fetch_close_filehandles(FH_ATS);
       //this->img_to_raft_ccd_pair[image_id][make_pair(raft,ccd)] = filepath;
+      this->dump_map("Right BEFORE entering a new AT map element...");
       this->img_to_raft_ccd_pair[make_pair(image_id,make_pair(raft,ccd))] = filepath;
+      this->dump_map("Right AFTER entering a new AT map element...");
       string new_msg_type = "FORMAT_END_READOUT";
       ostringstream msg;
       msg << "{MSG_TYPE: " << new_msg_type
@@ -1140,7 +1151,7 @@ void Forwarder::process_fetch(Node n) {
            desc << "Forwarder Fetch Error: Found no image in Catalog for " \
                 << image_id << ". Bailing from Readout." << endl;
            this->send_telemetry(1, desc.str());
-           this->readout_img_ids.erase(image_id); 
+           //this->readout_img_ids.erase(image_id); 
            return;
        }
        if(retval == 2) {
@@ -1148,7 +1159,7 @@ void Forwarder::process_fetch(Node n) {
            desc << "Forwarder Fetch Error: No data slices available for " \
                 << image_id << ". Bailing from Readout." << endl;
            this->send_telemetry(2, desc.str());
-           this->readout_img_ids.erase(image_id); 
+           //this->readout_img_ids.erase(image_id); 
            return;
        }
 
@@ -1473,9 +1484,11 @@ int Forwarder::fetch_reassemble_process(std::string raft, \
         //                                               ccd2_map["ccd"]]) = ccd2_map["path"];
        
         // Add entry to tracking map 
+        this->dump_map("Right before entering a new map element...");
         pair<string,string> ccd2_pair (ccd2_map["raft"],ccd2_map["ccd"]);
         pair<string,pair<string,string> > map_entry (image_id,ccd2_pair);
         this->img_to_raft_ccd_pair[map_entry] = ccd2_map["path"];
+        this->dump_map("Right AFTER entering a new map element...");
         //this->img_to_raft_ccd_pair.insert(pair<string,pair<string,string>(ccd2_map["raft"], \
         //                                               ccd2_map["ccd"])>)) = ccd2_map["path"];
         string new_msg_type = "FORMAT_END_READOUT";
@@ -1821,10 +1834,7 @@ void Forwarder::format_look_for_work(string image_id) {
     LOGGER(my_logger::get(), debug) << "Entering format_look_for_work function."; 
     try { 
         map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
-        cout << "In look for work - just before get_binary_path call." << endl;
         Node binary_node  = format_get_binary_path(image_id); 
-        cout << "In look for work - just AFTER get_binary_path call." << endl;
-        LOGGER(my_logger::get(), debug) << "Found the following binary path: " << binary_node["BINARY_PATH"].as<string>();
         if (header_it != this->header_info_dict.end() && !binary_node.IsNull()) { 
             LOGGER(my_logger::get(), debug) << "Found both header and binary paths to start assembling."; 
 
@@ -1837,52 +1847,16 @@ void Forwarder::format_look_for_work(string image_id) {
             n["RAFT"] = raft; 
             n["CCD"] = ccd; 
             
-            // do the deletion
+            if(DUMP_MAP)
+                this->dump_map("Dumping Map - right before erase entry call in look_for_work...");
+
             this->img_to_raft_ccd_pair.erase(make_pair(image_id, make_pair(raft, ccd))); 
-            cout << "In look for work - just AFTER img_to_raft_ccd_pair ERASE call." << endl;
 
-            format_assemble_img(n); 
+            if(DUMP_MAP)
+                this->dump_map("Dumping Map - Just after erase entry call in look_for_work...");
+
+            format_write_img(n); 
         } 
-        /** 
-
-        // Set up vector of outer map keys...
-        vector<string> keys;
-        map <string, map <string, string> >::iterator it = this->readout_img_ids.begin();
-        for( ; it != readout_img_ids.end(); ++it) {
-            keys.push_back(it->first);
-        }
-
-        std::vector<string>::iterator iit;
-        map<string, string>::iterator mit;  
-        map<string, string>::iterator tid; 
-        // if there are elements in both keys and header_info vectors...
-        // we check if the current iterator img_id value has been readout yet.
-        // if so, we get the header name, delete it from header_info, and process.
-        // readout_img_ids entry stays around as forward process will use it.
-        if (keys.size() != 0 && this->header_info_dict.size() != 0) { 
-            for (iit = keys.begin(); iit != keys.end(); ) { 
-                string img_id = *iit; 
-                mit = this->header_info_dict.find(img_id); 
-                if ((this->readout_img_ids[img_id]["READOUT"] == "yes") \
-                   && mit != this->header_info_dict.end()) { 
-                    //this->readout_img_ids.erase(it); 
-                    string header_filename = this->header_info_dict[img_id]; 
-                    this->header_info_dict.erase(mit); 
-
-                    // do the work 
-                    Node n; 
-                    n["IMAGE_ID"] = img_id; 
-                    n["HEADER"] = header_filename; 
-                    format_assemble_img(n); 
-                } 
-                else iit++; 
-            } 
-        } 
-        else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
-            LOGGER(my_logger::get(), debug) << "No img data from DAQ yet. Waiting to process."; 
-            return; 
-        } 
-        */ 
     } 
     catch (exception& e) { 
         LOGGER(my_logger::get(), critical) << e.what() << endl; 
@@ -1916,31 +1890,10 @@ Node Forwarder::format_get_binary_path(string image_id) {
             break; 
         } 
     } 
-    cout << "In binary: got binary_path: " << binary_path << endl;
     return n; 
 } 
 
  
-void Forwarder::format_assemble_img(Node n) {
-    LOGGER(my_logger::get(), debug) << "Entering format_assemble_img function."; 
-    try { 
-        string img_id = n["IMAGE_ID"].as<string>(); 
-        string header_path = n["HEADER_PATH"].as<string>(); 
-        string binary_path = n["BINARY_PATH"].as<string>(); 
-
-        // create dir  /mnt/ram/fits/IMG_10
-        string fits_dir = Work_Dir + "/fits"; 
-        const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR); 
-        LOGGER(my_logger::get(), debug) << "Created directory " << fits_dir << " for assembling images."; 
-        format_write_img(n);
-        LOGGER(my_logger::get(), debug) << "Start formatting ..."; 
-    } 
-    catch (exception& e) { 
-        LOGGER(my_logger::get(), critical) << e.what() << endl; 
-        cerr << e.what() << endl; 
-    } 
-}
-
 void Forwarder::format_write_img(Node n) { 
     LOGGER(my_logger::get(), debug) << "Entering format_write_img function."; 
     try { 
@@ -1949,6 +1902,12 @@ void Forwarder::format_write_img(Node n) {
         string img_id = n["IMAGE_ID"].as<string>();
         string raft = n["RAFT"].as<string>();
         string ccd = n["CCD"].as<string>();
+
+        // create dir  
+        string fits_dir = Work_Dir + "/fits";
+        const int dir = mkdir(fits_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+        LOGGER(my_logger::get(), debug) << "Created directory " << fits_dir \
+                                        << " for assembling images.";
 
         long len = NAXIS1 * NAXIS2;
         int bitpix = LONG_IMG; 
@@ -2060,6 +2019,13 @@ void Forwarder::format_write_img(Node n) {
         LOGGER(my_logger::get(), debug) << "Formatting image segments into fits file is completed."; 
         format_send_completed_msg(img_id, img_name);
         LOGGER(my_logger::get(), debug) << "Sending format complete message to forward thread."; 
+
+        // Delete amp_segment binary files just used...
+        ostringstream rm_cmd;
+        rm_cmd << "rm " << binary_file_path << "/*_segment.*";
+        int rm_cmd_retval = system(rm_cmd.str().c_str());
+        LOG_DBG << "Deleting intermediary amp segment files after copying. "
+                << "Return val from rm command is: " << rm_cmd_retval; 
     } 
     catch (exception& e) { 
         LOGGER(my_logger::get(), critical) << e.what() << endl; 
@@ -2142,7 +2108,8 @@ void Forwarder::forward_process_end_readout(Node n) {
         bbcp_cmd << img_path
                  << " " 
                  << dest_path; 
-        LOGGER(my_logger::get(), debug) << "bbcp command is: " << bbcp_cmd.str(); 
+
+        LOG_DBG << "bbcp command is: " << bbcp_cmd.str(); 
 
         /*
         // If enabled, calculate checksum for verification use at Archive
@@ -2156,18 +2123,24 @@ void Forwarder::forward_process_end_readout(Node n) {
         } */
 
         int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
-        LOGGER(my_logger::get(), debug) << "Command to copy file is " << bbcp_cmd.str(); 
-	LOGGER(my_logger::get(), debug) << "File is copied from " << img_path << " to "<< dest_path; 
+        LOG_DBG << "Command to copy file is " << bbcp_cmd.str(); 
+	LOG_DBG << "File is copied from " << img_path << " to "<< dest_path; 
 
 
         if (bbcp_cmd_status == 256) { 
-            throw L1CannotCopyFileError("In forward_process_end_readout, forwarder cannot copy file: " + bbcp_cmd.str()); 
-        LOGGER(my_logger::get(), critical) << "CANNOT Copy File to Archive." << endl; 
+            throw L1CannotCopyFileError("In forward_process_end_readout, "
+                                        "forwarder cannot copy file: " + bbcp_cmd.str()); 
+            LOG_CRT << "CANNOT Copy File to Archive." << endl; 
         } 
         ostringstream description;
         description << "File " << img_name << ".fits successfully copied to " << dest_path;
         this->send_telemetry(100, description.str());
-        this->finished_image_work_list.push_back(img_id);
+
+        ostringstream rm_cmd;
+        rm_cmd << "rm " << img_path;
+        int rm_cmd_retval = system(rm_cmd.str().c_str());
+        LOG_DBG << "Deleting staged finished file after copying. "
+                << "Return val from rm command is: " << rm_cmd_retval; 
 
         // FIXXX - NO Result Sets for now
         //this->forward_send_result_set(img_id, dest_path, new_csum);
@@ -2302,7 +2275,6 @@ void Forwarder::forward_process_take_images_done(Node n) {
     msg << Key << "ACK_BOOL" << Value << ack_bool; 
     msg << Key << "RESULT_SET" << Value << Flow; 
         msg << BeginMap; 
-        msg << Key << "FILENAME_LIST" << Value << Flow << finished_image_work_list; 
         msg << Key << "CHECKSUM_LIST" << Value << Flow << checksum_list;  
         msg << EndMap; 
     msg << EndMap; 
@@ -2353,7 +2325,32 @@ void Forwarder::send_telemetry(int code, std::string description) {
       return;
 }
 
+void Forwarder::dump_map(string description) {
+    if (this->img_to_raft_ccd_pair.empty() ) {
+        LOGGER(my_logger::get(), debug) << "MAP DUMP"; 
+        LOGGER(my_logger::get(), debug) << description;
+        LOGGER(my_logger::get(), debug) << "Map is EMPTY.";
+        return;
+    }
+        
+    map<pair<string, pair<string, string>>, string>::iterator it;
+      for (it = this->img_to_raft_ccd_pair.begin(); it != this->img_to_raft_ccd_pair.end(); it++) {
+          pair<string, pair<string, string>> imgid_raft_ccd = it->first;
+          string img_id = imgid_raft_ccd.first;
+          string binary_path = it->second;
+          LOGGER(my_logger::get(), debug) << "MAP DUMP"; 
+          LOGGER(my_logger::get(), debug) << "Start of this map element.";
+          LOGGER(my_logger::get(), debug) << "Map Dump: The image_id is: " << img_id;
+          LOGGER(my_logger::get(), debug) << "Map Dump: The raft is: " \
+                                          << imgid_raft_ccd.second.first;
+          LOGGER(my_logger::get(), debug) << "Map Dump: The ccd is: " \
+                                          << imgid_raft_ccd.second.second;
+          LOGGER(my_logger::get(), debug) << "Map Dump: The binary_path is: " << binary_path;
+          LOGGER(my_logger::get(), debug) << "End of this map entry.";
+      }
 
+      LOGGER(my_logger::get(), debug) << "End of Map Dump";
+}
 
 int main() {
     Forwarder *fwdr = new Forwarder();
