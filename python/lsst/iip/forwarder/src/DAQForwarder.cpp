@@ -34,6 +34,7 @@
 #include <openssl/md5.h>
 #include <boost/crc.hpp>
 
+#define NUM_CCDS_IN_ALL 9
 #define SECONDARY_HDU 2
 #define STRING(s) STRING_EXPAND(s)
 #define STRING_EXPAND(s) #s 
@@ -144,7 +145,7 @@ class Forwarder {
     map<pair<string,pair<string,string> >, string> img_to_raft_ccd_pair; 
     map<string, vector<string> > img_to_raft_list; 
     map<string, vector<vector<string> > > img_to_raft_ccd_list; 
-    map<string, string> header_info_dict; 
+    map<string, vector<string>> header_info_dict; 
     map<string, string> take_img_done_msg; 
 
     Forwarder();
@@ -210,6 +211,7 @@ class Forwarder {
     void format_look_for_work(std::string); 
     void format_process_end_readout(Node); 
     void format_get_header(Node); 
+    int format_get_total_ccds(string); 
     vector<string> format_list_files(string); 
     Node format_get_binary_path(std::string); 
 
@@ -1795,13 +1797,45 @@ void Forwarder::format_process_end_readout(Node node) {
     } 
 } 
 
+int Forwarder::format_get_total_ccds(string image_id) { 
+    /**
+     * Returns the total numbers of ccds to do for this readout
+     * @param image_id Image_id
+     * @return Total number of ccds in all of the rafts
+     */
+    LOGGER(my_logger::get(), debug) << "Entering get_total_ccds function."; 
+    int total_ccds = 0;
+
+    vector<vector<string>> ccds = this->img_to_raft_ccd_list[image_id];  
+    vector<vector<string>>::iterator it; 
+    for (it = ccds.begin(); it != ccds.end(); it++) { 
+        // check for ALL 
+        vector<string> raft_ccds = *it; 
+        if (raft_ccds[0] == "ALL") total_ccds += NUM_CCDS_IN_ALL; 
+        else total_ccds += raft_ccds.size; 
+    } 
+    int total = total_ccds * this->img_to_raft_list.size;
+    LOGGER(my_logger::get(), debug) << "Total number of ccd paths to create in header_dict is: " << total; 
+
+    return total; 
+} 
+
 void Forwarder::format_get_header(Node node) { 
+    /**
+     * Setup header_info_dict to use with READOUT message
+     * @param node Node object of image_id, filename, from HEADER_READY message
+     */ 
     LOGGER(my_logger::get(), debug) << "Entering format_get_header function."; 
     try { 
         string image_id = node["IMAGE_ID"].as<string>(); 
         string filename = node["FILENAME"].as<string>(); 
         LOGGER(my_logger::get(), debug) << "Got ImageID " << image_id << " and Filename " << filename << " for processing.";
-        this->header_info_dict[image_id] = filename; 
+
+        // create header paths for every ccd in the raft
+        int num_files = get_total_ccds(image_id); 
+        vector<string> total_number_files(num_files, filename); 
+
+        this->header_info_dict[image_id] = total_number_files; 
         this->format_look_for_work(image_id); 
         LOGGER(my_logger::get(), debug) << "Looking work for current Header file is complete."; 
     } 
@@ -1817,6 +1851,7 @@ void Forwarder::format_look_for_work(string image_id) {
      * Triggered when HEADER_READY or FORMAT_END_READOUT is 
      * issued. When either method calls, this method checks if there is an entry in 
      * img_to_raft_ccd_pair and header_info_dict and do the work.
+     * @param image_id Image_ID
      */ 
     LOGGER(my_logger::get(), debug) << "Entering format_look_for_work function."; 
     try { 
@@ -1839,50 +1874,22 @@ void Forwarder::format_look_for_work(string image_id) {
             
             // do the deletion
             this->img_to_raft_ccd_pair.erase(make_pair(image_id, make_pair(raft, ccd))); 
+
+            vector<string> header_ccd = this->header_info_dict[image_id]; 
+            header_ccd.pop_back(); 
+            if (header_ccd.size == 0) {
+                LOGGER(my_logger::get(), debug) << "No header_path entry in header_info_dict. Cleaned up image_id key."; 
+                this->header_info_dict.erase(image_id); 
+            } 
+            else {
+                LOGGER(my_logger::get(), debug) << "Header path entry still exists. Updated header_info_dict."; 
+                this->header_info_dict[image_id] = header_ccd;
+            }
+            LOGGER(my_logger::get(), debug) << "Cleaned up header_info_dict."; 
             cout << "In look for work - just AFTER img_to_raft_ccd_pair ERASE call." << endl;
 
             format_assemble_img(n); 
         } 
-        /** 
-
-        // Set up vector of outer map keys...
-        vector<string> keys;
-        map <string, map <string, string> >::iterator it = this->readout_img_ids.begin();
-        for( ; it != readout_img_ids.end(); ++it) {
-            keys.push_back(it->first);
-        }
-
-        std::vector<string>::iterator iit;
-        map<string, string>::iterator mit;  
-        map<string, string>::iterator tid; 
-        // if there are elements in both keys and header_info vectors...
-        // we check if the current iterator img_id value has been readout yet.
-        // if so, we get the header name, delete it from header_info, and process.
-        // readout_img_ids entry stays around as forward process will use it.
-        if (keys.size() != 0 && this->header_info_dict.size() != 0) { 
-            for (iit = keys.begin(); iit != keys.end(); ) { 
-                string img_id = *iit; 
-                mit = this->header_info_dict.find(img_id); 
-                if ((this->readout_img_ids[img_id]["READOUT"] == "yes") \
-                   && mit != this->header_info_dict.end()) { 
-                    //this->readout_img_ids.erase(it); 
-                    string header_filename = this->header_info_dict[img_id]; 
-                    this->header_info_dict.erase(mit); 
-
-                    // do the work 
-                    Node n; 
-                    n["IMAGE_ID"] = img_id; 
-                    n["HEADER"] = header_filename; 
-                    format_assemble_img(n); 
-                } 
-                else iit++; 
-            } 
-        } 
-        else if (this->readout_img_ids.size() == 0 || this->header_info_dict.size() == 0) { 
-            LOGGER(my_logger::get(), debug) << "No img data from DAQ yet. Waiting to process."; 
-            return; 
-        } 
-        */ 
     } 
     catch (exception& e) { 
         LOGGER(my_logger::get(), critical) << e.what() << endl; 
@@ -1895,6 +1902,8 @@ Node Forwarder::format_get_binary_path(string image_id) {
     /**
      * Returns the path to the binary image segments for formatter. If it exists
      * in the raft_ccd_to_pair dictionary, returns the path string or else empty string.
+     * @param image_id Image_ID
+     * @return Node object with RAFT, CCD, BINARY_PATH
      */ 
     Node n; 
     string binary_path; 
