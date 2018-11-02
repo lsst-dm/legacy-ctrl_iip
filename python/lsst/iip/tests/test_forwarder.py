@@ -30,7 +30,7 @@ class Test_Forwarder:
             print(emsg + trace)
             sys.exit(101) 
 
-        from_foreman_consume = cdm[ROOT][
+        from_foreman_consume = cdm[ROOT]
         broker_addr = cdm[ROOT]['BASE_BROKER_ADDR'] 
         ar_pub_name = cdm[ROOT]['AFM_BROKER_PUB_NAME']
         ar_pub_pwd = cdm[ROOT]['AFM_BROKER_PUB_PASSWD']

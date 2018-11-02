@@ -208,7 +208,7 @@ class TestArDev:
         msg['ACK_ID'] = 'NEW_VISIT_ACK_76'
         msg['AR'] = "231"
         msg['DEC'] = "-45.34"
-        msg['ANGLE'] = "120.0
+        msg['ANGLE'] = "120.0"
         msg['RAFT_LIST'] = ['10','32','41','42','43']
         msg['RAFT_CCD_LIST'] = [['ALL'],['02','11','12'],['00','02'],['02','12','11','22','00'],['ALL']]
         time.sleep(2)
@@ -418,7 +418,7 @@ class TestArDev:
             num_images = 0;
             for msg in self.f1_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-                    image_id_list.append(msg['IMAGE_ID']
+                    image_id_list.append(msg['IMAGE_ID'])
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
                     xfer_msg = msg
                 if msg['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':
@@ -509,7 +509,7 @@ class TestArDev:
             num_images = 0;
             for msg in self.f2_consumer_msg_list:
                 if msg['MSG_TYPE'] == 'AR_FWDR_END_READOUT':
-                    image_id_list.append(msg['IMAGE_ID']
+                    image_id_list.append(msg['IMAGE_ID'])
                 if msg['MSG_TYPE'] == 'AR_FWDR_XFER_PARAMS':
                     xfer_msg = msg
                 if msg['MSG_TYPE'] == 'AR_FWDR_TAKE_IMAGES':

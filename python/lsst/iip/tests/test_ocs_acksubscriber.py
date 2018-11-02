@@ -27,7 +27,7 @@ class TestOCS_AckSubscriber:
     sleep(10) 
 
 
-    EXPECTED_OCS_MESSAGES = 48 
+    EXPECTED_OCS_MESSAGES = 12
     ocs_consumer_msg_list = [] 
 
     def test_ocs_acksubscriber(self): 
@@ -66,8 +66,8 @@ class TestOCS_AckSubscriber:
         ocs_pwd = cdm[ROOT]["OCS_BROKER_PASSWD"]
 
         # FIXME: New OCS account for consumer test_dmcs_ocs_publish 
-        ocs_broker_url = "amqp://" + "AFM" + ":" +\
-                                     "AFM" + "@" +\
+        ocs_broker_url = "amqp://" + "F92" + ":" +\
+                                     "F92" + "@" +\
                                      broker_addr 
         self.ocs_consumer = Consumer(ocs_broker_url, "test_dmcs_ocs_publish", "thread-ocs-consume",
                                      self.on_dmcs_message, "YAML") 
@@ -87,24 +87,26 @@ class TestOCS_AckSubscriber:
         print("Finished with CommandListener tests.") 
 
     def send_messages(self): 
-        os.chdir("../commands/")
+        os.chdir("../scripts/")
         
-        commands = ["start", "stop", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
-        devices = ["archiver" , "catchuparchiver", "processingcluster", "atArchiver"] 
+        devices = ["AT"] 
+        commands = ["start", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
 
         for device in devices: 
             for command in commands: 
                 cmd = None
                 if command == "start": 
-                    cmd = "./sacpp_" + device + "_" + command + "_commander Normal"
+                    cmd = "./emulator " + device + " " + command + " Normal"			
                 else: 
-                    cmd = "./sacpp_" + device + "_" + command + "_commander 0"
+                    cmd = "./emulator " + device + " " + command
+                print("command is: %s" % cmd)
                 p = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
                 print("=== " + device.upper() + " " + command.upper() + " Message")
                 sleep(10)  # this is not random. startup .sacpp_ thing takes about 7 seconds. 
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM) 
 
-        device_sh = ["AR", "CU", "PP", "AT"]
+        # device_sh = ["AR", "CU", "PP", "AT"]
+        device_sh = ["AT"]
 
         for device in device_sh: 
             my_dev = None 
@@ -116,9 +118,11 @@ class TestOCS_AckSubscriber:
                 my_dev = "processingcluster"
             elif device == "AT": 
                 my_dev = "atArchiver"
-            cmd = "./sacpp_" + my_dev + "_SummaryState_log" 
+
+            cmd = "./emulator log " + my_dev + " summaryState" 
             run = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
             sleep(10) 
+
             msg = {} 
             msg["MSG_TYPE"] = "SUMMARY_STATE_EVENT"
             msg["DEVICE"] = device
@@ -128,7 +132,7 @@ class TestOCS_AckSubscriber:
             sleep(10)
             os.killpg(os.getpgid(run.pid), signal.SIGTERM) 
 
-            cmd1 = "./sacpp_" + my_dev + "_SettingVersions_log" 
+            cmd1 = "./emulator log " + my_dev + " recommendedSettingsVersions" 
             run1 = subprocess.Popen(cmd1, shell=True, preexec_fn=os.setsid)
             sleep(10) 
             msg1 = {} 
@@ -140,7 +144,7 @@ class TestOCS_AckSubscriber:
             sleep(10)
             os.killpg(os.getpgid(run1.pid), signal.SIGTERM) 
 
-            cmd2 = "./sacpp_" + my_dev + "_AppliedSettingsMatchStart_log" 
+            cmd2 = "./emulator log " + my_dev + " appliedSettingsMatchStart" 
             run2 = subprocess.Popen(cmd2, shell=True, preexec_fn=os.setsid)
             sleep(10) 
             msg2 = {} 
@@ -153,7 +157,7 @@ class TestOCS_AckSubscriber:
             sleep(10)
             os.killpg(os.getpgid(run2.pid), signal.SIGTERM) 
 
-            cmd3 = "./sacpp_" + my_dev + "_ErrorCode_log" 
+            cmd3 = "./emulator log " + my_dev + " errorCode"
             run3 = subprocess.Popen(cmd3, shell=True, preexec_fn=os.setsid)
             sleep(10) 
             msg3 = {} 
@@ -164,6 +168,19 @@ class TestOCS_AckSubscriber:
             print("=== " + device.upper() + " ErrorCode Event Message")
             sleep(10)
             os.killpg(os.getpgid(run3.pid), signal.SIGTERM) 
+
+            cmd4 = "./emulator log " + my_dev + " settingsApplied"
+            run4 = subprocess.Popen(cmd4, shell=True, preexec_fn=os.setsid)
+            sleep(10) 
+            msg4 = {} 
+            msg4["MSG_TYPE"] = "SETTINGS_APPLIED_EVENT"
+            msg4["DEVICE"] = device
+            msg4["SETTINGS"] = "Normal"
+            msg4["APPLIED"] = True
+            self.dmcs_publisher.publish_message("dmcs_ocs_publish", msg4)  
+            print("=== " + device.upper() + " ErrorCode Event Message")
+            sleep(10)
+            os.killpg(os.getpgid(run4.pid), signal.SIGTERM) 
 
             sleep(20)
 

@@ -1379,8 +1379,8 @@ class DMCS:
             self.efd = self.efd_login + "@" + self.efd_ip + ":"
         except KeyError as e:
             trace = traceback.print_exc()
-            emsg = "Unable to find key in CDM representation of %s\n" % filename
-            LOGGER.critical(emsg + trace)
+            emsg = "Unable to find key in CDM representation of %s\n" % self._config_file
+            LOGGER.critical(emsg + str(trace))
             ### FIXXX FIXXX Change to FAULT state
             sys.exit(102)
 

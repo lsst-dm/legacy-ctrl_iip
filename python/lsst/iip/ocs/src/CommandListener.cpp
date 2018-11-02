@@ -91,7 +91,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	    ack_msg << Key << "DEVICE" << Value << device;
             ack_msg << Key << "CMD_ID" << Value << to_string(cmdId); 
 	    ack_msg << Key << "ACK_ID" << Value << ack_id; 
-	    ack_msg << Key << "CFG_KEY" << Value << SALInstance.configuration; 
+	    ack_msg << Key << "CFG_KEY" << Value << SALInstance.settingsToApply; 
             ack_msg << EndMap; 
 	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
 
@@ -125,9 +125,9 @@ CommandListener::CommandListener() : OCS_Bridge() {
     command_args->pp = SAL_processingcluster(); 
     command_args->atar = SAL_atArchiver(); 
 
-    setup_archiver_listeners();
-    setup_catchuparchiver_listeners(); 
-    setup_processingcluster_listeners();  
+    // setup_archiver_listeners();
+    // setup_catchuparchiver_listeners(); 
+    // setup_processingcluster_listeners();  
     setup_atArchiver_listeners();
     setup_resolve_publisher(); 
     cout << "=== dm COMMAND controller ready" << endl; 
@@ -190,7 +190,7 @@ void *CommandListener::run_ar_start(void *pargs) {
     SAL_archiver ar = params->ar; 
     
     funcptr<SAL_archiver, archiver_command_startC> ar_start = &SAL_archiver::acceptCommand_start;   
-    listenCommand_start(ar, "AR", "START", rabbit_publisher, publish_q, consume_q, ar_start);  
+    // listenCommand_start(ar, "AR", "START", rabbit_publisher, publish_q, consume_q, ar_start);  
     return 0; 
 } 
 
@@ -274,7 +274,7 @@ void *CommandListener::run_cu_start(void *pargs) {
     SAL_catchuparchiver cu = params->cu; 
     
     funcptr<SAL_catchuparchiver, catchuparchiver_command_startC> cu_start = &SAL_catchuparchiver::acceptCommand_start;   
-    listenCommand_start(cu, "CU", "START", rabbit_publisher, publish_q, consume_q, cu_start);  
+    // listenCommand_start(cu, "CU", "START", rabbit_publisher, publish_q, consume_q, cu_start);  
     return 0; 
 } 
 
@@ -358,7 +358,7 @@ void *CommandListener::run_pp_start(void *pargs) {
     SAL_processingcluster pp = params->pp; 
     
     funcptr<SAL_processingcluster, processingcluster_command_startC> pp_start = &SAL_processingcluster::acceptCommand_start;   
-    listenCommand_start(pp, "PP", "START", rabbit_publisher, publish_q, consume_q, pp_start);  
+    // listenCommand_start(pp, "PP", "START", rabbit_publisher, publish_q, consume_q, pp_start);  
     return 0; 
 } 
 

@@ -56,65 +56,20 @@ class TestOCS_EventSubscriber:
         print("Finished with EventSubscriber tests.") 
 
     def send_messages(self): 
-        os.chdir("../events/")
+        os.chdir("../scripts/")
 
-        #startIntegration = subprocess.Popen("./startIntegration testImage 0", shell=True, preexec_fn=os.setsid)
-        #print("=== START_INTEGRATION Message")
-        #sleep(10)
-        
-        #startReadout = subprocess.Popen("./startReadout 0", shell=True, preexec_fn=os.setsid)
-        #print("=== START_READOUT Message")
-        #sleep(10)
-        
-        #endReadout = subprocess.Popen("./sacpp_archiver_endReadout_send IMG1 0", shell=True, preexec_fn=os.setsid)
-        #print("=== END_READOUT Message")
-        #sleep(10)
-        
-        #startShutterOpen = subprocess.Popen("./startShutterOpen 0", shell=True, preexec_fn=os.setsid)
-        #print("=== START_SHUTTER_OPEN Message")
-        #sleep(10)
-        
-        #startShutterClose = subprocess.Popen("./startShutterClose 0", shell=True, preexec_fn=os.setsid)
-        #print("=== START_SHUTTER_CLOSE Message")
-        #sleep(10)
-        
-        #endShutterOpen = subprocess.Popen("./endShutterOpen 0", shell=True, preexec_fn=os.setsid)
-        #print("=== END_SHUTTER_OPEN Message")
-        #sleep(10)
-        
-        #endShutterClose = subprocess.Popen("./endShutterClose 0", shell=True, preexec_fn=os.setsid)
-        #print("=== END_SHUTTER_CLOSE Message")
-        #sleep(10)
-        
-        # completed ok gives problem 
-        #takeImages = subprocess.Popen("./takeImages 1 1 1 1 1 1 testing", shell=True, preexec_fn=os.setsid)
-        #print("=== TAKE_IMAGES Message")
-        #sleep(10)
-        #os.killpg(os.getpgid(takeImages.pid), signal.SIGTERM) 
+        at_header_ready = subprocess.Popen("./emulator efd http://xxx/IMG_1.header IMG_1", shell=True, preexec_fn=os.setsid)
+        print("=== AT HEADER_READY Message")
+        sleep(10)
 
-        #tcsTarget = subprocess.Popen("./tcsTarget 1 1 1 1 1 1 1 1 1 1 1", shell=True, preexec_fn=os.setsid)
-        #print("=== TCS_TARGET Message")
+        #at_start_integration = subprocess.Popen("./emulator atcamera startIntegration ImgSeqName imagesInSeq imgName imgIdx", shell=True, preexec_fn=os.setsid)
+        #print("=== AT START_INTEGRATION Message")
         #sleep(10)
-        #os.killpg(os.getpgid(tcsTarget.pid), signal.SIGTERM) 
 
-        #######################################################################
-        #    AT EVENTS 
-        #######################################################################
-        at_startIntegration = subprocess.Popen("./sacpp_atcamera_startIntegration_send seq1 1 image_1 1 0 0 0", shell=True, preexec_fn=os.setsid)
-        print("=== AT_START_INTEGRATION Message")
-        sleep(10)
-        os.killpg(os.getpgid(at_startIntegration.pid), signal.SIGTERM) 
-        
-        at_endReadout = subprocess.Popen("./sacpp_atcamera_endReadout_send seq1 1 image_1 1 0 0 0", shell=True, preexec_fn=os.setsid)
-        print("=== AT_END_READOUT Message")
-        sleep(10)
-        os.killpg(os.getpgid(at_endReadout.pid), signal.SIGTERM) 
-        
-        efd_lfoa = subprocess.Popen("./sacpp_efd_LargeFileObjectAvailable_send 0 0 AT msg https://141.142.238.15//tmp/header/img_1.header 0 img_1 0", shell=True, preexec_fn=os.setsid)
-        print("=== EFD_HEADER_READY Message")
-        sleep(10)
-        os.killpg(os.getpgid(efd_lfoa.pid), signal.SIGTERM) 
-        
+        #at_end_readout = subprocess.Popen("./emulator atcamera endReadout ImgSeqName imagesInSeq imgName imgIdx", shell=True, preexec_fn=os.setsid)
+        #print("=== AT END_READOUT Message")
+        #sleep(10)
+
         print("Message Sender Done.") 
 
     def verify_ocs_messages(self): 

@@ -53,7 +53,8 @@ import yaml
 import sys
 import os
 from copy import deepcopy
-import pprint, pformat
+import pprint
+from pprint import pformat
 import time
 from time import sleep
 import threading

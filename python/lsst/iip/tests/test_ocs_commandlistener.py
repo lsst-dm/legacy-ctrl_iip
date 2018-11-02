@@ -49,25 +49,26 @@ class TestOCS_CommandListener:
         self._msg_auth = MessageAuthority("../../messages.yaml")
 
         self.send_messages() 
-        sleep(10)
+        sleep(15)
 
         os.killpg(os.getpgid(self.cmd.pid), signal.SIGTERM) 
         self.verify_ocs_messages() 
         print("Finished with CommandListener tests.") 
 
     def send_messages(self): 
-        os.chdir("../commands/")
+        os.chdir("../scripts/")
         
-        devices = ["archiver", "catchuparchiver", "processingcluster", "atArchiver"] 
+        #devices = ["archiver", "catchuparchiver", "processingcluster", "atArchiver"] 
+        devices = ["AT"] 
         commands = ["start", "enable", "disable", "enterControl", "exitControl", "standby", "abort"] 
 
         for device in devices: 
             for command in commands: 
                 cmd = None
                 if command == "start": 
-                    cmd = "./sacpp_" + device + "_" + command + "_commander Normal"
+                    cmd = "./emulator " + device + " " + command + " Normal"			
                 else: 
-                    cmd = "./sacpp_" + device + "_" + command + "_commander 0"
+                    cmd = "./emulator " + device + " " + command
                 p = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
                 print("=== " + device.upper() + " " + command.upper() + " Message")
                 sleep(10)  # this is not random. startup .sacpp_ thing takes about 7 seconds. 
@@ -76,6 +77,7 @@ class TestOCS_CommandListener:
         print("Message Sender Done.") 
 
     def verify_ocs_messages(self): 
+        print("GOT THESE MESSAGES: %s" % self.dmcs_consumer_msg_list)
         len_list = len(self.dmcs_consumer_msg_list)
         if len_list != self.EXPECTED_DMCS_MESSAGES: 
             pytest.fail("DMCS simulator received incorrect number of messages.\n Expected %s but received %s" \
