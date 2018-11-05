@@ -1809,6 +1809,10 @@ int Forwarder::format_get_total_ccds(string image_id) {
     for (it = ccds.begin(); it != ccds.end(); it++) { 
         // check for ALL 
         vector<string> raft_ccds = *it; 
+        vector<string>::iterator hkit; 
+        for(hkit = raft_ccds.begin(); hkit != raft_ccds.end(); hkit++) { 
+            cout << "get_total_ccds: " << *hkit; 
+        } 
         if (raft_ccds[0] == "ALL") total_ccds += NUM_CCDS_IN_ALL; 
         else total_ccds += raft_ccds.size(); 
     } 
@@ -1866,14 +1870,27 @@ void Forwarder::format_look_for_work(string image_id) {
         if (header_it != this->header_info_dict.end() && !binary_node.IsNull()) { 
             LOG_DBG << "Found both header and binary paths to start assembling."; 
 
+            vector<string> header_ccd = this->header_info_dict[image_id]; 
+            string header_path = header_ccd[0]; 
+
             string raft = binary_node["RAFT"].as<string>(); 
             string ccd = binary_node["CCD"].as<string>();
+            string binary_path = binary_node["BINARY_PATH"].as<string>(); 
             Node n; 
             n["IMAGE_ID"] = image_id; 
-            n["HEADER_PATH"] = header_it->second; 
-            n["BINARY_PATH"] = binary_node["BINARY_PATH"].as<string>(); 
+            n["HEADER_PATH"] = header_path; 
+            n["BINARY_PATH"] = binary_path;
             n["RAFT"] = raft; 
             n["CCD"] = ccd; 
+
+            cout << "MAKING SURE I CAN DO FORMAT" << endl; 
+            cout << "raft: " << raft << endl; 
+            cout << "ccd: " << ccd << endl; 
+            cout << "image_id: " << image_id << endl; 
+            cout << "header: " << header_path << endl; 
+            cout << "binary: " << binary_path << endl; 
+            
+            format_write_img(n); 
             
             if(DUMP_MAP)
                 this->dump_map("Dumping Map - right before erase entry call in look_for_work...");
@@ -1881,7 +1898,6 @@ void Forwarder::format_look_for_work(string image_id) {
             this->img_to_raft_ccd_pair.erase(make_pair(image_id, make_pair(raft, ccd))); 
 
             // Clean up header_info_dict
-            vector<string> header_ccd = this->header_info_dict[image_id]; 
             header_ccd.pop_back(); 
             if (header_ccd.size() == 0) {
                 LOG_DBG << "No header_path entry in header_info_dict. Cleaned up image_id key."; 
@@ -1896,7 +1912,6 @@ void Forwarder::format_look_for_work(string image_id) {
             if(DUMP_MAP)
                 this->dump_map("Dumping Map - Just after erase entry call in look_for_work...");
 
-            format_write_img(n); 
         } 
     } 
     catch (exception& e) { 
@@ -1937,12 +1952,17 @@ Node Forwarder::format_get_binary_path(string image_id) {
  
 void Forwarder::format_write_img(Node n) { 
     LOG_DBG << "Entering format_write_img function."; 
-    try { 
         string header_file_path = n["HEADER_PATH"].as<string>(); 
         string binary_file_path = n["BINARY_PATH"].as<string>();
         string img_id = n["IMAGE_ID"].as<string>();
         string raft = n["RAFT"].as<string>();
         string ccd = n["CCD"].as<string>();
+    try { 
+        //string header_file_path = n["HEADER_PATH"].as<string>(); 
+        //string binary_file_path = n["BINARY_PATH"].as<string>();
+        //string img_id = n["IMAGE_ID"].as<string>();
+        //string raft = n["RAFT"].as<string>();
+        //string ccd = n["CCD"].as<string>();
 
         // create dir  
         string fits_dir = Work_Dir + "/fits";
