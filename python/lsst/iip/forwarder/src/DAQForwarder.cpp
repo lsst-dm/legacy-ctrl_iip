@@ -34,6 +34,7 @@
 #include <openssl/md5.h>
 #include <boost/crc.hpp>
 
+#define NUM_CCDS_IN_ALL 9
 #define SECONDARY_HDU 2
 #define STRING(s) STRING_EXPAND(s)
 #define STRING_EXPAND(s) #s 
@@ -149,7 +150,7 @@ class Forwarder {
     map<pair<string,pair<string,string> >, string> img_to_raft_ccd_pair; 
     map<string, vector<string> > img_to_raft_list; 
     map<string, vector<vector<string> > > img_to_raft_ccd_list; 
-    map<string, string> header_info_dict; 
+    map<string, vector<string>> header_info_dict; 
     map<string, string> take_img_done_msg; 
 
     Forwarder();
@@ -222,6 +223,7 @@ class Forwarder {
     void format_get_header(Node); 
     vector<string> format_list_files(string); 
     Node format_get_binary_path(std::string); 
+    int format_get_total_ccds(string); 
 
     void forward_process_end_readout(Node); 
     void forward_process_take_images_done(Node); 
@@ -1794,6 +1796,27 @@ void Forwarder::process_header_ready(Node n) {
 // F@
 ////////////////////////////////////////////////////////////////////////////////
 
+int Forwarder::format_get_total_ccds(string image_id) { 
+    /**
+     * Returns the total numbers of ccds to do for this readout
+     * @param image_id Image_id
+     * @return Total number of ccds in all of the rafts
+     */
+    LOG_DBG << "Entering get_total_ccds function."; 
+    int total_ccds = 0;
+    vector<vector<string>> ccds = this->img_to_raft_ccd_list[image_id];  
+    vector<vector<string>>::iterator it; 
+    for (it = ccds.begin(); it != ccds.end(); it++) { 
+        // check for ALL 
+        vector<string> raft_ccds = *it; 
+        if (raft_ccds[0] == "ALL") total_ccds += NUM_CCDS_IN_ALL; 
+        else total_ccds += raft_ccds.size(); 
+    } 
+    int total = total_ccds * this->img_to_raft_list.size();
+    LOG_DBG << "Total number of ccd paths to create in header_dict is: " << total; 
+    return total; 
+} 
+
 void Forwarder::format_process_end_readout(Node node) { 
     LOG_DBG << "Entering format_process_end_readout function."; 
     try { 
@@ -1814,7 +1837,12 @@ void Forwarder::format_get_header(Node node) {
         string image_id = node["IMAGE_ID"].as<string>(); 
         string filename = node["FILENAME"].as<string>(); 
         LOG_DBG << "Got ImageID " << image_id << " and Filename " << filename << " for processing.";
-        this->header_info_dict[image_id] = filename; 
+
+        // create header paths for every ccd in the raft
+        int num_files = format_get_total_ccds(image_id); 
+        vector<string> total_number_files(num_files, filename); 
+        this->header_info_dict[image_id] = total_number_files; 
+
         this->format_look_for_work(image_id); 
         LOG_DBG << "Looking work for current Header file is complete."; 
     } 
@@ -1833,7 +1861,7 @@ void Forwarder::format_look_for_work(string image_id) {
      */ 
     LOG_DBG << "Entering format_look_for_work function."; 
     try { 
-        map<string, string>::iterator header_it = this->header_info_dict.find(image_id); 
+        map<string, vector<string>>::iterator header_it = this->header_info_dict.find(image_id); 
         Node binary_node  = format_get_binary_path(image_id); 
         if (header_it != this->header_info_dict.end() && !binary_node.IsNull()) { 
             LOG_DBG << "Found both header and binary paths to start assembling."; 
@@ -1851,6 +1879,19 @@ void Forwarder::format_look_for_work(string image_id) {
                 this->dump_map("Dumping Map - right before erase entry call in look_for_work...");
 
             this->img_to_raft_ccd_pair.erase(make_pair(image_id, make_pair(raft, ccd))); 
+
+            // Clean up header_info_dict
+            vector<string> header_ccd = this->header_info_dict[image_id]; 
+            header_ccd.pop_back(); 
+            if (header_ccd.size() == 0) {
+                LOG_DBG << "No header_path entry in header_info_dict. Cleaned up image_id key."; 
+                this->header_info_dict.erase(image_id); 
+            } 
+            else {
+                LOG_DBG << "Header path entry still exists. Updated header_info_dict."; 
+                this->header_info_dict[image_id] = header_ccd;
+            }
+            LOG_DBG << "Cleaned up header_info_dict."; 
 
             if(DUMP_MAP)
                 this->dump_map("Dumping Map - Just after erase entry call in look_for_work...");
