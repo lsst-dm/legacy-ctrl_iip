@@ -141,6 +141,7 @@ ROOT:
     ARCHIVE_HOSTNAME: ARC
     ARCHIVE_XFER_ROOT: /data/export
     ARCHIVE_AT_XFER_ROOT: /data/export
+    #ARCHIVE_AT_XFER_ROOT: /data/export/DM_Test
     ARCHIVE_AR_XFER_ROOT: /data/export
     CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
     CHECKSUM_TYPE: MD5 
