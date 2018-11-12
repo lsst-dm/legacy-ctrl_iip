@@ -7,4 +7,5 @@ systemctl status l1d-DMCS.service
 systemctl status l1d-CommandListener.service
 systemctl status l1d-EventSubscriber.service
 systemctl status l1d-AckSubscriber.service
+systemctl status l1d-purge_queues.service
 systemctl status l1d-ctrl_check.service
