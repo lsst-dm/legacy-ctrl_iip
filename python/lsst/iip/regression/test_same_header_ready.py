@@ -1,12 +1,36 @@
 import sys
 sys.path.append("../")
 from SimplePublisher import SimplePublisher
+from Consumer import Consumer
 import toolsmod
+import time
+import logging
+
+class Premium:
+    def __init__(self):
+        logging.basicConfig()
+        broker_url = "amqp://ARCHIE:ARCHIE@140.252.32.128:5672/%2Ftest_at"
+
+        self.new_thread = Consumer(broker_url, 'telemetry_queue', 'xthread', self.mycallback, 'YAML')
+        self.new_thread.start()
+
+    def mycallback(self, ch, method, properties, body):
+        ch.basic_ack(method.delivery_tag)
+        print("  ")
+        print(">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<")
+        print((" [z] body Received %r" % body))
+        print(">>>>>>>>>>>>>>><<<<<<<<<<<<<<<<")
+        msg = yaml.load(body) 
+        if msg["STATUS_CODE"] == 1: 
+            print("PASSED")
+        else: 
+            print("FAILED")
+
 
 def main():
   sp1 = SimplePublisher('amqp://DMCS:DMCS@140.252.32.128:5672/%2Ftest_at', "YAML")
 
-  IMAGE_ID = "AT_O_20181003_000014"
+  IMAGE_ID = "AT_C_20181111_000184"
 
   msg = {}
   msg['MSG_TYPE'] = "DMCS_AT_START_INTEGRATION"
