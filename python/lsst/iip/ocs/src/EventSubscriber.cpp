@@ -2,12 +2,12 @@
 #include <sstream>
 #include <iostream>
 #include <pthread.h>
-#include "SAL_camera.h"
-#include "SAL_atcamera.h"
-#include "SAL_efd.h"
-#include "ccpp_sal_camera.h"
-#include "ccpp_sal_atcamera.h"
-#include "ccpp_sal_efd.h"
+#include "SAL_MTCamera.h"
+#include "SAL_ATCamera.h"
+#include "SAL_EFD.h"
+#include "ccpp_sal_MTCamera.h"
+#include "ccpp_sal_ATCamera.h"
+#include "ccpp_sal_EFD.h"
 #include "os.h"
 #include <yaml-cpp/yaml.h>
 #include <stdlib.h>
@@ -16,9 +16,9 @@
 #include "EventSubscriber.h"
 
 using namespace DDS;
-using namespace camera;
-using namespace atcamera;
-using namespace efd;
+using namespace MTCamera;
+using namespace ATCamera;
+using namespace EFD;
 using namespace YAML; 
 
 typedef void* (*funcptr)(void *args);  
@@ -63,7 +63,6 @@ void EventSubscriber::setup_events_listeners() {
     }  
 } 
 
-/** 
 void *EventSubscriber::run_ccs_takeImages(void *args) { 
     event_args *params = ((event_args *)args); 
     string queue = params->publish_queue; 
@@ -71,45 +70,10 @@ void *EventSubscriber::run_ccs_takeImages(void *args) {
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
-    SAL_camera mgr = SAL_camera(); 
-    camera_command_takeImagesC SALInstance; 
+    SAL_MTCamera mgr = SAL_MTCamera(); 
+    MTCamera_command_takeImagesC SALInstance; 
 
-    mgr.salProcessor("camera_command_takeImages"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.acceptCommand_takeImages(&SALInstance); 
-
-        if (status > 0) { 
-            cout << "=== Command takeImages Received. =" << endl; 
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: DMCS_TAKE_IMAGES"
-                << ", NUM_IMAGES: " << SALInstance.numImages
-                << ", EXP_TIME: " << SALInstance.expTime
-                << ", SHUTTER: " << SALInstance.shutter
-                << ", SCIENCE: " << SALInstance.science
-                << ", GUIDE: " << SALInstance.guide
-                << ", WFS: " << SALInstance.wfs
-                << ", IMAGE_SEQUENCE_NAME: " << SALInstance.imageSequenceName << "}"; 
-            publisher->publish_message(queue, msg.str());
-        } 
-        os_nanoSleep(delay_10ms); 
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
-*/ 
-void *EventSubscriber::run_ccs_takeImages(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_camera mgr = SAL_camera(); 
-    camera_command_takeImagesC SALInstance; 
-
-    mgr.salProcessor("camera_command_takeImages"); 
+    mgr.salProcessor("MTCamera_command_takeImages"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -142,10 +106,10 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
-    SAL_camera mgr = SAL_camera(); 
-    camera_logevent_startIntegrationC SALInstance; 
+    SAL_MTCamera mgr = SAL_MTCamera(); 
+    MTCamera_logevent_startIntegrationC SALInstance; 
 
-    mgr.salEvent("camera_logevent_startIntegration"); 
+    mgr.salEvent("MTCamera_logevent_startIntegration"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -180,10 +144,10 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
-    SAL_camera mgr = SAL_camera(); 
-    camera_logevent_endReadoutC SALInstance; 
+    SAL_MTCamera mgr = SAL_MTCamera(); 
+    MTCamera_logevent_endReadoutC SALInstance; 
 
-    mgr.salEvent("camera_logevent_endReadout"); 
+    mgr.salEvent("MTCamera_logevent_endReadout"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -245,9 +209,9 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
     SAL_camera mgr = SAL_camera(); 
-    camera_logevent_startIntegrationC SALInstance; 
+    MTCamera_logevent_startIntegrationC SALInstance; 
 
-    mgr.salEvent("camera_logevent_startIntegration"); 
+    mgr.salEvent("MTCamera_logevent_startIntegration"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -380,10 +344,10 @@ void *EventSubscriber::run_atcamera_startIntegration(void *args) {
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
-    SAL_atcamera mgr = SAL_atcamera(); 
-    atcamera_logevent_startIntegrationC SALInstance; 
+    SAL_ATCamera mgr = SAL_ATCamera(); 
+    ATCamera_logevent_startIntegrationC SALInstance; 
 
-    mgr.salEvent("atcamera_logevent_startIntegration"); 
+    mgr.salEvent("ATCamera_logevent_startIntegration"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -416,10 +380,10 @@ void *EventSubscriber::run_atcamera_endReadout(void *args) {
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
-    SAL_atcamera mgr = SAL_atcamera(); 
-    atcamera_logevent_endReadoutC SALInstance; 
+    SAL_ATCamera mgr = SAL_ATCamera(); 
+    ATCamera_logevent_endReadoutC SALInstance; 
 
-    mgr.salEvent("atcamera_logevent_endReadout"); 
+    mgr.salEvent("ATCamera_logevent_endReadout"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -452,10 +416,10 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
  
     os_time delay_10ms = { 0, 10000000 };
     int status = -1; 
-    SAL_efd mgr = SAL_efd(); 
-    efd_logevent_largeFileObjectAvailableC SALInstance; 
+    SAL_EFD mgr = SAL_EFD(); 
+    EFD_logevent_largeFileObjectAvailableC SALInstance; 
 
-    mgr.salEvent("efd_logevent_largeFileObjectAvailable"); 
+    mgr.salEvent("EFD_logevent_largeFileObjectAvailable"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
