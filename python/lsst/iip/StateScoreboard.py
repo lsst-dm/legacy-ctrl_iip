@@ -313,54 +313,49 @@ class StateScoreboard(Scoreboard):
         return self._redis.hget(device, 'CFG_KEY')
 
 
-    def add_device_cfg_keys(self, device, keys):
+    def add_device_cfg_keys(self, device, keyname, cdm):
         if device == 'AR':
-            listname = 'AR_CFG_KEYS'
+            hashname = 'AR_CFG_KEYS'
         elif device == 'PP':
-            listname = 'PP_CFG_KEYS'
+            hashname = 'PP_CFG_KEYS'
         elif device == 'CU':
-            listname = 'CU_CFG_KEYS'
+            hashname = 'CU_CFG_KEYS'
         elif device == 'AT':
-            listname = 'AT_CFG_KEYS'
+            hashname = 'AT_CFG_KEYS'
 
-        self._redis.rpush(listname, keys)
+        self._redis.hset(hashname, keyname, cdm)
 
 
-    def get_cfg_from_cfgs(self, device, index):
-        # index 0 is the default
+    def get_cfg_from_cfgs(self, device, keyname):
         if device == 'AR':
-            listname = 'AR_CFG_KEYS'
+            hashname = 'AR_CFG_KEYS'
         elif device == 'PP':
-            listname = 'PP_CFG_KEYS'
+            hashname = 'PP_CFG_KEYS'
         elif device == 'CU':
-            listname = 'CU_CFG_KEYS'
+            hashname = 'CU_CFG_KEYS'
         elif device == 'AT':
-            listname = 'AT_CFG_KEYS'
+            hashname = 'AT_CFG_KEYS'
 
-        return self._redis.lindex(listname, index)
+        if hexists(hashname, keyname):
+            return yaml.safe_load(self._redis.hget(hashname, keyname))
+        else:
+            return None
 
 
-    def check_cfgs_for_cfg(self, device, cfg_key):
+    def check_cfgs_for_cfg(self, device, keyname):
         if device == 'AR':
-            listname = 'AR_CFG_KEYS'
+            hashname = 'AR_CFG_KEYS'
         elif device == 'PP':
-            listname = 'PP_CFG_KEYS'
+            hashtname = 'PP_CFG_KEYS'
         elif device == 'CU':
-            listname = 'CU_CFG_KEYS'
+            hashtname = 'CU_CFG_KEYS'
         elif device == 'AT':
-            listname = 'AT_CFG_KEYS'
+            hashname = 'AT_CFG_KEYS'
 
-        list_len = self._redis.llen(listname)
-        if list_len == 0 or list_len == None:
+        if hexists(hashname, keyname):
             return True
-
-        list_keys = self._redis.lrange(listname, 0, -1)
-        #for item in range(0,list_len):
-        for item in list_keys:
-            if cfg_key == item:
-                return True
-
-        return False
+        else:
+            return False
 
 
     def get_next_session_id(self):

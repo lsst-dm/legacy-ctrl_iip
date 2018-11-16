@@ -1,0 +1,12 @@
+Description of Default Template.
+There are four user_configurables directories - one for each device:
+AR - Main Telescope Archiver
+AT - Auxiliary Telescope Archiver
+PP - Prompt Processing 
+CU - Catch up Archiving
+
+Each of the user_configurable directories holds zero or more named configuration files,
+plus a default configuration in the form of
+{DEVICE}_DEFAULT.yaml, such as AT_DEFAULT.yaml, or PP_DEFAULT.yaml...
+
+The DEFAULT configuration is loaded if no other configuration is desired or available.

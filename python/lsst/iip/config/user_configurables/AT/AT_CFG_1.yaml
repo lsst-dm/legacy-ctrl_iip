@@ -1,0 +1,36 @@
+#############################
+## AT_ARCHIVE CONFIG FILE #1
+
+ROOT:
+    DEFAULT_RAFT_CONFIGURATION:
+        raft00: ['ALL']
+        raft01: ['11']
+        raft10: ['11']
+        raft20: ['00','12','22']
+        raft30: ['00','01','02','11','12','22','10']
+        raft40: ['ALL']
+        raft01: ['11']
+        raft11: ['12','22']
+        raft21: ['ALL']
+        raft31: ['ALL']
+        raft41: ['ALL']
+        raft02: ['00']
+        raft12: ['ALL']
+        raft22: ['ALL']
+        raft32: ['ALL']
+        raft42: ['ALL']
+        raft03: ['ALL']
+        raft13: ['ALL']
+        raft23: ['ALL']
+        raft33: ['ALL']
+        raft43: ['ALL']
+        raft04: ['ALL']
+        raft14: ['ALL']
+        raft24: ['ALL']
+        raft34: ['ALL']
+        raft44: ['ALL']
+
+    CHECKSUM_ENABLED: yes
+
+    ARCHIVE_DIRECTORY_ROOT: /data/new_sequencer/
+  

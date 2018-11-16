@@ -100,6 +100,8 @@ class DMCS:
     """
 
     DEFAULT_CFG_FILE = 'L1SystemCfg.yaml'
+    # Device to CFG path 
+    DEVICE_LIST = {'AT', 'AR', 'PP', 'CU'}
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm
@@ -180,6 +182,9 @@ class DMCS:
         self.setup_publishers()
 
         self.setup_scoreboards()
+
+        LOGGER.info('Setting up recommended settings versions for each device')
+        self.setup_recommended_settings_versions()
 
         LOGGER.info('DMCS consumer setup')
         self.thread_manager = None
@@ -1182,6 +1187,7 @@ class DMCS:
 
             :return: None.
         """
+        device_cfgs = device + "_CFGS"
         try: 
             message = {}
             message[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
@@ -1386,6 +1392,18 @@ class DMCS:
 
         return True
 
+    def setup_recommended_settings_versions(self):
+        #for each device in device list, dump device...
+        for dev in self.DEVICE_LIST:
+            print("dev is %s" % dev)
+            with os.scandir('./config/user_configurables/' + dev + '/') as it:
+                for entry in it:
+                    if entry.is_file():
+                        print("entry in it is %s" % entry.name)
+                        cdm_path = './config/user_configurables/' + dev + '/' + entry.name
+                        cdm = toolsmod.intake_yaml_file(cdm_path)
+                        self.STATE_SCBD.add_device_cfg_keys(dev, entry.name, yaml.dump(cdm))
+
 
     def setup_consumer_threads(self):
         base_broker_url = "amqp://" + self._msg_name + ":" + \
@@ -1480,17 +1498,17 @@ class DMCS:
 
             self.STATE_SCBD.set_device_state("AT","OFFLINE")
 
-            self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
-            self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
+            #self.STATE_SCBD.add_device_cfg_keys('AR', self.ar_cfg_keys)
+            #self.STATE_SCBD.set_device_cfg_key('AR',self.STATE_SCBD.get_cfg_from_cfgs('AR', 0))
 
-            self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
-            self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
+            #self.STATE_SCBD.add_device_cfg_keys('PP', self.pp_cfg_keys)
+            #self.STATE_SCBD.set_device_cfg_key('PP',self.STATE_SCBD.get_cfg_from_cfgs('PP', 0))
 
-            self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
-            self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
+            #self.STATE_SCBD.add_device_cfg_keys('CU', self.cu_cfg_keys)
+            #self.STATE_SCBD.set_device_cfg_key('CU',self.STATE_SCBD.get_cfg_from_cfgs('CU', 0))
 
-            self.STATE_SCBD.add_device_cfg_keys('AT', self.at_cfg_keys)
-            self.STATE_SCBD.set_device_cfg_key('AT',self.STATE_SCBD.get_cfg_from_cfgs('AT', 0))
+            #self.STATE_SCBD.add_device_cfg_keys('AT', self.at_cfg_keys)
+            #self.STATE_SCBD.set_device_cfg_key('AT',self.STATE_SCBD.get_cfg_from_cfgs('AT', 0))
 
             self.send_appropriate_events_by_state('AR', 'OFFLINE')
             self.send_appropriate_events_by_state('PP', 'OFFLINE')
