@@ -1401,6 +1401,7 @@ class DMCS:
                     if entry.is_file():
                         print("entry in it is %s" % entry.name)
                         cdm_path = './config/user_configurables/' + dev + '/' + entry.name
+                        print("CDM_PATH is: %s" % cdm_path)
                         cdm = toolsmod.intake_yaml_file(cdm_path)
                         self.STATE_SCBD.add_device_cfg_keys(dev, entry.name, yaml.dump(cdm))
 

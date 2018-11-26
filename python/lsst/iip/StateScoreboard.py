@@ -357,6 +357,18 @@ class StateScoreboard(Scoreboard):
         else:
             return False
 
+    def get_cfgs_list_by_device(self, device):
+        if device == 'AR':
+            hashname = 'AR_CFG_KEYS'
+        elif device == 'PP':
+            hashtname = 'PP_CFG_KEYS'
+        elif device == 'CU':
+            hashtname = 'CU_CFG_KEYS'
+        elif device == 'AT':
+            hashname = 'AT_CFG_KEYS'
+
+        return self._redis.hkeys(hashname)
+
 
     def get_next_session_id(self):
         if self.check_connection():
