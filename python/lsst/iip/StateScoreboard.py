@@ -336,7 +336,7 @@ class StateScoreboard(Scoreboard):
         elif device == 'AT':
             hashname = 'AT_CFG_KEYS'
 
-        if hexists(hashname, keyname):
+        if self._redis.hexists(hashname, keyname):
             return yaml.safe_load(self._redis.hget(hashname, keyname))
         else:
             return None

@@ -99,7 +99,8 @@ class DMCS:
         Finally, the DMCS keeps track of any failed jobs in a Backlog scoreboard.
     """
 
-    DEFAULT_CFG_FILE = 'L1SystemCfg.yaml'
+    DEFAULT_CFG_FILE = 'config/L1SystemCfg.yaml'
+    DEFAULT_CREDS_CFG_FILE = 'config/BrokerCredentials.yaml'
     # Device to CFG path 
     DEVICE_LIST = {'AT', 'AR', 'PP', 'CU'}
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
@@ -131,6 +132,8 @@ class DMCS:
         self._config_file = self.DEFAULT_CFG_FILE
         if filename != None:
             self._config_file = filename
+
+        self._creds_config_file = self.DEFAULT_CREDS_CFG_FILE
 
         LOGGER.info('Extracting values from Config dictionary')
         self.extract_config_values()
@@ -1124,10 +1127,11 @@ class DMCS:
             raise L1Error("DMCS unable to send_ocs_ack - Rabbit Problem?: %s" % e.args)
 
         if transition_check == 1:
-            self.send_appropriate_events_by_state(msg_in['DEVICE'], msg_in['MSG_TYPE'])
+            self.send_appropriate_events_by_state(msg_in)
 
 
-    def send_appropriate_events_by_state(self, dev, transition):
+
+    def send_appropriate_events_by_state(self, msg_in):
         """ Send appropriate messages of state transition for device to OCS Bridge.
 
             :params dev: Device with state change.
@@ -1135,8 +1139,12 @@ class DMCS:
 
             :return: None.
         """
+        dev = msg_in['DEVICE']
+        transition = msg_in['MSG_TYPE']
         if transition == 'START':
-            self.send_setting_applied_event(dev)
+            ### FIXXX FIXXX FIXXX - determine param name here after big rename (Nov. 2018)
+            cfg = msg_in['CFG']
+            self.send_setting_applied_event(dev, cfg)
             self.send_summary_state_event(dev)
             self.send_applied_setting_match_start_event(dev)
         elif transition == 'ENABLE':
@@ -1189,11 +1197,17 @@ class DMCS:
         """
         device_cfgs = device + "_CFGS"
         try: 
+            print("IN TRY BLOCK for RECOMMENDED_SETTINGS_VERSION_EVENT")
+            cfgs = []
             message = {}
             message[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
             message['DEVICE'] = device
-            message['CFG_KEY'] = self.STATE_SCBD.get_device_cfg_key(device)
+            print("GETTING LIST OF CFGS")
+            cfgs = self.STATE_SCBD.get_cfgs_list_by_device(device)
+            print("*** LIST OF CFGS is: %s" % cfgs)
+            message['CFG_KEY'] = cfgs
             self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+            print("SENT RECOMMENDED_SETTINGS_VERSION_EVENT message")
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_recommended_settings_version_event: %s" % e.args)
             print("DMCS unable to send_recommended_settings_version_event: %s" % e.args)
@@ -1204,19 +1218,21 @@ class DMCS:
             sys.exit(self.ERROR_CODE_PREFIX + 10)
 
 
-    def send_setting_applied_event(self, device):
+    def send_setting_applied_event(self, device, config):
         """ Send SETTINGS_APPLIED_EVENT message of device to OCS Bridge.
 
             :params device: Device with state change.
+            :params config: Desired user config.
 
             :return: None.
         """
         try: 
+            
             message = {}
             message[MSG_TYPE] = 'SETTINGS_APPLIED_EVENT'
             message['DEVICE'] = device
             message['APPLIED'] = True
-            message['SETTINGS'] = 'L1SysCfg_1'   # Will eventually be retrieved from DB
+            message['SETTINGS'] = self.STATE_SCBD.get_cfg_from_cfgs(device, config)
             message['TS_XML_VERSION'] = self.TsXmlVersion
             message['TS_SAL_VERSION'] = self.TsSALVersion
             message['L1_DM_REPO_TAG'] = self.L1DMRepoTag
@@ -1341,11 +1357,11 @@ class DMCS:
 
 
     def extract_config_values(self):
-        LOGGER.info('Reading YAML Config file %s' % self._config_file)
+        LOGGER.info('Reading YAML Config file %s' % self._creds_config_file)
         try:
-            cdm = toolsmod.intake_yaml_file(self._config_file)
+            cdm = toolsmod.intake_yaml_file(self._creds_config_file)
         except IOError as e:
-            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
+            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._creds_config_file)
             ### FIXXX FIXXX Change to Fault state
             sys.exit(101) 
 
@@ -1358,30 +1374,47 @@ class DMCS:
             self._pub_fault_passwd = cdm[ROOT]['DMCS_FAULT_PUB_PASSWD']
 
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
-            self.ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
-            self.rdict = cdm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
-            self.state_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
-            self.ack_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
-            self.incr_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_INCR_SCBD']
-            self.backlog_db_instance = cdm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
-            self.CCD_LIST = cdm[ROOT]['CCD_LIST']
 
-            self.ar_cfg_keys = cdm[ROOT]['AR_CFG_KEYS']
-            self.pp_cfg_keys = cdm[ROOT]['PP_CFG_KEYS']
-            self.cu_cfg_keys = cdm[ROOT]['CU_CFG_KEYS']
-            self.at_cfg_keys = cdm[ROOT]['AT_CFG_KEYS']
-            self.TsXmlVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsXmlVersion']
-            self.TsSALVersion = cdm[ROOT]['GENERAL_SETTINGS']['TsSALVersion']
-            self.L1DMRepoTag = cdm[ROOT]['GENERAL_SETTINGS']['L1DMRepoTag']
+        except KeyError as e:
+            trace = traceback.print_exc()
+            emsg = "Unable to find key in CDM representation of %s\n" % filename
+            LOGGER.critical(emsg + trace)
+            ### FIXXX FIXXX Change to FAULT state
+            sys.exit(102)
 
-            self.efd_login = cdm[ROOT]['EFD']['EFD_LOGIN']
-            self.efd_ip = cdm[ROOT]['EFD']['EFD_IP']
-            self.wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
-            self.wfs_ccd = cdm[ROOT]['ATS']['WFS_CCD']
-            broker_vhost = cdm[ROOT]['BROKER_VHOST']
-            queue_purges = cdm[ROOT]['QUEUE_PURGES']
+        LOGGER.info('Reading YAML Config file %s' % self._config_file)
+        try:
+            ddm = toolsmod.intake_yaml_file(self._config_file)
+        except IOError as e:
+            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
+            ### FIXXX FIXXX Change to Fault state
+            sys.exit(101) 
 
-            self.dmcs_ack_id_file = cdm[ROOT]['DMCS_ACK_ID_FILE']
+        try:
+            self.ddict = ddm[ROOT]['FOREMAN_CONSUME_QUEUES']
+            self.rdict = ddm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
+            self.state_db_instance = ddm[ROOT]['SCOREBOARDS']['DMCS_STATE_SCBD']
+            self.ack_db_instance = ddm[ROOT]['SCOREBOARDS']['DMCS_ACK_SCBD']
+            self.incr_db_instance = ddm[ROOT]['SCOREBOARDS']['DMCS_INCR_SCBD']
+            self.backlog_db_instance = ddm[ROOT]['SCOREBOARDS']['DMCS_BACKLOG_SCBD']
+            self.CCD_LIST = ddm[ROOT]['CCD_LIST']
+
+            self.ar_cfg_keys = ddm[ROOT]['AR_CFG_KEYS']
+            self.pp_cfg_keys = ddm[ROOT]['PP_CFG_KEYS']
+            self.cu_cfg_keys = ddm[ROOT]['CU_CFG_KEYS']
+            self.at_cfg_keys = ddm[ROOT]['AT_CFG_KEYS']
+            self.TsXmlVersion = ddm[ROOT]['GENERAL_SETTINGS']['TsXmlVersion']
+            self.TsSALVersion = ddm[ROOT]['GENERAL_SETTINGS']['TsSALVersion']
+            self.L1DMRepoTag = ddm[ROOT]['GENERAL_SETTINGS']['L1DMRepoTag']
+
+            self.efd_login = ddm[ROOT]['EFD']['EFD_LOGIN']
+            self.efd_ip = ddm[ROOT]['EFD']['EFD_IP']
+            self.wfs_raft = ddm[ROOT]['ATS']['WFS_RAFT']
+            self.wfs_ccd = ddm[ROOT]['ATS']['WFS_CCD']
+            broker_vhost = ddm[ROOT]['BROKER_VHOST']
+            queue_purges = ddm[ROOT]['QUEUE_PURGES']
+
+            self.dmcs_ack_id_file = ddm[ROOT]['DMCS_ACK_ID_FILE']
             self.efd = self.efd_login + "@" + self.efd_ip + ":"
         except KeyError as e:
             trace = traceback.print_exc()
@@ -1395,13 +1428,12 @@ class DMCS:
     def setup_recommended_settings_versions(self):
         #for each device in device list, dump device...
         for dev in self.DEVICE_LIST:
-            print("dev is %s" % dev)
             with os.scandir('./config/user_configurables/' + dev + '/') as it:
                 for entry in it:
                     if entry.is_file():
-                        print("entry in it is %s" % entry.name)
+                        LOGGER.debug("entry in it dir iterator is %s" % entry.name)
                         cdm_path = './config/user_configurables/' + dev + '/' + entry.name
-                        print("CDM_PATH is: %s" % cdm_path)
+                        LOGGER.debug("CDM_PATH is: %s" % cdm_path)
                         cdm = toolsmod.intake_yaml_file(cdm_path)
                         self.STATE_SCBD.add_device_cfg_keys(dev, entry.name, yaml.dump(cdm))
 
@@ -1511,10 +1543,10 @@ class DMCS:
             #self.STATE_SCBD.add_device_cfg_keys('AT', self.at_cfg_keys)
             #self.STATE_SCBD.set_device_cfg_key('AT',self.STATE_SCBD.get_cfg_from_cfgs('AT', 0))
 
-            self.send_appropriate_events_by_state('AR', 'OFFLINE')
-            self.send_appropriate_events_by_state('PP', 'OFFLINE')
-            self.send_appropriate_events_by_state('CU', 'OFFLINE')
-            self.send_appropriate_events_by_state('AT', 'OFFLINE')
+            self.send_summary_state_event('AR')
+            self.send_summary_state_event('PP')
+            self.send_summary_state_event('CU')
+            self.send_summary_state_event('AT')
         except Exception as e: 
             LOGGER.error("DMCS init unable to complete setup_scoreboards - " \
                          "Cannot set scoreboards: %s" % e.args)
