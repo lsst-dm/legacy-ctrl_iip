@@ -998,6 +998,11 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string ccd, \
 
     DAQ::Location location;
 
+#ifdef METRIX
+    auto start = std::chrono::system_clock::now();
+    std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+    LOG_DBG << "-->METRIX<--: Started AT raft fetch for " << image_id << ", raft no. " << raft << " at " << std::ctime(&start_time) << endl; 
+#endif
     while(sources.remove(location)) {
 
         // Set image array NAXIS values for format thread...
@@ -1049,6 +1054,15 @@ int Forwarder::fetch_at_reassemble_process(std::string raft, string ccd, \
                                       << this->format_consume_queue; 
       LOG_DBG << "Message is: " << msg; 
   }
+#ifdef METRIX
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+    LOG_DBG << "-->METRIX<--: Img " << image_id << " Finished raft " << raft << "  fetch at " \
+                                  << std::ctime(&end_time) \
+                                  << "elapsed time: " << elapsed_seconds.count() << "s\n";
+#endif
   return retval;
 }
 
@@ -1271,7 +1285,7 @@ int Forwarder::fetch_reassemble_raft_image(string raft, \
     auto start = std::chrono::system_clock::now();
     std::time_t start_time = std::chrono::system_clock::to_time_t(start);
     std::cout << "Started raft fetch at " << std::ctime(&start_time) << endl;
-    LOG_DBG << "Started raft fetch at " << std::ctime(&start_time) << endl; 
+    LOG_DBG << "Started raft fetch for " << image_id << ", raft no. " << raft << " at " << std::ctime(&start_time) << endl; 
 #endif
 
     //The loop below processes each raft board (an individual source) one at a time.
@@ -1314,9 +1328,10 @@ int Forwarder::fetch_reassemble_raft_image(string raft, \
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);
 
     std::cout << "Finished raft fetch at " << std::ctime(&end_time)
-            << "elapsed time: " << elapsed_seconds.count() << "s\n";
-    LOG_DBG << "Finished raft fetch at " << std::ctime(&end_time) \
-                                    << "elapsed time: " << elapsed_seconds.count() << "s\n";
+              << "elapsed time: " << elapsed_seconds.count() << "s\n";
+    LOG_DBG << "Img " << image_id << " Finished raft " << raft << "  fetch at " \
+                                  << std::ctime(&end_time) \
+                                  << "elapsed time: " << elapsed_seconds.count() << "s\n";
 #endif
     return retval;
 }
@@ -1504,8 +1519,9 @@ int Forwarder::fetch_reassemble_process(std::string raft, \
     }
 
     return retval;
-
 }
+
+
 // This method builds file handle vectors in a RAMDISK.
 // The files are essentially dynamically named arrays in memory, and very fast.
 void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set, 
@@ -1529,6 +1545,7 @@ void Forwarder::fetch_set_up_filehandles( std::vector<std::ofstream*> &fh_set,
   }
 }
 
+
 void Forwarder::fetch_close_filehandles(std::vector<std::ofstream*> &fh_set) {
     LOG_DBG << "Entering fetch_close_filehandles function.";
 
@@ -1549,7 +1566,6 @@ int Forwarder::check_for_image_existence(string image_id) {
 
 
 void Forwarder::get_register_metadata(const DAQ::Location& location, const IMS::Image& image) {
-
         // Here are the values and associated indexes
         // into the InstructionList returned by source.registers().
         // These index values are used in the lookup() call below.
@@ -1601,11 +1617,13 @@ void Forwarder::process_fetch_ack(Node n) {
     return;
 }
 
+
 void Forwarder::process_fetch_health_check(Node n) {
     LOG_DBG << "Entering process_fetch_health_check function.";
     cout << "Send helth check to just fetch queue" << endl;
     return;
 }
+
 
 void Forwarder::process_fetch_health_check_ack(Node n) {
     LOG_DBG << "Entering process_fetch_health_check_ack function.";
@@ -1613,28 +1631,30 @@ void Forwarder::process_fetch_health_check_ack(Node n) {
     return;
 }
 
+
 void Forwarder::process_format(Node n) {
     LOG_DBG << "Entering process_format function."; 
     cout << "process_format" << endl;
     string type_msg = n["MSG_TYPE"].as<string>();
     
     if (type_msg == "FORMAT_TAKE_IMAGES_DONE") {
-      string new_msg_type = "FORWARD_TAKE_IMAGES_DONE";
-      string job_num = n["JOB_NUM"].as<string>();
-      string reply_queue = n["REPLY_QUEUE"].as<string>();
-      string ack_id = n["ACK_ID"].as<string>();
-      ostringstream msg;
-      msg << "{MSG_TYPE: " << new_msg_type 
-          << ", JOB_NUM: " << job_num
-          << ", REPLY_QUEUE: " << reply_queue
-          << ", ACK_ID: " << ack_id << "}";
-      this->fmt_pub->publish_message(this->forward_consume_queue, msg.str());
-    LOG_DBG << "FORWARD_TAKE_IMAGES_DONE is sent to: " << this->forward_consume_queue; 
-    LOG_DBG << "Message is: " << msg; 
-      return;
+        string new_msg_type = "FORWARD_TAKE_IMAGES_DONE";
+        string job_num = n["JOB_NUM"].as<string>();
+        string reply_queue = n["REPLY_QUEUE"].as<string>();
+        string ack_id = n["ACK_ID"].as<string>();
+        ostringstream msg;
+        msg << "{MSG_TYPE: " << new_msg_type 
+            << ", JOB_NUM: " << job_num
+            << ", REPLY_QUEUE: " << reply_queue
+            << ", ACK_ID: " << ack_id << "}";
+        this->fmt_pub->publish_message(this->forward_consume_queue, msg.str());
+        LOG_DBG << "FORWARD_TAKE_IMAGES_DONE is sent to: " << this->forward_consume_queue; 
+        LOG_DBG << "Message is: " << msg; 
+        return;
     }
     return;
 }
+
 
 void Forwarder::process_forward(Node n) { 
     LOG_DBG << "Entering process_forward function.";
@@ -1668,6 +1688,7 @@ void Forwarder::process_forward_health_check_ack(Node n) {
     LOG_DBG << "Entering process_forward_health_check_ack function.";
   return;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // FORMAT THREAD
@@ -1792,10 +1813,10 @@ void Forwarder::process_header_ready(Node n) {
     } 
 } 
 
-////////////////////////////////////////////////////////////////////////////////
-// F@
-////////////////////////////////////////////////////////////////////////////////
 
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 int Forwarder::format_get_total_ccds(string image_id) { 
     /**
      * Returns the total numbers of ccds to do for this readout
@@ -1816,10 +1837,11 @@ int Forwarder::format_get_total_ccds(string image_id) {
         if (raft_ccds[0] == "ALL") total_ccds += NUM_CCDS_IN_ALL; 
         else total_ccds += raft_ccds.size(); 
     } 
-    int total = total_ccds * this->img_to_raft_list.size();
+    int total = total_ccds;
     LOG_DBG << "Total number of ccd paths to create in header_dict is: " << total; 
     return total; 
 } 
+
 
 void Forwarder::format_process_end_readout(Node node) { 
     LOG_DBG << "Entering format_process_end_readout function."; 
@@ -1834,6 +1856,7 @@ void Forwarder::format_process_end_readout(Node node) {
         cerr << e.what() << endl; 
     } 
 } 
+
 
 void Forwarder::format_get_header(Node node) { 
     LOG_DBG << "Entering format_get_header function."; 
@@ -1867,6 +1890,7 @@ void Forwarder::format_look_for_work(string image_id) {
     try { 
         map<string, vector<string>>::iterator header_it = this->header_info_dict.find(image_id); 
         Node binary_node  = format_get_binary_path(image_id); 
+        cout << "flfw: binary_node: " << binary_node.IsNull() << endl; 
         if (header_it != this->header_info_dict.end() && !binary_node.IsNull()) { 
             LOG_DBG << "Found both header and binary paths to start assembling."; 
 
@@ -1952,11 +1976,12 @@ Node Forwarder::format_get_binary_path(string image_id) {
  
 void Forwarder::format_write_img(Node n) { 
     LOG_DBG << "Entering format_write_img function."; 
-        string header_file_path = n["HEADER_PATH"].as<string>(); 
-        string binary_file_path = n["BINARY_PATH"].as<string>();
-        string img_id = n["IMAGE_ID"].as<string>();
-        string raft = n["RAFT"].as<string>();
-        string ccd = n["CCD"].as<string>();
+    string header_file_path = n["HEADER_PATH"].as<string>(); 
+    string binary_file_path = n["BINARY_PATH"].as<string>();
+    string img_id = n["IMAGE_ID"].as<string>();
+    string raft = n["RAFT"].as<string>();
+    string ccd = n["CCD"].as<string>();
+
     try { 
         //string header_file_path = n["HEADER_PATH"].as<string>(); 
         //string binary_file_path = n["BINARY_PATH"].as<string>();
@@ -2094,6 +2119,7 @@ void Forwarder::format_write_img(Node n) {
     } 
 } 
 
+
 vector<string> Forwarder::format_list_files(string path) { 
     LOG_DBG << "Entering format_list_files function."; 
     try { 
@@ -2118,6 +2144,7 @@ vector<string> Forwarder::format_list_files(string path) {
     } 
 } 
 
+
 void Forwarder::format_send_completed_msg(string image_id, string image_name) { 
     LOG_DBG << "Entering format_send_completed_msg function.";
     try { 
@@ -2135,9 +2162,10 @@ void Forwarder::format_send_completed_msg(string image_id, string image_name) {
         LOG_CRT << e.what() << endl; 
         cerr << e.what() << endl; 
     } 
-} 
-///////////////////////////////////////////////////////////////////////////
+}
 
+ 
+///////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 // Forward part 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2252,9 +2280,8 @@ std::string Forwarder::forward_send_result_set(string image_id, string filenames
     cout << "[x] tid msg: " << endl;
     cout << msg.c_str() << endl;
 
-    //this->fwd_pub->publish_message(reply_queue, msg.c_str());
-    //cout << "msg is replied to ..." << reply_queue << endl;
 }
+
 
 std::string Forwarder::forward_calculate_md5_checksum(const string img_path ) {
       FILE *fh;
@@ -2290,7 +2317,6 @@ std::string Forwarder::forward_calculate_md5_checksum(const string img_path ) {
               md5_csum[k] = toupper(md5_csum[k]);
           }
 
-
           std::cout << "MD5 Checksum is:  " << md5_csum << "  " <<  std::endl;
 
           free(md5_result);
@@ -2298,6 +2324,8 @@ std::string Forwarder::forward_calculate_md5_checksum(const string img_path ) {
           return md5_csum;
       }
 }
+
+
 std::string Forwarder::forward_calculate_crc32_checksum(const string img_path) {
       std::streamsize const  buffer_size = PRIVATE_BUFFER_SIZE;
       boost::crc_32_type  result;
@@ -2317,7 +2345,6 @@ std::string Forwarder::forward_calculate_crc32_checksum(const string img_path) {
       std::string csum = std::to_string(result.checksum());
       return csum;
 }
-
 
 
 void Forwarder::forward_process_take_images_done(Node n) { 
@@ -2343,35 +2370,8 @@ void Forwarder::forward_process_take_images_done(Node n) {
   
     this->fwd_pub->publish_message(reply_queue, msg.c_str());
     LOG_DBG << "AR_FWDR_TAKE_IMAGES_DONE_ACK is sent to: " << reply_queue; 
-    // FIXXX LOG_DBG << "Message is: " << msg; 
 } 
 
-//void Forwarder::forward_process_end_readout_done(Node n) { 
-//    cout << "get here" << endl;
-//    ostringstream message;
-//    string ack_id = n["ACK_ID"].as<string>();
-//    string reply_queue = n["REPLY_QUEUE"].as<string>();
-//    string msg_type = "AR_FWDR_TAKE_IMAGES_DONE_ACK ";
-//    string ack_bool = "True";
-// 
-//    Emitter msg; 
-//    msg << BeginMap; 
-//    msg << Key << "MSG_TYPE" << Value << msg_type; 
-//    msg << Key << "COMPONENT" << Value << this->Component; 
-//    msg << Key << "ACK_ID" << Value << ack_id; 
-//    msg << Key << "ACK_BOOL" << Value << ack_bool; 
-//    msg << Key << "RESULT_SET" << Value << Flow; 
-//        msg << BeginMap; 
-//        msg << Key << "FILENAME_LIST" << Value << Flow << finished_image_work_list; 
-//        msg << Key << "CHECKSUM_LIST" << Value << Flow << checksum_list;  
-//        msg << EndMap; 
-//    msg << EndMap; 
-//    cout << "[x] tid msg: " << endl; 
-//    cout << msg.c_str() << endl;
-//  
-//    this->fwd_pub->publish_message(reply_queue, msg.c_str());
-//    cout << "msg is replied to ..." << reply_queue << endl;
-//} 
 
 void Forwarder::send_telemetry(int code, std::string description) {
       Emitter msg;
@@ -2385,6 +2385,7 @@ void Forwarder::send_telemetry(int code, std::string description) {
 
       return;
 }
+
 
 void Forwarder::dump_map(string description) {
     if (this->img_to_raft_ccd_pair.empty() ) {
@@ -2412,6 +2413,7 @@ void Forwarder::dump_map(string description) {
 
       LOG_DBG << "End of Map Dump";
 }
+
 
 int main() {
     Forwarder *fwdr = new Forwarder();
