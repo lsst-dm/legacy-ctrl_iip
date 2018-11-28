@@ -101,6 +101,7 @@ summary_state_enum = {'DISABLE':0,
                       'OFFLINE':3, 
                       'STANDBY':4}
 
+# Values used in state_matrix and in the ascii representation below...
 state_enumeration = {}
 state_enumeration["OFFLINE"] =  0
 state_enumeration["STANDBY"] =  1
