@@ -36,29 +36,30 @@ DM_OBJ         = $(AR)/src/.obj/SAL_MTArchiver.o \
 		 $(ATC)/src/.obj/SAL_ATCamera.o \
 		 $(EFD)/src/.obj/SAL_EFD.o 
 L1_OBJ         = ../obj/OCS_Bridge.o ../obj/SimplePublisher.o ../obj/Toolsmod.o
+OBJ_DIR        = ../obj
 
 all: CommandListener EventSubscriber AckSubscriber
 
 OCS_Bridge: OCS_Bridge.cpp SimplePublisher
-	$(CC) $(COMPVERS) $(INCLUDE) $(DM_LDPATH) $(OBJ_DIR)/SimplePublisher.o -c -o $(OBJ_DIR)/OCS_Bridge.o OCS_Bridge.cpp -lSimpleAmqpClient -lyaml-cpp 
+	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) $(OBJ_DIR)/SimplePublisher.o -c -o $(OBJ_DIR)/OCS_Bridge.o OCS_Bridge.cpp -lSimpleAmqpClient -lyaml-cpp 
 
 SimplePublisher: SimplePublisher.cpp
-	$(CC) $(COMPVERS) $(INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/SimplePublisher.o SimplePublisher.cpp -lSimpleAmqpClient 
+	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/SimplePublisher.o SimplePublisher.cpp -lSimpleAmqpClient 
 
 Consumer: Consumer.cpp 
-	$(CC) $(COMPVERS) $(INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/Consumer.o Consumer.cpp -lSimpleAmqpClient 
+	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/Consumer.o Consumer.cpp -lSimpleAmqpClient 
 
 Toolsmod: Toolsmod.cpp
-	$(CC) $(COMPVERS) $(INCLUDE) -c -o ../obj/Toolsmod.o Toolsmod.cpp
+	g++ -std=c++11 $(DM_INCLUDE) -c -o ../obj/Toolsmod.o Toolsmod.cpp
 
 CommandListener: CommandListener.cpp SimplePublisher Toolsmod OCS_Bridge
-	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $@ $^ $(SAL_LIB) $(L1_LIB)
+	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $@ CommandListener.cpp $(SAL_LIB) $(L1_LIB)
 
 EventSubscriber: EventSubscriber.cpp SimplePublisher
-	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $@ $^ $(SAL_LIB) $(L1_LIB)
+	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $@ EventSubscriber.cpp $(SAL_LIB) $(L1_LIB)
 
 AckSubscriber: AckSubscriber.cpp Consumer
-	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $@ $^ $(SAL_LIB) $(L1_LIB)
+	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) ../obj/Consumer.o -o $@ AckSubscriber.cpp $(SAL_LIB) $(L1_LIB)
 
 clean: 
 	rm -i CommandListener EventSubscriber AckSubscriber

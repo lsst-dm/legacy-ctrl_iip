@@ -2,6 +2,7 @@
 #include <sstream> 
 #include <pthread.h>
 #include <string>
+#include <algorithm>
 #include <yaml-cpp/yaml.h>
 #include "OCS_Bridge.h" 
 #include "CommandListener.h"
@@ -25,6 +26,7 @@ map<string, string> camel_cases = {
     {"DISABLE", "disable"},
     {"ENTER_CONTROL", "enterControl"}, 
     {"EXIT_CONTROL", "exitControl"}, 
+    {"STANDBY", "standby"}, 
     {"ABORT", "abort"}, 
     {"RESET_FROM_FAULT", "resetFromFault"} 
 }; 
@@ -79,7 +81,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
     int cmdId = -1; 
     SAL_struct SALInstance; 
 
-    string processor = CommandListener::get_device(device) + "_command_" + command_name; 
+    string processor = CommandListener::get_device(device) + "_command_" + camel_cases[command_name]; 
     mgr.salProcessor(const_cast<char *>(processor.c_str())); 
     while (1) { 
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
@@ -126,9 +128,9 @@ CommandListener::CommandListener() : OCS_Bridge() {
     command_args->pp = SAL_PromptProcessing(); 
     command_args->atar = SAL_ATArchiver(); 
 
-    setup_archiver_listeners();
-    setup_catchuparchiver_listeners(); 
-    setup_promptprocessing_listeners();  
+    //setup_archiver_listeners();
+    //setup_catchuparchiver_listeners(); 
+    //setup_promptprocessing_listeners();  
     setup_atArchiver_listeners();
     setup_resolve_publisher(); 
     cout << "=== dm COMMAND controller ready" << endl; 

@@ -3,6 +3,7 @@
 #include <yaml-cpp/yaml.h>
 #include "OCS_Bridge.h"
 #include "AckSubscriber.h"
+#include "SAL_defines.h"
 #include "Toolsmod.h"
 
 using namespace std; 
@@ -18,11 +19,11 @@ struct consumer_thread_args {
 map<string, map<string, string>> ack_book_keeper; 
 
 map<string, long> summary_states = { 
-    {"DISABLE", ATArchiver::summaryState_DisabledState}, 
-    {"ENABLE", ATArchiver::summaryState_EnabledState}, 
-    {"FAULT", ATArchiver::summaryState_FaultState}, 
-    {"OFFLINE", ATArchiver::summaryState_OfflineState}, 
-    {"STANDBY", ATArchiver::summaryState_StandbyState}, 
+    {"DISABLE", SAL__STATE_DISABLED}, 
+    {"ENABLE", SAL__STATE_ENABLED}, 
+    {"FAULT", SAL__STATE_FAULT}, 
+    {"OFFLINE", SAL__STATE_OFFLINE}, 
+    {"STANDBY", SAL__STATE_STANDBY}, 
 };
 
 map<string, ack_funcptr> action_handler = { 
@@ -80,8 +81,9 @@ void AckSubscriber::setup_consumer() {
 }
 
 void AckSubscriber::run() { 
-    string devices[] = {"MTArchiver", "CatchupArchiver", "PromptProcessing", "ATArchiver"};
-    string commands[] = {"enable", "disable", "standby", "enterControl", "exitControl", "start", "stop", "abort"}; 
+    // string devices[] = {"MTArchiver", "CatchupArchiver", "PromptProcessing", "ATArchiver"};
+    string devices[] = {"ATArchiver"};
+    string commands[] = {"enable", "disable", "standby", "enterControl", "exitControl", "start", "abort"}; 
     string events[] = {"SummaryState", "AppliedSettingsMatchStart", "SettingVersion", "ErrorCode"};
 
     for (const string device: devices) { 
@@ -102,6 +104,7 @@ void AckSubscriber::run() {
         }
     } 
 
+    /** 
     for (const string device: devices) { 
         for (const string event: events) { 
             string topic = device + "_logevent_" + event;
@@ -119,6 +122,7 @@ void AckSubscriber::run() {
             } 
         }
     } 
+    */ 
 
     // These two events do not exist in other devices
     at.salProcessor(const_cast<char *>("ATArchiver_command_resetFromFault"));
