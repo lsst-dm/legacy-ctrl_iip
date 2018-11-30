@@ -68,7 +68,7 @@ class IncrScoreboard(Scoreboard):
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._redis = self.connect()
-        #Do NOT do this...
+        #Do NOT do this...in order to save sequence numbers between restarts
         #self._redis.flushdb()
 
         # FIX Test that incrementable vals already exist - else set them to 100, or some such...
@@ -131,6 +131,7 @@ class IncrScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
 
+
     def get_next_job_num(self, session):
         if self.check_connection():
             self._redis.incr(self.JOB_SEQUENCE_NUM)
@@ -159,6 +160,51 @@ class IncrScoreboard(Scoreboard):
             return id
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
+
+
+    ##########################################
+    ## These methods that add arbitrary values 
+    ## to the sequence nums are for start up
+    ## in case dump.rdb missed an increment
+    ########################################### 
+
+    def add_to_session_id(self, val):
+        if self.check_connection():
+            session_id = self._redis.get(self.SESSION_SEQUENCE_NUM)
+            new_session_id = int(session_id) + val 
+            self._redis.set(self.SESSION_SEQUENCE_NUM, new_session_id)
+        else:
+            LOGGER.error('Unable to add to session_id due to lack of redis connection')
+
+
+
+    def add_to_job_num(self, val):
+        if self.check_connection():
+            job_num = self._redis.get(self.JOB_SEQUENCE_NUM)
+            new_job_num = int(job_num) + val
+            self._redis.set(self.JOB_SEQUENCE_NUM, new_job_num)
+        else:
+            LOGGER.error('Unable to add to job number due to lack of redis connection')
+
+
+    def add_to_next_timed_ack_id(self, val):
+        if self.check_connection():
+            ack_id = self._redis.get(self.ACK_SEQUENCE_NUM)
+            new_ack_id = int(ack_id) + val 
+            self._redis.set(self.ACK_SEQUENCE_NUM, new_ack_id)
+        else:
+            LOGGER.error('Unable to add to ack_id due to lack of redis connection')
+
+
+
+    def add_to_next_receipt_id(self, val):
+        if self.check_connection():
+            receipt_id = self._redis.get(self.RECEIPT_SEQUENCE_NUM)
+            new_receipt_id = int(receipt_id) + val 
+            self._redis.set(self.RECEIPT_SEQUENCE_NUM, new_receipt_id)
+        else:
+            LOGGER.error('Unable to add to receipt_id due to lack of redis connection')
+
 
 
     def print_all(self):

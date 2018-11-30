@@ -1,5 +1,4 @@
-###############################################################################
-###############################################################################
+############################################################################### ###############################################################################
 ## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
 ## All rights reserved.
 ##
@@ -1496,6 +1495,12 @@ class DMCS:
             self.send_appropriate_events_by_state('PP', 'OFFLINE')
             self.send_appropriate_events_by_state('CU', 'OFFLINE')
             self.send_appropriate_events_by_state('AT', 'OFFLINE')
+
+            ## Add 10 to every sequence num in case dump.rdb freq did not catch an increment
+            self.INCR_SCBD.add_to_session_id(10)
+            self.INCR_SCBD.add_to_job_num(10)
+            self.INCR_SCBD.add_to_next_timed_ack_id(10)
+            self.INCR_SCBD.add_to_next_receipt_id(10)
         except Exception as e: 
             LOGGER.error("DMCS init unable to complete setup_scoreboards - " \
                          "Cannot set scoreboards: %s" % e.args)
