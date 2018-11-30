@@ -84,7 +84,7 @@ void AckSubscriber::run() {
     // string devices[] = {"MTArchiver", "CatchupArchiver", "PromptProcessing", "ATArchiver"};
     string devices[] = {"ATArchiver"};
     string commands[] = {"enable", "disable", "standby", "enterControl", "exitControl", "start", "abort"}; 
-    string events[] = {"SummaryState", "AppliedSettingsMatchStart", "SettingVersion", "ErrorCode"};
+    string events[] = {"summaryState", "appliedSettingsMatchStart", "settingVersions", "errorCode"};
 
     for (const string device: devices) { 
         for (const string command: commands) { 
@@ -104,7 +104,6 @@ void AckSubscriber::run() {
         }
     } 
 
-    /** 
     for (const string device: devices) { 
         for (const string event: events) { 
             string topic = device + "_logevent_" + event;
@@ -122,7 +121,6 @@ void AckSubscriber::run() {
             } 
         }
     } 
-    */ 
 
     // These two events do not exist in other devices
     at.salProcessor(const_cast<char *>("ATArchiver_command_resetFromFault"));
@@ -132,7 +130,7 @@ void AckSubscriber::run() {
     at.salEventPub("ATArchiver_logevent_processingStatus");
 
     cout << "============> running CONSUMER <=============" << endl; 
-    Consumer *telemetry_consumer = new Consumer(base_broker_addr, "telemetry_consume"); 
+    Consumer *telemetry_consumer = new Consumer(base_broker_addr, "telemetry_queue"); 
 
     consumer_thread_args *telemetry_args = new consumer_thread_args; 
     telemetry_args->consumer = telemetry_consumer; 
@@ -241,7 +239,7 @@ void AckSubscriber::process_ack(Node n) {
 }
 
 void AckSubscriber::process_summary_state(Node n) { 
-    try { 
+    //try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
         string device = n["DEVICE"].as<string>(); 
         string summary_state = n["CURRENT_STATE"].as<string>(); 
@@ -271,11 +269,13 @@ void AckSubscriber::process_summary_state(Node n) {
             data.priority = priority; 
             at.logEvent_summaryState(&data, priority); 
         }
+/**
     } 
     catch (exception& e) { 
 	cout << "WARNING: " << "In AckSubscriber -- summary_state, cannot read fields from message." << endl; 
         cout << "The error is " << e.what() << endl; 
     }  
+*/
 } 
 
 void AckSubscriber::process_recommended_settings_version(Node n) { 
