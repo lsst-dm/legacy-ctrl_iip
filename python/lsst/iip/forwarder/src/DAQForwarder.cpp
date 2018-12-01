@@ -34,7 +34,7 @@
 #include <openssl/md5.h>
 #include <boost/crc.hpp>
 
-#define NUM_CCDS_IN_ALL 9
+#define NUM_CCDS_IN_RAFT 9
 #define SECONDARY_HDU 2
 #define STRING(s) STRING_EXPAND(s)
 #define STRING_EXPAND(s) #s 
@@ -1834,7 +1834,7 @@ int Forwarder::format_get_total_ccds(string image_id) {
         for(hkit = raft_ccds.begin(); hkit != raft_ccds.end(); hkit++) { 
             cout << "get_total_ccds: " << *hkit; 
         } 
-        if (raft_ccds[0] == "ALL") total_ccds += NUM_CCDS_IN_ALL; 
+        if (raft_ccds[0] == "ALL") total_ccds += NUM_CCDS_IN_RAFT; 
         else total_ccds += raft_ccds.size(); 
     } 
     int total = total_ccds;
@@ -2175,6 +2175,7 @@ void Forwarder::forward_process_end_readout(Node n) {
     LOG_DBG << "Entering forward_process_end_readout function."; 
 
     string new_csum = "0";
+    string new_crcsum = "0";
     try { 
         string img_name = n["IMAGE_NAME"].as<string>();
         string img_id = n["IMAGE_ID"].as<string>(); 
@@ -2188,6 +2189,20 @@ void Forwarder::forward_process_end_readout(Node n) {
       
         size_t find_at = dest_path.find("@"); 
         ostringstream bbcp_cmd; 
+
+        // Tmp addition to test checksum calculation
+        bool csummer;
+        csummer = this-Checksum_Enabled;
+        LOG_DBG << "Is the Checksum code enabled? - " << csummer << endl;
+
+        new_csum = this->forward_calculate_md5_checksum(img_path);
+        cout << "Calculated MD5 NEW_CSUM is: " << new_csum.c_str() << endl;
+        LOG_DBG << "Calculated MD5 NEW_CSUM is: " << new_csum.c_str() << endl;
+
+        new_crcsum = this->forward_calculate_crc32_checksum(img_path);
+        cout << "Calculated CRC32 NEW_CRCSUM is: " << new_crcsum.c_str() << endl;
+        LOG_DBG << "Calculated CRC32 NEW_CRCSUM is: " << new_crcsum.c_str() << endl;
+
         if (find_at != string::npos) { 
             bbcp_cmd << "bbcp -f -i ~/.ssh/id_rsa ";
         } 
@@ -2292,37 +2307,32 @@ std::string Forwarder::forward_calculate_md5_checksum(const string img_path ) {
       std::string md5_csum;
       std::ostringstream outage;
       std::streamsize const  buffer_size = PRIVATE_BUFFER_SIZE;
-      if(this->Checksum_Type == "MD5") {
-          FILE *fh;
-          long filesize;
-          unsigned char *buf;
-          unsigned char *md5_result = NULL;
 
-          fh = fopen(img_path.c_str(), "r");
-          fseek(fh, 0L, SEEK_END);
-          filesize = ftell(fh);
-          fseek(fh, 0L, SEEK_SET);
-          buf = (unsigned char *)malloc(filesize);
-          fread(buf, filesize, 1, fh);
-          fclose(fh);
+      fh = fopen(img_path.c_str(), "r");
+      fseek(fh, 0L, SEEK_END);
+      filesize = ftell(fh);
+      fseek(fh, 0L, SEEK_SET);
+      buf = (unsigned char *)malloc(filesize);
+      fread(buf, filesize, 1, fh);
+      fclose(fh);
 
-          md5_result = (unsigned char *)malloc(MD5_DIGEST_LENGTH);
-          MD5(buf, filesize, md5_result);
-          for (int i=0; i < MD5_DIGEST_LENGTH; i++) {
-              sprintf(csum, "%02x",  md5_result[i]);
-              md5_csum.append(csum);
-          }
-
-          for(unsigned int k = 0; k < md5_csum.length(); k++) {
-              md5_csum[k] = toupper(md5_csum[k]);
-          }
-
-          std::cout << "MD5 Checksum is:  " << md5_csum << "  " <<  std::endl;
-
-          free(md5_result);
-          free(buf);
-          return md5_csum;
+      md5_result = (unsigned char *)malloc(MD5_DIGEST_LENGTH);
+      MD5(buf, filesize, md5_result);
+      for (int i=0; i < MD5_DIGEST_LENGTH; i++) {
+          sprintf(csum, "%02x",  md5_result[i]);
+          md5_csum.append(csum);
       }
+
+      for(unsigned int k = 0; k < md5_csum.length(); k++) {
+          md5_csum[k] = toupper(md5_csum[k]);
+      }
+
+      std::cout << "MD5 Checksum is:  " << md5_csum << "  " <<  std::endl;
+      LOG_DBG << "MD5 Checksum is:  " << md5_csum << "  " <<  std::endl;
+
+      free(md5_result);
+      free(buf);
+      return md5_csum;
 }
 
 
@@ -2387,6 +2397,9 @@ void Forwarder::send_telemetry(int code, std::string description) {
 }
 
 
+/////////////////////////////////////////////////////////////////////////
+//  This is a debug convenience method that dumps the primary map used to
+//  associate values to a specific image_id
 void Forwarder::dump_map(string description) {
     if (this->img_to_raft_ccd_pair.empty() ) {
         LOG_DBG << "MAP DUMP"; 
