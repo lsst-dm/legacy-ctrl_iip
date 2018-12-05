@@ -128,9 +128,9 @@ CommandListener::CommandListener() : OCS_Bridge() {
     command_args->pp = SAL_PromptProcessing(); 
     command_args->atar = SAL_ATArchiver(); 
 
-    //setup_archiver_listeners();
-    //setup_catchuparchiver_listeners(); 
-    //setup_promptprocessing_listeners();  
+    setup_archiver_listeners();
+    setup_catchuparchiver_listeners(); 
+    setup_promptprocessing_listeners();  
     setup_atArchiver_listeners();
     setup_resolve_publisher(); 
     cout << "=== dm COMMAND controller ready" << endl; 

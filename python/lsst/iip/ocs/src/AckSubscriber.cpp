@@ -81,8 +81,8 @@ void AckSubscriber::setup_consumer() {
 }
 
 void AckSubscriber::run() { 
-    // string devices[] = {"MTArchiver", "CatchupArchiver", "PromptProcessing", "ATArchiver"};
-    string devices[] = {"ATArchiver"};
+    string devices[] = {"MTArchiver", "CatchupArchiver", "PromptProcessing", "ATArchiver"};
+    // string devices[] = {"ATArchiver"};
     string commands[] = {"enable", "disable", "standby", "enterControl", "exitControl", "start", "abort"}; 
     string events[] = {"summaryState", "appliedSettingsMatchStart", "settingVersions", "errorCode"};
 
