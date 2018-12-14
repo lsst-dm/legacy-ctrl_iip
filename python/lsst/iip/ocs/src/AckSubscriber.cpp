@@ -3,6 +3,7 @@
 #include <yaml-cpp/yaml.h>
 #include "OCS_Bridge.h"
 #include "AckSubscriber.h"
+#include "SAL_defines.h"
 #include "Toolsmod.h"
 
 using namespace std; 
@@ -18,11 +19,11 @@ struct consumer_thread_args {
 map<string, map<string, string>> ack_book_keeper; 
 
 map<string, long> summary_states = { 
-    {"DISABLE", atArchiver::summaryState_DisabledState}, 
-    {"ENABLE", atArchiver::summaryState_EnabledState}, 
-    {"FAULT", atArchiver::summaryState_FaultState}, 
-    {"OFFLINE", atArchiver::summaryState_OfflineState}, 
-    {"STANDBY", atArchiver::summaryState_StandbyState}, 
+    {"DISABLE", SAL__STATE_DISABLED}, 
+    {"ENABLE", SAL__STATE_ENABLED}, 
+    {"FAULT", SAL__STATE_FAULT}, 
+    {"OFFLINE", SAL__STATE_OFFLINE}, 
+    {"STANDBY", SAL__STATE_STANDBY}, 
 };
 
 map<string, ack_funcptr> action_handler = { 
@@ -73,59 +74,62 @@ AckSubscriber::~AckSubscriber() {
 
 void AckSubscriber::setup_consumer() { 
     ack_consumer = new Consumer(base_broker_addr, OCS_CONSUME); 
-    ar = SAL_archiver(); 
-    cu = SAL_catchuparchiver(); 
-    pp = SAL_processingcluster(); 
-    at = SAL_atArchiver(); 
+    ar = SAL_MTArchiver(); 
+    cu = SAL_CatchupArchiver(); 
+    pp = SAL_PromptProcessing(); 
+    at = SAL_ATArchiver(); 
 }
 
 void AckSubscriber::run() { 
-    string devices[] = {"archiver", "catchuparchiver", "processingcluster", "atArchiver"};
-    string commands[] = {"enable", "disable", "standby", "enterControl", "exitControl", "start", "stop", "abort"}; 
+    // string devices[] = {"MTArchiver", "CatchupArchiver", "PromptProcessing", "ATArchiver"};
+    string devices[] = {"ATArchiver"};
+    string commands[] = {"enable", "disable", "standby", "enterControl", "exitControl", "start", "abort"}; 
     string events[] = {"SummaryState", "AppliedSettingsMatchStart", "SettingVersion", "ErrorCode"};
 
     for (const string device: devices) { 
         for (const string command: commands) { 
             string topic = device + "_command_" + command;
-            if (device == "archiver") { 
+            if (device == "MTArchiver") { 
                 ar.salProcessor(const_cast<char *>(topic.c_str())); 
             } 
-            else if (device == "catchuparchiver") { 
+            else if (device == "CatchupArchiver") { 
                 cu.salProcessor(const_cast<char *>(topic.c_str())); 
             } 
-            else if (device == "processingcluster") { 
+            else if (device == "PromptProcessing") { 
                 pp.salProcessor(const_cast<char *>(topic.c_str())); 
             } 
-            else if (device == "atArchiver") { 
+            else if (device == "ATArchiver") { 
                 at.salProcessor(const_cast<char *>(topic.c_str())); 
             } 
         }
     } 
 
+    /** 
     for (const string device: devices) { 
         for (const string event: events) { 
             string topic = device + "_logevent_" + event;
-            if (device == "archiver") { 
+            if (device == "MTArchiver") { 
                 ar.salEvent(const_cast<char *>(topic.c_str())); 
             } 
-            else if (device == "catchuparchiver") { 
+            else if (device == "CatchupArchiver") { 
                 cu.salEvent(const_cast<char *>(topic.c_str())); 
             } 
-            else if (device == "processingcluster") { 
+            else if (device == "PromptProcessing") { 
                 pp.salEvent(const_cast<char *>(topic.c_str())); 
             } 
-            else if (device == "atArchiver") { 
+            else if (device == "ATArchiver") { 
                 at.salEventPub(const_cast<char *>(topic.c_str())); 
             } 
         }
     } 
+    */ 
 
     // These two events do not exist in other devices
-    at.salProcessor(const_cast<char *>("atArchiver_command_resetFromFault"));
-    at.salEventPub(const_cast<char *>("atArchiver_logevent_settingsApplied")); 
+    at.salProcessor(const_cast<char *>("ATArchiver_command_resetFromFault"));
+    at.salEventPub(const_cast<char *>("ATArchiver_logevent_settingsApplied")); 
 
     // telemetry 
-    at.salEventPub("atArchiver_logevent_processingStatus");
+    at.salEventPub("ATArchiver_logevent_processingStatus");
 
     cout << "============> running CONSUMER <=============" << endl; 
     Consumer *telemetry_consumer = new Consumer(base_broker_addr, "telemetry_consume"); 
@@ -206,23 +210,23 @@ void AckSubscriber::process_ack(Node n) {
         salLONG error_code = ack_bool; 
 
         if (device == "AR") { 
-            Command<SAL_archiver> sender; 
-            Command<SAL_archiver>::funcptr action = sender.action_handler[message_value]; 
+            Command<SAL_MTArchiver> sender; 
+            Command<SAL_MTArchiver>::funcptr action = sender.action_handler[message_value]; 
             (ar.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
         } 
         else if (device == "CU") { 
-            Command<SAL_catchuparchiver> sender; 
-            Command<SAL_catchuparchiver>::funcptr action = sender.action_handler[message_value]; 
+            Command<SAL_CatchupArchiver> sender; 
+            Command<SAL_CatchupArchiver>::funcptr action = sender.action_handler[message_value]; 
             (cu.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
         } 
         else if (device == "PP"){ 
-            Command<SAL_processingcluster> sender; 
-            Command<SAL_processingcluster>::funcptr action = sender.action_handler[message_value]; 
+            Command<SAL_PromptProcessing> sender; 
+            Command<SAL_PromptProcessing>::funcptr action = sender.action_handler[message_value]; 
             (pp.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
         }
         else if (device == "AT"){ 
-            Command<SAL_atArchiver> sender; 
-            Command<SAL_atArchiver>::funcptr action = sender.action_handler[message_value]; 
+            Command<SAL_ATArchiver> sender; 
+            Command<SAL_ATArchiver>::funcptr action = sender.action_handler[message_value]; 
             (at.*action)(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
         }
 
@@ -236,7 +240,6 @@ void AckSubscriber::process_ack(Node n) {
     }  
 }
 
-// FIX: only AtArchiver is summaryStateC, not AR, CU or pp
 void AckSubscriber::process_summary_state(Node n) { 
     try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
@@ -245,26 +248,26 @@ void AckSubscriber::process_summary_state(Node n) {
         long priority = 0; 
 
         if (device == "AR") { 
-            //archiver_logevent_SummaryStateC data; 
-            //data.SummaryStateValue = summary_state; 
-            //data.priority = priority; 
-            //ar.logEvent_SummaryState(&data, priority); 
+            MTArchiver_logevent_summaryStateC data; 
+            data.summaryState = summary_states[summary_state]; 
+            data.priority = priority; 
+            ar.logEvent_summaryState(&data, priority); 
         }
         else if (device == "CU") {
-            //catchuparchiver_logevent_SummaryStateC data; 
-            //data.SummaryStateValue = summary_state; 
-            //data.priority = priority; 
-            //cu.logEvent_SummaryState(&data, priority); 
+            CatchupArchiver_logevent_summaryStateC data; 
+            data.summaryState = summary_states[summary_state]; 
+            data.priority = priority; 
+            cu.logEvent_summaryState(&data, priority); 
         }
         else if (device == "PP") { 
-            //processingcluster_logevent_SummaryStateC data; 
-            //data.SummaryStateValue = summary_state; 
-            //data.priority = priority; 
-            //pp.logEvent_SummaryState(&data, priority); 
+            PromptProcessing_logevent_summaryStateC data; 
+            data.summaryState = summary_states[summary_state]; 
+            data.priority = priority; 
+            pp.logEvent_summaryState(&data, priority); 
         }
         else if (device == "AT") { 
-            atArchiver_logevent_summaryStateC data; 
-            data.summaryStateValue = summary_states[summary_state]; 
+            ATArchiver_logevent_summaryStateC data; 
+            data.summaryState = summary_states[summary_state]; 
             data.priority = priority; 
             at.logEvent_summaryState(&data, priority); 
         }
@@ -275,7 +278,6 @@ void AckSubscriber::process_summary_state(Node n) {
     }  
 } 
 
-// FIX: AT camelcase
 void AckSubscriber::process_recommended_settings_version(Node n) { 
     try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
@@ -284,26 +286,26 @@ void AckSubscriber::process_recommended_settings_version(Node n) {
         long priority = 0; 
 
         if (device == "AR") { 
-            archiver_logevent_SettingVersionsC data; 
-            data.recommendedSettingVersion = recommended_setting; 
+            MTArchiver_logevent_settingVersionsC data; 
+            data.recommendedSettingsVersion = recommended_setting; 
             data.priority = priority; 
-            ar.logEvent_SettingVersions(&data, priority); 
+            ar.logEvent_settingVersions(&data, priority); 
         }
         else if (device == "CU") {
-            catchuparchiver_logevent_SettingVersionsC data; 
-            data.recommendedSettingVersion = recommended_setting; 
+            CatchupArchiver_logevent_settingVersionsC data; 
+            data.recommendedSettingsVersion = recommended_setting; 
             data.priority = priority; 
-            cu.logEvent_SettingVersions(&data, priority); 
+            cu.logEvent_settingVersions(&data, priority); 
         }
         else if (device == "PP") { 
-            processingcluster_logevent_SettingVersionsC data; 
-            data.recommendedSettingVersion = recommended_setting; 
+            PromptProcessing_logevent_settingVersionsC data; 
+            data.recommendedSettingsVersion = recommended_setting; 
             data.priority = priority; 
-            pp.logEvent_SettingVersions(&data, priority); 
+            pp.logEvent_settingVersions(&data, priority); 
         }
         else if (device == "AT") { 
-            atArchiver_logevent_settingVersionsC data; 
-            data.recommendedSettingVersion = recommended_setting; 
+            ATArchiver_logevent_settingVersionsC data; 
+            data.recommendedSettingsVersion = recommended_setting; 
             data.priority = priority; 
             at.logEvent_settingVersions(&data, priority); 
         }
@@ -314,7 +316,7 @@ void AckSubscriber::process_recommended_settings_version(Node n) {
     }  
 }
 
-// FIX: camelCase
+// FIXME: CatchupArchiver and PromptProcessor have different values
 void AckSubscriber::process_settings_applied(Node n) {
     try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
@@ -326,25 +328,24 @@ void AckSubscriber::process_settings_applied(Node n) {
         long priority = 0; 
 
         if (device == "AR") { 
-            // archiver_logevent_dSettingsMatchStartC data; 
-            // data.appliedSettingsMatchStartIsTrue = settings_applied; 
-            // data.priority = priority; 
-            // ar.logEvent_AppliedSettingsMatchStart(&data, priority); 
+            MTArchiver_logevent_settingsAppliedC data; 
+	    data.settings = settings;
+            data.tsSALVersion = ts_sal; 
+            data.tsXMLVersion = ts_xml; 
+            data.l1dmRepoTag = l1_tag; 
+            ar.logEvent_settingsApplied(&data, priority); 
         }
         else if (device == "CU") {
-            // catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
-            // data.appliedSettingsMatchStartIsTrue = settings_applied; 
-            // data.priority = priority; 
-            // cu.logEvent_AppliedSettingsMatchStart(&data, priority); 
+            CatchupArchiver_logevent_settingsAppliedC data; 
+            cu.logEvent_settingsApplied(&data, priority); 
         }
         else if (device == "PP") { 
-            // processingcluster_logevent_AppliedSettingsMatchStartC data; 
-            // data.appliedSettingsMatchStartIsTrue = settings_applied; 
-            // data.priority = priority; 
-            // pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
+            // This is not complete
+            // PromptProcessing_logevent_settingsAppliedC data; 
+            // pp.logEvent_settingsApplied(&data, priority); 
         }
         else if (device == "AT") { 
-            atArchiver_logevent_settingsAppliedC data; 
+            ATArchiver_logevent_settingsAppliedC data; 
 	    data.settings = settings;
             data.tsSALVersion = ts_sal; 
             data.tsXMLVersion = ts_xml; 
@@ -358,7 +359,6 @@ void AckSubscriber::process_settings_applied(Node n) {
     }  
 }
 
-// FIX: camelCase
 void AckSubscriber::process_applied_settings_match_start(Node n) {
     try { 
         string message_value = n["MSG_TYPE"].as<string>(); 
@@ -367,25 +367,25 @@ void AckSubscriber::process_applied_settings_match_start(Node n) {
         long priority = 0; 
 
         if (device == "AR") { 
-            archiver_logevent_AppliedSettingsMatchStartC data; 
+            MTArchiver_logevent_appliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
-            ar.logEvent_AppliedSettingsMatchStart(&data, priority); 
+            ar.logEvent_appliedSettingsMatchStart(&data, priority); 
         }
         else if (device == "CU") {
-            catchuparchiver_logevent_AppliedSettingsMatchStartC data; 
+            CatchupArchiver_logevent_appliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
-            cu.logEvent_AppliedSettingsMatchStart(&data, priority); 
+            cu.logEvent_appliedSettingsMatchStart(&data, priority); 
         }
         else if (device == "PP") { 
-            processingcluster_logevent_AppliedSettingsMatchStartC data; 
+            PromptProcessing_logevent_appliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
-            pp.logEvent_AppliedSettingsMatchStart(&data, priority); 
+            pp.logEvent_appliedSettingsMatchStart(&data, priority); 
         }
         else if (device == "AT") { 
-            atArchiver_logevent_appliedSettingsMatchStartC data; 
+            ATArchiver_logevent_appliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
             at.logEvent_appliedSettingsMatchStart(&data, priority); 
@@ -397,7 +397,6 @@ void AckSubscriber::process_applied_settings_match_start(Node n) {
     }  
 }
 
-// FIX: camelCase
 void AckSubscriber::process_error_code(Node n) {
     try {
         string message_value = n["MSG_TYPE"].as<string>(); 
@@ -406,25 +405,25 @@ void AckSubscriber::process_error_code(Node n) {
         long priority = 0; 
 
         if (device == "AR") { 
-            archiver_logevent_ErrorCodeC data; 
+            MTArchiver_logevent_errorCodeC data; 
             data.errorCode = error_code; 
             data.priority = priority; 
-            ar.logEvent_ErrorCode(&data, priority); 
+            ar.logEvent_errorCode(&data, priority); 
         }
         else if (device == "CU") {
-            catchuparchiver_logevent_ErrorCodeC data; 
+            CatchupArchiver_logevent_errorCodeC data; 
             data.errorCode = error_code; 
             data.priority = priority; 
-            cu.logEvent_ErrorCode(&data, priority); 
+            cu.logEvent_errorCode(&data, priority); 
         }
         else if (device == "PP") { 
-            processingcluster_logevent_ErrorCodeC data; 
+            PromptProcessing_logevent_errorCodeC data; 
             data.errorCode = error_code; 
             data.priority = priority; 
-            pp.logEvent_ErrorCode(&data, priority); 
+            pp.logEvent_errorCode(&data, priority); 
         }
         else if (device == "AT") { 
-            atArchiver_logevent_errorCodeC data; 
+            ATArchiver_logevent_errorCodeC data; 
             data.errorCode = error_code; 
             data.priority = priority; 
             at.logEvent_errorCode(&data, priority); 
@@ -509,7 +508,7 @@ void AckSubscriber::process_reset_from_fault_ack(Node n) {
 
         salLONG error_code = (ack_bool == "true") ? 0: -302; 
 
-        Command<SAL_atArchiver> sender; 
+        Command<SAL_ATArchiver> sender; 
         at.ackCommand_resetFromFault(cmdId, SAL__CMD_COMPLETE, error_code, const_cast<char *>(ack_statement.c_str())); 
 
 	cout << "=== PROCESS_ACK: " << cmdId << "::" << device << "::" << ack_id 
@@ -529,7 +528,7 @@ void AckSubscriber::process_telemetry(Node n) {
         int status_code = n["STATUS_CODE"].as<int>(); 
         string description = n["DESCRIPTION"].as<string>(); 
 
-        atArchiver_logevent_processingStatusC data; 
+        ATArchiver_logevent_processingStatusC data; 
         data.statusCode = status_code; 
         data.description = description; 
         data.priority = priority; 

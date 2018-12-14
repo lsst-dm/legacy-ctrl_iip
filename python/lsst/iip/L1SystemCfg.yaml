@@ -143,8 +143,8 @@ ROOT:
     ARCHIVE_AT_XFER_ROOT: /data/export
     #ARCHIVE_AT_XFER_ROOT: /data/export/DM_Test
     ARCHIVE_AR_XFER_ROOT: /data/export
-    CHECKSUM_ENABLED: False  # Current available options: MD5, CRC-32 
-    CHECKSUM_TYPE: MD5 
+    CHECKSUM_ENABLED: no  
+    CHECKSUM_TYPE: MD5   # Current available options: MD5, CRC-32 
   EFD:
     EFD_NAME: LFA
     EFD_LOGIN: felipe
