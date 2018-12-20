@@ -2077,6 +2077,10 @@ void Forwarder::format_write_img(Node n) {
 	} 
         fits_close_file(iptr, &status); 
         fits_close_file(optr, &status); 
+
+        // compress file
+        format_compress(destination); 
+
         LOG_DBG << "Formatting image segments into fits file is completed."; 
         format_send_completed_msg(img_id, img_name);
         LOG_DBG << "Sending format complete message to forward thread."; 
@@ -2092,6 +2096,18 @@ void Forwarder::format_write_img(Node n) {
         LOG_CRT << e.what() << endl; 
         cerr << e.what() << endl; 
     } 
+} 
+
+void Forwarder::format_compress(string path) { 
+    LOG_DBG << "Entering format_compress function."; 
+    ostringstream fpack_cmd; 
+    fpack_cmd << "fpack -r " << path; 
+    int fpack_cmd = system(fpack_cmd.str().c_str());  
+    LOG_DGB << "Fpacking the fitsfile with command " << fpack_cmd.str(); 
+
+    // delete the original uncompressed file
+    int remove_status = remove(path); 
+    if (remove_status != 0) LOG_CRT("Cannot delete file after compressed. File is at " + path);     
 } 
 
 vector<string> Forwarder::format_list_files(string path) { 
