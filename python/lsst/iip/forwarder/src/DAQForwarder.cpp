@@ -224,6 +224,7 @@ class Forwarder {
     vector<string> format_list_files(string); 
     Node format_get_binary_path(std::string); 
     int format_get_total_ccds(string); 
+    void format_compress(string); 
 
     void forward_process_end_readout(Node); 
     void forward_process_take_images_done(Node); 
@@ -2102,12 +2103,13 @@ void Forwarder::format_compress(string path) {
     LOG_DBG << "Entering format_compress function."; 
     ostringstream fpack_cmd; 
     fpack_cmd << "fpack -r " << path; 
-    int fpack_cmd = system(fpack_cmd.str().c_str());  
-    LOG_DGB << "Fpacking the fitsfile with command " << fpack_cmd.str(); 
+    int fpack_status = system(fpack_cmd.str().c_str());  
+    LOG_DBG << "Fpacking the fitsfile with command " << fpack_cmd.str(); 
 
     // delete the original uncompressed file
-    int remove_status = remove(path); 
-    if (remove_status != 0) LOG_CRT("Cannot delete file after compressed. File is at " + path);     
+    int remove_status = remove(path.c_str()); 
+    if (remove_status != 0) 
+        LOG_CRT << "Cannot delete file after compressed. File is at " <<  path;
 } 
 
 vector<string> Forwarder::format_list_files(string path) { 
