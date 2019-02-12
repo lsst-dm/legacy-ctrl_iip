@@ -18,18 +18,18 @@ Boost-1.63.0 libraries for use in Large Synoptic Survey Telescope
 
 %prep
 %setup -q -n boost_1_63_0
-mkdir -p %{buildroot}/%{lsstpath}/bin
-mkdir -p %{buildroot}/%{lsstpath}/lib
-mkdir -p %{buildroot}/%{lsstpath}/include
-mkdir -p %{buildroot}/%{lsstpath}/config
-mkdir -p %{buildroot}/%{lsstpath}/share
+mkdir -p %{buildroot}%{lsstpath}/bin
+mkdir -p %{buildroot}%{lsstpath}/lib
+mkdir -p %{buildroot}%{lsstpath}/include
+mkdir -p %{buildroot}%{lsstpath}/config
+mkdir -p %{buildroot}%{lsstpath}/share
 
 %build
-/usr/bin/bash bootstrap.sh --prefix=%{buildroot}/%{lsstpath}
+/usr/bin/bash bootstrap.sh --prefix=%{buildroot}%{lsstpath}
 ./b2 link=shared
 
 %install
-./b2 install --prefix=%{buildroot}/%{lsstpath}
+./b2 install --prefix=%{buildroot}%{lsstpath}
 
 %files
 %defattr(-,root,root)

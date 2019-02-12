@@ -20,11 +20,11 @@ Management System
 
 %prep
 %setup -q -n yaml-cpp-yaml-cpp-0.5.3
-mkdir -p %{buildroot}/%{lsstpath}/bin
-mkdir -p %{buildroot}/%{lsstpath}/lib
-mkdir -p %{buildroot}/%{lsstpath}/include
-mkdir -p %{buildroot}/%{lsstpath}/config
-mkdir -p %{buildroot}/%{lsstpath}/share
+mkdir -p %{buildroot}%{lsstpath}/bin
+mkdir -p %{buildroot}%{lsstpath}/lib
+mkdir -p %{buildroot}%{lsstpath}/include
+mkdir -p %{buildroot}%{lsstpath}/config
+mkdir -p %{buildroot}%{lsstpath}/share
 
 %build
 %cmake . -DCMAKE_INSTALL_PREFIX=%{lsstpath} -DBOOST_ROOT=%{lsstpath}

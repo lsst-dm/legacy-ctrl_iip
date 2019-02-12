@@ -20,11 +20,11 @@ Management System
 
 %prep
 %setup -q -n SimpleAmqpClient-2.4.0
-mkdir -p %{buildroot}/%{lsstpath}/bin
-mkdir -p %{buildroot}/%{lsstpath}/lib
-mkdir -p %{buildroot}/%{lsstpath}/include
-mkdir -p %{buildroot}/%{lsstpath}/config
-mkdir -p %{buildroot}/%{lsstpath}/share
+mkdir -p %{buildroot}%{lsstpath}/bin
+mkdir -p %{buildroot}%{lsstpath}/lib
+mkdir -p %{buildroot}%{lsstpath}/include
+mkdir -p %{buildroot}%{lsstpath}/config
+mkdir -p %{buildroot}%{lsstpath}/share
 
 %build
 %cmake . -DCMAKE_INSTALL_PREFIX=%{lsstpath} -DBOOST_ROOT=%{lsstpath}

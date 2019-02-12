@@ -14,9 +14,7 @@ License:        MIT
 URL:		http://www.ncsa.illinois.edu/enabling/data/lsst
 Source0:        https://github.com/lsst/ctrl_iip/archive/develop.zip	
 
-BuildRequires:  openssl-devel	
-BuildRequires:  gcc
-BuildRequires:  make
+BuildRequires:  openssl-devel gcc make python36 python36-devel	
 BuildRequires:  lsst-boost
 BuildRequires:  lsst-simpleAmqpClient
 BuildRequires:  lsst-rabbitmq-c
