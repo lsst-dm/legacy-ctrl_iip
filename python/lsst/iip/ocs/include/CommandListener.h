@@ -1,8 +1,11 @@
-#include "SAL_archiver.h" 
-#include "SAL_catchuparchiver.h" 
-#include "SAL_processingcluster.h" 
-#include "SAL_atArchiver.h"
-
+#include "SAL_MTArchiver.h" 
+#include "SAL_CatchupArchiver.h"
+#include "SAL_PromptProcessing.h" 
+#include "SAL_ATArchiver.h"
+#include "ccpp_sal_MTArchiver.h" 
+#include "ccpp_sal_CatchupArchiver.h"
+#include "ccpp_sal_PromptProcessing.h" 
+#include "ccpp_sal_ATArchiver.h"
 
 extern int next_timed_ack_id; 
 /** CommandListener listens to messages from OCS Bridge. It is a child class of a class called
@@ -14,10 +17,10 @@ class CommandListener : public OCS_Bridge {
 	    SimplePublisher* publisher; 
 	    string publish_queue;
 	    string consume_queue;  
-            SAL_archiver ar; 
-            SAL_catchuparchiver cu; 
-            SAL_processingcluster pp; 
-            SAL_atArchiver atar;
+            SAL_MTArchiver ar; 
+            SAL_CatchupArchiver cu; 
+            SAL_PromptProcessing pp; 
+            SAL_ATArchiver atar;
 	}; 
 
 	ocs_thread_args *command_args;
@@ -30,7 +33,7 @@ class CommandListener : public OCS_Bridge {
 	void setup_resolve_publisher(); 
 	void setup_archiver_listeners(); 
 	void setup_catchuparchiver_listeners(); 
-	void setup_processingcluster_listeners(); 
+	void setup_promptprocessing_listeners(); 
 	void setup_atArchiver_listeners(); 
 
 	static void *run_resolve_publisher(void *); 

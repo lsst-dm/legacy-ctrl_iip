@@ -1,9 +1,9 @@
 #include "Consumer_impl.h"
 #include <pthread.h>
-#include "SAL_archiver.h" 
-#include "SAL_catchuparchiver.h" 
-#include "SAL_processingcluster.h" 
-#include "SAL_atArchiver.h"
+#include "SAL_MTArchiver.h" 
+#include "SAL_CatchupArchiver.h" 
+#include "SAL_PromptProcessing.h" 
+#include "SAL_ATArchiver.h"
 
 /** Rabbitmq subscriber class to ack back messages from OCS after processing */ 
 class AckSubscriber : public OCS_Bridge { 
@@ -11,10 +11,10 @@ class AckSubscriber : public OCS_Bridge {
 
         /** Consumer object to listen to messages from rabbitmq */ 
         Consumer* ack_consumer; 
-        SAL_archiver ar; 
-        SAL_catchuparchiver cu; 
-        SAL_processingcluster pp; 
-        SAL_atArchiver at; 
+        SAL_MTArchiver ar; 
+        SAL_CatchupArchiver cu; 
+        SAL_PromptProcessing pp; 
+        SAL_ATArchiver at; 
         pthread_t ack_t, telemetry_t; 
 
         /** constructor for Rabbitmq ack subscriber to OCS system */ 
