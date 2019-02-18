@@ -50,6 +50,7 @@ install -m 755 -D ocs/include/* %{buildroot}%{lsstpath}/include
 # install systemd scripts
 install -d %{buildroot}etc/systemd/system
 install -D start_up/l1d* %{buildroot}etc/systemd/system
+install -D start_up/run* %{buildroot}%{lsstpath}/bin
 systemctl daemon-reload
 
 %files

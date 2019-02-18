@@ -147,4 +147,8 @@ of the issue to the screen
 
 Optional: Manually run all unit tests
 
+# Installing redis
+`yum install redis` is a very old version 3.x.x of redis and latest release is 5.0.x. 
+need to copy redis.conf file to `/etc/redis.conf`
 
+chown -R redis:redis /etc/redis.conf
