@@ -71,5 +71,10 @@ EventSubscriber: EventSubscriber.cpp SimplePublisher
 AckSubscriber: AckSubscriber.cpp Consumer
 	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) ../obj/Consumer.o -o $(BIN_DIR)/$@ AckSubscriber.cpp $(SAL_LIB) $(L1_LIB)
 
+install:
+	install -d $(DM_BUILDDIR)/include $(DM_BUILDDIR)/bin
+	install -m 755 -D ../include/* $(DM_BUILDDIR)/include
+	install -m 755 -D ../bin/* $(DM_BUILDDIR)/bin
+
 clean: 
 	rm -i ../OCS_Bridge.o ../SimplePublisher.o ../Consumer.o ../Toolsmod.o CommandListener EventSubscriber AckSubscriber

@@ -57,7 +57,7 @@ import threading
 from threading import Lock
 from const import *
 from Scoreboard import Scoreboard
-from ForwarderScoreboard import ForwarderScoreboard
+#from ForwarderScoreboard import ForwarderScoreboard
 from JobScoreboard import JobScoreboard
 from AckScoreboard import AckScoreboard
 from Consumer import Consumer
