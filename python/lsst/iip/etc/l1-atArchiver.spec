@@ -2,7 +2,9 @@
 # check for lsst directory path
 # setup start_up/services
 
-%define lsstpath /opt/lsst
+%define lsstpath /opt/lsst/dm-prompt
+%define gitbranch tickets/DM-17833
+%define gitdash tickets-DM-17833
 
 Name:	        lsst-atArchiver	
 Version:        1.6	
@@ -12,7 +14,7 @@ Summary:        ATArchiver software package for Data Management Services
 Group:	        Applications/System	
 License:        MIT	
 URL:		http://www.ncsa.illinois.edu/enabling/data/lsst
-Source0:        https://github.com/lsst/ctrl_iip/archive/develop.zip	
+Source0:        https://github.com/lsst/ctrl_iip/archive/%{gitbranch}.zip	
 
 BuildRequires:  openssl-devel gcc make python36 python36-devel	
 BuildRequires:  lsst-boost
@@ -22,6 +24,8 @@ BuildRequires:  lsst-yaml-cpp
 
 BuildArch:      x86_64
 
+Prefix:         /opt/lsst
+
 %description
 ATArchiver software contains multiple sub packages - OCS Bridge, DMCS,
 DMCS, atArchiver, Forwarder. This package implements end-to-end
@@ -29,30 +33,30 @@ architecture from receiving incoming messages from Observatory Control
 System to archiving fits file data at the Archiver.
 
 %prep
-%setup -q -n ctrl_iip-develop
+%setup -q -n ctrl_iip-%{gitdash}
 
 %build
-#%%configure
-# make %{?_smp_mflags}
-/usr/local/bin/python3 -m compileall *.py
+cd python/lsst/iip
+make
 
 %install
-# make install DESTDIR=%{buildroot}
-# create bin, lib, include, config directories
-#mkdir -p %{buildroot}/%{lsstpath}/bin
-#mkdir -p %{buildroot}/%{lsstpath}/lib
-#mkdir -p %{buildroot}/%{lsstpath}/include
-#mkdir -p %{buildroot}/%{lsstpath}/config
-#mkdir -p %{buildroot}/%{lsstpath}/share
+cd python/lsst/iip
 
-# create executables for all python files
-#for pyfile in $(ls *.pyc); do
-#    echo $pyfile
-#done
+# install python, ocsbridge executables
+install -d %{buildroot}%{lsstpath}/bin %{buildroot}%{lsstpath}/include
+install -m 755 -D *.py %{buildroot}%{lsstpath}/bin
+install -m 755 -D ocs/include/* %{buildroot}%{lsstpath}/include
+
+# install systemd scripts
+install -d %{buildroot}etc/systemd/system
+install -D start_up/l1d* %{buildroot}etc/systemd/system
+systemctl daemon-reload
 
 %files
-%doc
+%{lsstpath}/bin/*
+%{lsstpath}/include/*
 
+%doc
 
 
 %changelog
