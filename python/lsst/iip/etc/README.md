@@ -23,12 +23,13 @@ Certain spec files have dependencies on other spec files.
 
 # Install
 `$ rpmdev-setuptree`
-`$ rpmbuild --undefine=_disable_source_fetch -ba <spec-filename>.spec`
+`$ QA_RPATHS=$[0x0002] rpmbuild --undefine=_disable_source_fetch -ba l1-atArchiver.spec`
 `$ sudo yum install -y <rpm-file-name>.rpm`
 
 `rpmdev-setuptree` creates `~/rpmbuild` directory with sub directories for
 putting SOURCES, RPMS and such.  
-`rpmbuild` creates RPM files at `~/rpmbuild/RPMS/x86_64`.  
+`rpmbuild` creates RPM files at `~/rpmbuild/RPMS/x86_64`. QA_RPATHS is for
+suppressing warning for rpath issue.  
 `yum` installs the RPM into the location specified in the spec file.
 
 P.S. `disable_source_fetch` enables the user to download zip/tar.gz files from the

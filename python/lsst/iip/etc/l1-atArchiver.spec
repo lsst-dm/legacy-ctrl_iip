@@ -47,15 +47,18 @@ install -d %{buildroot}%{lsstpath}/bin %{buildroot}%{lsstpath}/include
 install -m 755 -D *.py %{buildroot}%{lsstpath}/bin
 install -m 755 -D ocs/include/* %{buildroot}%{lsstpath}/include
 
+# need dds libraries/dds rpm to fix OCS build issue
+#install -m 755 -D ocs/bin/* %{buildroot}%{lsstpath}/bin
+
 # install systemd scripts
-install -d %{buildroot}etc/systemd/system
-install -D start_up/l1d* %{buildroot}etc/systemd/system
+install -d %{buildroot}/etc/systemd/system
+install -D start_up/l1d* %{buildroot}/etc/systemd/system
 install -D start_up/run* %{buildroot}%{lsstpath}/bin
-systemctl daemon-reload
 
 %files
 %{lsstpath}/bin/*
 %{lsstpath}/include/*
+/etc/systemd/system/l1*
 
 %doc
 
