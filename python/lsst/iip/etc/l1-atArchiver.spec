@@ -1,7 +1,3 @@
-# check for python3
-# check for lsst directory path
-# setup start_up/services
-
 %define lsstpath /opt/lsst/dm-prompt
 %define gitbranch tickets/DM-17833
 %define gitdash tickets-DM-17833
@@ -16,52 +12,31 @@ License:        MIT
 URL:		http://www.ncsa.illinois.edu/enabling/data/lsst
 Source0:        https://github.com/lsst/ctrl_iip/archive/%{gitbranch}.zip	
 
-BuildRequires:  openssl-devel gcc make python36 python36-devel	
-BuildRequires:  lsst-boost
-BuildRequires:  lsst-simpleAmqpClient
-BuildRequires:  lsst-rabbitmq-c
-BuildRequires:  lsst-yaml-cpp
+BuildRequires:  python36 python36-devel	
 
 BuildArch:      x86_64
 
-Prefix:         /opt/lsst
-
 %description
-ATArchiver software contains multiple sub packages - OCS Bridge, DMCS,
-DMCS, atArchiver, Forwarder. This package implements end-to-end
-architecture from receiving incoming messages from Observatory Control
-System to archiving fits file data at the Archiver.
+ATArchiver software manages the compute resources for Data Management Software
+System to perform image processing.
 
 %prep
 %setup -q -n ctrl_iip-%{gitdash}
 
-%build
-cd python/lsst/iip
-make
-
 %install
 cd python/lsst/iip
 
-# install python, ocsbridge executables
-install -d %{buildroot}%{lsstpath}/bin %{buildroot}%{lsstpath}/include
-install -m 755 -D *.py %{buildroot}%{lsstpath}/bin
-install -m 755 -D ocs/include/* %{buildroot}%{lsstpath}/include
-
-# need dds libraries/dds rpm to fix OCS build issue
-#install -m 755 -D ocs/bin/* %{buildroot}%{lsstpath}/bin
-
-# install systemd scripts
+# install AuxDevice, l1d-AuxDevice to dir
+install -d %{buildroot}%{lsstpath}/bin %{buildroot}%{lsstpath}/bin/logs
 install -d %{buildroot}/etc/systemd/system
-install -D start_up/l1d* %{buildroot}/etc/systemd/system
-install -D start_up/run* %{buildroot}%{lsstpath}/bin
+install -m 755 -D *.py %{buildroot}%{lsstpath}/bin
+install -m 755 -D L1SystemCfg.yaml %{buildroot}%{lsstpath}/bin
+install -D start_up/l1d-AuxDevice.service %{buildroot}/etc/systemd/system
 
 %files
 %{lsstpath}/bin/*
-%{lsstpath}/include/*
-/etc/systemd/system/l1*
+/etc/systemd/system/l1d-AuxDevice.service
 
 %doc
 
-
 %changelog
-

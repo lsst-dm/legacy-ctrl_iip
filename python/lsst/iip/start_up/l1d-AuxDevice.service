@@ -6,8 +6,8 @@ BindsTo=l1d-ctrl_iip.target
 [Service]
 Type=simple
 User=ATS
-WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/iip
-ExecStart=/opt/rh/rh-python36/root/usr/bin/python3 AuxDevice.py
+WorkingDirectory=/opt/lsst/dm-prompt/bin
+ExecStart=/opt/rh/rh-python36/root/usr/bin/python3.6 AuxDevice.py
 Restart=always
 
 [Install]
