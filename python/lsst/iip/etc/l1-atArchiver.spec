@@ -1,6 +1,7 @@
 %define lsstpath /opt/lsst/dm-prompt
 %define gitbranch tickets/DM-17833
 %define gitdash tickets-DM-17833
+%define user ATS
 
 Name:	        lsst-atArchiver	
 Version:        1.6	
@@ -26,16 +27,16 @@ System to perform image processing.
 %install
 cd python/lsst/iip
 
-# install AuxDevice, l1d-AuxDevice to dir
 install -d %{buildroot}%{lsstpath}/bin %{buildroot}%{lsstpath}/bin/logs
 install -d %{buildroot}/etc/systemd/system
 install -m 755 -D *.py %{buildroot}%{lsstpath}/bin
 install -m 755 -D L1SystemCfg.yaml %{buildroot}%{lsstpath}/bin
-install -D start_up/l1d-AuxDevice.service %{buildroot}/etc/systemd/system
+install -D start_up/l1d-* %{buildroot}/etc/systemd/system
 
 %files
+%defattr(755, %{user}, %{user}, 755) 
 %{lsstpath}/bin/*
-/etc/systemd/system/l1d-AuxDevice.service
+%attr(-, root, root) /etc/systemd/system/l1d-*
 
 %doc
 
