@@ -11,7 +11,12 @@ Team publishes the following RPM Spec files.
 Default install location is `/opt/lsst`.
 
 # Prerequisites
-`$ yum install gcc rpm-build rpm-devel rpmlint make coreutils rpmdevtools`
+* `$ yum install gcc rpm-build rpm-devel rpmlint make coreutils rpmdevtools`
+* RPMS uses `/opt/lsst/dm-prompt/bin` directory to run the software. So, the
+  directory has be have 777 permission by the unprivileged user defined below.
+* RPMS assume certain unprivileged users for certain packages
+    * ATArchiver - ATS
+    * OCSBridge - OCS
 
 # Install order
 Certain spec files have dependencies on other spec files.
@@ -39,6 +44,10 @@ internet. By default, RPM blocks downloading untrusted code archives from the in
 Add EPEL to your repolist.
 `yum install
 https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm`
+
+# Postinstall 
+Most of the RPM install systemd service files. So, it is recommended to run the
+`systemctl daemon-reload` after installing the rpm.
 
 # License 
 MIT
