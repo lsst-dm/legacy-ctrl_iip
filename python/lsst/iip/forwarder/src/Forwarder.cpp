@@ -1204,12 +1204,14 @@ void Forwarder::process_header_ready(Node n) {
         // scp -i ~/.ssh/from_efd felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
         ostringstream cp_cmd; 
 	// FIX
+        /**
         cp_cmd << "scp  "
                << path
                << " " 
                << sub_dir
                << "/"; 
-	// cp_cmd << "wget -P " << sub_dir << "/ " << path; 
+            */
+	cp_cmd << "wget -P " << sub_dir << "/ " << path; 
         int scp_cmd = system(cp_cmd.str().c_str()); 
 
 	/** 
@@ -1345,6 +1347,7 @@ unsigned char** Forwarder::format_assemble_pixels(char *buffer) {
     } 
 } 
 
+/**
 void Forwarder::format_write_img(string img_id, string raft_name, string ccd_name, string header) { 
     try { 
         long len = Naxis_1 * Naxis_2;
@@ -1377,6 +1380,7 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
             system(rm_cmd.str().c_str()); 
         } 
 
+        cout << "header file: " << header_path.c_str() << endl;
         fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
 	cout << "Opening file: " << status << endl; 
         fits_create_file(&optr, destination.c_str(), &status); 
@@ -1429,6 +1433,168 @@ void Forwarder::format_write_img(string img_id, string raft_name, string ccd_nam
     } 
     catch (exception& e) { 
         cerr << e.what() << endl; 
+    } 
+} 
+*/
+void Forwarder::format_write_img(string img, string header) { 
+    cout << "[x] fwi" << endl;
+    try { 
+        long len = NAXIS1 * NAXIS2;
+        int bitpix = LONG_IMG; 
+        long naxis = 2;
+        long naxes[2] = { NAXIS1, NAXIS2 }; 
+        long fpixel = 1; 
+        int status = 0; 
+        int hdunum = 2;
+        int nkeys; 
+        char card[FLEN_CARD]; 
+        fitsfile *iptr, *optr; 
+
+        // /mnt/ram/IMG_31
+        string img_path = Work_Dir + "/" + img;
+        string header_path = header;
+        string destination = Work_Dir + "/FITS/" + img + ".fits";
+
+        if (FILE *file = fopen(destination.c_str(), "r")) { 
+            // file exists
+            fclose(file); 
+            cout << "File exists!" << endl; 
+            ostringstream rm_cmd; 
+            rm_cmd << "rm " << destination; 
+            
+            cout << rm_cmd.str() << endl; 
+            system(rm_cmd.str().c_str()); 
+        } 
+
+        fits_open_file(&iptr, header_path.c_str(), READONLY, &status); 
+        fits_create_file(&optr, destination.c_str(), &status); 
+        fits_copy_hdu(iptr, optr, 0, &status); 
+        int aaa; 
+        fits_get_hdu_num(iptr, &aaa); 
+        cout << aaa << endl; 
+
+        vector<string> file_names = format_list_files(img_path); 
+        vector<string>::iterator it; 
+        vector<string> exclude_keywords = {"BITPIX", "NAXIS"}; 
+        vector<string>::iterator eit; 
+        cout << "===XXXX got here" << endl;
+	while (fits_movabs_hdu(iptr, hdunum, NULL, &status) == 0) {
+            cout << "hdunum: " << hdunum << endl; 
+	    fitsfile *pix_file_ptr; 
+            string segment_name; 
+            int *img_buffer = new int[len];
+            if (fits_create_img(optr, bitpix, naxis, naxes, &status)){
+                cout << "Fits_create_imge error " << status << endl; 
+            }
+            fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
+            for (int i = 1; i <= nkeys; i++) { 
+                fits_read_record(iptr, i, card, &status); 
+	        string card_str = string(card); 
+                if (card_str.find("BITPIX") == 0) {} 
+                else if (card_str.find("NAXIS") == 0) {} 
+                else if (card_str.find("PCOUNT") == 0) {} 
+                else if (card_str.find("GCOUNT") == 0) {} 
+                else if (card_str.find("XTENSION") == 0) {} 
+                else if (card_str.find("EXTNAME") == 0) { 
+		    fits_write_record(optr, card, &status); 
+		    segment_name = card_str; 
+		} 
+                else { 
+		    fits_write_record(optr, card, &status); 
+                } 
+            }
+	
+	    if (!segment_name.empty()) { 
+                size_t find_digits = segment_name.find_last_of("Segment"); 	
+                if (find_digits != string::npos) { 
+                    string digits = segment_name.substr(find_digits+1, 2); 
+                    cout << "Two ending digits for segment names are " << digits << endl;
+
+                    // find two ending digits in binary pixel 
+                    size_t dot = file_names[0].find_last_of("."); 
+                    string prefix = file_names[0].substr(0, dot+1); 
+                    string search_string = prefix + digits; 
+                    vector<string>::iterator bit = find(file_names.begin(), file_names.end(), search_string); 
+                    if (bit != file_names.end()){ 
+                        cout << "Found corresponding binary file: " << *bit << endl; 
+
+
+                        // do assembly 
+                        string img_segment_name = img_path + "/" + *bit 
+                                                  + "[jL" + STRING(NAXIS1) 
+                                                  + "," + STRING(NAXIS2) + "]"; 
+                        cout << "IMG segment name is " << img_segment_name << endl; 
+                        if (fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status)) { 
+                            cout << "Fits_open_file error " << status << endl; 
+                        }  
+                        if (fits_read_img(pix_file_ptr, TINT, 1, len, NULL, img_buffer, 0, &status)){
+                            cout << "Fits_read_imge error " << status << endl; 
+                        }
+                        if (fits_write_img(optr, TINT, 1, len, img_buffer, &status)){
+                            cout << "Fits_write_img error " << status << endl; 
+                        } 
+
+                        // clean up 
+                        fits_close_file(pix_file_ptr, &status); 
+                        delete[] img_buffer; 
+                    } 
+                    else { 
+                        cout << "Did not find corresponding binary file" << endl; 
+                    }  
+                }  
+	    } 
+	    else { 
+                cout << "Cannot find Extname keyword in header file" << endl; 
+            } 
+	
+            hdunum++;
+	} 
+        fits_close_file(iptr, &status); 
+        fits_close_file(optr, &status); 
+	/** 
+        for (it = file_names.begin(); it != file_names.end(); it++) { 
+            fitsfile *pix_file_ptr; 
+            int *img_buffer = new int[len];
+            string img_segment_name = img_path + "/" + *it 
+                                      + "[jL" + STRING(NAXIS1) 
+                                      + "," + STRING(NAXIS2) + "]"; 
+
+            // get img pixels
+            fits_open_file(&pix_file_ptr, img_segment_name.c_str(), READONLY, &status); 
+            fits_read_img(pix_file_ptr, TINT, 1, len, NULL, img_buffer, 0, &status); 
+            fits_create_img(optr, bitpix, naxis, naxes, &status); 
+            fits_write_img(optr, TINT, 1, len, img_buffer, &status);
+
+            // get header 
+            fits_movabs_hdu(iptr, hdunum, NULL, &status); 
+            fits_get_hdrspace(iptr, &nkeys, NULL, &status); 
+            for (int i = 1; i <= nkeys; i++) { 
+                fits_read_record(iptr, i, card, &status); 
+	        string card_str = string(card); 
+                if (card_str.find("BITPIX") == 0) {} 
+                else if (card_str.find("NAXIS") == 0) {} 
+                else if (card_str.find("PCOUNT") == 0) {} 
+                else if (card_str.find("GCOUNT") == 0) {} 
+                else if (card_str.find("XTENSION") == 0) {} 
+                else { 
+		    fits_write_record(optr, card, &status); 
+                } 
+            }
+            hdunum++;
+
+            // clean up 
+            fits_close_file(pix_file_ptr, &status); 
+            delete[] img_buffer; 
+        } 
+        fits_close_file(iptr, &status); 
+        fits_close_file(optr, &status); 
+	*/ 
+
+        format_send_completed_msg(img);
+    } 
+    catch (exception& e) { 
+        cerr << e.what() << endl; 
+        send_telemetry(-1, "Forwarder cannot format binaries to fits file."); 
     } 
 } 
 vector<string> Forwarder::format_list_files(string path) { 
