@@ -42,7 +42,7 @@ def main():
   premium = Premium()
   #sp1 = SimplePublisher('amqp://BASE:BASE@141.142.238.160:5672/%2Fbunny?heartbeat=300', "YAML")
   #sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Ftest', "YAML")
-  sp1 = SimplePublisher('amqp://DMCS:DMCS@140.252.32.128:5672/%2Ftest_at', "YAML")
+  sp1 = SimplePublisher('amqp://CL_14:CL_14@10.0.100.128:5672/%2Ftest_at', "YAML")
   #sp1 = SimplePublisher('amqp://PFM:PFM@141.142.238.10:5672/%2Fbunny', "YAML")
   #sp2 = SimplePublisher('amqp://TesT:TesT@141.142.208.191:5672/%2Ftester')
   #broker_url = 'amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny'
@@ -52,7 +52,7 @@ def main():
   #except:
   #  print "Cannot start thread"
 
-
+  IMAGE_ID = "AT_O_20190225_000009"
   print("Begin Send Messages...")
   """
   print("Sending AT_FWDR_HEALTH_CHECK message")
@@ -68,9 +68,8 @@ def main():
   msg = {}
   msg['MSG_TYPE'] = "AT_FWDR_XFER_PARAMS"
   msg['JOB_NUM'] = 'j42'
-  msg['IMAGE_ID'] = 'AT-O-20180930-00005'
-  #msg['IMAGE_ID'] = 'EAT-O-2018930-00005'
-  msg['TARGET_LOCATION'] = '/tmp/target'
+  msg['IMAGE_ID'] = IMAGE_ID
+  msg['TARGET_LOCATION'] = 'ARC@10.0.100.128:/data/export'
   msg['SESSION_ID'] = 'sess77'
   msg['REPLY_QUEUE'] = 'ar_foreman_ack_publish'
   msg['DAQ_ADDR'] = 'LOCAL'
@@ -79,20 +78,15 @@ def main():
   # These lists are prepped for sending directly to a forwarder
   msg["XFER_PARAMS"] = {}
   msg['XFER_PARAMS']['AT_FWDR'] = 'FORWARDER_F99'
-  msg['XFER_PARAMS']['RAFT_LIST'] = ['raft01']
+  msg['XFER_PARAMS']['RAFT_LIST'] = ['ats']
   msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['11']]
-  #msg['XFER_PARAMS']['RAFT_CCD_LIST'] = [['ALL']]
   time.sleep(2)
   sp1.publish_message("f99_consume", msg)
 
   print("Sending AT_FWDR_END_READOUT message")
   msg = {}
   msg['MSG_TYPE'] = "AT_FWDR_END_READOUT"
-  #msg['IMAGE_ID'] = 'test23'
-  #msg['IMAGE_ID'] = 'luckyme'
-  #msg['IMAGE_ID'] = 'jubilee'
-  msg['IMAGE_ID'] = 'AT-O-20180930-00005'
-  #msg['IMAGE_ID'] = 'EAT-O-2018930-00005'
+  msg['IMAGE_ID'] = IMAGE_ID
   msg['JOB_NUM'] = 'j42'
   msg['VISIT_ID'] = 'vv2'
   msg['SESSION_ID'] = 'sess77'
@@ -103,17 +97,13 @@ def main():
 
   print("Sending HEADER1 information") 
   msg = {} 
-  msg["MSG_TYPE"] = "FORMAT_HEADER_READY"
-  #msg['IMAGE_ID'] = 'jubilee'
-  msg['IMAGE_ID'] = 'AT-O-20180930-00005'
-  #msg['IMAGE_ID'] = 'EAT-O-2018930-00005'
-  #msg["FILENAME"] = "felipe@141.142.237.177:/tmp/header/test23.header"
-  #msg["FILENAME"] = "/tmp/source/header/luckyme/luckyme.header"
-  #msg["FILENAME"] = "/tmp/source/header/ats-18july2018-00111/ats-18july2018-00111.header"
-  msg["FILENAME"] = "http://localhost:8000/visitJune-28.header"
+  msg["MSG_TYPE"] = "AT_FWDR_HEADER_READY"
+  msg["FILENAME"] = "http://10.0.100.148:8000/" + IMAGE_ID + ".header"
+  msg["IMAGE_ID"] = IMAGE_ID
+  msg["ACK_ID"] = "ack_id_100"
+  msg["REPLY_QUEUE"] = "some_queue"
+  sp1.publish_message("f99_consume", msg) 
   time.sleep(4)
-  #sp1.publish_message("f99_consume", msg) 
-  sp1.publish_message("format_consume_from_f99", msg) 
 
   print("Sender done")
   
