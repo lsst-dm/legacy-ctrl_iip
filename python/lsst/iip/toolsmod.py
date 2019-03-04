@@ -1,3 +1,45 @@
+###############################################################################
+###############################################################################
+## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
+## All rights reserved.
+##
+## Developed by:
+##
+##   LSST Image Ingest and Distribution Team
+##   National Center for Supercomputing Applications
+##   University of Illinois
+##   http://www.ncsa.illinois.edu/enabling/data/lsst
+##
+## Permission is hereby granted, free of charge, to any person obtaining
+## a copy of this software and associated documentation files (the
+## "Software"), to deal with the Software without restriction, including
+## without limitation the rights to use, copy, modify, merge, publish,
+## distribute, sublicense, and/or sell copies of the Software, and to
+## permit persons to whom the Software is furnished to do so, subject to
+## the following conditions:
+##
+##   Redistributions of source code must retain the above copyright
+##   notice, this list of conditions and the following disclaimers.
+##
+##   Redistributions in binary form must reproduce the above copyright
+##   notice, this list of conditions and the following disclaimers in the
+##   documentation and/or other materials provided with the distribution.
+##
+##   Neither the names of the National Center for Supercomputing
+##   Applications, the University of Illinois, nor the names of its
+##   contributors may be used to endorse or promote products derived from
+##   this Software without specific prior written permission.
+##
+## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+## IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+## ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+## CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
+
+
+
 import subprocess
 import yaml
 import pprint
@@ -17,6 +59,7 @@ def singleton(object, instantiated=[]):
 prp = pprint.PrettyPrinter(indent=4)
 #DP = False  #Set to true for Debug Printing
 DP = True  #Set to true for Debug Printing
+METRIX = True 
 
 def intake_yaml_file(filename):
     try:
@@ -58,6 +101,7 @@ summary_state_enum = {'DISABLE':0,
                       'OFFLINE':3, 
                       'STANDBY':4}
 
+# Values used in state_matrix and in the ascii representation below...
 state_enumeration = {}
 state_enumeration["OFFLINE"] =  0
 state_enumeration["STANDBY"] =  1
@@ -73,19 +117,19 @@ state_enumeration["FINAL"] =    6
 #STATE\
 #      \ |Offline |Standby |Disabled|Enabled |Fault   |Initial |Final   |
 #------------------------------------------------------------------------ 
-#Offline | TRUE   | TRUE   |        |        |        |        |  TRUE  |
+#Offline |        | TRUE   |        |        |        |        |  TRUE  |
 #------------------------------------------------------------------------
-#Standby |  TRUE  | TRUE   |  TRUE  |        |  TRUE  |        |  TRUE  |
+#Standby |  TRUE  |        |  TRUE  |        |  TRUE  |        |  TRUE  |
 #------------------------------------------------------------------------
-#Disable |        |  TRUE  |  TRUE  |  TRUE  |  TRUE  |        |        |
+#Disable |        |  TRUE  |        |  TRUE  |  TRUE  |        |        |
 #------------------------------------------------------------------------
-#Enable  |        |        |  TRUE  |  TRUE  |  TRUE  |        |        |
+#Enable  |        |        |  TRUE  |        |  TRUE  |        |        |
 #------------------------------------------------------------------------
-#Fault   |        |        |        |        |  TRUE  |        |        |
+#Fault   |        |        |        |        |        |        |        |
 #------------------------------------------------------------------------
-#Initial |        |  TRUE  |        |        |        | TRUE   |        |
+#Initial |        |  TRUE  |        |        |        |        |        |
 #------------------------------------------------------------------------
-#Final   |        |        |        |        |        |        | TRUE   |
+#Final   |        |        |        |        |        |        |        |
 #------------------------------------------------------------------------
 
 w, h = 7, 7;
@@ -103,14 +147,14 @@ state_matrix[3][2] = True
 state_matrix[3][4] = True
 state_matrix[5][1] = True
 
-# Set up same state transitions as allowed 
-state_matrix[0][0] = True
-state_matrix[1][1] = True
-state_matrix[2][2] = True
-state_matrix[3][3] = True
-state_matrix[4][4] = True
-state_matrix[5][5] = True
-state_matrix[6][6] = True
+# Disallow same state transitions 
+#state_matrix[0][0] = True
+#state_matrix[1][1] = True
+#state_matrix[2][2] = True
+#state_matrix[3][3] = True
+#state_matrix[4][4] = True
+#state_matrix[5][5] = True
+#state_matrix[6][6] = True
 
 
 # Error codes are 4 digit numbers
@@ -156,6 +200,9 @@ state_matrix[6][6] = True
 # 54 - No Response to END_READOUT message
 # 55 - No New Session Response
 # 56 - No Next Visit Response
+
+#Status Codes
+# 4451 - No response from Archive Controller
 
 
 """ Exception classes 

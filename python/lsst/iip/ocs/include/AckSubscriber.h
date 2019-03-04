@@ -1,9 +1,9 @@
 #include "Consumer_impl.h"
-#include <boost/variant.hpp> 
-#include "SAL_archiver.h" 
-#include "SAL_catchuparchiver.h" 
-#include "SAL_processingcluster.h" 
-#include "SAL_atArchiver.h"
+#include <pthread.h>
+#include "SAL_MTArchiver.h" 
+#include "SAL_CatchupArchiver.h" 
+#include "SAL_PromptProcessing.h" 
+#include "SAL_ATArchiver.h"
 
 /** Rabbitmq subscriber class to ack back messages from OCS after processing */ 
 class AckSubscriber : public OCS_Bridge { 
@@ -11,10 +11,11 @@ class AckSubscriber : public OCS_Bridge {
 
         /** Consumer object to listen to messages from rabbitmq */ 
         Consumer* ack_consumer; 
-        SAL_archiver ar; 
-        SAL_catchuparchiver cu; 
-        SAL_processingcluster pp; 
-        SAL_atArchiver atar; 
+        SAL_MTArchiver ar; 
+        SAL_CatchupArchiver cu; 
+        SAL_PromptProcessing pp; 
+        SAL_ATArchiver at; 
+        pthread_t ack_t, telemetry_t; 
 
         /** constructor for Rabbitmq ack subscriber to OCS system */ 
 	AckSubscriber(); 
@@ -27,11 +28,13 @@ class AckSubscriber : public OCS_Bridge {
 
         /** Run rabbitmq IOLoop to listen to messages */ 
 	void run(); 
+        void shutdown();
 
         /** Rabbitmq callback function to parse into Consumer object to listen to messages
           * @param string message body
           */ 
         void on_message(std::string); 
+        void on_telemetry_message(std::string); 
 
 	void process_ack(YAML::Node);  
         void process_summary_state(YAML::Node); 
@@ -41,5 +44,12 @@ class AckSubscriber : public OCS_Bridge {
         void process_error_code(YAML::Node); 
 	void process_book_keeping(YAML::Node); 
 	void process_resolve_ack(YAML::Node); 
+        void process_telemetry(YAML::Node);
+
+        static void *run_telemetry_consumer(void *); 
+        static void *run_ack_consumer(void *); 
+
+        // recover from fault
+        void process_reset_from_fault_ack(YAML::Node); 
 }; 
 

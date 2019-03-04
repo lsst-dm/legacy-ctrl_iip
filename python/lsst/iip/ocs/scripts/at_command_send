@@ -1,0 +1,26 @@
+/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_enterControl_commander 0
+sleep 2
+
+/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_exitControl_commander 0
+sleep 2
+
+/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_enable_commander 0
+sleep 2
+
+/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_disable_commander 0
+sleep 2
+
+/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_standby_commander 0
+sleep 2
+
+/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_start_commander Normal 0
+sleep 2
+
+/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_abort_commander 0
+sleep 2
+
+/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_resetFromFault_commander 0
+sleep 2
+
+
+echo "[x] DONE"

@@ -75,7 +75,7 @@ ROOT:
   #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny?heartbeat=30
   #BASE_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
   #NCSA_BROKER_ADDR: 141.142.238.160:5672/%2fbunny
-  BASE_BROKER_ADDR: 141.142.238.10:5672/%2ftest
+  BASE_BROKER_ADDR: 140.252.32.128:5672/%2ftest_at
   NCSA_BROKER_ADDR: 141.142.238.10:5672/%2ftest
   INFLUX_DB: L1_Test
   SESSION_ID_FILE: "/var/session_id"
@@ -127,6 +127,10 @@ ROOT:
     PP: pp_foreman_consume
     CU: cu_foreman_consume
     AT: at_foreman_consume
+  GENERAL_SETTINGS:
+    TsXmlVersion: ManCtrl_MPD_AuxTel
+    TsSALVersion: 3.7.1
+    L1DMRepoTag: V1.4a-ats_turnkey_system
   ARCHIVE:
     USE_ARCHIVE_CTRL: False
     ARCHIVE_NAME: ARCHIE
@@ -150,6 +154,11 @@ ROOT:
     OCS_PASSWD: OCS
     OCS_PUBLISH: ocs_dmcs_consume
     OCS_CONSUME: dmcs_ocs_publish
+  STARTUP:
+    AT_START_ENABLE: yes
+    AR_START_ENABLE: no
+    PP_START_ENABLE: no
+    CU_START_ENABLE: no
   SCOREBOARDS:
     AR_JOB_SCBD: 0
     AR_FWD_SCBD: 1
@@ -221,7 +230,7 @@ ROOT:
       FORWARDER_99:
         NAME: F99
         HOSTNAME: lsst-daq.ncsa.illinois.edu  
-        IP_ADDR: 141.142.238.74
+        IP_ADDR: 140.252.32.129.
         STATE: IDLE
         CONSUME_QUEUE: f99_consume
         PUBLISH_QUEUE: at_foreman_ack_publish

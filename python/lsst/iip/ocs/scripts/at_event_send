@@ -1,0 +1,9 @@
+/opt/sal/ts_sal/test/ATCamera/cpp/src/sacpp_ATCamera_startIntegration_send seq1 3 img1 1 0 0 0
+echo "[x] startIntegration" 
+
+/opt/sal/ts_sal/test/ATCamera/cpp/src/sacpp_ATCamera_endReadout_send seq1 3 img1 1 0 0 0
+echo "[x] endReadout" 
+
+/opt/sal/ts_sal/test/EFD/cpp/src/sacpp_EFD_largeFileObjectAvailable_send 0 0 atHeaderService 0 http://url 0 img1 0 
+echo "[x] header_ready" 
+
