@@ -142,6 +142,7 @@ class DMCS:
                               'DISABLE': self.process_disable_command,
                               'ENABLE': self.process_enable_command,
                               'SET_VALUE': self.process_set_value_command,
+                              'RESET_FROM_FAULT': self.process_reset_from_fault,
                               'EXIT_CONTROL': self.process_exit_control_command,
                               'ABORT': self.process_abort_command,
                               'STOP': self.process_stop_command,
@@ -359,6 +360,12 @@ class DMCS:
         try: 
             new_state = toolsmod.next_state[msg['MSG_TYPE']]
             transition_check = self.validate_transition(new_state, msg)
+
+            # send new session id to all
+            session_id = self.INCR_SCBD.get_next_session_id()
+            self.STATE_SCBD.set_current_session(session_id)
+            self.STATE_SCBD.set_rafts_for_current_session(session_id)
+            self.send_new_session_msg(session_id)
         except Exception as e: 
             LOGGER.error("DMCS unable to process_enter_control_command: %s" % e.args) 
             print("DMCS unable to process_enter_control_command: %s" % e.args) 
@@ -506,6 +513,41 @@ class DMCS:
             LOGGER.error("DMCS unable to process_exit_control_command: %s" % e.args) 
             print("DMCS unable to process_exit_control_command: %s" % e.args) 
             raise L1Error("DMCS unable to process_exit_control_command: %s" % e.args) 
+
+
+    def process_reset_from_fault(self, msg):
+        """ Pass the next state of the message transition (retrived from toolsmod.py)
+            into validate_transition.
+
+            :params msg: The message to be processed.
+
+            :return: None.
+        """
+        LOGGER.error("IN PROCESS_RESET_FROM_FAULT")
+        msg_type = msg['MSG_TYPE']
+        device = msg['DEVICE']
+        cmd_id = msg['CMD_ID']
+        try: 
+            LOGGER.error("IN TRY BLOCK")
+            LOGGER.error("SETTING AT to OFFLINE")
+            self.STATE_SCBD.set_device_state(device,"OFFLINE")
+            LOGGER.error("AT set to OFFLINE")
+            message = {}
+            message['MSG_TYPE'] = msg_type + "_ACK"
+            message['DEVICE'] = device
+            message['ACK_ID'] = msg['ACK_ID']
+            message['ACK_STATEMENT'] = "Resetting " + device + " to OFFLINE state."
+            message['CMD_ID'] = cmd_id
+            message['ACK_BOOL'] = 1
+            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+
+            LOGGER.error("AFTER PUBLISHING RESET FROM FAULT ACK")
+            self.send_summary_state_event(device)
+        except Exception as e: 
+            LOGGER.error("DMCS unable to process_reset_from_start command: %s" % e.args) 
+            print("DMCS unable to process_reset_from_start command: %s" % e.args) 
+            raise L1Error("DMCS unable to process_reset_from_start command: %s" % e.args) 
+
 
 
     def process_abort_command(self, msg):
