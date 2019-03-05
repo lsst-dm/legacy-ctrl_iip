@@ -3,25 +3,39 @@ This file contains a listing of the commit to master as of "f3e7506".
 It contains suggestions of where code should move to as part of DM-18187,
 reorganizing this repo.
 
-This directory stays in place, and will hold future unit tests:
+In general:
+    *) the value: "$CTRL_IIP_DIR" is to root directory of the repository
+    *) Documentation should go under "$CTRL_IIP_DIR/docs"
+    *) Configuration files should go under "$CTRL_IIP_DIR/etc"
+    *) Scripts that are executed go under "$CTRL_IIP_DIR/bin" (but will
+        later be moved to $CTRL_IIP_DIR/bin.src after transitioning to use
+        scons to build.
+
+Random comments:   
+    *) The suggestions below are where we need to move files, but if there's
+        a more sensible place, move then there.
+    *) Many, if not all of the configuration loading mechanisms need to be
+        fixed in the code as we move configuration files around to a central
+        location.  They currently load from a source code relative position
+        and need to load from a well-known central location, such as:
+        $IIP_ROOT_DIR/etc (where $IPP_ROOT_DIR is a place like "/opt/lsst")
+    *) Log files need to be written to a central location, such as
+        $IIP_ROOT_DIR/logs
+    *) Dependent packages need to be loaded externally, and Makefiles need
+        to reflect that (and other code movement changes).
+
+-------------
+This directory stays in place, and will hold future unit tests. SConscript 
+files are used by "scons" for builds
 
 ./tests
 ./tests/SConscript
-./tests/.gitignore
 
 -------------
-
-
 This file can be removed, because Python3 build does not require it.
 
 
 ./python/lsst/__init__.py
-
-
--------------
-This file remains:
-
-./python/lsst/.gitignore
 
 -------------
 I believe the directory "AuditWeb" and it's contents are out of date.
@@ -93,7 +107,6 @@ This can be removed entirely, or moved to a new repo, such as lsst-dm/AuditWeb
 ./python/lsst/iip/AuditWeb/.idea/misc.xml
 
 -------------
-
 Forwarder code should be split to be:
 
 $CTRL_IIP_DIR/include/forwarder
@@ -117,7 +130,7 @@ I'm not sure if this file is still used, or is obsolete.
 
 ./python/lsst/iip/forwarder/src/ims.sh
 
-If it's still in use, move to $CTRL_IIP_DIR/bin.src with any appropriate 
+If it's still in use, move to $CTRL_IIP_DIR/bin with any appropriate 
 changes to the script to point at where "ims_list" is/will be located.
 
 ------------
@@ -333,7 +346,7 @@ I'm not even sure why this is in the repo.  I believe this can be removed:
 
 
 ------------
-Move to: $CTRL_IIP_DIR/bin.src
+Move to: $CTRL_IIP_DIR/bin
 
 ./python/lsst/iip/scripts/at_rmq_purge_queues.sh
 ./python/lsst/iip/scripts/at_rmq_declare_queues.sh
@@ -353,7 +366,7 @@ Move to: $CTRL_IIP_DIR/etc/dell
 ./python/lsst/iip/scripts/DellLoaner_rc.local
 
 ------------
-Move to: $CTRL_IIP_DIR/bin.src and give it a better name.
+Move to: $CTRL_IIP_DIR/bin and give it a better name.
 
 ./python/lsst/iip/scripts/INSTALL
 
@@ -363,7 +376,8 @@ Move to: $CTRL_IIP_DIR/doc
 ./python/lsst/iip/scripts/L1_install_notes
 
 ------------
-./python/lsst/iip/ocs
+Move to: $CTRL_IIP/DIR/include
+
 ./python/lsst/iip/ocs/include
 ./python/lsst/iip/ocs/include/AckSubscriber.h
 ./python/lsst/iip/ocs/include/EventSubscriber.h
@@ -373,6 +387,14 @@ Move to: $CTRL_IIP_DIR/doc
 ./python/lsst/iip/ocs/include/SimplePublisher.h
 ./python/lsst/iip/ocs/include/CommandListener.h
 ./python/lsst/iip/ocs/include/Consumer.h
+
+------------
+Not sure what this is other than a bunch of commmands that send messages
+to components that aren't necessarily part of the DM part of the system.
+Are these here for testing?  If so, this might be better in a different
+repo.
+
+
 ./python/lsst/iip/ocs/events
 ./python/lsst/iip/ocs/events/sacpp_camera_endReadout_send.cpp
 ./python/lsst/iip/ocs/events/startShutterClose
@@ -402,7 +424,18 @@ Move to: $CTRL_IIP_DIR/doc
 ./python/lsst/iip/ocs/events/sacpp_camera_startShutterClose_send.cpp
 ./python/lsst/iip/ocs/events/sacpp_archiver_targetVisitDone_send
 ./python/lsst/iip/ocs/events/sacpp_archiver_targetVisitAccept_send
+
+------------
+I believe this is obsolete, and can be removed
+
 ./python/lsst/iip/ocs/GraphicalOCS.py
+
+------------
+Not sure what this is other than a bunch of commmands that send messages
+to components that aren't necessarily part of the DM part of the system.
+Are these here for testing?  If so, this might be better in a different
+repo.
+
 ./python/lsst/iip/ocs/commands
 ./python/lsst/iip/ocs/commands/sacpp_archiver_enterControl_commander.cpp
 ./python/lsst/iip/ocs/commands/sacpp_archiver_SummaryState_log.cpp
@@ -460,14 +493,26 @@ Move to: $CTRL_IIP_DIR/doc
 ./python/lsst/iip/ocs/commands/sacpp_archiver_enable_commander.cpp
 ./python/lsst/iip/ocs/commands/sacpp_catchuparchiver_ErrorCode_log.cpp
 ./python/lsst/iip/ocs/commands/sacpp_atArchiver_exitControl_commander.cpp
+------------
+Delete these.  Executable Binaries don't belong in the repo.
+
+
 ./python/lsst/iip/ocs/examples
 ./python/lsst/iip/ocs/examples/Subscriber2.cpp
 ./python/lsst/iip/ocs/examples/makefile
-./python/lsst/iip/ocs/examples/Publisher
 ./python/lsst/iip/ocs/examples/Publisher.cpp
 ./python/lsst/iip/ocs/examples/Subscriber.cpp
+------------
+Delete these.  Executable Binaries don't belong in the repo.
+
+./python/lsst/iip/ocs/examples/Publisher
 ./python/lsst/iip/ocs/examples/Subscriber
+
+------------
 ./python/lsst/iip/ocs/README.md
+
+These (possibly) belong in $CTRL_IIP_DIR/bin. 
+
 ./python/lsst/iip/ocs/scripts
 ./python/lsst/iip/ocs/scripts/shutdown.sh
 ./python/lsst/iip/ocs/scripts/README
@@ -479,7 +524,11 @@ Move to: $CTRL_IIP_DIR/doc
 ./python/lsst/iip/ocs/scripts/at_command_send
 ./python/lsst/iip/ocs/scripts/overnight_demo.sh
 ./python/lsst/iip/ocs/scripts/run_overnight.sh
-./python/lsst/iip/ocs/src
+
+
+------------
+This belongs in $CTRL_IIP_DIR/src
+
 ./python/lsst/iip/ocs/src/makefile
 ./python/lsst/iip/ocs/src/OCS_Bridge.cpp
 ./python/lsst/iip/ocs/src/EventSubscriber.cpp
@@ -488,9 +537,16 @@ Move to: $CTRL_IIP_DIR/doc
 ./python/lsst/iip/ocs/src/Toolsmod.cpp
 ./python/lsst/iip/ocs/src/AckSubscriber.cpp
 ./python/lsst/iip/ocs/src/Consumer.cpp
-./ups
+
+------------
+Stays as is. Dependencies (pika, yaml-cpp, redis, etc) are going to be 
+keep in the ctrl_iip.table file eventually. 
+
 ./ups/ctrl_iip.table
 ./ups/ctrl_iip.cfg
+
+------------
+Stays as is.
 ./README.md
 ./bin.src
 ./bin.src/SConscript
