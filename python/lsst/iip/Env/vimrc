@@ -1,8 +1,0 @@
-set nohlsearch
-syntax off
-:set vb
-autocmd FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
-let loaded_matchparen = 1
-autocmd FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
-:set viminfo=
-
