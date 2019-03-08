@@ -12,9 +12,9 @@ SAL_INCLUDE    = -I/opt/sal/ts_sal/lsstsal/include \
 		 -I$(OSPL_PATH)/include/dcps/C++/SACPP \
 		 -I$(OSPL_PATH)/include/sys \
 		 -I$(OSPL_PATH)/include
-DM_INCLUDE     = -I../include \
+DM_INCLUDE     = -I../../include/ocs \
 		 -I$(LSST_BUILDDIR)/include \
-		 -I/opt/sal/ts_opensplice/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux/include/dcps/C++/SACPP
+		 -I/opt/sal/ts_opensplice/OpenSpliceDDS/V6.4.1Community/HDE/x86_64.linux/include/dcps/C++/SACPP \
 		 -I$(AR) -I$(AR)/src \
 		 -I$(CU) -I$(CU)/src \
 		 -I$(PP) -I$(PP)/src \
@@ -44,18 +44,17 @@ DM_OBJ         = $(AR)/src/.obj/SAL_MTArchiver.o \
 		 $(EFD)/src/.obj/SAL_EFD.o 
 L1_OBJ         = ../obj/OCS_Bridge.o ../obj/SimplePublisher.o ../obj/Toolsmod.o
 OBJ_DIR        = ../obj
-BIN_DIR	       = ../bin
+BIN_DIR	       = ../../bin
 
 all: builddir OCS_Bridge CommandListener EventSubscriber AckSubscriber
 
 builddir:
-	mkdir -p $(OBJ_DIR) $(BIN_DIR)
+	mkdir -p $(OBJ_DIR)
 
 OCS_Bridge: OCS_Bridge.cpp SimplePublisher
 	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) $(OBJ_DIR)/SimplePublisher.o -c -o $(OBJ_DIR)/OCS_Bridge.o OCS_Bridge.cpp -lSimpleAmqpClient -lyaml-cpp 
 
 SimplePublisher: SimplePublisher.cpp
-<<<<<<< HEAD
 	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/$@.o $^ -lSimpleAmqpClient 
 
 Consumer: Consumer.cpp 
