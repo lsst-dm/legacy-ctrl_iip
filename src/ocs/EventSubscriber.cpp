@@ -24,7 +24,7 @@ using namespace YAML;
 typedef void* (*funcptr)(void *args);  
 
 EventSubscriber::EventSubscriber() { 
-    Node config_file = LoadFile("../etc/config/L1SystemCfg.yaml"); 
+    Node config_file = LoadFile("../config/L1SystemCfg.yaml"); 
     Node root = config_file["ROOT"]; 
     base_broker_addr = root["BASE_BROKER_ADDR"].as<string>(); 
     queue_name = root["OCS"]["OCS_PUBLISH"].as<string>(); 

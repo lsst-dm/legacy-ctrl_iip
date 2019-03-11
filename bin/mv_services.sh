@@ -1,11 +1,9 @@
 #! /bin/bash
 case $1 in 
     all) 
-        cp *.service /etc/systemd/system
-        cp *.target /etc/systemd/system
+        cp ../etc/services/*.service /etc/systemd/system
+        cp ../etc/services/*.target /etc/systemd/system
         systemctl daemon-reload
-        #systemctl start ctrl_iip.target
-        #systemctl status ctrl_iip.target
         ;;
     *)
         cp $1 /etc/systemd/system

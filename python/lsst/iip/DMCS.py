@@ -69,8 +69,7 @@ from toolsmod import L1Error
 from toolsmod import L1RedisError
 from toolsmod import L1RabbitConnectionError
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
+LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 handler = RotatingFileHandler('logs/DMCS.log', maxBytes=2000000, backupCount = 10)
@@ -98,7 +97,7 @@ class DMCS:
         Finally, the DMCS keeps track of any failed jobs in a Backlog scoreboard.
     """
 
-    DEFAULT_CFG_FILE = 'L1SystemCfg.yaml'
+    DEFAULT_CFG_FILE = '../config/L1SystemCfg.yaml'
     OCS_BDG_PUBLISH = "ocs_dmcs_consume"  #Messages from OCS Bridge
     DMCS_OCS_PUBLISH = "dmcs_ocs_publish"  #Messages to OCS Bridge
     AR_FOREMAN_ACK_PUBLISH = "dmcs_ack_consume" #Used for Foreman comm

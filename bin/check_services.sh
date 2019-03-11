@@ -30,7 +30,7 @@ while true; do
                 systemctl stop l1d-EventSubscriber
                 systemctl stop l1d-AckSubscriber
                 echo "Purging queues..."
-                /usr/bin/bash ./scripts/at_rmq_purge_queues.sh
+                /usr/bin/bash /opt/lsst/dm-prompt/bin/at_rmq_purge_queues.sh
                 echo "Restarting services..."
                 systemctl restart l1d-ctrl_iip.target
                 sleep 10

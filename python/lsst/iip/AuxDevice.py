@@ -89,7 +89,7 @@ class AuxDevice:
     TELEMETRY_QUEUE = "telemetry_queue"
     START_INTEGRATION_XFER_PARAMS = {}
     ACK_QUEUE = []
-    CFG_FILE = 'L1SystemCfg.yaml'
+    CFG_FILE = '../config/L1SystemCfg.yaml'
     prp = toolsmod.prp
     DP = toolsmod.DP
     METRIX = toolsmod.METRIX

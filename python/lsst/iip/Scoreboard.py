@@ -63,7 +63,7 @@ class Scoreboard:
 
     def __init__(self, file=None):
         if file == None:
-            file = 'L1SystemCfg.yaml'
+            file = '../config/L1SystemCfg.yaml'
         try:
             f = open(file)
         except IOError:
