@@ -8,7 +8,7 @@ logs
 forwarder/src/*.o
 forwarder/src/Forwarder
 forwarder/src/old
-forwarder/src/DAQForwarder
+DAQForwarder
 AckSubscriber
 EventSubscriber
 CommandListener

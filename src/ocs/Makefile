@@ -46,7 +46,7 @@ L1_OBJ         = ../obj/OCS_Bridge.o ../obj/SimplePublisher.o ../obj/Toolsmod.o
 OBJ_DIR        = ../obj
 BIN_DIR	       = ../../bin
 
-all: builddir OCS_Bridge CommandListener EventSubscriber AckSubscriber
+all: builddir OCS_Bridge Consumer SimplePublisher Toolsmod CommandListener EventSubscriber AckSubscriber
 
 builddir:
 	mkdir -p $(OBJ_DIR)

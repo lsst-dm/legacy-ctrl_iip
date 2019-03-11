@@ -54,7 +54,7 @@
 #define METRIX 1
 #define DUMP_MAP 1
 #define PRIVATE_BUFFER_SIZE  1024  // Used by crc32 code
-#define L1_CFG_FILE_LOCATION  "../../L1SystemCfg.yaml"
+#define L1_CFG_FILE_LOCATION  "../etc/config/L1SystemCfg.yaml"
 
 using namespace std;
 using namespace YAML;
