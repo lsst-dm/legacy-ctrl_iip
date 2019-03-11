@@ -26,10 +26,19 @@ System to perform image processing.
 
 %build
 make
-##%make_build
 
 %install
-%make_install
+install -d %{buildroot}%{lsstpath}/bin %{buildroot}%{lsstpath}/python %{buildroot}%{lsstpath}/python/logs %{buildroot}%{lsstpath}/config
+install -d %{buildroot}/etc/systemd/system
+
+install -m 755 -D python/lsst/iip/*.py %{buildroot}%{lsstpath}/python
+install -m 755 -D bin/CommandListener %{buildroot}%{lsstpath}/bin
+install -m 755 -D bin/EventSubscriber %{buildroot}%{lsstpath}/bin
+install -m 755 -D bin/AckSubscriber %{buildroot}%{lsstpath}/bin
+install -m 755 -D bin/check_services.sh %{buildroot}%{lsstpath}/bin
+install -m 755 -D bin/at_rmq_purge_queues.sh %{buildroot}%{lsstpath}/bin
+install -m 755 -D etc/config/L1SystemCfg.yaml %{buildroot}%{lsstpath}/config
+install -D etc/services/l1d-* %{buildroot}/etc/systemd/system
 
 %files
 %defattr(755, %{user}, %{user}, 755) 
