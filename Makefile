@@ -4,10 +4,9 @@ INSTALL_DIR		= /opt/lsst/dm-prompt
 all: ocsbuild
 
 ocsbuild:
-	cd src/ocs && $(MAKE)
+	 $(MAKE) -C src/ocs
 
 install:
-	cd ocs/src && $(MAKE) install
 	install -d $(INSTALL_DIR)/bin $(INSTALL_DIR)/python $(INSTALL_DIR)/python/logs $(INSTALL_DIR)/config
 	install -m 755 -D *.py $(INSTALL_DIR)/python
 	install -m 755 -D CommandListener $(INSTALL_DIR)/bin

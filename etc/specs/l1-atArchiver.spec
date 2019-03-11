@@ -1,6 +1,6 @@
 %define lsstpath /opt/lsst/dm-prompt
-%define gitbranch tickets/DM-17833
-%define gitdash tickets-DM-17833
+%define gitbranch tickets/DM-18375
+%define gitdash tickets-DM-18375
 %define user ATS
 
 Name:	        lsst-atArchiver	
@@ -24,18 +24,18 @@ System to perform image processing.
 %prep
 %setup -q -n ctrl_iip-%{gitdash}
 
-%install
-cd python/lsst/iip
+%build
+make
+##%make_build
 
-install -d %{buildroot}%{lsstpath}/bin %{buildroot}%{lsstpath}/bin/logs
-install -d %{buildroot}/etc/systemd/system
-install -m 755 -D *.py %{buildroot}%{lsstpath}/bin
-install -m 755 -D L1SystemCfg.yaml %{buildroot}%{lsstpath}/bin
-install -D start_up/l1d-* %{buildroot}/etc/systemd/system
+%install
+%make_install
 
 %files
 %defattr(755, %{user}, %{user}, 755) 
 %{lsstpath}/bin/*
+%{lsstpath}/python/*
+%{lsstpath}/config/*
 %attr(-, root, root) /etc/systemd/system/l1d-*
 
 %doc
