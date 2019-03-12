@@ -59,7 +59,7 @@ class MessageAuthority:
 
     def __init__(self, filename=None):
        self.prp = pprint.PrettyPrinter(indent=4) 
-       self._message_dictionary_file = './messages.yaml'
+       self._message_dictionary_file = '../config/messages.yaml'
        if filename != None:
            self._message_dictionary_file = filename
 
