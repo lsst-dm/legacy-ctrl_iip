@@ -1,44 +1,23 @@
-###############################################################################
-###############################################################################
-## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
-## All rights reserved.
-##
-## Developed by:
-##
-##   LSST Image Ingest and Distribution Team
-##   National Center for Supercomputing Applications
-##   University of Illinois
-##   http://www.ncsa.illinois.edu/enabling/data/lsst
-##
-## Permission is hereby granted, free of charge, to any person obtaining
-## a copy of this software and associated documentation files (the
-## "Software"), to deal with the Software without restriction, including
-## without limitation the rights to use, copy, modify, merge, publish,
-## distribute, sublicense, and/or sell copies of the Software, and to
-## permit persons to whom the Software is furnished to do so, subject to
-## the following conditions:
-##
-##   Redistributions of source code must retain the above copyright
-##   notice, this list of conditions and the following disclaimers.
-##
-##   Redistributions in binary form must reproduce the above copyright
-##   notice, this list of conditions and the following disclaimers in the
-##   documentation and/or other materials provided with the distribution.
-##
-##   Neither the names of the National Center for Supercomputing
-##   Applications, the University of Illinois, nor the names of its
-##   contributors may be used to endorse or promote products derived from
-##   this Software without specific prior written permission.
-##
-## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-## IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
-## ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-## CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
-
-
+# This file is part of ctrl_iip
+# 
+# Developed for the LSST Data Management System.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 ### FIX MOVE NEW_ARCHIVE_ITEM message publish to NEW_VISIT/NEW_TARGET and remove unneeded params from message body.
@@ -70,7 +49,7 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lin
 LOGGER = logging.getLogger(__name__)
 
 
-class ArchiveDevice:
+class ArchiveDevice(iip_base):
     """ The Archive Device is a commandable device which coordinates the ingest of
         images from the telescope camera and then the transfer of those images to
         the base site archive storage.
@@ -83,7 +62,6 @@ class ArchiveDevice:
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
     AR_FOREMAN_ACK_PUBLISH = "ar_foreman_ack_publish"
     START_INTEGRATION_XFER_PARAMS = {}
-    CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
     DP = toolsmod.DP
 
@@ -97,18 +75,14 @@ class ArchiveDevice:
             are started within a Thread Manager object so that they can be monitored
             for health and shutdown/joined cleanly when the app exits.
 
-            :params filename: Deflaut 'L1SystemCfg.yaml'. Can be assigned by user.
+            :params filename: configuration file
 
             :return: None.
         """
         toolsmod.singleton(self)
 
-        self._config_file = self.CFG_FILE
-        if filename != None:
-            self._config_file = filename
-
         LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values()
+        self.extract_config_values(filename)
 
 
         #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
@@ -881,7 +855,7 @@ class ArchiveDevice:
             return None
 
 
-    def extract_config_values(self):
+    def extract_config_values(self, filename):
         """ Parse system config yaml file.
             Throw error messages if Yaml file or key not found.
 
@@ -889,9 +863,9 @@ class ArchiveDevice:
 
             :return: True.
         """
-        LOGGER.info('Reading YAML Config file %s' % self._config_file)
+        LOGGER.info('Reading YAML Config file')
         try:
-            cdm = toolsmod.intake_yaml_file(self._config_file)
+            cdm = loadYAMLConfigFile(filename)
         except IOError as e:
             LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
             sys.exit(101)
