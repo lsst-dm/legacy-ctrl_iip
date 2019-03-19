@@ -33,9 +33,8 @@ import logging
 import pika
 import threading
 from time import sleep
-from SimplePublisher import SimplePublisher
-from XMLHandler import *
-from YamlHandler import *
+from lsst.iip.XMLHandler import *
+from lsst.iip.YamlHandler import *
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

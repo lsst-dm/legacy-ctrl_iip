@@ -1,18 +1,19 @@
 import pika
 #from FirehoseConsumer import FirehoseConsumer
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+from lsst.iip.Consumer import Consumer
+from lsst.iip.SimplePublisher import SimplePublisher
 import sys
 import os
 import time
 import logging
 import _thread
-import toolsmod
 
 class Premium:
   def __init__(self):
     logging.basicConfig()
-    broker_url = 'amqp://FORWARD_F93:FORWARD_F93@140.252.32.128:5672/%2Ftest_at'
+    # commented out - srp
+    #broker_url = 'amqp://FORWARD_F93:FORWARD_F93@140.252.32.128:5672/%2Ftest_at'
+    broker_url = 'amqp://FORWARD_F93:FORWARD_F93@141.142.238.10:5672/%2Ftest_at_srp'
 
     #self.new_thread = Consumer(broker_url, 'telemetry_queue', 'xthread', self.mycallback, 'YAML')
     #self.new_thread.start()
@@ -33,7 +34,9 @@ class Premium:
 
 def main():
   premium = Premium()
-  sp1 = SimplePublisher('amqp://DMCS:DMCS@140.252.32.128:5672/%2Ftest_at', "YAML")
+  # commented out - srp
+  #sp1 = SimplePublisher('amqp://DMCS:DMCS@140.252.32.128:5672/%2Ftest_at', "YAML")
+  sp1 = SimplePublisher('amqp://DMCS:DMCS@141.142.238.10:5672/%2Ftest_at_srp', "YAML")
 
   #while 1:
     #pass

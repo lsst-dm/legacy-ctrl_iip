@@ -21,7 +21,7 @@
 
 
 from lxml import etree
-from const import *
+from lsst.iip.const import *
 from copy import deepcopy 
 import sys
 

@@ -49,6 +49,7 @@ from SimplePublisher import SimplePublisher
 from toolsmod import L1Error
 from toolsmod import L1RedisError
 from toolsmod import L1RabbitConnectionError
+from iip_base import iip_base
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
@@ -1566,6 +1567,7 @@ def main():
     print("DMCS seems to be working")
     try:
         while 1:
+            sleep(100)
             pass
     except KeyboardInterrupt:
         x = os.getpid()
