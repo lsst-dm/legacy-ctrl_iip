@@ -8,26 +8,26 @@ from AuxDevice import AuxDevice
 
 # TODO: gonna be lsst unitTest
 class AuxDeviceTestCase():
-    self.AUX_ACK_QUEUE = 'at_foreman_ack_publish'
-    self.DMCS_PUBLISH_QUEUE = 'at_foreman_consume'
-    self.DMCS_ACK_QUEUE = 'dmcs_ack_consume'
-    self.ARCHIVE_PUBLISH_QUEUE = 'archive_ctrl_publish'
-    self.CFG_FILE = '../etc/config/L1SystemCfg_Test.yaml'
-    self.FORWARDER = 'FORWARDER_99'
-    self.ARCHIVE_CTRL = 'ARCHIVE_CTRL'
-    self.JOB_NUM = 'job_100'
-    self.SESSION_ID = 'session_100'
-    self.IMAGE_ID = 'IMG_100'
-    self.IMAGE_INDEX = 0
-    self.IMAGE_SEQUENCE_NAME = 'seq_1000'
-    self.IMAGES_IN_SEQUENCE = 1
+    AUX_ACK_QUEUE = 'at_foreman_ack_publish'
+    DMCS_PUBLISH_QUEUE = 'at_foreman_consume'
+    DMCS_ACK_QUEUE = 'dmcs_ack_consume'
+    ARCHIVE_PUBLISH_QUEUE = 'archive_ctrl_publish'
+    CFG_FILE = '../etc/config/L1SystemCfg_Test.yaml'
+    FORWARDER = 'FORWARDER_99'
+    ARCHIVE_CTRL = 'ARCHIVE_CTRL'
+    JOB_NUM = 'job_100'
+    SESSION_ID = 'session_100'
+    IMAGE_ID = 'IMG_100'
+    IMAGE_INDEX = 0
+    IMAGE_SEQUENCE_NAME = 'seq_1000'
+    IMAGES_IN_SEQUENCE = 1
     
     def setUp(self):
         # read CFG file 
         self.__cfg_root = toolsmod.intake_yaml_file(self.CFG_FILE)['ROOT']
 
         # setup forwarder publisher 
-        self.__fwdr_cfg = self.__cfg_root['AUX_FORWARDERS'][self.FORWARDER]
+        self.__fwdr_cfg = self.__cfg_root['XFER_COMPONENTS']['AUX_FORWARDERS'][self.FORWARDER]
         self.__fwdr_amqp = 'amqp://' + \
                 self.__fwdr_cfg['NAME'] + ':' + \
                 self.__fwdr_cfg['NAME'] + '@' + \
@@ -83,6 +83,7 @@ class AuxDeviceTestCase():
         self.__fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
     def test_at_fwdr_xfer_params_ack(self):
+        msg = {}
         msg['MSG_TYPE'] = 'AT_FWDR_XFER_PARAMS_ACK'
         msg['COMPONENT'] = self.FORWARDER
         msg['ACK_BOOL'] = "true"
@@ -192,7 +193,7 @@ class AuxDeviceTestCase():
         print('[x] Received ack from ArchiveController')
         
         print('[x] Aux: Sending parameters for file transfer to Forwarder')
-        self.test_at_fwdr_xfer_params_ack(self):
+        self.test_at_fwdr_xfer_params_ack()
         time.sleep(5)
         print('[x] Received transfer param ack from Forwarder')
 
