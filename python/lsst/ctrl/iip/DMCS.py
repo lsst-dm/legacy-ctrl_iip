@@ -20,8 +20,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import lsst.ctrl.iip.toolsmod as toolsmod
-from lsst.ctrl.iip.toolsmod import get_timestamp
+import toolsmod
+from toolsmod import get_timestamp
 import logging
 from logging.handlers import RotatingFileHandler
 import pika
@@ -29,6 +29,7 @@ import redis
 import yaml
 import sys, traceback
 import os, os.path
+import signal
 from subprocess import call
 import time
 import datetime
@@ -36,27 +37,27 @@ from pprint import pprint, pformat
 from time import sleep
 from threading import ThreadError
 import threading
-from lsst.ctrl.iip.ThreadManager import ThreadManager
-from lsst.ctrl.iip.const import *
-from lsst.ctrl.iip.Scoreboard import Scoreboard
-from lsst.ctrl.iip.JobScoreboard import JobScoreboard
-from lsst.ctrl.iip.AckScoreboard import AckScoreboard
-from lsst.ctrl.iip.StateScoreboard import StateScoreboard
-from lsst.ctrl.iip.BacklogScoreboard import BacklogScoreboard
-from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
-from lsst.ctrl.iip.Consumer import Consumer
-from lsst.ctrl.iip.SimplePublisher import SimplePublisher
-from lsst.ctrl.iip.toolsmod import L1Error
-from lsst.ctrl.iip.toolsmod import L1RedisError
-from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
-from lsst.ctrl.iip.iip_base import iip_base
+from ThreadManager import ThreadManager
+from const import *
+from Scoreboard import Scoreboard
+from JobScoreboard import JobScoreboard
+from AckScoreboard import AckScoreboard
+from StateScoreboard import StateScoreboard
+from BacklogScoreboard import BacklogScoreboard
+from IncrScoreboard import IncrScoreboard
+from Consumer import Consumer
+from SimplePublisher import SimplePublisher
+from toolsmod import L1Error
+from toolsmod import L1RedisError
+from toolsmod import L1RabbitConnectionError
+from iip_base import iip_base
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
+#LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.DEBUG)
-handler = RotatingFileHandler('logs/DMCS.log', maxBytes=2000000, backupCount = 10)
-handler.setFormatter(LOG_FORMAT)
-LOGGER.addHandler(handler)
+#LOGGER.setLevel(logging.DEBUG)
+#handler = RotatingFileHandler('logs/DMCS.log', maxBytes=2000000, backupCount = 10)
+#handler.setFormatter(LOG_FORMAT)
+#LOGGER.addHandler(handler)
 
 
 class DMCS(iip_base):
@@ -101,6 +102,12 @@ class DMCS(iip_base):
 
             :return: None.
         """
+        #log_dir = self.getLogDirectory()
+        #log_file = os.path.join(log_dir, 'DMCS.log')
+        #print("Logs will be written to %s" % log_file)
+        #logging.basicConfig(filename=log_file, level=logging.INFO, format=LOG_FORMAT)
+        log_file = self.setupLogging('DMCS.log')
+        print("Logs will be written to %s" % log_file)
         toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
@@ -1351,7 +1358,7 @@ class DMCS(iip_base):
 
 
     def extract_config_values(self, filename):
-        LOGGER.info('Reading YAML Config file %s')
+        LOGGER.info('Reading YAML Config file')
         try:
             cdm = self.loadConfigFile(filename)
         except IOError as e:
@@ -1552,31 +1559,31 @@ class DMCS(iip_base):
     def shutdown(self):
         LOGGER.info("Shutting down Consumer threads.")
         self.shutdown_event.set()
-        LOGGER.debug("Thread Manager shutting down and app exiting...")
+        self.thread_manager.shutdown_consumers()
+        LOGGER.info("Thread Manager shutting down and app exiting...")
         #sys.exit(0)
-        print("\n")
-        os._exit(0)
+        #print("\n")
+        #os._exit(0)
 
     def dmcs_finalize(self):
         self.STATE_SCBD.scbd_finalize()
 
+    def registerHandler(self):
+        signal.signal(signal.SIGINT, self.signal_handler)
 
+    def signal_handler(self, sig, frame):
+        print("shutdown called")
+        self.shutdown()
+        print
+        
 def main():
-    logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
-    dmsc = DMCS()
+    dmcs = DMCS()
+    dmcs.registerHandler()
     print("DMCS seems to be working")
-    try:
-        while 1:
-            sleep(100)
-            pass
-    except KeyboardInterrupt:
-        x = os.getpid()
-        print("Killing PID: %s" % x)
-        call(["kill","-9",str(x)])
-        pass
-
-    print("")
+    signal.pause()
+    
     print("DMCS Done.")
+    os._exit(0)
 
 
 
