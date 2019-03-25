@@ -21,7 +21,7 @@
 
 
 import redis
-import lsst.ctrl.iip.toolsmod
+import lsst.ctrl.iip.toolsmod as toolsmod
 from lsst.ctrl.iip.toolsmod import get_timestamp
 from lsst.ctrl.iip.toolsmod import get_epoch_timestamp
 from lsst.ctrl.iip.toolsmod import L1RedisError
@@ -70,7 +70,7 @@ class StateScoreboard(Scoreboard):
     PP = "PP"
     CU = "CU"
     AT = "AT"
-    prp = lsst.ctrl.iip.toolsmod.prp
+    prp = toolsmod.prp
   
 
     def __init__(self, db_type, db_instance, ddict, rdict):

@@ -20,7 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import lsst.ctrl.iip.toolsmod
+import lsst.ctrl.iip.toolsmod as toolsmod
 from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
 import pika
@@ -70,9 +70,9 @@ class AuxDevice(iip_base):
     TELEMETRY_QUEUE = "telemetry_queue"
     START_INTEGRATION_XFER_PARAMS = {}
     ACK_QUEUE = []
-    prp = lsst.ctrl.iip.toolsmod.prp
-    DP = lsst.ctrl.iip.toolsmod.DP
-    METRIX = lsst.ctrl.iip.toolsmod.METRIX
+    prp = toolsmod.prp
+    DP = toolsmod.DP
+    METRIX = toolsmod.METRIX
     RAFT_LIST = []
     RAFT_CCD_LIST = ['00']
     date_format='date +%F_%H_%R:%S-'  # Used to generate unique ack_ids
@@ -91,7 +91,7 @@ class AuxDevice(iip_base):
 
             :return: None.
         """
-        lsst.ctrl.iip.toolsmod.singleton(self)
+        toolsmod.singleton(self)
 
         self._fwdr_state_dict = {}  # Used for ACK analysis...
         self._archive_ack = {}  # Used to determine archive response

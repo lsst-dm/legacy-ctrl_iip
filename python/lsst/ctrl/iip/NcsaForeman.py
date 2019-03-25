@@ -21,7 +21,7 @@
 
 
 
-import lsst.ctrl.iip.toolsmod
+import lsst.ctrl.iip.toolsmod as toolsmod
 from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
 import pika
@@ -54,11 +54,11 @@ class NcsaForeman(iip_base):
     COMPONENT_NAME = 'NCSA_FOREMAN'
     DISTRIBUTOR_PUBLISH = "distributor_publish"
     ACK_PUBLISH = "ack_publish"
-    prp = lsst.ctrl.iip.toolsmod.prp
+    prp = toolsmod.prp
 
 
     def __init__(self, filename=None):
-        lsst.ctrl.iip.toolsmod.singleton(self)
+        toolsmod.singleton(self)
 
         #self._pairing_dict = {}
 

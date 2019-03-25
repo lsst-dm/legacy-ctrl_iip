@@ -31,7 +31,7 @@ from subprocess import call
 from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 from lsst.ctrl.iip.ThreadManager import ThreadManager 
-from const import *
+from lsst.ctrl.iip.const import *
 import lsst.ctrl.iip.toolsmod  
 from lsst.ctrl.iip.toolsmod import *
 from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard

@@ -20,7 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import lsst.ctrl.iip.toolsmod
+import lsst.ctrl.iip.toolsmod as toolsmod
 from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
 from logging.handlers import RotatingFileHandler
@@ -86,8 +86,8 @@ class DMCS(iip_base):
     OCS_CONSUMER_THREAD = "ocs_consumer_thread"
     ACK_CONSUMER_THREAD = "ack_consumer_thread"
     ERROR_CODE_PREFIX = 5500
-    prp = lsst.ctrl.iip.toolsmod.prp
-    DP = lsst.ctrl.iip.toolsmod.DP
+    prp = toolsmod.prp
+    DP = toolsmod.DP
 
 
     def __init__(self, filename=None):
@@ -101,7 +101,7 @@ class DMCS(iip_base):
 
             :return: None.
         """
-        lsst.ctrl.iip.toolsmod.singleton(self)
+        toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
         LOGGER.info('Extracting values from Config dictionary')

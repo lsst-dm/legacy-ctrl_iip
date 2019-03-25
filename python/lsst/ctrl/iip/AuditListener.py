@@ -20,7 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from const import *
+from lsst.ctrl.iip.const import *
 import lsst.ctrl.iip.toolsmod
 from lsst.ctrl.iip.toolsmod import get_timestamp
 from lsst.ctrl.iip.Consumer import Consumer
