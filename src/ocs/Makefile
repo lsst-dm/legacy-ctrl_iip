@@ -51,8 +51,8 @@ all: builddir OCS_Bridge Consumer SimplePublisher Toolsmod CommandListener Event
 builddir:
 	mkdir -p $(OBJ_DIR)
 
-OCS_Bridge: OCS_Bridge.cpp SimplePublisher
-	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) $(OBJ_DIR)/SimplePublisher.o -c -o $(OBJ_DIR)/OCS_Bridge.o OCS_Bridge.cpp -lSimpleAmqpClient -lyaml-cpp 
+OCS_Bridge: OCS_Bridge.cpp SimplePublisher Toolsmod
+	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) $(OBJ_DIR)/SimplePublisher.o $(OBJ_DIR)/Toolsmod.o -c -o $(OBJ_DIR)/$@.o $< -lSimpleAmqpClient -lyaml-cpp 
 
 SimplePublisher: SimplePublisher.cpp
 	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/$@.o $^ -lSimpleAmqpClient 
@@ -61,16 +61,16 @@ Consumer: Consumer.cpp
 	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/$@.o $^ -lSimpleAmqpClient 
 
 Toolsmod: Toolsmod.cpp
-	g++ -std=c++11 $(DM_INCLUDE) -c -o $(OBJ_DIR)/$@.o $^
+	g++ -std=c++11 $(DM_INCLUDE) -c -o $(OBJ_DIR)/$@.o $< 
 
 CommandListener: CommandListener.cpp SimplePublisher Toolsmod OCS_Bridge
-	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $(BIN_DIR)/$@ CommandListener.cpp $(SAL_LIB) $(L1_LIB)
+	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $(BIN_DIR)/$@ $< $(SAL_LIB) $(L1_LIB)
 
 EventSubscriber: EventSubscriber.cpp SimplePublisher
-	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $(BIN_DIR)/$@ EventSubscriber.cpp $(SAL_LIB) $(L1_LIB)
+	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $(BIN_DIR)/$@ $< $(SAL_LIB) $(L1_LIB)
 
 AckSubscriber: AckSubscriber.cpp Consumer
-	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) ../obj/Consumer.o -o $(BIN_DIR)/$@ AckSubscriber.cpp $(SAL_LIB) $(L1_LIB)
+	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) ../obj/Consumer.o -o $(BIN_DIR)/$@ $< $(SAL_LIB) $(L1_LIB)
 
 install:
 	install -d $(DM_BUILDDIR)/include $(DM_BUILDDIR)/bin
