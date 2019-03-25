@@ -1,6 +1,6 @@
-from toolsmod import get_epoch_timestamp
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
+from lsst.ctrl.iip.toolsmod import get_epoch_timestamp
+from lsst.ctrl.iip.JobScoreboard import JobScoreboard
+from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from time import sleep
 
 class SimJobs:

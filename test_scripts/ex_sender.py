@@ -1,7 +1,7 @@
 import pika
 #from FirehoseConsumer import FirehoseConsumer
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 import sys
 import os
 import time

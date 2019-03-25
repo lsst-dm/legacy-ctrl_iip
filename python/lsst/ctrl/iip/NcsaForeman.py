@@ -1,47 +1,28 @@
-###############################################################################
-###############################################################################
-## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
-## All rights reserved.
-##
-## Developed by:
-##
-##   LSST Image Ingest and Distribution Team
-##   National Center for Supercomputing Applications
-##   University of Illinois
-##   http://www.ncsa.illinois.edu/enabling/data/lsst
-##
-## Permission is hereby granted, free of charge, to any person obtaining
-## a copy of this software and associated documentation files (the
-## "Software"), to deal with the Software without restriction, including
-## without limitation the rights to use, copy, modify, merge, publish,
-## distribute, sublicense, and/or sell copies of the Software, and to
-## permit persons to whom the Software is furnished to do so, subject to
-## the following conditions:
-##
-##   Redistributions of source code must retain the above copyright
-##   notice, this list of conditions and the following disclaimers.
-##
-##   Redistributions in binary form must reproduce the above copyright
-##   notice, this list of conditions and the following disclaimers in the
-##   documentation and/or other materials provided with the distribution.
-##
-##   Neither the names of the National Center for Supercomputing
-##   Applications, the University of Illinois, nor the names of its
-##   contributors may be used to endorse or promote products derived from
-##   this Software without specific prior written permission.
-##
-## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-## IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
-## ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-## CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
+# This file is part of ctrl_iip
+# 
+# Developed for the LSST Data Management System.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 
-import toolsmod
-from toolsmod import get_timestamp
+import lsst.ctrl.iip.toolsmod as toolsmod
+from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -51,14 +32,15 @@ import os
 import time
 from time import sleep
 import threading
-from const import *
-from Scoreboard import Scoreboard
-from DistributorScoreboard import DistributorScoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from Consumer import Consumer
-from ThreadManager import ThreadManager
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Scoreboard import Scoreboard
+from lsst.ctrl.iip.DistributorScoreboard import DistributorScoreboard
+from lsst.ctrl.iip.JobScoreboard import JobScoreboard
+from lsst.ctrl.iip.AckScoreboard import AckScoreboard
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.ThreadManager import ThreadManager
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.iip_base import iip_base
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -66,27 +48,22 @@ logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=
 LOGGER = logging.getLogger(__name__)
 
 
-class NcsaForeman:
+class NcsaForeman(iip_base):
     NCSA_CONSUME = "ncsa_consume"
     NCSA_PUBLISH = "ncsa_publish"
     COMPONENT_NAME = 'NCSA_FOREMAN'
     DISTRIBUTOR_PUBLISH = "distributor_publish"
     ACK_PUBLISH = "ack_publish"
-    CFG_FILE = 'L1SystemCfg.yaml'
     prp = toolsmod.prp
 
 
     def __init__(self, filename=None):
         toolsmod.singleton(self)
 
-        self._config_file = self.CFG_FILE
-        if filename != None:
-            self._config_file = filename
-
         #self._pairing_dict = {}
 
         LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values()
+        self.extract_config_values(filename)
 
  
 
@@ -412,11 +389,11 @@ class NcsaForeman:
             return None
 
 
-    def extract_config_values(self):
+    def extract_config_values(self, filename):
         try:
-            cdm = toolsmod.intake_yaml_file(self._config_file)
+            cdm = self.loadConfigFile(filename)
         except IOError as e:
-            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
+            LOGGER.critical("Unable to find CFG Yaml file %s\n")
             sys.exit(101)
 
         try:

@@ -1,43 +1,23 @@
-###############################################################################
-###############################################################################
-## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
-## All rights reserved.
-##
-## Developed by:
-##
-##   LSST Image Ingest and Distribution Team
-##   National Center for Supercomputing Applications
-##   University of Illinois
-##   http://www.ncsa.illinois.edu/enabling/data/lsst
-##
-## Permission is hereby granted, free of charge, to any person obtaining
-## a copy of this software and associated documentation files (the
-## "Software"), to deal with the Software without restriction, including
-## without limitation the rights to use, copy, modify, merge, publish,
-## distribute, sublicense, and/or sell copies of the Software, and to
-## permit persons to whom the Software is furnished to do so, subject to
-## the following conditions:
-##
-##   Redistributions of source code must retain the above copyright
-##   notice, this list of conditions and the following disclaimers.
-##
-##   Redistributions in binary form must reproduce the above copyright
-##   notice, this list of conditions and the following disclaimers in the
-##   documentation and/or other materials provided with the distribution.
-##
-##   Neither the names of the National Center for Supercomputing
-##   Applications, the University of Illinois, nor the names of its
-##   contributors may be used to endorse or promote products derived from
-##   this Software without specific prior written permission.
-##
-## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-## IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
-## ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-## CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
-
+# This file is part of ctrl_iip
+# 
+# Developed for the LSST Data Management System.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import pika
@@ -48,17 +28,18 @@ import yaml
 import zlib
 import string
 from subprocess import call
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
-from ThreadManager import ThreadManager 
-from const import *
-import toolsmod  
-from toolsmod import *
-from IncrScoreboard import IncrScoreboard
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.ThreadManager import ThreadManager 
+from lsst.ctrl.iip.const import *
+import lsst.ctrl.iip.toolsmod  
+from lsst.ctrl.iip.toolsmod import *
+from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
 import _thread
 import logging
 import threading
 import datetime
+from lsst.ctrl.iip.iip_base import iip_base
 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -66,7 +47,7 @@ LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
 LOGGER = logging.getLogger(__name__)
 
 
-class ArchiveController:
+class ArchiveController(iip_base):
 
     ARCHIVE_CTRL_PUBLISH = "archive_ctrl_publish"
     ARCHIVE_CTRL_CONSUME = "archive_ctrl_consume"
@@ -81,11 +62,8 @@ class ArchiveController:
     def __init__(self, filename=None):
         self._session_id = None
         self._name = "ARCHIVE_CTRL"
-        self._config_file = '../config/L1SystemCfg.yaml'
-        if filename != None:
-            self._config_file = filename
-
-        cdm = toolsmod.intake_yaml_file(self._config_file)
+        
+        cdm = self.loadConfigFile(filename)
 
         try:
             self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME'] 

@@ -1,50 +1,30 @@
-###############################################################################
-###############################################################################
-## Copyright 2000-2018 The Board of Trustees of the University of Illinois.
-## All rights reserved.
-##
-## Developed by:
-##
-##   LSST Image Ingest and Distribution Team
-##   National Center for Supercomputing Applications
-##   University of Illinois
-##   http://www.ncsa.illinois.edu/enabling/data/lsst
-##
-## Permission is hereby granted, free of charge, to any person obtaining
-## a copy of this software and associated documentation files (the
-## "Software"), to deal with the Software without restriction, including
-## without limitation the rights to use, copy, modify, merge, publish,
-## distribute, sublicense, and/or sell copies of the Software, and to
-## permit persons to whom the Software is furnished to do so, subject to
-## the following conditions:
-##
-##   Redistributions of source code must retain the above copyright
-##   notice, this list of conditions and the following disclaimers.
-##
-##   Redistributions in binary form must reproduce the above copyright
-##   notice, this list of conditions and the following disclaimers in the
-##   documentation and/or other materials provided with the distribution.
-##
-##   Neither the names of the National Center for Supercomputing
-##   Applications, the University of Illinois, nor the names of its
-##   contributors may be used to endorse or promote products derived from
-##   this Software without specific prior written permission.
-##
-## THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-## EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-## MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-## IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
-## ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-## CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-## WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
-
+# This file is part of ctrl_iip
+# 
+# Developed for the LSST Data Management System.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import threading
 import logging
 from time import sleep
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 from copy import deepcopy
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -63,10 +43,13 @@ class ThreadManager(threading.Thread):
         #self.consumer_kwargs = deepcopy(kwargs)
         self.consumer_kwargs = kwargs
 
+        self.lock = threading.Lock()
         consumers = list(self.consumer_kwargs.keys())
         for consumer in consumers:
             x = self.setup_consumer_thread(self.consumer_kwargs[consumer])
+            self.lock.acquire()
             self.running_threads.append(x)
+            self.lock.release()
 
     def run(self):
         self.start_background_loop()
@@ -91,8 +74,9 @@ class ThreadManager(threading.Thread):
             while 1:
                 # self.get_next_backlog_item() 
                 if self.shutdown_event.isSet():
-                    self.shutdown_consumers()
-                    break
+                    #self.shutdown_consumers()
+                    return
+                    #break
                 sleep(1)
                 self.check_thread_health()
                 # self.resolve_non-blocking_acks() 
@@ -101,6 +85,7 @@ class ThreadManager(threading.Thread):
 
 
     def check_thread_health(self):
+        self.lock.acquire()
         num_threads = len(self.running_threads)
         for i in range(0, num_threads):
             if self.running_threads[i].is_alive():
@@ -114,15 +99,20 @@ class ThreadManager(threading.Thread):
                 new_consumer = self.setup_consumer_thread(self.consumer_kwargs[dead_thread_name])
 
                 self.running_threads.append(new_consumer)
+        self.lock.release()
 
 
     def shutdown_consumers(self):
+        self.lock.acquire()
         num_threads = len(self.running_threads)
+        LOGGER.info("shutting down consumer threads")
         for i in range (0, num_threads):
             LOGGER.info("Stopping rabbit connection in consumer %s" % self.running_threads[i].name)
             self.running_threads[i].stop()
             LOGGER.info("Shutting down consumer %s" % self.running_threads[i].name)
             self.running_threads[i].join()
-            sleep(0.5)
+            LOGGER.info("consumer %s finished" % self.running_threads[i].name)
+        self.lock.release()
 
+        LOGGER.info("consumer thread shutdown completed")
 

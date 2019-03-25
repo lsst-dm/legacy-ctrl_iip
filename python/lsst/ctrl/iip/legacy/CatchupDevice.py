@@ -1,5 +1,26 @@
-import toolsmod
-from toolsmod import get_timestamp
+# This file is part of ctrl_iip
+# 
+# Developed for the LSST Data Management System.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import lsst.ctrl.iip.toolsmod
+from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -9,13 +30,13 @@ import os
 import time
 from time import sleep
 import _thread
-from const import *
-from Scoreboard import Scoreboard
-from ForwarderScoreboard import ForwarderScoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Scoreboard import Scoreboard
+from lsst.ctrl.iip.ForwarderScoreboard import ForwarderScoreboard
+from lsst.ctrl.iip.JobScoreboard import JobScoreboard
+from lsst.ctrl.iip.AckScoreboard import AckScoreboard
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
