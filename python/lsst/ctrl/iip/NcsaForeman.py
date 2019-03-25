@@ -40,6 +40,7 @@ from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.ThreadManager import ThreadManager
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.iip_base import iip_base
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -53,11 +54,11 @@ class NcsaForeman(iip_base):
     COMPONENT_NAME = 'NCSA_FOREMAN'
     DISTRIBUTOR_PUBLISH = "distributor_publish"
     ACK_PUBLISH = "ack_publish"
-    prp = toolsmod.prp
+    prp = lsst.ctrl.iip.toolsmod.prp
 
 
     def __init__(self, filename=None):
-        toolsmod.singleton(self)
+        lsst.ctrl.iip.toolsmod.singleton(self)
 
         #self._pairing_dict = {}
 

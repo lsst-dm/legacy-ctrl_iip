@@ -24,7 +24,9 @@ import yaml
 import logging
 import pprint
 import traceback
+import time
 import lsst.ctrl.iip.toolsmod
+from lsst.ctrl.iip.iip_base import iip_base
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -33,7 +35,7 @@ logging.basicConfig(filename='logs/MessageAuthority.log', level=logging.DEBUG, f
 
 
 
-class MessageAuthority:
+class MessageAuthority(iip_base):
 
     MSG_DICT = None
 
@@ -47,7 +49,7 @@ class MessageAuthority:
        LOGGER.info('Reading YAML message dictionary file %s' % self._message_dictionary_file)
 
        try:
-           self.MSG_DICT = toolsmod.intake_yaml_file(self._message_dictionary_file)
+           self.MSG_DICT = self.loadConfigFile(self._message_dictionary_file)
        except IOError as e:
            trace = traceback.print_exc()
            emsg = "Unable to find Message Dictionary Yaml file %s\n" % self._message_dictionary_file
@@ -92,6 +94,7 @@ def main():
     print("Beginning MessageAuthority event loop...")
     try:
         while 1:
+            time.sleep(100)
             pass
     except KeyboardInterrupt:
         pass

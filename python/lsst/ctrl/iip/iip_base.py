@@ -19,11 +19,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-from lsst.ctrl.iip.const import *
+import sys
 import yaml
+from lsst.ctrl.iip.const import *
 
 class iip_base:
     """Base class"""
@@ -35,33 +37,37 @@ class iip_base:
         instead.
         """
 
-        config_file = None
-        if filename != None:
-            config_file = filename
+
+        if filename == None:
+            config_file = DEFAULT_CONFIG_FILE
         else:
-            # this presumes we load from the $CTRL_IIP_DIR; this may need
-            # to be changed if we install in a central location for config
-            # files that can be editted.
-            if "IIP_CONFIG_DIR" in os.environ:
-                config_dir = os.environ["IIP_CONFIG_DIR"]
-                config_file = os.path.join(config_dir, DEFAULT_CONFIG_FILE)
+            config_file = filename
+
+        # this presumes we load from the $CTRL_IIP_DIR; this may need
+        # to be changed if we install in a central location for config
+        # files that can be editted.
+        if "IIP_CONFIG_DIR" in os.environ:
+            config_dir = os.environ["IIP_CONFIG_DIR"]
+            config_file = os.path.join(config_dir, config_file)
+        else:
+            if "CTRL_IIP_DIR" in os.environ:
+                config_dir = os.environ["CTRL_IIP_DIR"]
+                config_dir = os.path.join(config_dir, "etc", "config")
+                config_file = os.path.join(config_dir, config_file)
             else:
-                if "CTRL_IIP_DIR" in os.environ:
-                    config_dir = os.environ["CTRL_IIP_DIR"]
-                    config_dir = os.path.join(config_dir, "etc", "config")
-                    config_file = os.path.join(config_dir, DEFAULT_CONFIG_FILE)
-                else:
-                    raise Exception("environment variable CTRL_IIP_DIR not defined")
+                raise Exception("environment variable CTRL_IIP_DIR not defined")
+
         try:
             f = open(config_file)
-        except:
-            raise L1Error("Can't open %s" % config_file)
+        except Exception:
+            print("Can't open %s" % config_file)
+            sys.exit(10)
 
         config = None
         try:
             config = yaml.safe_load(f)
-        except:
-            raise L1Error("Error reading %s" % config_file)
+        except Exception:
+            print("Error reading %s" % config_file)
         finally:
             f.close()
         return config

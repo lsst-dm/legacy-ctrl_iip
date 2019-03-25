@@ -39,7 +39,7 @@ import _thread
 import logging
 import threading
 import datetime
-import lsst.ctrl.iip.iip_base
+from lsst.ctrl.iip.iip_base import iip_base
 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -63,7 +63,7 @@ class ArchiveController(iip_base):
         self._session_id = None
         self._name = "ARCHIVE_CTRL"
         
-        cdm = loadConfigFile(filename)
+        cdm = self.loadConfigFile(filename)
 
         try:
             self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME'] 

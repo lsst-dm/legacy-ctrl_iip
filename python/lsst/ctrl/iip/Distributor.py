@@ -30,15 +30,17 @@ import logging
 import os
 import subprocess
 import _thread
+from lsst.ctrl.iip.toolsmod import L1Error
 from lsst.ctrl.iip.const import *
 from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.iip_base import iip_base
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
              '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
-class Distributor:
+class Distributor(iip_base):
     """This is a basic Distributor class. The cadence of the file
        is very similar to its workmate the Forwarder class and begins to
        viollate the DRY rule. It may be that this class and the
@@ -52,10 +54,9 @@ class Distributor:
     def __init__(self):
         LOGGER.info("Initializing Distributor object")
         self._registered = False
-        f = open('DistributorCfg.yaml')
 
         # data map
-        cdm = yaml.safe_load(f)
+        cdm = self.loadConfigFile('DistributorCfg.yaml')
         try:
             self._name = cdm[NAME]
             self._passwd = cdm[PASSWD]

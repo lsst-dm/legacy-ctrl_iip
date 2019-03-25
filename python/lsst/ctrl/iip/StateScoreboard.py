@@ -70,7 +70,7 @@ class StateScoreboard(Scoreboard):
     PP = "PP"
     CU = "CU"
     AT = "AT"
-    prp = toolsmod.prp
+    prp = lsst.ctrl.iip.toolsmod.prp
   
 
     def __init__(self, db_type, db_instance, ddict, rdict):

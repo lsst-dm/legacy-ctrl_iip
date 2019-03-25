@@ -32,7 +32,7 @@ import yaml
 import sys
 import os
 from copy import deepcopy
-import pprint, pformat
+import pprint
 import time
 from time import sleep
 import threading
