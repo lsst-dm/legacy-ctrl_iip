@@ -3,7 +3,6 @@ tests/.cache
 .cache
 gunk
 logs
-*sender.py
 *.o
 forwarder/src/*.o
 forwarder/src/Forwarder
