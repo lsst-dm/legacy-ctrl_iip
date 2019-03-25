@@ -1,8 +1,45 @@
+#include <cstdlib>
 #include <ctime> 
 #include <string>
 #include <iostream> 
+#include <yaml-cpp/yaml.h>
 
 using namespace std; 
+
+YAML::Node loadConfigFile(string filename) { 
+    string config_filename;
+    if (filename.empty()) { 
+        config_filename = "L1SystemCfg.yaml"; 
+    }
+    else { 
+        config_filename = filename;
+    }
+
+    const char* iip_config_dir = getenv("IIP_CONFIG_DIR");
+    const char* ctrl_iip_dir = getenv("CTRL_IIP_DIR");
+    if (iip_config_dir == NULL && ctrl_iip_dir == NULL) { 
+        cout << "Please set environment variable CTRL_IIP_DIR or IIP_CONFIG_DIR" << endl;
+        exit(-1);
+    }
+
+    string config_file;
+    if (iip_config_dir == NULL) { 
+        string config_dir(ctrl_iip_dir); 
+        config_file = config_dir + "/etc/config/" + config_filename;
+    }
+    else { 
+        string config_dir(iip_config_dir); 
+        config_file = config_dir + "/" + config_filename;
+    }
+    
+    try { 
+	return YAML::LoadFile(config_file);
+    }
+    catch (YAML::BadFile& e) { 
+	cout << "ERROR: L1SystemCfg file not found." << endl; 
+	exit(EXIT_FAILURE); 
+    } 
+}
 
 string get_current_time() { 
     time_t t = time(0); 

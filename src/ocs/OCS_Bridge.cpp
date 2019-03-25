@@ -1,23 +1,17 @@
+#include <cstdlib>
 #include <pthread.h>
 #include <stdio.h> 
 #include <string.h>
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 #include "OCS_Bridge.h"
+#include "Toolsmod.h"
 
 using namespace std; 
 using namespace YAML;
 
 OCS_Bridge::OCS_Bridge() { 
-    Node config_file; 
-    try { 
-	config_file = LoadFile("../config/L1SystemCfg.yaml");
-    }
-    catch (YAML::BadFile& e) { 
-	cout << "ERROR: L1SystemCfg file not found." << endl; 
-	exit(EXIT_FAILURE); 
-    } 
-
+    Node config_file = loadConfigFile("L1SystemCfg.yaml");
     Node root; 
     string base_name, base_passwd, base_addr; 
     try {  

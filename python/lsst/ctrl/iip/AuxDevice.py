@@ -184,7 +184,6 @@ class AuxDevice(iip_base):
         """
         ch.basic_ack(method.delivery_tag)
         msg_dict = body 
-
         LOGGER.info('In AT ARCHIVE CTRL message callback: RECEIVING MESSAGE')
         LOGGER.debug('Message from AT ARCHIVE CTRL callback message body is: %s', pformat(str(body)))
 

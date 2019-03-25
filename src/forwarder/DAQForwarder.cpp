@@ -18,6 +18,7 @@
 #include <errno.h>
 #include "Exceptions.h"
 #include "SimpleLogger.h"
+#include "Toolsmod.h"
 
 #include "daq/Location.hh"
 #include "daq/LocationSet.hh"
@@ -348,17 +349,7 @@ Forwarder::Forwarder() {
     init_log("Forwarder");
 
     // Read config file
-    Node config_file;
-    try {
-        config_file = LoadFile("./ForwarderCfg.yaml");
-        LOG_DBG << "Reading ForwarderCfg config file."; 
-    }
-    catch (YAML::BadFile& e) {
-        // FIX better catch clause...at LEAST a log message
-        LOG_CRT << "Error reading ForwarderCfg.yaml file.";
-        // FIX Go to Fault State instead?
-        exit(EXIT_FAILURE);
-    }
+    Node config_file = loadConfigFile("ForwarderCfg.yaml");
 
     Node root;
     string NAME, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR;
