@@ -30,9 +30,9 @@ import logging
 import os
 import subprocess
 import _thread
-from const import *
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
              '-35s %(lineno) -5d: %(message)s')

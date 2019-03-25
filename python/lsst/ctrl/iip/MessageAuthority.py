@@ -20,11 +20,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import toolsmod
 import yaml
 import logging
 import pprint
 import traceback
+import lsst.ctrl.iip.toolsmod
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

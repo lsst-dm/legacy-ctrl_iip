@@ -20,9 +20,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from lsst.iip.const import *
+from lsst.ctrl.iip.const import *
 from copy import deepcopy
-from lsst.iip.toolsmod import get_timestamp
+from lsst.ctrl.iip.toolsmod import get_timestamp
 import yaml
 import sys
 

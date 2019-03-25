@@ -19,15 +19,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from toolsmod import get_timestamp
-from const import *
+from lsst.ctrl.iip.toolsmod import get_timestamp
+from lsst.ctrl.iip.const import *
 import yaml
 import os
 import sys
 import logging
 import time
 import pika
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 
 
 class Scratchpad:

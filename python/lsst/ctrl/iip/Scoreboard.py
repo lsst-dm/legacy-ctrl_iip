@@ -20,15 +20,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import toolsmod
+import lsst.ctrl.iip.toolsmod
 import time
 import redis
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 import sys
 import yaml
 import logging
 import os
-from iip_base import iip_base
+from lsst.ctrl.iip.iip_base import iip_base
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

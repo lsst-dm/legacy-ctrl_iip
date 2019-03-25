@@ -25,11 +25,11 @@ from pika.exceptions import *
 import logging
 import yaml
 import sys
-import lsst.iip.toolsmod
-from lsst.iip.toolsmod import L1Exception
-from lsst.iip.toolsmod import L1MessageError
-from lsst.iip.XMLHandler import * 
-from lsst.iip.YamlHandler import * 
+import lsst.ctrl.iip.toolsmod
+from lsst.ctrl.iip.toolsmod import L1Exception
+from lsst.ctrl.iip.toolsmod import L1MessageError
+from lsst.ctrl.iip.XMLHandler import * 
+from lsst.ctrl.iip.YamlHandler import * 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

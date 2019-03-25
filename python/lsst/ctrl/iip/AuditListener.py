@@ -21,9 +21,9 @@
 
 
 from const import *
-import toolsmod
-from toolsmod import get_timestamp
-from Consumer import Consumer
+import lsst.ctrl.iip.toolsmod
+from lsst.ctrl.iip.toolsmod import get_timestamp
+from lsst.ctrl.iip.Consumer import Consumer
 import yaml
 import time
 import _thread

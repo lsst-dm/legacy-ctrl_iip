@@ -20,8 +20,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import toolsmod
-from toolsmod import get_timestamp
+import lsst.ctrl.iip.toolsmod
+from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -35,14 +35,15 @@ import datetime
 from time import sleep
 import threading
 from threading import Lock
-from const import *
-from Scoreboard import Scoreboard
+from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Scoreboard import Scoreboard
 #from ForwarderScoreboard import ForwarderScoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from Consumer import Consumer
-from ThreadManager import ThreadManager
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.JobScoreboard import JobScoreboard
+from lsst.ctrl.iip.AckScoreboard import AckScoreboard
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.ThreadManager import ThreadManager
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.iip_base import iip_base
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
@@ -69,9 +70,9 @@ class AuxDevice(iip_base):
     TELEMETRY_QUEUE = "telemetry_queue"
     START_INTEGRATION_XFER_PARAMS = {}
     ACK_QUEUE = []
-    prp = toolsmod.prp
-    DP = toolsmod.DP
-    METRIX = toolsmod.METRIX
+    prp = lsst.ctrl.iip.toolsmod.prp
+    DP = lsst.ctrl.iip.toolsmod.DP
+    METRIX = lsst.ctrl.iip.toolsmod.METRIX
     RAFT_LIST = []
     RAFT_CCD_LIST = ['00']
     date_format='date +%F_%H_%R:%S-'  # Used to generate unique ack_ids
@@ -90,7 +91,7 @@ class AuxDevice(iip_base):
 
             :return: None.
         """
-        toolsmod.singleton(self)
+        lsst.ctrl.iip.toolsmod.singleton(self)
 
         self._fwdr_state_dict = {}  # Used for ACK analysis...
         self._archive_ack = {}  # Used to determine archive response
@@ -182,6 +183,7 @@ class AuxDevice(iip_base):
             :return: None.
         """
         ch.basic_ack(method.delivery_tag)
+        msg_dict = body 
 
         LOGGER.info('In AT ARCHIVE CTRL message callback: RECEIVING MESSAGE')
         LOGGER.debug('Message from AT ARCHIVE CTRL callback message body is: %s', pformat(str(body)))
@@ -1000,10 +1002,11 @@ def main():
     a_fm = AuxDevice()
     print("Beginning AuxForeman event loop...")
     try:
-        while 1:
-            pass
+        a_fm.thread_manager.join()
     except KeyboardInterrupt:
+        print("cleaning up")
         a_fm.shutdown()
+        print("done")
         pass
 
     print("")

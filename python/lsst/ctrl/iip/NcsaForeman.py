@@ -21,8 +21,8 @@
 
 
 
-import toolsmod
-from toolsmod import get_timestamp
+import lsst.ctrl.iip.toolsmod
+from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
 import pika
 import redis
@@ -32,14 +32,14 @@ import os
 import time
 from time import sleep
 import threading
-from const import *
-from Scoreboard import Scoreboard
-from DistributorScoreboard import DistributorScoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from Consumer import Consumer
-from ThreadManager import ThreadManager
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Scoreboard import Scoreboard
+from lsst.ctrl.iip.DistributorScoreboard import DistributorScoreboard
+from lsst.ctrl.iip.JobScoreboard import JobScoreboard
+from lsst.ctrl.iip.AckScoreboard import AckScoreboard
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.ThreadManager import ThreadManager
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

@@ -27,11 +27,11 @@ import logging
 import redis
 import time
 import sys
-from toolsmod import get_epoch_timestamp
-from toolsmod import L1RedisError
-from toolsmod import L1RabbitConnectionError
-from Scoreboard import Scoreboard
-from const import * 
+from lsst.ctrl.iip.toolsmod import get_epoch_timestamp
+from lsst.ctrl.iip.toolsmod import L1RedisError
+from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
+from lsst.ctrl.iip.Scoreboard import Scoreboard
+from lsst.ctrl.iip.const import * 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

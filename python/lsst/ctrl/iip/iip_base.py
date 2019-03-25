@@ -19,8 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+from logging.handlers import RotatingFileHandler
 import os
-from const import *
+from lsst.ctrl.iip.const import *
 import yaml
 
 class iip_base:
@@ -63,3 +65,27 @@ class iip_base:
         finally:
             f.close()
         return config
+
+    def setupLogging(self, filename):
+
+        log_dir = self.getLogDirectory()
+        log_file = os.path.join(log_dir, filename)
+
+        LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
+        LOGGER = logging.getLogger(__name__)
+        LOGGER.setLevel(logging.DEBUG)
+        handler = RotatingFileHandler(log_file, maxBytes=2000000, backupCount = 10)
+        handler.setFormatter(LOG_FORMAT)
+        LOGGER.addHandler(handler)
+
+        logging.basicConfig(filename=log_file, level=logging.INFO, format=LOG_FORMAT)
+
+
+        return log_file
+    
+
+    def getLogDirectory(self):
+        log_dir = "/tmp"
+        if "IIP_LOG_DIR" in os.environ:
+            log_dir = os.environ["IIP_LOG_DIR"]
+        return log_dir

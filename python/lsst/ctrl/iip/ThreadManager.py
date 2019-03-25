@@ -23,8 +23,8 @@
 import threading
 import logging
 from time import sleep
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 from copy import deepcopy
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -43,10 +43,13 @@ class ThreadManager(threading.Thread):
         #self.consumer_kwargs = deepcopy(kwargs)
         self.consumer_kwargs = kwargs
 
+        self.lock = threading.Lock()
         consumers = list(self.consumer_kwargs.keys())
         for consumer in consumers:
             x = self.setup_consumer_thread(self.consumer_kwargs[consumer])
+            self.lock.acquire()
             self.running_threads.append(x)
+            self.lock.release()
 
     def run(self):
         self.start_background_loop()
@@ -71,8 +74,9 @@ class ThreadManager(threading.Thread):
             while 1:
                 # self.get_next_backlog_item() 
                 if self.shutdown_event.isSet():
-                    self.shutdown_consumers()
-                    break
+                    #self.shutdown_consumers()
+                    return
+                    #break
                 sleep(1)
                 self.check_thread_health()
                 # self.resolve_non-blocking_acks() 
@@ -81,6 +85,7 @@ class ThreadManager(threading.Thread):
 
 
     def check_thread_health(self):
+        self.lock.acquire()
         num_threads = len(self.running_threads)
         for i in range(0, num_threads):
             if self.running_threads[i].is_alive():
@@ -94,15 +99,20 @@ class ThreadManager(threading.Thread):
                 new_consumer = self.setup_consumer_thread(self.consumer_kwargs[dead_thread_name])
 
                 self.running_threads.append(new_consumer)
+        self.lock.release()
 
 
     def shutdown_consumers(self):
+        self.lock.acquire()
         num_threads = len(self.running_threads)
+        LOGGER.info("shutting down consumer threads")
         for i in range (0, num_threads):
             LOGGER.info("Stopping rabbit connection in consumer %s" % self.running_threads[i].name)
             self.running_threads[i].stop()
             LOGGER.info("Shutting down consumer %s" % self.running_threads[i].name)
             self.running_threads[i].join()
-            sleep(0.5)
+            LOGGER.info("consumer %s finished" % self.running_threads[i].name)
+        self.lock.release()
 
+        LOGGER.info("consumer thread shutdown completed")
 

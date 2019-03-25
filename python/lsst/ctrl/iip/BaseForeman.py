@@ -31,13 +31,13 @@ import os
 import time
 from time import sleep
 import _thread
-from const import *
-from Scoreboard import Scoreboard
-from ForwarderScoreboard import ForwarderScoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Scoreboard import Scoreboard
+from lsst.ctrl.iip.ForwarderScoreboard import ForwarderScoreboard
+from lsst.ctrl.iip.JobScoreboard import JobScoreboard
+from lsst.ctrl.iip.AckScoreboard import AckScoreboard
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')

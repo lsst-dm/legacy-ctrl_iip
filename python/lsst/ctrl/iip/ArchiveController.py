@@ -28,18 +28,18 @@ import yaml
 import zlib
 import string
 from subprocess import call
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
-from ThreadManager import ThreadManager 
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.ThreadManager import ThreadManager 
 from const import *
-import toolsmod  
-from toolsmod import *
-from IncrScoreboard import IncrScoreboard
+import lsst.ctrl.iip.toolsmod  
+from lsst.ctrl.iip.toolsmod import *
+from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
 import _thread
 import logging
 import threading
 import datetime
-import iip_base
+import lsst.ctrl.iip.iip_base
 
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '

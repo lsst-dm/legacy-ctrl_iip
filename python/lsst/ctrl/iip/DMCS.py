@@ -20,8 +20,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import toolsmod
-from toolsmod import get_timestamp
+import lsst.ctrl.iip.toolsmod
+from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
 from logging.handlers import RotatingFileHandler
 import pika
@@ -36,20 +36,20 @@ from pprint import pprint, pformat
 from time import sleep
 from threading import ThreadError
 import threading
-from ThreadManager import ThreadManager
-from const import *
-from Scoreboard import Scoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from StateScoreboard import StateScoreboard
-from BacklogScoreboard import BacklogScoreboard
-from IncrScoreboard import IncrScoreboard
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
-from toolsmod import L1Error
-from toolsmod import L1RedisError
-from toolsmod import L1RabbitConnectionError
-from iip_base import iip_base
+from lsst.ctrl.iip.ThreadManager import ThreadManager
+from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Scoreboard import Scoreboard
+from lsst.ctrl.iip.JobScoreboard import JobScoreboard
+from lsst.ctrl.iip.AckScoreboard import AckScoreboard
+from lsst.ctrl.iip.StateScoreboard import StateScoreboard
+from lsst.ctrl.iip.BacklogScoreboard import BacklogScoreboard
+from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.toolsmod import L1Error
+from lsst.ctrl.iip.toolsmod import L1RedisError
+from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
+from lsst.ctrl.iip.iip_base import iip_base
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
@@ -86,8 +86,8 @@ class DMCS(iip_base):
     OCS_CONSUMER_THREAD = "ocs_consumer_thread"
     ACK_CONSUMER_THREAD = "ack_consumer_thread"
     ERROR_CODE_PREFIX = 5500
-    prp = toolsmod.prp
-    DP = toolsmod.DP
+    prp = lsst.ctrl.iip.toolsmod.prp
+    DP = lsst.ctrl.iip.toolsmod.DP
 
 
     def __init__(self, filename=None):
@@ -101,7 +101,7 @@ class DMCS(iip_base):
 
             :return: None.
         """
-        toolsmod.singleton(self)
+        lsst.ctrl.iip.toolsmod.singleton(self)
         LOGGER.info('DMCS Init beginning')
 
         LOGGER.info('Extracting values from Config dictionary')
