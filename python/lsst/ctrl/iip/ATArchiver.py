@@ -45,11 +45,10 @@ from lsst.ctrl.iip.ThreadManager import ThreadManager
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 from lsst.ctrl.iip.iip_base import iip_base
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
 
-class AuxDevice(iip_base):
+class ATArchiver(iip_base):
     """ The Spec Device is a commandable device which coordinates the ingest of
         images from the telescope camera and then the transfer of those images to
         the base site archive storage.
@@ -78,7 +77,7 @@ class AuxDevice(iip_base):
     date_format='date +%F_%H_%R:%S-'  # Used to generate unique ack_ids
 
 
-    def __init__(self, filename=None):
+    def __init__(self, filename):
         """ Create a new instance of the Spectrograph Device class.
             Instantiate the instance, raise assertion error if already instantiated.
             Extract config values from yaml file.
@@ -91,14 +90,20 @@ class AuxDevice(iip_base):
 
             :return: None.
         """
-        toolsmod.singleton(self)
 
+        print('Extracting values from Config dictionary %s', filename)
+        cdm = self.extract_config_values(filename)
+
+        logging_dir = cdm[ROOT].get('LOGGING_DIR', None)
+
+        log_file = self.setupLogging(logging_dir, 'ATArchiver.log')
+        print("Logs will be written to %s" % log_file)
+
+        toolsmod.singleton(self)
         self._fwdr_state_dict = {}  # Used for ACK analysis...
         self._archive_ack = {}  # Used to determine archive response
         self._current_fwdr = {}
 
-        LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values(filename)
         if self._use_mutex:
             self.my_mutex_lock = threading.Lock()
 
@@ -125,11 +130,11 @@ class AuxDevice(iip_base):
 
         self.setup_publishers()
 
-        LOGGER.info('ar foreman consumer setup')
+        LOGGER.info('at archiver consumer setup')
         self.thread_manager = None
         self.setup_consumer_threads()
 
-        LOGGER.info('Archive Foreman Init complete')
+        LOGGER.info('ATArchiver Init complete')
 
 
     def setup_publishers(self):
@@ -143,7 +148,7 @@ class AuxDevice(iip_base):
         self.pub_base_broker_url = "amqp://" + self._msg_pub_name + ":" + \
                                             self._msg_pub_passwd + "@" + \
                                             str(self._base_broker_addr)
-        LOGGER.info('Setting up Base publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
+        LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
         self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
 
 
@@ -164,8 +169,8 @@ class AuxDevice(iip_base):
             print("Incoming message to on_aux_foreman_message is: ")
             self.prp.pprint(msg_dict)
 
-        LOGGER.info('Msg received in AUX DEVICE Foreman message callback')
-        LOGGER.debug('Message from DMCS to AUX Foreman callback message body is: %s', pformat(str(msg_dict)))
+        LOGGER.info('Msg received in ATArchiver message callback')
+        LOGGER.debug('Message from DMCS to ATArchiver callback message body is: %s', pformat(str(msg_dict)))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
@@ -207,7 +212,7 @@ class AuxDevice(iip_base):
         LOGGER.info('Message in an ACK callback message body is: %s', pformat(str(msg_dict)))
 
         if self.DP:
-            print("\n\nIn AuxDevice on_ack_message - receiving this message: %s" % body)
+            print("\n\nIn ATArchiver on_ack_message - receiving this message: %s" % body)
 
         # XXX FIX Ignoring all log messages
         return
@@ -583,10 +588,10 @@ class AuxDevice(iip_base):
             responses from Forwarders. The very busy commandable devices
             such as the ArchiveDevice and the PromptProcessDevice use
             a Redis scoreboard structure to keep track of who is responsive 
-            and who is not. Because the AuxDevice will have just one Forwarder
+            and who is not. Because the ATArchiver will have just one Forwarder
             and one spare, A redis instance is not justified, hence keeping
             the code simpler.
-            For each AuxDevice operation where an ACK is expected, this dict is used.
+            For each ATArchiver operation where an ACK is expected, this dict is used.
         """
         LOGGER.info("Setting up Forwarder state dict for AT")
         self._fwdr_state_dict = {}
@@ -890,6 +895,7 @@ class AuxDevice(iip_base):
 
             :return: True.
         """
+        cdm = None
         try:
             cdm = self.loadConfigFile(filename)
         except IOError as e:
@@ -927,6 +933,7 @@ class AuxDevice(iip_base):
 
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT]['BASE_MSG_FORMAT']
+        return cdm
 
 
     def setup_consumer_threads(self):
@@ -997,9 +1004,8 @@ class AuxDevice(iip_base):
 
 
 def main():
-    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
-    a_fm = AuxDevice()
-    print("Beginning AuxForeman event loop...")
+    a_fm = ATArchiver('L1SystemCfg.yaml')
+    print("Beginning ATArchiver event loop...")
     try:
         a_fm.thread_manager.join()
     except KeyboardInterrupt:
@@ -1009,7 +1015,7 @@ def main():
         pass
 
     print("")
-    print("Aux Device Done.")
+    print("ATArchiver done.")
 
 
 

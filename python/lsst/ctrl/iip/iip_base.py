@@ -30,7 +30,7 @@ from lsst.ctrl.iip.const import *
 class iip_base:
     """Base class"""
 
-    def loadConfigFile(self, filename=None):
+    def loadConfigFile(self, filename):
         """Load configuration file from configuration directory.  The
         default location is $CTRL_IIP_DIR/etc/config.  If the environment
         variable $IIP_CONFIG_DIR exists, files are loaded from that location
@@ -38,14 +38,8 @@ class iip_base:
         """
 
 
-        if filename == None:
-            config_file = DEFAULT_CONFIG_FILE
-        else:
-            config_file = filename
+        config_file = filename
 
-        # this presumes we load from the $CTRL_IIP_DIR; this may need
-        # to be changed if we install in a central location for config
-        # files that can be editted.
         if "IIP_CONFIG_DIR" in os.environ:
             config_dir = os.environ["IIP_CONFIG_DIR"]
             config_file = os.path.join(config_dir, config_file)
@@ -72,9 +66,25 @@ class iip_base:
             f.close()
         return config
 
-    def setupLogging(self, filename):
+    def setupLogging(self, log_dir_location, filename):
+        """Setup writing to a log. If the IIP_LOG_DIR environment variable
+        is set, use that.  Otherwise, use log_dir_location if it was
+        specified. If it wasn't, default to /tmp.
+        Params
+        ------
+        log_dir_location:  the directory to write the log file to
+        """
 
-        log_dir = self.getLogDirectory()
+        log_dir = None
+
+        if "IIP_LOG_DIR" in os.environ:
+            log_dir = os.environ["IIP_LOG_DIR"]
+        else:
+            if log_dir_location is not None:
+                log_dir = log_dir_location
+            else:
+                log_dir = "/tmp"
+
         log_file = os.path.join(log_dir, filename)
 
         LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
@@ -90,8 +100,3 @@ class iip_base:
         return log_file
     
 
-    def getLogDirectory(self):
-        log_dir = "/tmp"
-        if "IIP_LOG_DIR" in os.environ:
-            log_dir = os.environ["IIP_LOG_DIR"]
-        return log_dir

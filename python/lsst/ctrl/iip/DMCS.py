@@ -91,7 +91,7 @@ class DMCS(iip_base):
     DP = toolsmod.DP
 
 
-    def __init__(self, filename=None):
+    def __init__(self, filename):
         """ Create a new instance of the DMCS class. Initiate DMCS with config_file
             and store handler methods for each message type. Set up publishers and
             scoreboards. The multiple consumer threads run within a ThreadManager
@@ -102,17 +102,17 @@ class DMCS(iip_base):
 
             :return: None.
         """
-        #log_dir = self.getLogDirectory()
-        #log_file = os.path.join(log_dir, 'DMCS.log')
-        #print("Logs will be written to %s" % log_file)
-        #logging.basicConfig(filename=log_file, level=logging.INFO, format=LOG_FORMAT)
-        log_file = self.setupLogging('DMCS.log')
-        print("Logs will be written to %s" % log_file)
         toolsmod.singleton(self)
+
+        print('Extracting values from Config dictionary %s' % filename)
+        cdm = self.extract_config_values(filename)
+
+        logging_dir = cdm[ROOT].get('LOGGING_DIR', None)
+        log_file = self.setupLogging(logging_dir, 'DMCS.log')
+        print("Logs will be written to %s" % log_file)
+
         LOGGER.info('DMCS Init beginning')
 
-        LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values(filename)
 
         # Run queue purges in rabbitmqctl
         #self.purge_broker(broker_vhost, queue_purges)
@@ -1407,7 +1407,7 @@ class DMCS(iip_base):
             ### FIXXX FIXXX Change to FAULT state
             sys.exit(102)
 
-        return True
+        return cdm
 
 
     def setup_consumer_threads(self):
@@ -1490,6 +1490,9 @@ class DMCS(iip_base):
             sys.exit(self.ERROR_CODE_PREFIX + 12)
         except Exception as e: 
             LOGGER.error("DMCS init unable to complete setup_scoreboards: %s" % e.args)
+            import traceback
+            trace = traceback.print_exc()
+            print(trace)
             print("DMCS unable to complete setup_scoreboards: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 10)
 
@@ -1577,7 +1580,7 @@ class DMCS(iip_base):
         print
         
 def main():
-    dmcs = DMCS()
+    dmcs = DMCS('L1SystemCfg.yaml')
     dmcs.registerHandler()
     print("DMCS seems to be working")
     signal.pause()

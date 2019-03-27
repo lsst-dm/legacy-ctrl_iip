@@ -42,10 +42,7 @@ import datetime
 from lsst.ctrl.iip.iip_base import iip_base
 
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-
 
 class ArchiveController(iip_base):
 
@@ -64,6 +61,10 @@ class ArchiveController(iip_base):
         self._name = "ARCHIVE_CTRL"
         
         cdm = self.loadConfigFile(filename)
+        logging_dir = cdm[ROOT].get('LOGGING_DIR', None)
+
+        log_file = self.setupLogging(logging_dir, 'ArchiveController.log')
+        print('Logs will be written to %s' % log_file)
 
         try:
             self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME'] 
@@ -394,8 +395,7 @@ class ArchiveController(iip_base):
 
 
 def main():
-    logging.basicConfig(filename='logs/BaseForeman.log', level=logging.INFO, format=LOG_FORMAT)
-    a_c = ArchiveController()
+    a_c = ArchiveController('L1SystemCfg.yaml')
     print("Beginning ArchiveController event loop...")
     try:
         while 1:

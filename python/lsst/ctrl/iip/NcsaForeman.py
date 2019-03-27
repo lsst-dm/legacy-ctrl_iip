@@ -42,11 +42,7 @@ from lsst.ctrl.iip.ThreadManager import ThreadManager
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 from lsst.ctrl.iip.iip_base import iip_base
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
-logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=LOG_FORMAT)
 LOGGER = logging.getLogger(__name__)
-
 
 class NcsaForeman(iip_base):
     NCSA_CONSUME = "ncsa_consume"
@@ -57,14 +53,15 @@ class NcsaForeman(iip_base):
     prp = toolsmod.prp
 
 
-    def __init__(self, filename=None):
+    def __init__(self, filename):
         toolsmod.singleton(self)
 
-        #self._pairing_dict = {}
+        print('Extracting values from configuation dictionary %s' % filename)
+        cdm = self.extract_config_values(filename)
 
-        LOGGER.info('Extracting values from Config dictionary')
-        self.extract_config_values(filename)
-
+        logging_dir = cdm[ROOT].get('LOGGING_DIR', None)
+        log_file = self.setupLogging(logging_dir, 'NcsaForeman.log')
+        print("Logs will be written to %s" % log_file)
  
 
         self._msg_actions = { 'NCSA_NEXT_VISIT': self.set_visit,
@@ -390,6 +387,7 @@ class NcsaForeman(iip_base):
 
 
     def extract_config_values(self, filename):
+        cdm = None
         try:
             cdm = self.loadConfigFile(filename)
         except IOError as e:
@@ -426,6 +424,7 @@ class NcsaForeman(iip_base):
 
         if 'NCSA_MSG_FORMAT' in cdm[ROOT]:
             self._ncsa_msg_format = cdm[ROOT][NCSA_MSG_FORMAT]
+        return cdm
 
 
 
@@ -484,8 +483,7 @@ class NcsaForeman(iip_base):
 
 
 def main():
-    logging.basicConfig(filename='logs/NcsaForeman.log', level=logging.INFO, format=LOG_FORMAT)
-    n_fm = NcsaForeman()
+    n_fm = NcsaForeman('L1SystemCfg.yaml')
     print("Beginning BaseForeman event loop...")
     try:
         while 1:

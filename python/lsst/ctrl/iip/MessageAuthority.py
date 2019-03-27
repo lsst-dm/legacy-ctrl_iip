@@ -28,11 +28,7 @@ import time
 import lsst.ctrl.iip.toolsmod
 from lsst.ctrl.iip.iip_base import iip_base
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-logging.basicConfig(filename='logs/MessageAuthority.log', level=logging.DEBUG, format=LOG_FORMAT)
-
 
 
 class MessageAuthority(iip_base):
@@ -40,6 +36,13 @@ class MessageAuthority(iip_base):
     MSG_DICT = None
 
     def __init__(self, filename=None):
+
+       cdm = self.loadConfigFile('L1SystemCfg.yaml')
+       logging_dir = cdm['ROOT'].get('LOGGING_DIR', None)
+
+       log_file = self.setupLogging(logging_dir, 'MessageAuthority.log')
+       print("Logs will be written to %s" % log_file)
+
        self.prp = pprint.PrettyPrinter(indent=4) 
        self._message_dictionary_file = '../config/messages.yaml'
        if filename != None:

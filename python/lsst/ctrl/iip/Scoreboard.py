@@ -30,8 +30,6 @@ import logging
 import os
 from lsst.ctrl.iip.iip_base import iip_base
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
 class Scoreboard(iip_base):
@@ -44,7 +42,9 @@ class Scoreboard(iip_base):
 
     def __init__(self, filename=None):
 
-        self.cdm = self.loadConfigFile(filename)
+        if filename is not None:
+            raise Exception("DEBUG: Expected that no filename was present:  Got %s " % filename)
+        self.cdm = self.loadConfigFile('L1SystemCfg.yaml')
 
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
         name = self.cdm['ROOT']['BASE_BROKER_NAME']

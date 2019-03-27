@@ -36,11 +36,7 @@ from time import sleep
 from lsst.ctrl.iip.XMLHandler import *
 from lsst.ctrl.iip.YamlHandler import *
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-#logging.basicConfig(filename='lumber.log', level=logging.INFO)
-
 
 class Consumer(threading.Thread):
     """This is an example consumer that will handle unexpected interactions
@@ -391,7 +387,6 @@ class Consumer(threading.Thread):
         self._connection.close()
 
 def main():
-    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     example = Consumer('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
     try:
         example.run()
