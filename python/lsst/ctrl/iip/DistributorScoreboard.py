@@ -33,8 +33,6 @@ from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
 from lsst.ctrl.iip.Scoreboard import Scoreboard
 from lsst.ctrl.iip.const import * 
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
 class DistributorScoreboard(Scoreboard):
@@ -170,33 +168,3 @@ class DistributorScoreboard(Scoreboard):
 
     def get_routing_key(self, distributor):
         return self._redis.hget(distributor,'ROUTING_KEY')
-
-
-
-def main():
-    logging.basicConfig(filename='logs/DistributorScoreboard.log', level=logging.INFO, format=LOG_FORMAT)
-
-    f = open('L1SystemCfg.yaml')
-
-    #cfg data map...
-    cdm = yaml.safe_load(f)
-    ddict = cdm['ROOT']['XFER_COMPONENTS']['DISTRIBUTORS']
-
-    dist = DistributorScoreboard(ddict)
-
-    dist.print_all()
-
-    """
-    try:
-        while 1:
-            pass
-    except KeyboardInterrupt:
-        pass
-    """
-
-    print("")
-    print("DistributorScoreboard Done.")
-
-
-if __name__ == "__main__": main()
-

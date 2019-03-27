@@ -34,10 +34,7 @@ from copy import deepcopy
 from lsst.ctrl.iip.Scoreboard import Scoreboard
 from lsst.ctrl.iip.const import *
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-
 
 ###################################################
 ## This Scoreboard keeps track of the state of each device.

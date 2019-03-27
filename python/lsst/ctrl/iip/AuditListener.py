@@ -29,8 +29,10 @@ import time
 import _thread
 import os
 import sys
+import logging
 from influxdb import InfluxDBClient
 
+LOGGER = logging.getLogger(__name__)
 
 class AuditListener(iip_base):
 

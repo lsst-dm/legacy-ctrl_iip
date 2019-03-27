@@ -27,12 +27,7 @@ from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 from copy import deepcopy
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-              '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-#logging.basicConfig(filename='logs/ThreadManager.log', level=logging.DEBUG, format=LOG_FORMAT)
-
-
 
 class ThreadManager(threading.Thread):
     def __init__(self, name, kwargs, shutdown_event):

@@ -36,8 +36,6 @@ from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 from lsst.ctrl.iip.iip_base import iip_base
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-             '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
 class Distributor(iip_base):
@@ -51,12 +49,21 @@ class Distributor(iip_base):
        individual classes are definetely not necessary.
     """
 
-    def __init__(self):
+    def __init__(self, filename):
+        print('Loading configuration file L1SystemCfg.yaml')
+        config = self.loadConfigFile('L1SystemCfg.yaml')
+
+        logging_dir = config[ROOT].get('LOGGING_DIR', None)
+        log_file = self.setupLogging(logging_dir, 'Distributor.log')
+        print("Logs will be written to %s" % log_file)
+
+        # data map
+        LOGGER.info('Loading distributor configuration from %s' % filename)
+        cdm = self.loadConfigFile(filename)
+
         LOGGER.info("Initializing Distributor object")
         self._registered = False
 
-        # data map
-        cdm = self.loadConfigFile('DistributorCfg.yaml')
         try:
             self._name = cdm[NAME]
             self._passwd = cdm[PASSWD]
@@ -202,8 +209,7 @@ class Distributor(iip_base):
 
 
 def main():
-    logging.basicConfig(filename='logs/distributor.log', level=logging.INFO, format=LOG_FORMAT)
-    dist = Distributor()
+    dist = Distributor('DistributorCfg.yaml')
     print("Starting Distributor event loop...")
     try:
         while 1:
