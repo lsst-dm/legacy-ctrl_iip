@@ -25,12 +25,24 @@ from copy import deepcopy
 from lsst.ctrl.iip.toolsmod import get_timestamp
 import yaml
 import sys
+import datetime
 
 
 class YamlHandler:
     def __init__(self, callback=None):
         self._consumer_callback = callback
+        yaml.add_representer(datetime.time, self.dt_representer, Dumper=yaml.SafeDumper)
+        yaml.add_constructor('datetime.time', self.dt_constructor, Loader=yaml.SafeLoader)
+        self.dateformat = "%Y:%m:%dT%H%M%S.%f"
 
+    def dt_constructor(self, loader, node):
+        data = loader.construct_scalar(node)
+        print(data)
+        return datetime.datetime.strptime(data, self.dateformat)
+
+    def dt_representer(self, dumper, data):
+        s = data.strftime(self.dateformat)
+        return dumper.represent_scalar('datetime.time', s)
     
     def yaml_callback(self, ch, method, properties, body): 
         """ Decode the message body before consuming
@@ -42,12 +54,12 @@ class YamlHandler:
 
     def encode_message(self, dictValue):
         pydict = deepcopy(dictValue)
-        yaml_body = yaml.dump(dictValue)
+        yaml_body = yaml.safe_dump(pydict)
         return yaml_body
 
 
     def decode_message(self, body):
-        tmpdict = yaml.load(body) 
+        tmpdict = yaml.safe_load(body) 
         return tmpdict
 
 

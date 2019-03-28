@@ -756,13 +756,13 @@ class DMCS(iip_base):
             wait_time = 5  # seconds...
             self.set_pending_nonblock_acks(acks, wait_time)
         except L1RabbitConnectionError as e: 
-            LOGGER.error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
-            print("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
-            raise L1Error("DMCS unable to process_readout_event - No rabbit connection: %s" % e.args)
+            LOGGER.error("DMCS unable to process_at_end_readout_event - No rabbit connection: %s" % e.args)
+            print("DMCS unable to process_at_end_readout_event - No rabbit connection: %s" % e.args)
+            raise L1Error("DMCS unable to process_at_end_readout_event - No rabbit connection: %s" % e.args)
         except Exception as e: 
-            LOGGER.error("DMCS unable to process_readout_event: %s" % e.args)
-            print("DMCS unable to process_readout_event: %s" % e.args)
-            raise L1Error("DMCS unable to process_readout_event: %s" % e.args)
+            LOGGER.error("DMCS unable to process_at_end_readout_event: %s" % e.args)
+            print("DMCS unable to process_at_end_readout_event: %s" % e.args)
+            raise L1Error("DMCS unable to process_at_end_readout_event: %s" % e.args)
         # add in two additional acks for format and transfer complete
 
 
