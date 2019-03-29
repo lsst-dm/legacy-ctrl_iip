@@ -37,7 +37,6 @@ class YamlHandler:
 
     def dt_constructor(self, loader, node):
         data = loader.construct_scalar(node)
-        print(data)
         return datetime.datetime.strptime(data, self.dateformat)
 
     def dt_representer(self, dumper, data):
