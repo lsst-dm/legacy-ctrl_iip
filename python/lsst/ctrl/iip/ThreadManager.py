@@ -30,33 +30,55 @@ from copy import deepcopy
 LOGGER = logging.getLogger(__name__)
 
 class ThreadManager(threading.Thread):
-    def __init__(self, name, kwargs, shutdown_event):
+
+    class ThreadInfo:
+        def __init__(self, name, consumer_thread, publisher):
+            self.name = name
+            self.consumer_thread = consumer_thread
+            self.publisher = publisher
+
+    def __init__(self, name, shutdown_event):
         threading.Thread.__init__(self, group=None, target=None, name=name) 
+        self.registered_threads_info = {}
         self.running_threads = []
         self.shutdown_event = shutdown_event
-
-        #self.consumer_kwargs = deepcopy(kwargs)
-        self.consumer_kwargs = kwargs
-
         self.lock = threading.Lock()
-        consumers = list(self.consumer_kwargs.keys())
+
+
+    #TODO: this method will go away once # we switch 
+    # how consumer/publishers are handled in a future ticket
+    def add_consumers(self, kwargs):
+        self.add_threads(kwargs)
+
+    def add_threads(self, kwargs):
+        consumers = list(kwargs.keys())
+        print("consumers = ")
+        print(consumers)
         for consumer in consumers:
-            x = self.setup_consumer_thread(self.consumer_kwargs[consumer])
-            self.lock.acquire()
-            self.running_threads.append(x)
-            self.lock.release()
+            LOGGER.info("setting up thread for %s",consumer)
+            print("setting up thread for %s",consumer)
+            self.add_thread(consumer, kwargs[consumer])
 
     def run(self):
         self.start_background_loop()
+
+    def add_thread(self, consumer, consumer_params):
+        self.lock.acquire()
+
+        self.registered_threads_info[consumer] = consumer_params
+
+        consumer_thread = self.setup_consumer_thread(consumer_params)
+        self.running_threads.append(consumer_thread)
+        self.lock.release()
 
     def setup_consumer_thread(self, consumer_params):
         url = consumer_params['amqp_url']
         q = consumer_params['queue']
         threadname = consumer_params['name']
         callback = consumer_params['callback']
-        format = consumer_params['format']
+        dataformat = consumer_params['format']
 
-        new_thread = Consumer(url, q, threadname, callback, format)
+        new_thread = Consumer(url, q, threadname, callback, dataformat)
         new_thread.start()
         sleep(1)
         return new_thread
@@ -91,7 +113,7 @@ class ThreadManager(threading.Thread):
                 dead_thread_name = self.running_threads[i].name
                 del self.running_threads[i]
                 ### Restart thread...
-                new_consumer = self.setup_consumer_thread(self.consumer_kwargs[dead_thread_name])
+                new_consumer = self.setup_consumer_thread(self.registered_threads_info[dead_thread_name])
 
                 self.running_threads.append(new_consumer)
         self.lock.release()

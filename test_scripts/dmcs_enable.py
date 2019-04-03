@@ -41,41 +41,33 @@ def main():
     #pass
   """
   """
-
   msg = {}
-  msg['MSG_TYPE'] = "DMCS_AT_START_INTEGRATION"
-  msg['IMAGE_ID'] = 'AT_O_20190315_000003'
-  msg['IMAGE_INDEX'] = '2'
-  msg['IMAGE_SEQUENCE_NAME'] = 'MAIN'
-  msg['IMAGES_IN_SEQUENCE'] = '3'
-  msg['ACK_ID'] = 'START_INT_ACK_76'
-  msg['REPLY_QUEUE'] = "dmcs_ack_consume"
-  time.sleep(8)
-  print("Start Integration Message")
+  msg['MSG_TYPE'] = "STANDBY"
+  msg['DEVICE'] = 'AT'
+  #msg['CFG_KEY'] = "2C16"
+  msg['ACK_ID'] = 'AT_4'
+  msg['CMD_ID'] = '4434278812'
+  time.sleep(3)
+  print("AT STANDBY")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
   msg = {}
-  msg['MSG_TYPE'] = "DMCS_AT_END_READOUT"
-  msg['IMAGE_ID'] = 'AT_O_20190315_000003'
-  msg['IMAGE_INDEX'] = '2'
-  msg['IMAGE_SEQUENCE_NAME'] = 'MAIN'
-  msg['IMAGES_IN_SEQUENCE'] = '3'
-  msg['RESPONSE_QUEUE'] = "dmcs_ack_consume"
-  msg['ACK_ID'] = 'READOUT_ACK_77'
-  time.sleep(5)
-  print("READOUT Message")
+  msg['MSG_TYPE'] = "DISABLE"
+  msg['DEVICE'] = 'AT'
+  msg['ACK_ID'] = 'AT_6'
+  msg['CMD_ID'] = '4434278814'
+  time.sleep(3)
+  print("AT DISABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
-  print("Sending HEADER1 information")
   msg = {}
-  msg["MSG_TYPE"] = "DMCS_AT_HEADER_READY"
-  msg["IMAGE_ID"] = 'AT_O_20190315_000003'
-  msg["FILENAME"] = "http://localhost:8000/visitJune-28.header"
-  time.sleep(4)
+  msg['MSG_TYPE'] = "ENABLE"
+  msg['DEVICE'] = 'AT'
+  msg['ACK_ID'] = 'AT_11'
+  msg['CMD_ID'] = '4434278816'
+  time.sleep(3)
+  print("AT ENABLE")
   sp1.publish_message("ocs_dmcs_consume", msg)
-
-  time.sleep(5)
-  #print("Sender done")
 
 
 
