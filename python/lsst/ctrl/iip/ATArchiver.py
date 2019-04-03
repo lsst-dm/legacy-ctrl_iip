@@ -90,6 +90,7 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
+        self.DP = False
 
         print('Extracting values from Config dictionary %s', filename)
         cdm = self.extract_config_values(filename)
@@ -99,14 +100,15 @@ class ATArchiver(iip_base):
         log_file = self.setupLogging(logging_dir, 'ATArchiver.log')
         print("Logs will be written to %s" % log_file)
 
+
         toolsmod.singleton(self)
         self._fwdr_state_dict = {}  # Used for ACK analysis...
         self._archive_ack = {}  # Used to determine archive response
-        self._current_fwdr = {}
+        self._current_fwdr = None
 
+        self.setup_fwdr_state_dict()
         if self._use_mutex:
             self.my_mutex_lock = threading.Lock()
-
 
         #self.purge_broker(cdm['ROOT']['QUEUE_PURGES'])
 
@@ -127,15 +129,15 @@ class ATArchiver(iip_base):
 
 
         self._next_timed_ack_id = 0
-
-        self.setup_publishers()
-
-        LOGGER.info('at archiver consumer setup')
         self.thread_manager = None
-        self.setup_consumer_threads()
 
-        LOGGER.info('ATArchiver Init complete')
+        self.base_broker_url = "amqp://" + self._msg_name + ":" + \
+                                            self._msg_passwd + "@" + \
+                                            str(self._base_broker_addr)
 
+        self.pub_base_broker_url = "amqp://" + self._msg_pub_name + ":" + \
+                                            self._msg_pub_passwd + "@" + \
+                                            str(self._base_broker_addr)
 
     def setup_publishers(self):
         """ Set up base publisher with pub_base_broker_url by creating a new instance
@@ -145,11 +147,12 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        self.pub_base_broker_url = "amqp://" + self._msg_pub_name + ":" + \
-                                            self._msg_pub_passwd + "@" + \
-                                            str(self._base_broker_addr)
         LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
         self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
+
+    def publish_message(self, owner_name, queue_name, params):
+        publisher = self.get_publisher(owner)
+        publisher.publish_message(queue_name, params)
 
 
     def on_aux_foreman_message(self, ch, method, properties, body):
@@ -163,13 +166,20 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        ch.basic_ack(method.delivery_tag)
+        if self.DP:
+            print('-->on_aux_foreman_message')
+            print(ch)
+            print(method)
+            print(properties)
+            print(body)
+            print('<--')
+        ch.basic_ack(delivery_tag=method.delivery_tag)
         msg_dict = body 
         if self.DP:
             print("Incoming message to on_aux_foreman_message is: ")
             self.prp.pprint(msg_dict)
 
-        LOGGER.info('Msg received in ATArchiver message callback')
+        LOGGER.info('on_aux_foreman_message: Msg received in ATArchiver message callback')
         LOGGER.debug('Message from DMCS to ATArchiver callback message body is: %s', pformat(str(msg_dict)))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
@@ -187,6 +197,13 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
+        if self.DP:
+            print('-->on_archive_message')
+            print(ch)
+            print(method)
+            print(properties)
+            print(body)
+            print('<--')
         ch.basic_ack(method.delivery_tag)
         msg_dict = body 
         LOGGER.info('In AT ARCHIVE CTRL message callback: RECEIVING MESSAGE')
@@ -206,6 +223,13 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
+        if self.DP:
+            print('-->on_ack_message')
+            print(ch)
+            print(method)
+            print(properties)
+            print(body)
+            print('<--')
         ch.basic_ack(method.delivery_tag) 
         msg_dict = body 
         LOGGER.info('In ACK message callback: RECEIVING ACK MESSAGE')
@@ -214,14 +238,25 @@ class ATArchiver(iip_base):
         if self.DP:
             print("\n\nIn ATArchiver on_ack_message - receiving this message: %s" % body)
 
-        # XXX FIX Ignoring all log messages
-        return
-
-
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
+
+    def do_health_check(self):
+        health_check_ack_id = self.get_next_timed_ack_id('AT_FWDR_HEALTH_CHECK_ACK')
+        self.clear_fwdr_state()
+        num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
+
+        # Give fwdrs enough time to respond...
+        ## FIX - Note: Incorporate way for simple_prog timer to do health checks.
+        self.ack_timer(2.0)
+        #fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
+
+
+        if self.set_current_fwdr() == False:
+            return False
+        return True
 
 
     def process_at_start_integration(self, params):
@@ -232,8 +267,8 @@ class ATArchiver(iip_base):
         # receive new job_number and image_id; session and visit are current
         # and deep copy it with some additions such as session and visit
         # These next three lines must have WFS and Guide sensor info added
-        LOGGER.warning('In top of Start_Int message handler: RECEIVING START_INT MESSAGE')
-        LOGGER.warning('Message from Start_Int handler message body is: %s', pformat(str(params)))
+        LOGGER.info('In top of Start_Int message handler: RECEIVING START_INT MESSAGE')
+        LOGGER.info('Message from Start_Int handler message body is: %s', pformat(str(params)))
 
         start_int_ack_id = params[ACK_ID]
         session_id = params['SESSION_ID']
@@ -244,24 +279,11 @@ class ATArchiver(iip_base):
         # next, run health check
         self.ACK_QUEUE = {}
         
-        health_check_ack_id = self.get_next_timed_ack_id('AT_FWDR_HEALTH_CHECK_ACK')
-        self.clear_fwdr_state()
-        num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
 
-
-        # Give fwdrs enough time to respond...
-        ## FIX - Note: Incorporate way for simple_prog timer to do health checks.
-        self.ack_timer(2.0)
-        #fwdr_res = self.simple_progressive_ack_timer(self.FWDR, 4.0)
-
-
-        if (self.set_current_fwdr() == False):
+        if self.do_health_check() == False:
             LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
             desc = "No health check response from ANY fwdr"
-            type = 'FAULT'
-            self.send_fault_state_event("5751", desc, type, 'FORWARDER' ) # error code for 
-                                                                          # 'no health check 
-                                                                          # response any fwdrs'
+            self.send_fault_state_event("5751", desc, 'FAULT', 'FORWARDER' ) # error code for 'no health check response any fwdrs'
             return
 
         # Add archive check when necessary...
@@ -382,6 +404,13 @@ class ATArchiver(iip_base):
         forwarders = list(self._forwarder_dict.keys())
         for x in range (0, len(forwarders)):
             route_key = self._forwarder_dict[forwarders[x]]["CONSUME_QUEUE"]
+            msg_params["CONSUME_QUEUE"] = route_key
+            if self.DP:
+                print("-->do_fwdr_health_check")
+                print("x ", x)
+                print("route_key ", route_key)
+                print("msg_params", msg_params)
+                print("<--")
             self._publisher.publish_message(route_key, msg_params)
         return len(forwarders)
 
@@ -433,7 +462,13 @@ class ATArchiver(iip_base):
             :return: None.
         """
         LOGGER.info('process_at_end_readout: RECEIVING END_READOUT MESSAGE')
-        LOGGER.debug('Incoming message to procoss_at_end_readout is: %s', pformat(str(params)))
+        LOGGER.debug('Incoming message to process_at_end_readout is: %s', pformat(str(params)))
+
+        if self.do_health_check() == False:
+            LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
+            desc = "No health check response from ANY fwdr"
+            self.send_fault_state_event("5751", desc, 'FAULT', 'FORWARDER' ) # error code for 'no health check response any fwdrs'
+            return
 
         reply_queue = params['REPLY_QUEUE']
         readout_ack_id = params[ACK_ID]
@@ -441,7 +476,10 @@ class ATArchiver(iip_base):
         image_id = params['IMAGE_ID']
         msgtype = params[MSG_TYPE]
 
-        self.clear_fwdr_state()
+
+        ### FIX - Note: Incorporate way for simple_prog timer to do health checks.
+        #self.ack_timer(2.0)
+
 
         # send readout to forwarder
         fwdr_readout_ack = self.get_next_timed_ack_id("AT_FWDR_END_READOUT_ACK")
@@ -455,6 +493,8 @@ class ATArchiver(iip_base):
         msg['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
         msg['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']
         msg['IMAGE_INDEX'] = params['IMAGE_INDEX']
+        if self.DP:
+            print("self._current_fwdr = ",self._current_fwdr)
         route_key = self._current_fwdr['CONSUME_QUEUE']
         self._publisher.publish_message(route_key, msg)
 
@@ -553,8 +593,12 @@ class ATArchiver(iip_base):
 
 
     def process_header_ready_event(self, params):
+        if self.do_health_check() == False:
+            LOGGER.critical("No health check response from ANY fwdr. Setting FAULT state, 5751")
+            desc = "No health check response from ANY fwdr"
+            self.send_fault_state_event("5751", desc, 'FAULT', 'FORWARDER' ) # error code for 'no health check response any fwdrs'
+            return
         hr_ack_id = self.get_next_timed_ack_id('AT_FWDR_HEADER_READY_ACK')
-        self.clear_fwdr_state()
 
         fname = params['FILENAME']
         image_id = params['IMAGE_ID']
@@ -600,19 +644,29 @@ class ATArchiver(iip_base):
             res = {'RESPONSE':'UNKNOWN'}
             self._fwdr_state_dict[fwdr] = deepcopy(res)
 
-        LOGGER.debug("Forwarder dict is: %s" % pformat(self._forwarder_dict))
-        LOGGER.debug("Forwarder state dict is: %s" % pformat(self._fwdr_state_dict))
+        LOGGER.info("Forwarder dict is: %s" % pformat(self._forwarder_dict))
+        LOGGER.info("Forwarder state dict is: %s" % pformat(self._fwdr_state_dict))
 
  
     def set_fwdr_state(self, component, state):
         if self.DP:
-            print("\n\nIn set_fwdr_state - Setting %s state to RESPONSIVE\n" % component)
-        LOGGER.info("set_fwdr_state - setting component %s to RESPONSIVE\n" % component)
+            print("\n\nIn set_fwdr_state - Setting %s state to %s\n" % (component, state))
+        LOGGER.info("set_fwdr_state - setting component %s to %s\n" % (component, state))
         self._fwdr_state_dict[component]['RESPONSE'] = state
 
 
+    def is_current_fwdr_set(self):
+        if self._current_fwdr is None:
+            return False
+        return True
+
+    # FIXME: This, and as noted below, always grabs the
+    # first forwarder encountered and uses that forwarder to send messages
+    # to.  This is used repeatedly throughout the code, which is the wrong thing
+    # to do if we're going to have to send directed messages to multiple forwarders.
     def set_current_fwdr(self):
-        self._current_fwdr = {}
+        LOGGER.info("set_current_fwdr called")
+        self._current_fwdr = None
         fwdrs = list(self._fwdr_state_dict.keys())
         for fwdr in fwdrs:   # Choose the first healthy forwarder encountered
             if self._fwdr_state_dict[fwdr]['RESPONSE'] == HEALTHY:
@@ -620,6 +674,7 @@ class ATArchiver(iip_base):
                 tmp_forwarder_dict['FQN'] = fwdr
                 #self._current_fwdr[fwdr] = tmp_forwarder_dict
                 self._current_fwdr = tmp_forwarder_dict
+                LOGGER.info("self._current_fwdr " % self._current_fwdr)
                 return True
         return False  #Could not find a HEALTHY forwarder to use...:(
 
@@ -682,8 +737,8 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        LOGGER.debug('In top of process_health_check_ack')
-        LOGGER.debug('Message from process_health_chech_ack is: %s', pformat(str(params)))
+        LOGGER.info('In top of process_health_check_ack')
+        LOGGER.info('Message from process_health_chech_ack is: %s', pformat(str(params)))
         component = params[COMPONENT]  # The component is the name of the fwdr responding
         self.set_fwdr_state(component, HEALTHY)
        
@@ -928,13 +983,45 @@ class ATArchiver(iip_base):
             LOGGER.critical("Bailing out...")
             sys.exit(99)
 
-        self.setup_fwdr_state_dict()
         self._base_msg_format = 'YAML'
 
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT]['BASE_MSG_FORMAT']
         return cdm
 
+
+    def setup_thread_manager(self):
+        self.shutdown_event = threading.Event()
+        self.shutdown_event.clear()
+        self.thread_manager = ThreadManager('thread-manager', self.shutdown_event)
+        self.thread_manager.start()
+
+    def wait_for_forwarder(self):
+        self.clear_fwdr_state()
+        health_check_ack_id = self.get_next_timed_ack_id('AT_FWDR_HEALTH_CHECK_ACK')
+        num_fwdrs_checked = self.do_fwdr_health_check(health_check_ack_id)
+        while self.set_current_fwdr() is False:
+            LOGGER.info("wait for forwarder: No forwarder set. trying to set one up")
+            # Give fwdrs enough time to respond and set self._current_fwdr
+            # TODO - THIS sleep IS A TERRIBLE WAY TO DO THIS...
+            # when we upgrade to Pika 1.0, investigate changing this to watch for consume-ok
+            # we can't do that now because it's not part of this version's current API
+            time.sleep(1)
+        print("_current_fwdr ",self._current_fwdr)
+
+    def setup_forwarder_thread(self):
+        kws = {}
+        md = {}
+        md['amqp_url'] = self.base_broker_url
+        md['name'] = 'Thread-at_foreman_ack_publish'
+        md['queue'] = 'at_foreman_ack_publish'
+        md['callback'] = self.on_ack_message
+        md['format'] = "YAML"
+        md['test_val'] = 'test_it'
+        md['publish_url'] = self.pub_base_broker_url
+        md['publish_format'] = self._base_msg_format
+        kws[md['name']] = md
+        self.thread_manager.add_threads(kws)
 
     def setup_consumer_threads(self):
         """ Create ThreadManager object with base broker url and kwargs to setup consumers.
@@ -943,47 +1030,34 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        base_broker_url = "amqp://" + self._msg_name + ":" + \
-                                            self._msg_passwd + "@" + \
-                                            str(self._base_broker_addr)
-        LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
-
-        self.shutdown_event = threading.Event()
-        self.shutdown_event.clear()
+        LOGGER.info('Building self.base_broker_url. Result is %s', self.base_broker_url)
 
 
         # Set up kwargs that describe consumers to be started
-        # The Archive Device needs three message consumers
         kws = {}
         md = {}
-        md['amqp_url'] = base_broker_url
+        md['amqp_url'] = self.base_broker_url
         md['name'] = 'Thread-aux_foreman_consume'
         md['queue'] = 'at_foreman_consume'
         md['callback'] = self.on_aux_foreman_message
         md['format'] = "YAML"
         md['test_val'] = None
+        md['publish_url'] = self.pub_base_broker_url
+        md['publish_format'] = self._base_msg_format
         kws[md['name']] = md
 
         md = {}
-        md['amqp_url'] = base_broker_url
-        md['name'] = 'Thread-at_foreman_ack_publish'
-        md['queue'] = 'at_foreman_ack_publish'
-        md['callback'] = self.on_ack_message
-        md['format'] = "YAML"
-        md['test_val'] = 'test_it'
-        kws[md['name']] = md
-
-        md = {}
-        md['amqp_url'] = base_broker_url
+        md['amqp_url'] = self.base_broker_url
         md['name'] = 'Thread-archive_ctrl_publish'
         md['queue'] = 'archive_ctrl_publish'
         md['callback'] = self.on_archive_message
         md['format'] = "YAML"
         md['test_val'] = 'test_it'
+        md['publish_url'] = self.pub_base_broker_url
+        md['publish_format'] = self._base_msg_format
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
-        self.thread_manager.start()
+        self.thread_manager.add_threads(kws)
 
 
     def send_telemetry(self, status_code, description):
@@ -1004,13 +1078,30 @@ class ATArchiver(iip_base):
 
 
 def main():
-    a_fm = ATArchiver('L1SystemCfg.yaml')
+    atArchiver = ATArchiver('L1SystemCfg.yaml')
+    LOGGER.info('setting up publishers')
+    atArchiver.setup_publishers()
+
+
+    #atArchiver.setup_forwarders()
+
+    LOGGER.info('at archiver consumer setup')
+
+    atArchiver.setup_thread_manager()
+    atArchiver.setup_forwarder_thread()
+    print("Aquiring forwarder")
+    atArchiver.wait_for_forwarder()
+    print("Forwarder aquired")
+    atArchiver.setup_consumer_threads()
+
+    LOGGER.info('ATArchiver Init complete')
+
     print("Beginning ATArchiver event loop...")
     try:
-        a_fm.thread_manager.join()
+        atArchiver.thread_manager.join()
     except KeyboardInterrupt:
         print("cleaning up")
-        a_fm.shutdown()
+        atArchiver.shutdown()
         print("done")
         pass
 

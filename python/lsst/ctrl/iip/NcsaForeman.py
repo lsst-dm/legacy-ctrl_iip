@@ -461,7 +461,8 @@ class NcsaForeman(iip_base):
         md['test_val'] = 'test_it'
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', kws, self.shutdown_event)
+        self.thread_manager = ThreadManager('thread-manager', self.shutdown_event)
+        self.thread_manager.add_threads(kws)
         self.thread_manager.start()
 
 
