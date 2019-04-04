@@ -78,5 +78,6 @@ def main():
   #print("Sender done")
 
 
+  sp1.close()
 
 if __name__ == "__main__":  main()
