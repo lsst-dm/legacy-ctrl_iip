@@ -73,7 +73,13 @@ class SimplePublisher:
           self.connect()
           self.publish(route_key, msg)
 
-  def publish_message(self, route_key, msg):
+  def close(self):
+    self._channel.close()
+    self._connection.close()
+    self._connection = None
+    self._channel = None
+
+  def publish_message_old(self, route_key, msg):
     if self._channel == None or self._channel.is_closed == True:
        try:
          self.connect()
@@ -83,6 +89,7 @@ class SimplePublisher:
 
     LOGGER.debug ("Sending msg to %s", route_key)
 
+    # XXX This XML part is broken because self._xml_handler is never set; _message_handler is.
     if self._format_options == "XML":
         try:
             xmlRoot = self._xml_handler.encodeXML(msg)
@@ -97,3 +104,33 @@ class SimplePublisher:
     else: 
         yamldict = self._message_handler.encode_message(msg)
         self.publish(route_key, yamldict)
+
+  def publish_message(self, route_key, msg):
+
+    encoded_data = None
+
+    # XXX This XML part is broken because self._xml_handler is never set; _message_handler is.
+    if self._format_options == "XML":
+        try:
+            xmlRoot = self._xml_handler.encodeXML(msg)
+            valid = self._xml_handler.validate(xmlRoot)
+            if valid: 
+                encoded_data = self._xml_handler.tostring(xmlRoot)
+            else: 
+                raise L1MessageError("Message is invalid XML.")
+        except L1MessageError as e:
+            raise L1MessageError("Message is invalid XML.")
+    else: 
+        # YAML
+        encoded_data = self._message_handler.encode_message(msg)
+
+    LOGGER.debug ("Sending msg to %s", route_key)
+
+    if self._channel == None or self._channel.is_closed == True:
+       try:
+         self.connect()
+       except AMQPError as e:
+         LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
+         sys.exit(105)
+
+    self.publish(route_key, encoded_data)
