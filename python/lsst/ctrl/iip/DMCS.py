@@ -1561,9 +1561,9 @@ class DMCS(iip_base):
         pass
 
     def shutdown(self):
-        LOGGER.info("Shutting down Consumer threads.")
+        LOGGER.info("Shutting down threads.")
         self.shutdown_event.set()
-        self.thread_manager.shutdown_consumers()
+        self.thread_manager.shutdown_threads()
         LOGGER.info("Thread Manager shutting down and app exiting...")
         #sys.exit(0)
         #print("\n")

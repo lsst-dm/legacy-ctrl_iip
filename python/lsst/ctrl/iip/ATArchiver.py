@@ -1022,8 +1022,8 @@ class ATArchiver(iip_base):
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
         md['test_val'] = 'test_it'
-        md['publish_name'] = 'Thread-foreman_ack_publisher'
-        md['publish_url'] = self.pub_base_broker_url
+        md['publisher_name'] = 'Thread-foreman_ack_publisher'
+        md['publisher_url'] = self.pub_base_broker_url
         #kws[md['name']] = md
         kws['at_foreman_ack_publish'] = md
         self.thread_manager.add_thread_groups(kws)
@@ -1047,8 +1047,8 @@ class ATArchiver(iip_base):
         md['callback'] = self.on_aux_foreman_message
         md['format'] = "YAML"
         md['test_val'] = None
-        md['publish_name'] = 'Thread-foreman_publisher'
-        md['publish_url'] = self.pub_base_broker_url
+        md['publisher_name'] = 'Thread-foreman_publisher'
+        md['publisher_url'] = self.pub_base_broker_url
         #kws[md['name']] = md
         kws['aux_foreman_consume'] = md
 
@@ -1059,8 +1059,8 @@ class ATArchiver(iip_base):
         md['callback'] = self.on_archive_message
         md['format'] = "YAML"
         md['test_val'] = 'test_it'
-        md['publish_name'] = 'Thread-archiver_publisher'
-        md['publish_url'] = self.pub_base_broker_url
+        md['publisher_name'] = 'Thread-archiver_publisher'
+        md['publisher_url'] = self.pub_base_broker_url
         #kws[md['name']] = md
         kws['archive_ctrl_publish'] = md
 
@@ -1077,9 +1077,9 @@ class ATArchiver(iip_base):
 
 
     def shutdown(self):
-        LOGGER.info("Shutting down Consumer threads.")
+        LOGGER.info("Shutting down threads.")
         self.shutdown_event.set()
-        self.thread_manager.shutdown_consumers()
+        self.thread_manager.shutdown_threads()
         LOGGER.debug("Thread Manager shutting down and app exiting...")
 
     def registerHandler(self):
@@ -1113,9 +1113,9 @@ def main():
 
     LOGGER.info('ATArchiver Init complete')
 
-    print("Beginning ATArchiver event loop...")
     signal.pause()
-    print("ATArchiver done.")
+    LOGGER.info('ATArchiver shutdown complete.  Exiting.')
+    print('ATArchiver shutdown complete.  Exiting.')
     os._exit(0)
 
 

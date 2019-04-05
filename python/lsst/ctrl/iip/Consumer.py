@@ -379,7 +379,7 @@ class Consumer(threading.Thread):
         LOGGER.info('Stopping')
         self._closing = True
         self.stop_consuming()
-        self._connection.ioloop.start()
+        self._connection.ioloop.stop()
         LOGGER.info('Stopped')
 
     def close_connection(self):

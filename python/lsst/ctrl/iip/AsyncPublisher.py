@@ -109,6 +109,11 @@ class AsyncPublisher(threading.Thread):
 
         self._channel.basic_publish(exchange='message', routing_key=route_key, body=encoded_data)
 
+    def stop(self):
+        LOGGER.info('Stopping')
+        self._connection.ioloop.stop()
+        LOGGER.info('Stopped')
+
     def run(self):
         self._connection.ioloop.start()
 
