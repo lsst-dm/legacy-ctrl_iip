@@ -462,8 +462,9 @@ class NcsaForeman(iip_base):
         kws[md['name']] = md
 
         self.thread_manager = ThreadManager('thread-manager', self.shutdown_event)
-        self.thread_manager.add_threads(kws)
         self.thread_manager.start()
+
+        self.thread_manager.add_thread_group(kws)
 
 
     def setup_scoreboards(self):

@@ -32,10 +32,10 @@ LOGGER = logging.getLogger(__name__)
 class ThreadManager(threading.Thread):
 
     class ThreadInfo:
-        def __init__(self, name, consumer_thread, publisher):
-            self.name = name
-            self.consumer_thread = consumer_thread
-            self.publisher = publisher
+        def __init__(self, thread_name, thread_type, params):
+            self.thread_name = thread_name
+            self.thread_type = thread_type
+            self.params = params
 
     def __init__(self, name, shutdown_event):
         threading.Thread.__init__(self, group=None, target=None, name=name) 
@@ -47,31 +47,30 @@ class ThreadManager(threading.Thread):
 
     #TODO: this method will go away once # we switch 
     # how consumer/publishers are handled in a future ticket
-    def add_consumers(self, kwargs):
-        self.add_threads(kwargs)
+    def add_thread_group(self, kwargs):
+        names = list(kwargs.keys())
+        print("names = ")
+        print(names)
+        for name in names:
+            LOGGER.info("setting up threads for group %s", name)
+            print("setting up threads for group %s", name)
+            self.add_consumer_thread(kwargs[name])
 
-    def add_threads(self, kwargs):
-        consumers = list(kwargs.keys())
-        print("consumers = ")
-        print(consumers)
-        for consumer in consumers:
-            LOGGER.info("setting up thread for %s",consumer)
-            print("setting up thread for %s",consumer)
-            self.add_thread(consumer, kwargs[consumer])
-
-    def run(self):
-        self.start_background_loop()
-
-    def add_thread(self, consumer, consumer_params):
+    def add_consumer_thread(self, params):
         self.lock.acquire()
 
-        self.registered_threads_info[consumer] = consumer_params
+        thread_name = params['name']
+        thread_info = self.ThreadInfo(thread_name, "consumer", params)
+        self.registered_threads_info[thread_name] = thread_info
 
-        consumer_thread = self.setup_consumer_thread(consumer_params)
+
+        consumer_thread = self.setup_consumer_thread(thread_info)
         self.running_threads.append(consumer_thread)
         self.lock.release()
 
-    def setup_consumer_thread(self, consumer_params):
+    def setup_consumer_thread(self, thread_info):
+        consumer_params = thread_info.params
+
         url = consumer_params['amqp_url']
         q = consumer_params['queue']
         threadname = consumer_params['name']
@@ -80,9 +79,17 @@ class ThreadManager(threading.Thread):
 
         new_thread = Consumer(url, q, threadname, callback, dataformat)
         new_thread.start()
-        sleep(1)
+        sleep(1) # XXX
         return new_thread
 
+    def setup_publisher_thread(self, thread_info):
+        params = thread_info.params
+        url = params['publisher_url']
+        thread_name = params['publisher_name']
+        new_thread = AsyncPublisher(url, thread_name)
+        new_thread.start()
+        return new_thread
+        
 
     def start_background_loop(self):
         # Time for threads to start and quiesce
@@ -113,7 +120,8 @@ class ThreadManager(threading.Thread):
                 dead_thread_name = self.running_threads[i].name
                 del self.running_threads[i]
                 ### Restart thread...
-                new_consumer = self.setup_consumer_thread(self.registered_threads_info[dead_thread_name])
+                thread_info = self.registered_threads_info[dead_thread_name]
+                new_consumer = self.setup_consumer_thread(thread_info)
 
                 self.running_threads.append(new_consumer)
         self.lock.release()
@@ -132,4 +140,7 @@ class ThreadManager(threading.Thread):
         self.lock.release()
 
         LOGGER.info("consumer thread shutdown completed")
+
+    def run(self):
+        self.start_background_loop()
 

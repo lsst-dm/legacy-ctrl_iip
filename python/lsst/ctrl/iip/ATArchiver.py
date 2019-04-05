@@ -43,6 +43,7 @@ from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.ThreadManager import ThreadManager
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 from lsst.ctrl.iip.iip_base import iip_base
 
 LOGGER = logging.getLogger(__name__)
@@ -90,7 +91,7 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        self.DP = False
+        self.DP = True
 
         print('Extracting values from Config dictionary %s', filename)
         cdm = self.extract_config_values(filename)
@@ -148,10 +149,12 @@ class ATArchiver(iip_base):
             :return: None.
         """
         LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
-        self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
+        #self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
+        self._publisher = AsyncPublisher(self.pub_base_broker_url, 'ATArchiver-publisher')
+        self._publisher.start()
 
     def publish_message(self, owner_name, queue_name, params):
-        publisher = self.get_publisher(owner)
+        publisher = self.get_publisher(owner_name)
         publisher.publish_message(queue_name, params)
 
 
@@ -1018,10 +1021,11 @@ class ATArchiver(iip_base):
         md['callback'] = self.on_ack_message
         md['format'] = "YAML"
         md['test_val'] = 'test_it'
+        md['publish_name'] = 'Thread-foreman_ack_publisher'
         md['publish_url'] = self.pub_base_broker_url
-        md['publish_format'] = self._base_msg_format
-        kws[md['name']] = md
-        self.thread_manager.add_threads(kws)
+        #kws[md['name']] = md
+        kws['at_foreman_ack_publish'] = md
+        self.thread_manager.add_thread_group(kws)
 
     def setup_consumer_threads(self):
         """ Create ThreadManager object with base broker url and kwargs to setup consumers.
@@ -1042,9 +1046,10 @@ class ATArchiver(iip_base):
         md['callback'] = self.on_aux_foreman_message
         md['format'] = "YAML"
         md['test_val'] = None
+        md['publish_name'] = 'Thread-foreman_publisher'
         md['publish_url'] = self.pub_base_broker_url
-        md['publish_format'] = self._base_msg_format
-        kws[md['name']] = md
+        #kws[md['name']] = md
+        kws['aux_foreman_consume'] = md
 
         md = {}
         md['amqp_url'] = self.base_broker_url
@@ -1053,11 +1058,12 @@ class ATArchiver(iip_base):
         md['callback'] = self.on_archive_message
         md['format'] = "YAML"
         md['test_val'] = 'test_it'
+        md['publish_name'] = 'Thread-archiver_publisher'
         md['publish_url'] = self.pub_base_broker_url
-        md['publish_format'] = self._base_msg_format
-        kws[md['name']] = md
+        #kws[md['name']] = md
+        kws['archive_ctrl_publish'] = md
 
-        self.thread_manager.add_threads(kws)
+        self.thread_manager.add_thread_group(kws)
 
 
     def send_telemetry(self, status_code, description):
