@@ -47,25 +47,33 @@ class ThreadManager(threading.Thread):
 
     #TODO: this method will go away once # we switch 
     # how consumer/publishers are handled in a future ticket
-    def add_thread_group(self, kwargs):
+    def add_thread_groups(self, kwargs):
         names = list(kwargs.keys())
         print("names = ")
         print(names)
         for name in names:
             LOGGER.info("setting up threads for group %s", name)
             print("setting up threads for group %s", name)
-            self.add_consumer_thread(kwargs[name])
+            self.add_thread_group(kwargs[name])
 
-    def add_consumer_thread(self, params):
+    def add_thread_group(self, params):
         self.lock.acquire()
 
         thread_name = params['name']
         thread_info = self.ThreadInfo(thread_name, "consumer", params)
         self.registered_threads_info[thread_name] = thread_info
 
-
         consumer_thread = self.setup_consumer_thread(thread_info)
         self.running_threads.append(consumer_thread)
+
+        # using this defensive in transition for code that hasn't been
+        # ported to create consumers/publishers together
+        if 'publisher_name' in params:
+            thread_name = params['publisher_name']
+            thread_info = self.ThreadInfo(thread_name, "publisher", params)
+            publisher_thread = self.setup_publisher_thread(thread_info)
+            self.running_threads.append(publisher_thread)
+
         self.lock.release()
 
     def setup_consumer_thread(self, thread_info):
@@ -111,28 +119,28 @@ class ThreadManager(threading.Thread):
     def check_thread_health(self):
         self.lock.acquire()
         num_threads = len(self.running_threads)
-        for i in range(0, num_threads):
-            if self.running_threads[i].is_alive():
+        #for i in range(0, num_threads):
+        for cur_thread in self.running_threads[:]:
+            if cur_thread.is_alive():
                 continue
             else:
-                LOGGER.critical("Thread with name %s has died. Attempting to restart..." 
-                                 % self.running_threads[i].name)
-                dead_thread_name = self.running_threads[i].name
-                del self.running_threads[i]
+                dead_thread_name = cur_thread.name
+                self.running_threads.remove(cur_thread)
                 ### Restart thread...
-                thread_info = self.registered_threads_info[dead_thread_name]
-                new_consumer = self.setup_consumer_thread(thread_info)
-
-                self.running_threads.append(new_consumer)
+                if self.shutdown_event.isSet() is False:
+                        LOGGER.critical("Thread with name %s has died. Attempting to restart..." % dead_thread_name)
+                        thread_info = self.registered_threads_info[dead_thread_name]
+                        new_consumer = self.setup_consumer_thread(thread_info)
+                        self.running_threads.append(new_consumer)
         self.lock.release()
 
 
     def shutdown_consumers(self):
         self.lock.acquire()
         num_threads = len(self.running_threads)
-        LOGGER.info("shutting down consumer threads")
+        LOGGER.info("shutting down %d threads" % num_threads)
         for i in range (0, num_threads):
-            LOGGER.info("Stopping rabbit connection in consumer %s" % self.running_threads[i].name)
+            LOGGER.info("Stopping rabbit connection in %s" % self.running_threads[i].name)
             self.running_threads[i].stop()
             LOGGER.info("Shutting down consumer %s" % self.running_threads[i].name)
             self.running_threads[i].join()

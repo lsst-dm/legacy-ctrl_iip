@@ -31,6 +31,7 @@ import os
 from copy import deepcopy
 from pprint import pprint, pformat
 import time
+import signal
 import datetime
 from time import sleep
 import threading
@@ -1025,7 +1026,7 @@ class ATArchiver(iip_base):
         md['publish_url'] = self.pub_base_broker_url
         #kws[md['name']] = md
         kws['at_foreman_ack_publish'] = md
-        self.thread_manager.add_thread_group(kws)
+        self.thread_manager.add_thread_groups(kws)
 
     def setup_consumer_threads(self):
         """ Create ThreadManager object with base broker url and kwargs to setup consumers.
@@ -1063,7 +1064,7 @@ class ATArchiver(iip_base):
         #kws[md['name']] = md
         kws['archive_ctrl_publish'] = md
 
-        self.thread_manager.add_thread_group(kws)
+        self.thread_manager.add_thread_groups(kws)
 
 
     def send_telemetry(self, status_code, description):
@@ -1078,9 +1079,17 @@ class ATArchiver(iip_base):
     def shutdown(self):
         LOGGER.info("Shutting down Consumer threads.")
         self.shutdown_event.set()
+        self.thread_manager.shutdown_consumers()
         LOGGER.debug("Thread Manager shutting down and app exiting...")
-        print("\n")
-        os._exit(0)
+
+    def registerHandler(self):
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self, sig, frame):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        print("shutdown called")
+        self.shutdown()
+        
 
 
 def main():
@@ -1100,19 +1109,14 @@ def main():
     print("Forwarder aquired")
     atArchiver.setup_consumer_threads()
 
+    atArchiver.registerHandler()
+
     LOGGER.info('ATArchiver Init complete')
 
     print("Beginning ATArchiver event loop...")
-    try:
-        atArchiver.thread_manager.join()
-    except KeyboardInterrupt:
-        print("cleaning up")
-        atArchiver.shutdown()
-        print("done")
-        pass
-
-    print("")
+    signal.pause()
     print("ATArchiver done.")
+    os._exit(0)
 
 
 

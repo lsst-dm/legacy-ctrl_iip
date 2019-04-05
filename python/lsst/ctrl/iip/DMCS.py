@@ -1462,7 +1462,7 @@ class DMCS(iip_base):
             kws[md['name']] = md
 
             self.thread_manager = ThreadManager('thread-manager', self.shutdown_event)
-            self.thread_manager.add_thread_group(kws)
+            self.thread_manager.add_thread_groups(kws)
 
         except ThreadError as e:
             LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
@@ -1576,6 +1576,7 @@ class DMCS(iip_base):
         signal.signal(signal.SIGINT, self.signal_handler)
 
     def signal_handler(self, sig, frame):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         print("shutdown called")
         self.shutdown()
         print
