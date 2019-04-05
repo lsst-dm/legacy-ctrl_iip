@@ -46,6 +46,8 @@ class AsyncPublisher(threading.Thread):
         self._connection = None
         self._channel = None
         self._url = amqp_url
+        self.setup_complete_event = threading.Event()
+        self.setup_complete_event.clear()
 
         self._message_handler = YamlHandler()
 
@@ -60,6 +62,7 @@ class AsyncPublisher(threading.Thread):
                                                     on_open_callback=self.on_connection_open,
                                                     on_close_callback=self.on_connection_closed);
 
+
     def on_connection_open(self, connection):
         LOGGER.info("connection opened")
         self._connection = connection
@@ -73,6 +76,7 @@ class AsyncPublisher(threading.Thread):
         LOGGER.info("channel opened")
         self._channel = channel
         self.add_on_channel_close_callback()
+        self.setup_complete_event.set()
 
     def add_on_channel_close_callback(self):
         LOGGER.info('adding channel close callback')
@@ -100,6 +104,7 @@ class AsyncPublisher(threading.Thread):
 
         LOGGER.info("Sending msg to %s", route_key)
 
+        # TODO:  This if-clause likely should be taken out.
         if self._channel == None or self._channel.is_closed == True:
             try:
                 self.connect()
@@ -107,7 +112,12 @@ class AsyncPublisher(threading.Thread):
                 LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
                 sys.exit(105) # XXX
 
-        self._channel.basic_publish(exchange='message', routing_key=route_key, body=encoded_data)
+        # Since this is asynchronous, it's possible to still be in the 
+        # process of getting setup and having self._channel be None when 
+        # publish_message is being called from another thread, so we wait 
+        # here until setup is completed.
+        if self.setup_complete_event.wait():
+            self._channel.basic_publish(exchange='message', routing_key=route_key, body=encoded_data)
 
     def stop(self):
         LOGGER.info('Stopping')

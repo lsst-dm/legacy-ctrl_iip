@@ -41,6 +41,7 @@ class ThreadManager(threading.Thread):
         threading.Thread.__init__(self, group=None, target=None, name=name) 
         self.registered_threads_info = {}
         self.running_threads = {}
+        self.paired_name = {}
         self.shutdown_event = shutdown_event
         self.lock = threading.Lock()
 
@@ -63,22 +64,19 @@ class ThreadManager(threading.Thread):
         thread_info = self.ThreadInfo(thread_name, "consumer", params)
         self.registered_threads_info[thread_name] = thread_info
 
-        (name, consumer_thread) = self.setup_consumer_thread(thread_info)
-        self.running_threads[name] = consumer_thread
-
         # using this defensive in transition for code that hasn't been
         # ported to create consumers/publishers together
+        publisher_name = None
         if 'publisher_name' in params:
             thread_name = params['publisher_name']
             thread_info = self.ThreadInfo(thread_name, "publisher", params)
-            (name, publisher_thread) = self.setup_publisher_thread(thread_info)
-            self.running_threads[name] = publisher_thread
-        else:
-            print('---->')
-            print("publisher_name not found")
-            print(params)
-            print('<-----')
+            (publisher_name, publisher_thread) = self.setup_publisher_thread(thread_info)
+            self.running_threads[publisher_name] = publisher_thread
+        
+        (consumer_name, consumer_thread) = self.setup_consumer_thread(thread_info)
+        self.running_threads[consumer_name] = consumer_thread
 
+        self.paired_name[consumer_name] = publisher_name
         self.lock.release()
 
     def setup_consumer_thread(self, thread_info):
@@ -86,23 +84,37 @@ class ThreadManager(threading.Thread):
 
         url = consumer_params['amqp_url']
         q = consumer_params['queue']
-        thread_name = consumer_params['name']
+        consumer_name = consumer_params['name']
         callback = consumer_params['callback']
         dataformat = consumer_params['format']
 
-        new_thread = Consumer(url, q, thread_name, callback, dataformat)
+        new_thread = Consumer(url, q, consumer_name, callback, dataformat)
         new_thread.start()
         sleep(1) # XXX
-        return (thread_name, new_thread)
+        return (consumer_name, new_thread)
 
     def setup_publisher_thread(self, thread_info):
         params = thread_info.params
         url = params['publisher_url']
-        thread_name = params['publisher_name']
-        LOGGER.info('starting AsyncPublisher %s' % thread_name)
-        new_thread = AsyncPublisher(url, thread_name)
+        publisher_name = params['publisher_name']
+        LOGGER.info('starting AsyncPublisher %s' % publisher_name)
+        new_thread = AsyncPublisher(url, publisher_name)
         new_thread.start()
-        return (thread_name, new_thread)
+        return (publisher_name, new_thread)
+
+    def get_publisher_paired_with(self, consumer_name):
+        self.lock.acquire()
+        publisher_name = self.paired_name[consumer_name]
+        thr = self.running_threads[publisher_name]
+        self.lock.release()
+        return thr
+        
+
+    def get_thread_by_name(self, name):
+        self.lock.aquire()
+        thr = self.running_threads[name]
+        self.lock.release()
+        return thr
 
     def start_background_loop(self):
         # Time for threads to start and quiesce
