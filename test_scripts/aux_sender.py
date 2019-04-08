@@ -24,29 +24,29 @@ class AuxDeviceTestCase():
     
     def setUp(self):
         # read CFG file 
-        self.__cfg_root = toolsmod.intake_yaml_file(self.CFG_FILE)['ROOT']
+        self._cfg_root = toolsmod.intake_yaml_file(self.CFG_FILE)['ROOT']
 
         # setup forwarder publisher 
-        self.__fwdr_cfg = self.__cfg_root['XFER_COMPONENTS']['AUX_FORWARDERS'][self.FORWARDER]
-        self.__fwdr_amqp = 'amqp://' + \
-                self.__fwdr_cfg['NAME'] + ':' + \
-                self.__fwdr_cfg['NAME'] + '@' + \
-                self.__cfg_root['BASE_BROKER_ADDR']
-        self.__fwdr_publisher = SimplePublisher(self.__fwdr_amqp, 'YAML')
+        self._fwdr_cfg = self._cfg_root['XFER_COMPONENTS']['AUX_FORWARDERS'][self.FORWARDER]
+        self._fwdr_amqp = 'amqp://' + \
+                self._fwdr_cfg['NAME'] + ':' + \
+                self._fwdr_cfg['NAME'] + '@' + \
+                self._cfg_root['BASE_BROKER_ADDR']
+        self._fwdr_publisher = SimplePublisher(self._fwdr_amqp, 'YAML')
 
         # setup dmcs publisher
-        self.__dmcs_amqp = 'amqp://' + \
-                self.__cfg_root['DMCS_BROKER_PUB_NAME'] + ':' + \
-                self.__cfg_root['DMCS_BROKER_PUB_PASSWD'] + '@' + \
-                self.__cfg_root['BASE_BROKER_ADDR']
-        self.__dmcs_publisher = SimplePublisher(self.__dmcs_amqp, 'YAML')
+        self._dmcs_amqp = 'amqp://' + \
+                self._cfg_root['DMCS_BROKER_PUB_NAME'] + ':' + \
+                self._cfg_root['DMCS_BROKER_PUB_PASSWD'] + '@' + \
+                self._cfg_root['BASE_BROKER_ADDR']
+        self._dmcs_publisher = SimplePublisher(self._dmcs_amqp, 'YAML')
 
         # setup archiveController publisher
-        self.__at_ctrl_amqp = 'amqp://' + \
-                self.__cfg_root['ARCHIVE_BROKER_PUB_NAME'] + ':' + \
-                self.__cfg_root['ARCHIVE_BROKER_PUB_PASSWD'] + '@' + \
-                self.__cfg_root['BASE_BROKER_ADDR']
-        self.__at_ctrl_publisher = SimplePublisher(self.__at_ctrl_amqp, 'YAML')
+        self._at_ctrl_amqp = 'amqp://' + \
+                self._cfg_root['ARCHIVE_BROKER_PUB_NAME'] + ':' + \
+                self._cfg_root['ARCHIVE_BROKER_PUB_PASSWD'] + '@' + \
+                self._cfg_root['BASE_BROKER_ADDR']
+        self._at_ctrl_publisher = SimplePublisher(self._at_ctrl_amqp, 'YAML')
 
     def tearDown(self):
         pass 
@@ -64,7 +64,7 @@ class AuxDeviceTestCase():
         msg['RAFT_CCD_LIST'] = [['wfs_ccd']]
         msg['REPLY_QUEUE'] = self.DMCS_ACK_QUEUE
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
-        self.__dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
+        self._dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
 
     def test_at_new_session(self): 
         msg = {} 
@@ -72,7 +72,7 @@ class AuxDeviceTestCase():
         msg['SESSION_ID'] = self.SESSION_ID
         msg['REPLY_QUEUE'] = self.DMCS_ACK_QUEUE
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
-        self.__dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
+        self._dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
 
     def test_at_fwdr_health_check_ack(self): 
         msg = {}
@@ -80,7 +80,7 @@ class AuxDeviceTestCase():
         msg['ACK_BOOL'] = 'True'
         msg['COMPONENT'] = self.FORWARDER
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
-        self.__fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
+        self._fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
     def test_at_fwdr_xfer_params_ack(self):
         msg = {}
@@ -88,7 +88,7 @@ class AuxDeviceTestCase():
         msg['COMPONENT'] = self.FORWARDER
         msg['ACK_BOOL'] = "true"
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
-        self.__fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
+        self._fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
     def test_at_fwdr_end_readout_ack(self):
         # Currently not used
@@ -104,7 +104,7 @@ class AuxDeviceTestCase():
         result_set['FILENAME_LIST'] = 'xxx'
         result_set['CHECKSUM_LIST'] = 'csum1lk123lkj'
         msg['RESULT_SET'] = result_set
-        self.__fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
+        self._fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
 
     def test_at_items_xferd_ack(self):
@@ -118,7 +118,7 @@ class AuxDeviceTestCase():
         result_set['RECEIPT_LIST'] = ['receipt1']
         result_set['FILENAME_LIST'] = ['file1']
         msg['RESULT_SET'] = result_set
-        self.__at_ctrl_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
+        self._at_ctrl_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
     def test_at_header_ready(self):
         msg = {} 
@@ -127,7 +127,7 @@ class AuxDeviceTestCase():
         msg['FILENAME'] = 'http://141.142.238.177:8000/AT_O_20190312_000007.header'
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
         msg['REPLY_QUEUE'] = 'at_foreman_ack_publish'
-        self.__dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
+        self._dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
 
     def test_at_fwdr_header_ready_ack(self):
         msg = {} 
@@ -135,7 +135,7 @@ class AuxDeviceTestCase():
         msg['COMPONENT'] = self.FORWARDER
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
         msg['ACK_BOOL'] = 'True'
-        self.__fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
+        self._fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
     def test_new_archive_item_ack(self):
         # don't think this is used 
@@ -154,7 +154,7 @@ class AuxDeviceTestCase():
         msg['ACK_BOOL'] = True
         msg['JOB_NUM'] = 'job_100'
         msg['IMAGE_ID'] = 'IMG_100'
-        self.__at_ctrl_publisher.publish_message(self.ARCHIVE_PUBLISH_QUEUE, msg)
+        self._at_ctrl_publisher.publish_message(self.ARCHIVE_PUBLISH_QUEUE, msg)
 
     def test_at_end_readout(self):
         msg = {} 
@@ -167,7 +167,7 @@ class AuxDeviceTestCase():
         msg['SESSION_ID'] = self.SESSION_ID
         msg['REPLY_QUEUE'] = self.DMCS_ACK_QUEUE
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
-        self.__dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
+        self._dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
 
     def run(self): 
         self.setUp()
