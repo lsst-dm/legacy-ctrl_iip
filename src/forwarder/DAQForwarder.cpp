@@ -407,7 +407,7 @@ Forwarder::Forwarder() {
     // Read L1 config file
     Node L1_config_file;
     try {
-        L1_config_file = LoadFile(L1_CFG_FILE_LOCATION);
+        L1_config_file = loadConfigFile("L1SystemCfg.yaml");
     }
     catch (YAML::BadFile& e) {
         LOG_CRT << "Error reading L1SystemCfg.yaml file.";
@@ -1697,11 +1697,6 @@ void Forwarder::process_header_ready(Node n) {
         string path = n["FILENAME"].as<string>(); 
         string img_id = n["IMAGE_ID"].as<string>(); 
         int img_idx = path.find_last_of("/"); 
-        /** 
-        int dot_idx = path.find_last_of("."); 
-        int num_char = dot_idx - (img_idx + 1); // offset +1
-        string img_id = path.substr(img_idx + 1, num_char); 
-        */
 
         string sub_dir = main_header_dir + "/" + img_id; 
         const int dir_cmd = mkdir(sub_dir.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);  
@@ -1711,34 +1706,17 @@ void Forwarder::process_header_ready(Node n) {
         } 
         LOG_DBG << "Created sub header directory for image id at " << sub_dir.c_str(); 
 
-        // scp -i ~/.ssh/from_efd felipe@141.142.23x.xxx:/tmp/header/IMG_ID.header to /tmp/header/IMG_ID/IMG_ID.header
-        ostringstream cp_cmd; 
-	/** 
-        cp_cmd << "scp -i ~/.ssh/from_efd "
-               << path
-               << " " 
-               << sub_dir
-               << "/"; 
-	*/ 
-	cp_cmd << "wget -P " << sub_dir << "/ " << path; 
-        int scp_cmd = system(cp_cmd.str().c_str()); 
-        LOG_DBG << "Copying header file from efd and command is " << cp_cmd.str(); 
+        ostringstream wget; 
+	wget << "wget --timeout=2 --tries=1 -P " << sub_dir << "/ " << path; 
+        int wget_status = system(wget.str().c_str()); 
+        LOG_DBG << "Copying header file from efd and command is " << wget.str(); 
 
-	/** 
-	ostringstream move_cmd; 
-	int move_idx = path.find_last_of("/"); 
-	int dot_idx = path.find_last_of("."); 
-        int num_char = dot_idx - (move_idx + 1); // offset +1
-	string move_str = path.substr(move_idx + 1, num_char); 
-
-	move_cmd << "mv " << move_str << " " << sub_dir << "/"; 
-	cout << "[STATUS] " << move_cmd.str() << endl; 
-	int move_cmd_exec = system(move_cmd.str().c_str()); 
-	cout << "Moved file to " << sub_dir << endl; 
-	*/ 
-
-        if (scp_cmd == 256) { 
-            throw L1CannotCopyFileError("In process_header_ready, forwarder cannot copy file: " + cp_cmd.str()); 
+        if (wget_status) { 
+            // TODO: Error code
+            string err = "Forwarder cannot pull " + img_id  + " header from " + path;
+            LOG_CRT << err << endl; 
+            this->send_telemetry(104, err);
+            throw L1CannotCopyFileError(err); 
         } 
         LOG_DBG << "Copied header file from efd."; 
 
@@ -2150,18 +2128,18 @@ void Forwarder::forward_process_end_readout(Node n) {
         LOG_DBG << "About to send file with image_id: " << img_id; 
       
         size_t find_at = dest_path.find("@"); 
-        ostringstream bbcp_cmd; 
+        ostringstream bbcp; 
         if (find_at != string::npos) { 
-            bbcp_cmd << "bbcp -f -i ~/.ssh/id_rsa ";
+            bbcp << "bbcp -f -i ~/.ssh/id_rsa ";
         } 
         else { 
-            bbcp_cmd << "cp "; 
+            bbcp << "cp "; 
         } 
-        bbcp_cmd << img_path
+        bbcp << img_path
                  << " " 
                  << dest_path; 
 
-        LOG_DBG << "bbcp command is: " << bbcp_cmd.str(); 
+        LOG_DBG << "bbcp command is: " << bbcp.str(); 
 
         /*
         // If enabled, calculate checksum for verification use at Archive
@@ -2174,15 +2152,17 @@ void Forwarder::forward_process_end_readout(Node n) {
             }
         } */
 
-        int bbcp_cmd_status = system(bbcp_cmd.str().c_str()); 
-        LOG_DBG << "Command to copy file is " << bbcp_cmd.str(); 
+        int bbcp_status = system(bbcp.str().c_str()); 
+        LOG_DBG << "Command to copy file is " << bbcp.str(); 
 	LOG_DBG << "File is copied from " << img_path << " to "<< dest_path; 
 
 
-        if (bbcp_cmd_status == 256) { 
-            throw L1CannotCopyFileError("In forward_process_end_readout, "
-                                        "forwarder cannot copy file: " + bbcp_cmd.str()); 
-            LOG_CRT << "CANNOT Copy File to Archive." << endl; 
+        if (bbcp_status) { 
+            // TODO: Error code
+            string err = "Forwarder cannot transfer " + img_name + " to " + dest_path;
+            LOG_CRT << err << endl; 
+            this->send_telemetry(105, err);
+            throw L1CannotCopyFileError(err); 
         } 
         ostringstream description;
         description << "File " << img_name << ".fits successfully copied to " << dest_path;
