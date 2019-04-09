@@ -46,12 +46,8 @@ class ThreadManager(threading.Thread):
         self.lock = threading.Lock()
 
 
-    #TODO: this method will go away once # we switch 
-    # how consumer/publishers are handled in a future ticket
     def add_thread_groups(self, kwargs):
         names = list(kwargs.keys())
-        print("names = ")
-        print(names)
         for name in names:
             LOGGER.info("setting up threads for group %s" % name)
             print("setting up threads for group %s" % name)

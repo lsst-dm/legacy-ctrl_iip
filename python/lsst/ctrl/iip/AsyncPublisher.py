@@ -31,7 +31,6 @@ from pika.exceptions import *
 import lsst.ctrl.iip.toolsmod
 from lsst.ctrl.iip.toolsmod import L1Exception
 from lsst.ctrl.iip.toolsmod import L1MessageError
-from lsst.ctrl.iip.XMLHandler import * 
 from lsst.ctrl.iip.YamlHandler import * 
 
 LOGGER = logging.getLogger(__name__)

@@ -43,7 +43,6 @@ from lsst.ctrl.iip.JobScoreboard import JobScoreboard
 from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.ThreadManager import ThreadManager
-from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 from lsst.ctrl.iip.iip_base import iip_base
 
@@ -92,7 +91,7 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        self.DP = True
+        self.DP = False
 
         print('Extracting values from Config dictionary %s', filename)
         cdm = self.extract_config_values(filename)
@@ -131,7 +130,6 @@ class ATArchiver(iip_base):
 
 
         self._next_timed_ack_id = 0
-        self.thread_manager = None
 
         self.base_broker_url = "amqp://" + self._msg_name + ":" + \
                                             self._msg_passwd + "@" + \
@@ -141,16 +139,29 @@ class ATArchiver(iip_base):
                                             self._msg_pub_passwd + "@" + \
                                             str(self._base_broker_addr)
 
+
+        self.thread_manager = self.setup_thread_manager()
+
+
+        self.setup_publishers()
+        self.setup_forwarder_thread()
+
+
+        LOGGER.info("Acquiring forwarder")
+        self.wait_for_forwarder()
+
+        LOGGER.info("Forwarder acquired")
+        self.setup_consumer_threads()
+
     def setup_publishers(self):
         """ Set up base publisher with pub_base_broker_url by creating a new instance
-            of SimplePublisher class with yaml format
+            of AsyncPublisher clas
 
             :params: None.
 
             :return: None.
         """
         LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
-        #self._publisher = SimplePublisher(self.pub_base_broker_url, self._base_msg_format)
         self._publisher = AsyncPublisher(self.pub_base_broker_url, 'ATArchiver-publisher')
         self._publisher.start()
 
@@ -632,10 +643,8 @@ class ATArchiver(iip_base):
         consumer_name = threading.currentThread().getName()
 
         if consumer_name == "MainThread": # use the main thread's publisher
-            print("publishing using MainThread")
             self._publisher.publish_message(route_key, msg)
         else:
-            print("publishing using %s" % consumer_name)
             pub = self.thread_manager.get_publisher_paired_with(consumer_name)
             pub.publish_message(route_key, msg)
 
@@ -1018,8 +1027,9 @@ class ATArchiver(iip_base):
     def setup_thread_manager(self):
         self.shutdown_event = threading.Event()
         self.shutdown_event.clear()
-        self.thread_manager = ThreadManager('thread-manager', self.shutdown_event)
-        self.thread_manager.start()
+        thread_manager = ThreadManager('thread-manager', self.shutdown_event)
+        thread_manager.start()
+        return thread_manager
 
     def wait_for_forwarder(self):
         self.clear_fwdr_state()
@@ -1115,20 +1125,7 @@ class ATArchiver(iip_base):
 
 def main():
     atArchiver = ATArchiver('L1SystemCfg.yaml')
-    LOGGER.info('setting up publishers')
-    atArchiver.setup_publishers()
 
-
-    #atArchiver.setup_forwarders()
-
-    LOGGER.info('at archiver consumer setup')
-
-    atArchiver.setup_thread_manager()
-    atArchiver.setup_forwarder_thread()
-    print("Aquiring forwarder")
-    atArchiver.wait_for_forwarder()
-    print("Forwarder aquired")
-    atArchiver.setup_consumer_threads()
 
     atArchiver.registerHandler()
 
