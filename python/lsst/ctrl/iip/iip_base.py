@@ -129,9 +129,6 @@ class iip_base:
         #print("\n")
         #os._exit(0)
 
-    def dmcs_finalize(self):
-        self.STATE_SCBD.scbd_finalize()
-
     def register_SIGINT_handler(self):
         signal.signal(signal.SIGINT, self.signal_handler)
 

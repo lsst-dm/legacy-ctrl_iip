@@ -1572,6 +1572,9 @@ class DMCS(iip_base):
         # Exit?
         pass
 
+    def dmcs_finalize(self):
+        self.STATE_SCBD.scbd_finalize()
+
 def main():
     dmcs = DMCS('L1SystemCfg.yaml')
     dmcs.register_SIGINT_handler()
