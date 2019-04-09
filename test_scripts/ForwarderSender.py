@@ -2,11 +2,21 @@ import time
 from Sender import Sender
 
 class ForwarderSender(Sender):
-    def __init__(self, filename):
+
+
+    def __init__(self, filename, timer):
         Sender.__init__(self, filename)
-        self._aux_publisher = self.get_publisher(
-                'AUX_PUB',
-                'AUX_PUB')
+
+        self.fwdr_actions = {
+            ('1', '1'): self.run_oneFwdr_oneImage,
+            ('1', 'n'): self.run_oneFwdr_manyImages
+        }
+
+        if timer is None: 
+            self._timer = int(self.get_timer())
+        else:
+            self._timer = int(timer)
+        self._aux_publisher = self.get_publisher('AUX_PUB', 'AUX_PUB')
 
     def send_health_check(self, fwdr):
         msg = {}
@@ -56,37 +66,40 @@ class ForwarderSender(Sender):
     def run_sequence(self, target_location, fwdr, image, raft, ccd):
         self.send_health_check(fwdr)
         print('[x] Sending Health check message to ' + fwdr['NAME'])
-        time.sleep(4)
+        time.sleep(self._timer)
 
         self.send_xfer_params(target_location, fwdr, image, raft, ccd)
         print('[x] Sending transfer params message to ' + fwdr['NAME'])
-        time.sleep(4)
+        time.sleep(self._timer)
 
         self.send_end_readout(fwdr, image)
         print('[x] Sending end readout message to ' + fwdr['NAME'])
-        time.sleep(4)
+        time.sleep(self._timer)
 
         self.send_header_ready(fwdr, image)
         print('[x] Sending header_ready message to ' + fwdr['NAME'])
-        time.sleep(4)
+        time.sleep(self._timer)
 
         print('[DONE] Sending sequence complete for ' + fwdr['NAME'])
 
     def run_oneFwdr_oneImage(self, device):
         fwdr = self.get_single_forwarder()
         raft_list, ccd_list = self.get_partition(device)
-        image = self.get_single_image()
         target_location = self.get_target_location(device)
+        image = self.get_single_image()
         self.run_sequence(target_location, fwdr, image, raft_list, ccd_list)
         
-    def run_oneFwdr_manyImages(self):
-        pass
+    def run_oneFwdr_manyImages(self, device):
+        fwdr = self.get_single_forwarder()
+        raft_list, ccd_list = self.get_partition(device)
+        target_location = self.get_target_location(device)
+        images = self.get_many_images()
+        for image in images:
+            self.run_sequence(target_location, fwdr, image, raft_list, ccd_list)
 
     def run_manyFwdrs_manyImages(self):
         pass
 
-def main():
-    sender = ForwarderSender('TestStandNCSA.yaml')     
-    sender.run_oneFwdr_oneImage('AT')
-
-if __name__ == '__main__':  main()
+    def run(self, action, param):
+        action = self.fwdr_actions[action]
+        action(param)

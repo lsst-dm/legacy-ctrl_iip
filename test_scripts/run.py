@@ -4,9 +4,11 @@ from ForwarderSender import ForwarderSender
 def usage():
     print('USAGE:')
     print('  python3 run.py [OPTIONS] [DEVICE] [CAMERA]')
-    print('  -c, --config=CONFIG'.ljust(20, ' '), 'Run with config file')
     print('  --tucson'.ljust(20, ' '), 'Run with Tucson config file')
     print('  --ncsa'.ljust(20, ' '), 'Run with NCSA config file')
+    print('  --timer'.ljust(20, ' '), 'Run with sleep timer in seconds')
+    print('  --fwdr'.ljust(20, ' '), 'Run with number of forwarder')
+    print('  --image'.ljust(20, ' '), 'Run for number of image')
     print('  -h'.ljust(20, ' '), 'Help menu\n')
     print('DEVICE:')
     print('    * fwdr\n')
@@ -15,14 +17,20 @@ def usage():
 
 def main():
     config = None
+    timer = None
+    forwarder = None
+    image = None
     devices = ['fwdr']
     cameras = ['AT']
 
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], 'c:h:', [
+        opts, args = getopt.getopt(sys.argv[1:], 'h:', [
             'config=', 
             'tucson',
-            'ncsa'
+            'ncsa',
+            'timer=',
+            'fwdr=',
+            'image=',
         ])
     except getopt.GetoptError:
         usage()
@@ -39,19 +47,23 @@ def main():
         exit(0)
 
     for opt, arg in opts:
-        if opt in ('-c', '--config'):
-            config = arg
-        elif opt in ('--tucson'):
+        if opt in ('--tucson'):
             config = 'TestStandTucson.yaml'
         elif opt in ('--ncsa'):
             config = 'TestStandNCSA.yaml'
+        elif opt in ('--timer'):
+            timer = arg
+        elif opt in ('--fwdr'):
+            forwarder = arg
+        elif opt in ('--image'):
+            image = arg
         elif opt in ('-h'):
             usage()
         else:
             usage()
             exit(0)
 
-    fwdr = ForwarderSender(config)
-    fwdr.run_oneFwdr_oneImage(args[1])
+    fwdr = ForwarderSender(config, timer)
+    fwdr.run((forwarder, image), args[1])
     
 if __name__ == "__main__": main()

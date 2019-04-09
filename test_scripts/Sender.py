@@ -11,6 +11,9 @@ class Sender(iip_base):
         self._visit_id = self._config_file['VISIT_ID']
         self._job_num = self._config_file['JOB_NUM']
 
+    def get_timer(self):
+        return self._config_file['SLEEP_TIMER']
+
     def get_amqp_url(self, username, password):
         amqp_url = 'amqp://' + \
                 self._credentials[username] + ':' + \
@@ -22,13 +25,13 @@ class Sender(iip_base):
     def get_single_forwarder(self): 
         return self._config_file['FORWARDERS'][0]
 
-    def get_multiple_forwarders(self):
+    def get_many_forwarders(self):
         return self._config_file['FORWARDERS']
 
     def get_single_image(self):
         return self._config_file['IMAGES'][0]
 
-    def get_multiple_images(self):
+    def get_many_images(self):
         return self._config_file['IMAGES']
 
     def get_target_location(self, device):
