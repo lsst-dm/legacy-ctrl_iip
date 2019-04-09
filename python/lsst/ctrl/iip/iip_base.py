@@ -23,12 +23,20 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import signal
 import sys
+import threading
 import yaml
 from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.ThreadManager import ThreadManager
+
+LOGGER = logging.getLogger(__name__)
 
 class iip_base:
     """Base class"""
+
+    def __init__(self, filename):
+        self.thread_manager = self.setup_thread_manager()
 
     def loadConfigFile(self, filename):
         """Load configuration file from configuration directory.  The
@@ -99,4 +107,36 @@ class iip_base:
 
         return log_file
     
+    def setup_thread_manager(self):
+        self.shutdown_event = threading.Event()
+        self.shutdown_event.clear()
+        thread_manager = ThreadManager('thread-manager', self.shutdown_event)
+        thread_manager.start()
+        return thread_manager
 
+    def add_thread_groups(self, kws):
+        self.thread_manager.add_thread_groups(kws)
+
+    def get_publisher_paired_with(self, consumer_name):
+        return self.thread_manager.get_publisher_paired_with(consumer_name)
+
+    def shutdown(self):
+        LOGGER.info("Shutting down threads.")
+        self.shutdown_event.set()
+        self.thread_manager.shutdown_threads()
+        LOGGER.info("Thread Manager shutting down and app exiting...")
+        #sys.exit(0)
+        #print("\n")
+        #os._exit(0)
+
+    def dmcs_finalize(self):
+        self.STATE_SCBD.scbd_finalize()
+
+    def register_SIGINT_handler(self):
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def signal_handler(self, sig, frame):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        print("shutdown called")
+        self.shutdown()
+        print

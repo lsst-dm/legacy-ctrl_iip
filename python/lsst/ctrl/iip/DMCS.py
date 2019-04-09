@@ -102,6 +102,7 @@ class DMCS(iip_base):
 
             :return: None.
         """
+        super().__init__(filename)
         toolsmod.singleton(self) # XXX - not sure what this is intended to do, since DMCS only gets called once
 
 
@@ -122,9 +123,6 @@ class DMCS(iip_base):
         #self.pub_fault_base_broker_url = "amqp://" + self._pub_fault_name + ":" + \
         #                                    self._pub_fault_passwd + "@" + \
         #                                    str(self._base_broker_addr)
-
-        # Run queue purges in rabbitmqctl
-        #self.purge_broker(broker_vhost, queue_purges)
 
         # These dicts call the correct handler method for the message_type of incoming messages
         self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
@@ -174,7 +172,6 @@ class DMCS(iip_base):
         self.setup_scoreboards()
 
         LOGGER.info('DMCS consumer setup')
-        self.thread_manager = self.setup_thread_manager()
         self.setup_consumer_threads()
 
         LOGGER.info('DMCS init complete')
@@ -1412,13 +1409,6 @@ class DMCS(iip_base):
 
         return cdm
 
-    def setup_thread_manager(self):
-        self.shutdown_event = threading.Event()
-        self.shutdown_event.clear()
-        thread_manager = ThreadManager('thread-manager', self.shutdown_event)
-        thread_manager.start()
-        return thread_manager
-
 
     def publish_message(self, route_key, msg):
         # we have to get the publisher each time because we can't guarantee that the publisher
@@ -1429,7 +1419,7 @@ class DMCS(iip_base):
         if consumer_name == "MainThread": # use the main thread's publisher
             self._publisher.publish_message(route_key, msg)
         else:
-            pub = self.thread_manager.get_publisher_paired_with(consumer_name)
+            pub = self.get_publisher_paired_with(consumer_name)
             pub.publish_message(route_key, msg)
 
 
@@ -1491,7 +1481,7 @@ class DMCS(iip_base):
             md['publisher_url'] = self.pub_base_broker_url
             kws[md['name']] = md
 
-            self.thread_manager.add_thread_groups(kws)
+            self.add_thread_groups(kws)
 
         except ThreadError as e:
             LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
@@ -1572,12 +1562,6 @@ class DMCS(iip_base):
         return newtime.time()
 
 
-    def purge_broker(self, vhost, queues):
-        for q in queues:
-            cmd = "sudo rabbitmqctl -p " + vhost + " purge_queue " + q
-            os.system(cmd)
-
-
     def enter_fault_state(self, message):
         # tell other entities to enter fault state via messaging
         #  a. OCSBridge
@@ -1588,30 +1572,9 @@ class DMCS(iip_base):
         # Exit?
         pass
 
-    def shutdown(self):
-        LOGGER.info("Shutting down threads.")
-        self.shutdown_event.set()
-        self.thread_manager.shutdown_threads()
-        LOGGER.info("Thread Manager shutting down and app exiting...")
-        #sys.exit(0)
-        #print("\n")
-        #os._exit(0)
-
-    def dmcs_finalize(self):
-        self.STATE_SCBD.scbd_finalize()
-
-    def registerHandler(self):
-        signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self, sig, frame):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        print("shutdown called")
-        self.shutdown()
-        print
-        
 def main():
     dmcs = DMCS('L1SystemCfg.yaml')
-    dmcs.registerHandler()
+    dmcs.register_SIGINT_handler()
     print("DMCS seems to be working")
     signal.pause()
     

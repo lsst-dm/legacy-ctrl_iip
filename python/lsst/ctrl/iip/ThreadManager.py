@@ -50,7 +50,6 @@ class ThreadManager(threading.Thread):
         names = list(kwargs.keys())
         for name in names:
             LOGGER.info("setting up threads for group %s" % name)
-            print("setting up threads for group %s" % name)
             self.add_thread_group(kwargs[name])
 
     def add_thread_group(self, params):
