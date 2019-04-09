@@ -2,7 +2,7 @@ echo "Checking services ..."
 
 declare -a services=( 
     "l1d-DMCS"
-    "l1d-AuxDevice" 
+    "l1d-ATArchiver" 
     "l1d-CommandListener"
     "l1d-EventSubscriber" 
     "l1d-AckSubscriber")
@@ -25,7 +25,7 @@ while true; do
             *)
                 echo "Stopping services..."
                 systemctl stop l1d-DMCS
-                systemctl stop l1d-AuxDevice
+                systemctl stop l1d-ATArchiver
                 systemctl stop l1d-CommandListener
                 systemctl stop l1d-EventSubscriber
                 systemctl stop l1d-AckSubscriber

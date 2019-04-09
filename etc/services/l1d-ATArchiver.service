@@ -1,5 +1,5 @@
 [Unit]
-Description=L1 AuxDevice Service
+Description=L1 ATArchiver Service
 Requires=l1d-ctrl_dependency.target
 BindsTo=l1d-ctrl_iip.target
 
@@ -7,7 +7,7 @@ BindsTo=l1d-ctrl_iip.target
 Type=simple
 User=ATS
 WorkingDirectory=/opt/lsst/dm-prompt/python
-ExecStart=/opt/rh/rh-python36/root/usr/bin/python3 AuxDevice.py
+ExecStart=/opt/rh/rh-python36/root/usr/bin/python3 ATArchiver.py
 Restart=always
 
 [Install]
