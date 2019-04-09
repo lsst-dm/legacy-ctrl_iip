@@ -222,10 +222,6 @@ class DMCS(iip_base):
             LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
                         (str(msg_dict),properties))
 
-            print('Processing message in OCS message callback')
-            print('Message and properties from DMCS callback message body is: %s', 
-                        (str(msg_dict),properties))
-
             handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
             if handler == None:
                 raise KeyError("In on_ocs_message; Received unknown MSG_TYPE: %s" % msg_dict[MSG_TYPE])
@@ -256,10 +252,6 @@ class DMCS(iip_base):
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in ACK message callback')
             LOGGER.debug('Message and properties from ACK callback message body is: %s', 
-                         (str(msg_dict),properties))
-
-            print('Processing message in ACK message callback')
-            print('Message and properties from ACK callback message body is: %s and %s', 
                          (str(msg_dict),properties))
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
@@ -1415,7 +1407,6 @@ class DMCS(iip_base):
         # that was first created hasn't died and been replaced
         consumer_name = threading.currentThread().getName()
 
-        print("->thread name = %s" % consumer_name)
         if consumer_name == "MainThread": # use the main thread's publisher
             self._publisher.publish_message(route_key, msg)
         else:
