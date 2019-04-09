@@ -26,10 +26,11 @@ import os.path
 import hashlib
 import yaml
 import zlib
+import signal
 import string
 from subprocess import call
 from lsst.ctrl.iip.Consumer import Consumer
-from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 from lsst.ctrl.iip.ThreadManager import ThreadManager 
 from lsst.ctrl.iip.const import *
 import lsst.ctrl.iip.toolsmod  
@@ -54,9 +55,8 @@ class ArchiveController(iip_base):
     ERROR_CODE_PREFIX = '54'
     YAML = 'YAML'
 
-
-
     def __init__(self, filename=None):
+        super().__init__(filename)
         self._session_id = None
         self._name = "ARCHIVE_CTRL"
         
@@ -131,16 +131,27 @@ class ArchiveController(iip_base):
             ### FIXX - send Fault Instead...
             sys.exit(self.ERROR_CODE_PREFIX + 12)
 
-        self.setup_consumer()
         self.setup_publisher()
+        self.setup_consumer()
+
+    def publish_message(self, route_key, msg):
+        # we have to get the publisher each time because we can't guarantee that the publisher
+        # that was first created hasn't died and been replaced
+        consumer_name = threading.currentThread().getName()
+
+        if consumer_name == "MainThread": # use the main thread's publisher
+            self._publisher.publish_message(route_key, msg)
+        else:
+            pub = self.get_publisher_paired_with(consumer_name)
+            pub.publish_message(route_key, msg)
 
 
     def setup_consumer(self):
         LOGGER.info('Setting up archive consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread for archive consumer')
 
-        self.shutdown_event = threading.Event() 
-        self.shutdown_event.clear() 
+        #self.shutdown_event = threading.Event() 
+        #self.shutdown_event.clear() 
 
         kws = {}
         md = {}
@@ -150,19 +161,18 @@ class ArchiveController(iip_base):
         md['callback'] = self.on_archive_message
         md['format'] = "YAML"
         md['test_val'] = None
+        md['publisher_name'] = 'ar_ctrl_publisher'
+        md['publisher_url'] = self._pub_base_broker_url
         kws[md['name']] = md
 
-        self.thread_manager = ThreadManager('thread-manager', self.shutdown_event)
-        self.thread_manager.start()
-        self.thread_manager.add_thread_groups(kws)
+        self.add_thread_groups(kws)
 
 
     def setup_publisher(self):
         LOGGER.info('Setting up Archive publisher on %s using %s',\
                      self._pub_base_broker_url, self._base_msg_format)
-        self._archive_publisher = SimplePublisher(self._pub_base_broker_url, self._base_msg_format)
-        #self._audit_publisher = SimplePublisher(self._base_broker_url, self._base_msg_format)
-
+        self._publisher = AsyncPublisher(self._pub_base_broker_url, "ArchiveController-Publisher")
+        self._publisher.start()
 
 
     def on_archive_message(self, ch, method, properties, msg_dict):
@@ -327,7 +337,7 @@ class ArchiveController(iip_base):
         msg_params[ACK_BOOL] = "TRUE"
         msg_params['ACK_ID'] = ack_id
         LOGGER.info('%s sent for ACK ID: %s', type, ack_id)
-        self._archive_publisher.publish_message(self.ACK_PUBLISH, msg_params)
+        self.publish_message(self.ACK_PUBLISH, msg_params)
 
 
     def send_audit_message(self, prefix, params):
@@ -335,7 +345,7 @@ class ArchiveController(iip_base):
         audit_params['SUB_TYPE'] = str(prefix) + str(params['MSG_TYPE']) + "_msg"
         audit_params['DATA_TYPE'] = self._name
         audit_params['TIME'] = get_epoch_timestamp()
-        self._archive_publisher.publish_message(self.AUDIT_CONSUME, audit_params)
+        self.publish_message(self.AUDIT_CONSUME, audit_params)
 
 
 
@@ -371,7 +381,7 @@ class ArchiveController(iip_base):
         ack_params['IMAGE_ID'] = params['IMAGE_ID']
         ack_params['COMPONENT'] = self._name
         ack_params['ACK_BOOL'] = True
-        self._archive_publisher.publish_message(reply_queue, ack_params)
+        self.publish_message(reply_queue, ack_params)
 
 
     def send_transfer_complete_ack(self, transfer_results, params):
@@ -390,26 +400,14 @@ class ArchiveController(iip_base):
         ack_params['ACK_BOOL'] = True
         ack_params['RESULTS'] = transfer_results
 
-        self._archive_publisher.publish_message(self.ACK_PUBLISH, ack_params)
+        self.publish_message(self.ACK_PUBLISH, ack_params)
 
 
 
-
-def main():
-    a_c = ArchiveController('L1SystemCfg.yaml')
+if __name__ == "__main__":
+    archiveController = ArchiveController('L1SystemCfg.yaml')
+    archiveController.register_SIGINT_handler()
     print("Beginning ArchiveController event loop...")
-    try:
-        while 1:
-            pass
-    except KeyboardInterrupt:
-        x = os.getpid()
-        print("Killing PID: %s" % x)
-        call(["kill","-9",str(x)])
-        pass
-
-    print("")
+    signal.pause()
     print("Archive Controller Done.")
-
-
-
-if __name__ == "__main__": main()
+    os._exit(0)
