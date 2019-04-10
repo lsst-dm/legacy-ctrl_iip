@@ -128,7 +128,6 @@ class iip_base:
         # that was first created hasn't died and been replaced
         consumer_name = threading.currentThread().getName()
 
-        print("publishing on consumer_name %s" % consumer_name)
         pub = self.thread_manager.get_publisher_paired_with(consumer_name)
         pub.publish_message(route_key, msg)
 
@@ -146,6 +145,5 @@ class iip_base:
 
     def signal_handler(self, sig, frame):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
-        print("shutdown called")
+        LOGGER.info("shutdown signal received")
         self.shutdown()
-        print

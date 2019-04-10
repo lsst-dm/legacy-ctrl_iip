@@ -216,7 +216,6 @@ class DMCS(iip_base):
 
             :return: None.
         """
-        print("In On OCS Msg, msg is: %s" % msg_dict)
         try: 
             ch.basic_ack(method.delivery_tag)
             LOGGER.info('Processing message in OCS message callback')
@@ -1420,7 +1419,6 @@ class DMCS(iip_base):
         base_broker_url = "amqp://" + self._msg_name + ":" + \
                                             self._msg_passwd + "@" + \
                                             str(self._base_broker_addr)
-        print("CONSUMER THREADS: %s" % base_broker_url)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
 

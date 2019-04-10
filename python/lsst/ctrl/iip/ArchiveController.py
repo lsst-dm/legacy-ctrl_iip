@@ -131,18 +131,6 @@ class ArchiveController(iip_base):
         self.setup_publisher()
         self.setup_consumer()
 
-    def publish_message(self, route_key, msg):
-        # we have to get the publisher each time because we can't guarantee that the publisher
-        # that was first created hasn't died and been replaced
-        consumer_name = threading.currentThread().getName()
-
-        if consumer_name == "MainThread": # use the main thread's publisher
-            self._publisher.publish_message(route_key, msg)
-        else:
-            pub = self.get_publisher_paired_with(consumer_name)
-            pub.publish_message(route_key, msg)
-
-
     def setup_consumer(self):
         LOGGER.info('Setting up archive consumers on %s', self._base_broker_url)
         LOGGER.info('Running start_new_thread for archive consumer')
