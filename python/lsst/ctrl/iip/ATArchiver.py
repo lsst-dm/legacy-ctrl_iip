@@ -633,19 +633,6 @@ class ATArchiver(iip_base):
         # Uncomment if it is desired to confirm header ready msg reached fwdr
         #hr_response = self.simple_progressive_ack_timer(self.FWDR, 6.0)
 
-    def publish_message2(self, route_key, msg):
-        # we have to get the publisher each time because we can't guarantee that the publisher
-        # that was first created hasn't died and been replaced
-        consumer_name = threading.currentThread().getName()
-
-        if consumer_name == "MainThread": # use the main thread's publisher
-            self._publisher.publish_message(route_key, msg)
-        else:
-            pub = self.get_publisher_paired_with(consumer_name)
-            pub.publish_message(route_key, msg)
-
-
-
     def clear_fwdr_state(self):
         fwdrs = list(self._fwdr_state_dict.keys())
         for fwdr in fwdrs:
@@ -1102,6 +1089,7 @@ if __name__ == "__main__":
     atArchiver.register_SIGINT_handler()
 
     LOGGER.info('ATArchiver Init complete')
+    print("ATArchiver initialization completed. Running.")
 
     signal.pause()
     LOGGER.info('ATArchiver shutdown complete.  Exiting.')
