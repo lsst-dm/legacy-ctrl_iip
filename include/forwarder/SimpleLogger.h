@@ -55,7 +55,7 @@ std::ostream& operator<< (std::ostream& strm, severity_level level) {
 void init_log(std::string filename) { 
     logging::add_common_attributes(); 
     boost::shared_ptr< file_sink > sink(new file_sink(
-        keywords::file_name = filename + "-%N.log", 
+        keywords::file_name = filename + "_%Y-%m-%d_%N.log", 
         keywords::rotation_size = 1 * 1024 * 1024, 
         keywords::auto_flush = true
     ));  
