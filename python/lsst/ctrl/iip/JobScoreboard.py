@@ -101,14 +101,12 @@ class JobScoreboard(Scoreboard):
             Scoreboard.__init__(self)
         except Exception as e:
             LOGGER.error('Job SCBD Auditor Failed to make connection to Message Broker:  ', e.arg)
-            print("No Auditing for YOU")
             raise L1RabbitConnectionError('Calling super.init() in JobScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()
         except Exception as e:
             LOGGER.error("Cannot make connection to Redis: %s." % e.arg)  
-            print("Job SCBD: No Redis for YOU:")
             raise L1RedisError('Calling redis connect in JobScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
@@ -330,7 +328,7 @@ class JobScoreboard(Scoreboard):
                                   index in 'FORWARDER_LIST' matches an index position in
                                   'CCD_LIST' which contains a list of CCDs.
         """
-        print("Setting work schedule...")
+        LOGGER.info("Setting work schedule...")
         if self.check_connection():
             self._redis.hset(str(job_number), 'WORK_SCHEDULE', yaml.dump(schedule))
             return True
@@ -380,7 +378,7 @@ class JobScoreboard(Scoreboard):
 
     def set_visit_id(self, visit_id, ra, dec, angle):
         if self.check_connection():
-            print("In job scbd, setting visit ID")
+            LOGGER.info("In job scbd, setting visit ID")
             self._redis.lpush(self.VISIT_ID_LIST, visit_id)
             self._redis.hset(visit_id, self.RA, ra)
             self._redis.hset(visit_id, self.DEC, dec)

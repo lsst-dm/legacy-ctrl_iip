@@ -37,20 +37,20 @@ from pprint import pprint, pformat
 from time import sleep
 from threading import ThreadError
 import threading
-from ThreadManager import ThreadManager
-from const import *
-from Scoreboard import Scoreboard
-from JobScoreboard import JobScoreboard
-from AckScoreboard import AckScoreboard
-from StateScoreboard import StateScoreboard
-from BacklogScoreboard import BacklogScoreboard
-from IncrScoreboard import IncrScoreboard
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
-from toolsmod import L1Error
-from toolsmod import L1RedisError
-from toolsmod import L1RabbitConnectionError
-from iip_base import iip_base
+from lsst.ctrl.iip.ThreadManager import ThreadManager
+from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Scoreboard import Scoreboard
+from lsst.ctrl.iip.JobScoreboard import JobScoreboard
+from lsst.ctrl.iip.AckScoreboard import AckScoreboard
+from lsst.ctrl.iip.StateScoreboard import StateScoreboard
+from lsst.ctrl.iip.BacklogScoreboard import BacklogScoreboard
+from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
+from lsst.ctrl.iip.toolsmod import L1Error
+from lsst.ctrl.iip.toolsmod import L1RedisError
+from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
+from lsst.ctrl.iip.iip_base import iip_base
 
 #LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
@@ -102,7 +102,9 @@ class DMCS(iip_base):
 
             :return: None.
         """
-        toolsmod.singleton(self)
+        super().__init__(filename)
+        toolsmod.singleton(self) # XXX - not sure what this is intended to do, since DMCS only gets called once
+
 
         print('Extracting values from Config dictionary %s' % filename)
         cdm = self.extract_config_values(filename)
@@ -114,8 +116,13 @@ class DMCS(iip_base):
         LOGGER.info('DMCS Init beginning')
 
 
-        # Run queue purges in rabbitmqctl
-        #self.purge_broker(broker_vhost, queue_purges)
+        self.pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
+                                            self._pub_passwd + "@" + \
+                                            str(self._base_broker_addr)
+
+        #self.pub_fault_base_broker_url = "amqp://" + self._pub_fault_name + ":" + \
+        #                                    self._pub_fault_passwd + "@" + \
+        #                                    str(self._base_broker_addr)
 
         # These dicts call the correct handler method for the message_type of incoming messages
         self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
@@ -158,13 +165,13 @@ class DMCS(iip_base):
         self._gen_actions = { 'REQUEST_ACK_ID': self.process_request_ack_id }
 
 
+        
         LOGGER.info('DMCS publisher setup')
         self.setup_publishers()
 
         self.setup_scoreboards()
 
         LOGGER.info('DMCS consumer setup')
-        self.thread_manager = None
         self.setup_consumer_threads()
 
         LOGGER.info('DMCS init complete')
@@ -173,26 +180,18 @@ class DMCS(iip_base):
 
     def setup_publishers(self):
         """ Set up base publisher with pub_base_broker_url by calling a new instance
-            of SimplePublisher class.
+            of AsyncPublisher class.
 
             :params: None.
 
             :return: None.
         """
-        self.pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
-                                            self._pub_passwd + "@" + \
-                                            str(self._base_broker_addr)
-
-        self.pub_fault_base_broker_url = "amqp://" + self._pub_fault_name + ":" + \
-                                            self._pub_fault_passwd + "@" + \
-                                            str(self._base_broker_addr)
 
         LOGGER.info('Building publishing pub_base_broker_url. Result is %s', self.pub_base_broker_url)        
 
         LOGGER.info('Setting up Base publisher ')
         try: 
-            self._publisher = SimplePublisher(self.pub_base_broker_url, YAML)
-            self._fault_publisher = SimplePublisher(self.pub_fault_base_broker_url, YAML)
+            self.setup_unpaired_publisher(self.pub_base_broker_url, 'DMCS-Publisher')
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to setup_publishers: %s" % e.args) 
             print("DMCS unable to setup_publishers: %s" % e.args) 
@@ -215,15 +214,10 @@ class DMCS(iip_base):
 
             :return: None.
         """
-        print("In On OCS Msg, msg is: %s" % msg_dict)
         try: 
             ch.basic_ack(method.delivery_tag)
             LOGGER.info('Processing message in OCS message callback')
             LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
-                        (str(msg_dict),properties))
-
-            print('Processing message in OCS message callback')
-            print('Message and properties from DMCS callback message body is: %s', 
                         (str(msg_dict),properties))
 
             handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
@@ -256,10 +250,6 @@ class DMCS(iip_base):
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in ACK message callback')
             LOGGER.debug('Message and properties from ACK callback message body is: %s', 
-                         (str(msg_dict),properties))
-
-            print('Processing message in ACK message callback')
-            print('Message and properties from ACK callback message body is: %s and %s', 
                          (str(msg_dict),properties))
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
@@ -464,7 +454,7 @@ class DMCS(iip_base):
                 ack_msg['ACK_STATEMENT'] = "Current state is " + current_state + ". Device \
                                            state must be in ENABLE state for SET_VALUE command."
 
-            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, ack_msg)
+            self.publish_message(self.DMCS_OCS_PUBLISH, ack_msg)
         except L1RedisError as e: 
             LOGGER.error("DMCS unable to process_set_value_command - No redis connection: %s" % e.args) 
             print("DMCS unable to process_set_value_command - No redis connection: %s" % e.args) 
@@ -521,7 +511,7 @@ class DMCS(iip_base):
             message['ACK_STATEMENT'] = "Resetting " + device + " to OFFLINE state."
             message['CMD_ID'] = cmd_id
             message['ACK_BOOL'] = 1
-            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+            self.publish_message(self.DMCS_OCS_PUBLISH, message)
 
             LOGGER.error("AFTER PUBLISHING RESET FROM FAULT ACK")
             self.send_summary_state_event(device)
@@ -605,7 +595,7 @@ class DMCS(iip_base):
                 msg_params[MSG_TYPE] = k + '_START_INTEGRATION'
                 msg_params[JOB_NUM] = job_num
                 msg_params[ACK_ID] = ack_id
-                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+                self.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
 
             wait_time = 5  # seconds...
@@ -664,7 +654,7 @@ class DMCS(iip_base):
             msg_params[JOB_NUM] = job_num
             msg_params[ACK_ID] = ack_id
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
-            self._publisher.publish_message(rkey, msg_params)
+            self.publish_message(rkey, msg_params)
     
             self.STATE_SCBD.set_job_state(job_num, "DISPATCHED")
 
@@ -704,7 +694,7 @@ class DMCS(iip_base):
                 msg_params[ACK_ID] = ack_id
                 msg_params[JOB_NUM] = job_num
                 self.STATE_SCBD.set_job_state(job_num, "READOUT")
-                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+                self.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
 
             wait_time = 5  # seconds...
@@ -750,7 +740,7 @@ class DMCS(iip_base):
             rkey = self.STATE_SCBD.get_device_consume_queue('AT')
             LOGGER.info("Publishing end readout to: %s" % rkey) 
             LOGGER.debug("Publishing end readout message %s to: %s" % (pformat(msg_params), rkey))
-            self._publisher.publish_message(rkey, msg_params)
+            self.publish_message(rkey, msg_params)
 
 
             wait_time = 5  # seconds...
@@ -788,7 +778,7 @@ class DMCS(iip_base):
                 msg_params[ACK_ID] = ack_id
                 msg_params[JOB_NUM] = job_num
                 self.STATE_SCBD.set_job_state(job_num, "READOUT")
-                self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+                self.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
 
             wait_time = 5  # seconds...
@@ -815,7 +805,7 @@ class DMCS(iip_base):
             job_num = self.STATE_SCBD.get_current_device_job(str(k))
             msg_params[JOB_NUM] = job_num
             self.STATE_SCBD.set_job_state(job_num, "READOUT")
-            self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
+            self.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
 
     def process_at_header_ready_event(self, params):
@@ -829,7 +819,7 @@ class DMCS(iip_base):
         msg_params[ACK_ID] = ack_id
         job_num = self.STATE_SCBD.get_current_device_job('AT')
         self.STATE_SCBD.set_job_state(job_num, "HEADER_READY")
-        self._publisher.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+        self.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
 
 
     def process_request_ack_id(self, params):
@@ -837,7 +827,7 @@ class DMCS(iip_base):
         msg_params = {}
         msg_params[MSG_TYPE] = 'RESPONSE_ACK_ID'
         msg_params['ACK_ID_VALUE'] = str(ack_id)
-        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
+        self.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
 
 
     def process_fault(self, params):
@@ -861,7 +851,7 @@ class DMCS(iip_base):
         msg_params['ERROR_CODE'] = error_code
         msg_params['FAULT_TYPE'] = fault_type
         msg_params['DESCRIPTION'] = params['DESCRIPTION']
-        self._publisher.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
+        self.publish_message(self.DMCS_OCS_PUBLISH, msg_params)
 
 
     def set_device_to_fault_state(self, device, params):
@@ -995,7 +985,7 @@ class DMCS(iip_base):
                 ack_id = self.get_next_timed_ack_id(k + "_NEW_SESSION_ACK")
                 msg['ACK_ID'] = ack_id
                 ack_ids.append(ack_id)
-                self._publisher.publish_message(consume_queue, msg)
+                self.publish_message(consume_queue, msg)
 
             # Non-blocking Acks placed directly into ack_scoreboard
             wait_time = 3  # seconds...
@@ -1099,7 +1089,7 @@ class DMCS(iip_base):
             ack_msg['EXPIRY_TIME'] = expiry_time
             for ack in acks:
                 ack_msg[ACK_ID] = ack
-                self._publisher.publish_message("dmcs_ack_consume", ack_msg)
+                self.publish_message("dmcs_ack_consume", ack_msg)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_pending_nonblock_acks: %s" % e.args)
             print("DMCS unable to send_pending_nonblock_acks: %s" % e.args)
@@ -1131,7 +1121,7 @@ class DMCS(iip_base):
             message['CMD_ID'] = msg_in['CMD_ID']
             message['ACK_BOOL'] = transition_check
             message['ACK_STATEMENT'] = response
-            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message) 
+            self.publish_message(self.DMCS_OCS_PUBLISH, message) 
         except L1RabbitConnnectionError as e: 
             LOGGER.error("DMCS unable to send_ocs_ack: %s" % e.args) 
             print("DMCS unable to send_ocs_ack: %s" % e.args) 
@@ -1186,7 +1176,7 @@ class DMCS(iip_base):
             message[MSG_TYPE] = 'SUMMARY_STATE_EVENT'
             message['DEVICE'] = device
             message['CURRENT_STATE'] = self.STATE_SCBD.get_device_state(device)
-            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+            self.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_summary_state_event: %s" % e.args)
             print("DMCS unable to send_summary_state_event: %s" % e.args)
@@ -1210,7 +1200,7 @@ class DMCS(iip_base):
             message[MSG_TYPE] = 'RECOMMENDED_SETTINGS_VERSION_EVENT'
             message['DEVICE'] = device
             message['CFG_KEY'] = self.STATE_SCBD.get_device_cfg_key(device)
-            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+            self.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_recommended_settings_version_event: %s" % e.args)
             print("DMCS unable to send_recommended_settings_version_event: %s" % e.args)
@@ -1237,7 +1227,7 @@ class DMCS(iip_base):
             message['TS_XML_VERSION'] = self.TsXmlVersion
             message['TS_SAL_VERSION'] = self.TsSALVersion
             message['L1_DM_REPO_TAG'] = self.L1DMRepoTag
-            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+            self.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_setting_applied_event: %s" % e.args)
             print("DMCS unable to send_setting_applied_event: %s" % e.args)
@@ -1261,7 +1251,7 @@ class DMCS(iip_base):
             message[MSG_TYPE] = 'APPLIED_SETTINGS_MATCH_START_EVENT'
             message['DEVICE'] = device
             message['APPLIED'] = True
-            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+            self.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_applied_setting_match_start_event: %s" % e.args)
             print("DMCS unable to send_applied_setting_match_start_event: %s" % e.args)
@@ -1284,7 +1274,7 @@ class DMCS(iip_base):
             message[MSG_TYPE] = 'ERROR_CODE_EVENT'
             message['DEVICE'] = device
             message['ERROR_CODE'] = 102
-            self._publisher.publish_message(self.DMCS_OCS_PUBLISH, message)
+            self.publish_message(self.DMCS_OCS_PUBLISH, message)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to send_error_code_event: %s" % e.args)
             print("DMCS unable to send_error_code_event: %s" % e.args)
@@ -1414,11 +1404,8 @@ class DMCS(iip_base):
         base_broker_url = "amqp://" + self._msg_name + ":" + \
                                             self._msg_passwd + "@" + \
                                             str(self._base_broker_addr)
-        print("CONSUMER THREADS: %s" % base_broker_url)
         LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
 
-        self.shutdown_event = threading.Event()
-        self.shutdown_event.clear()
 
         # Set up kwargs that describe consumers to be started
         # The DMCS needs two message consumers
@@ -1432,6 +1419,8 @@ class DMCS(iip_base):
             md['callback'] = self.on_ocs_message
             md['format'] = "YAML"
             md['test_val'] = None
+            md['publisher_name'] = 'ocs_dmcs_message_publisher'
+            md['publisher_url'] = self.pub_base_broker_url
             kws[md['name']] = md
 
             md = {}
@@ -1441,6 +1430,8 @@ class DMCS(iip_base):
             md['callback'] = self.on_ack_message
             md['format'] = "YAML"
             md['test_val'] = None
+            md['publisher_name'] = 'dmcs_ack_message_publisher'
+            md['publisher_url'] = self.pub_base_broker_url
             kws[md['name']] = md
 
             md = {}
@@ -1450,6 +1441,8 @@ class DMCS(iip_base):
             md['callback'] = self.on_fault_message
             md['format'] = "YAML"
             md['test_val'] = None
+            md['publisher_name'] = 'dmcs_fault_message_publisher'
+            md['publisher_url'] = self.pub_base_broker_url
             kws[md['name']] = md
 
             md = {}
@@ -1459,10 +1452,11 @@ class DMCS(iip_base):
             md['callback'] = self.on_gen_message
             md['format'] = "YAML"
             md['test_val'] = None
+            md['publisher_name'] = 'gen_dmcs_message_publisher'
+            md['publisher_url'] = self.pub_base_broker_url
             kws[md['name']] = md
 
-            self.thread_manager = ThreadManager('thread-manager', self.shutdown_event)
-            self.thread_manager.add_threads(kws)
+            self.add_thread_groups(kws)
 
         except ThreadError as e:
             LOGGER.error("DMCS unable to launch Consumers - Thread Error: %s" % e.args)
@@ -1473,7 +1467,6 @@ class DMCS(iip_base):
             print("DMCS unable to launch Consumers: %s" % e.args)
             sys.exit(self.ERROR_CODE_PREFIX + 1) 
 
-        self.thread_manager.start()
          
 
     def setup_scoreboards(self):
@@ -1544,12 +1537,6 @@ class DMCS(iip_base):
         return newtime.time()
 
 
-    def purge_broker(self, vhost, queues):
-        for q in queues:
-            cmd = "sudo rabbitmqctl -p " + vhost + " purge_queue " + q
-            os.system(cmd)
-
-
     def enter_fault_state(self, message):
         # tell other entities to enter fault state via messaging
         #  a. OCSBridge
@@ -1560,30 +1547,13 @@ class DMCS(iip_base):
         # Exit?
         pass
 
-    def shutdown(self):
-        LOGGER.info("Shutting down Consumer threads.")
-        self.shutdown_event.set()
-        self.thread_manager.shutdown_consumers()
-        LOGGER.info("Thread Manager shutting down and app exiting...")
-        #sys.exit(0)
-        #print("\n")
-        #os._exit(0)
-
     def dmcs_finalize(self):
         self.STATE_SCBD.scbd_finalize()
 
-    def registerHandler(self):
-        signal.signal(signal.SIGINT, self.signal_handler)
-
-    def signal_handler(self, sig, frame):
-        print("shutdown called")
-        self.shutdown()
-        print
-        
 def main():
     dmcs = DMCS('L1SystemCfg.yaml')
-    dmcs.registerHandler()
-    print("DMCS seems to be working")
+    dmcs.register_SIGINT_handler()
+    print("DMCS initialized.")
     signal.pause()
     
     print("DMCS Done.")

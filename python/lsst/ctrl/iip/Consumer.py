@@ -275,6 +275,7 @@ class Consumer(threading.Thread):
         LOGGER.info('Issuing consumer related RPC commands')
         self.add_on_cancel_callback()
         #self._consumer_tag = self._channel.basic_consume(self.on_message, self.QUEUE)
+        self._channel.basic_qos(prefetch_count=1)
         self._consumer_tag = self._channel.basic_consume(self._message_callback, self.QUEUE)
 
     def add_on_cancel_callback(self):
@@ -378,7 +379,7 @@ class Consumer(threading.Thread):
         LOGGER.info('Stopping')
         self._closing = True
         self.stop_consuming()
-        self._connection.ioloop.start()
+        self._connection.ioloop.stop()
         LOGGER.info('Stopped')
 
     def close_connection(self):

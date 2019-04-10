@@ -51,6 +51,8 @@ def main():
   print("AT RESET_FROM_FAULT")
   sp1.publish_message("ocs_dmcs_consume", msg)
 
+  sp1.close()
+
 
 
 if __name__ == "__main__":  main()
