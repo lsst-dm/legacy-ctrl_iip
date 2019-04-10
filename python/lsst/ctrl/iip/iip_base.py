@@ -117,8 +117,20 @@ class iip_base:
     def add_thread_groups(self, kws):
         self.thread_manager.add_thread_groups(kws)
 
-    def get_publisher_paired_with(self, consumer_name):
-        return self.thread_manager.get_publisher_paired_with(consumer_name)
+    def setup_unpaired_publisher(self, url, name):
+        self.thread_manager.add_unpaired_publisher_thread(url, name)
+
+    #def get_publisher_paired_with(self, consumer_name):
+    #    return self.thread_manager.get_publisher_paired_with(consumer_name)
+
+    def publish_message(self, route_key, msg):
+        # we have to get the publisher each time because we can't guarantee that the publisher
+        # that was first created hasn't died and been replaced
+        consumer_name = threading.currentThread().getName()
+
+        print("publishing on consumer_name %s" % consumer_name)
+        pub = self.thread_manager.get_publisher_paired_with(consumer_name)
+        pub.publish_message(route_key, msg)
 
     def shutdown(self):
         LOGGER.info("Shutting down threads.")

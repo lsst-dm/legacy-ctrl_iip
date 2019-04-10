@@ -161,8 +161,7 @@ class ATArchiver(iip_base):
             :return: None.
         """
         LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
-        self._publisher = AsyncPublisher(self.pub_base_broker_url, 'ATArchiver-publisher')
-        self._publisher.start()
+        self.setup_unpaired_publisher(self.pub_base_broker_url, 'ATArchiver-publisher')
 
 
     def on_aux_foreman_message(self, ch, method, properties, body):
@@ -324,6 +323,7 @@ class ATArchiver(iip_base):
             target_dir = self.archive_xfer_root 
  
         else:
+            print("self._archive_ack = ", self._archive_ack)
             target_dir = self._archive_ack['TARGET_DIR']
           
  
@@ -633,7 +633,7 @@ class ATArchiver(iip_base):
         # Uncomment if it is desired to confirm header ready msg reached fwdr
         #hr_response = self.simple_progressive_ack_timer(self.FWDR, 6.0)
 
-    def publish_message(self, route_key, msg):
+    def publish_message2(self, route_key, msg):
         # we have to get the publisher each time because we can't guarantee that the publisher
         # that was first created hasn't died and been replaced
         consumer_name = threading.currentThread().getName()
@@ -1095,7 +1095,7 @@ class ATArchiver(iip_base):
 
 
 
-def main():
+if __name__ == "__main__":
     atArchiver = ATArchiver('L1SystemCfg.yaml')
 
 
@@ -1107,7 +1107,3 @@ def main():
     LOGGER.info('ATArchiver shutdown complete.  Exiting.')
     print('ATArchiver shutdown complete.  Exiting.')
     os._exit(0)
-
-
-
-if __name__ == "__main__": main()

@@ -29,9 +29,6 @@ import zlib
 import signal
 import string
 from subprocess import call
-from lsst.ctrl.iip.Consumer import Consumer
-from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
-from lsst.ctrl.iip.ThreadManager import ThreadManager 
 from lsst.ctrl.iip.const import *
 import lsst.ctrl.iip.toolsmod  
 from lsst.ctrl.iip.toolsmod import *
@@ -171,8 +168,7 @@ class ArchiveController(iip_base):
     def setup_publisher(self):
         LOGGER.info('Setting up Archive publisher on %s using %s',\
                      self._pub_base_broker_url, self._base_msg_format)
-        self._publisher = AsyncPublisher(self._pub_base_broker_url, "ArchiveController-Publisher")
-        self._publisher.start()
+        self.setup_unpaired_publisher(self._pub_base_broker_url, "ArchiveController-Publisher")
 
 
     def on_archive_message(self, ch, method, properties, msg_dict):

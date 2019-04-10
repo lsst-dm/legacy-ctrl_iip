@@ -45,7 +45,6 @@ class ThreadManager(threading.Thread):
         self.shutdown_event = shutdown_event
         self.lock = threading.Lock()
 
-
     def add_thread_groups(self, kwargs):
         names = list(kwargs.keys())
         for name in names:
@@ -55,47 +54,68 @@ class ThreadManager(threading.Thread):
     def add_thread_group(self, params):
         self.lock.acquire()
 
-        thread_name = params['name']
-        thread_info = self.ThreadInfo(thread_name, "consumer", params)
-        self.registered_threads_info[thread_name] = thread_info
-
         # using this defensive in transition for code that hasn't been
         # ported to create consumers/publishers together
         publisher_name = None
         if 'publisher_name' in params:
-            thread_name = params['publisher_name']
-            thread_info = self.ThreadInfo(thread_name, "publisher", params)
-            (publisher_name, publisher_thread) = self.setup_publisher_thread(thread_info)
+            publisher_name = params['publisher_name']
+            thread_info = self.ThreadInfo(publisher_name, "publisher", params)
+            self.registered_threads_info[publisher_name] = thread_info
+
+            publisher_thread = self.create_publisher_thread(params)
             self.running_threads[publisher_name] = publisher_thread
         
-        (consumer_name, consumer_thread) = self.setup_consumer_thread(thread_info)
+        consumer_name = params['name']
+        thread_info = self.ThreadInfo(consumer_name, "consumer", params)
+        self.registered_threads_info[consumer_name] = thread_info
+
+        consumer_thread = self.create_consumer_thread(params)
         self.running_threads[consumer_name] = consumer_thread
 
         self.paired_name[consumer_name] = publisher_name
         self.lock.release()
 
-    def setup_consumer_thread(self, thread_info):
-        consumer_params = thread_info.params
+    def add_unpaired_publisher_thread(self, publisher_url, publisher_name):
+        """Create a thread with no associated consumer thread
+        """
+        self.lock.acquire()
 
-        url = consumer_params['amqp_url']
-        q = consumer_params['queue']
-        consumer_name = consumer_params['name']
-        callback = consumer_params['callback']
-        dataformat = consumer_params['format']
+        params = {}
+        params['publisher_url'] = publisher_url
+        params['publisher_name'] = publisher_name
 
+        thread_info = self.ThreadInfo(publisher_name, "publisher", params)
+        self.registered_threads_info[publisher_name] = thread_info
+
+        publisher_thread = self.create_publisher_thread(params)
+        self.running_threads[publisher_name] = publisher_thread
+ 
+        main_thread_name = threading.main_thread().getName()
+        self.paired_name[main_thread_name] = publisher_name
+        self.lock.release()
+
+    def create_consumer_thread(self, params):
+
+        url = params['amqp_url']
+        q = params['queue']
+        consumer_name = params['name']
+        callback = params['callback']
+        dataformat = params['format']
+
+        LOGGER.info('starting Consumer %s' % consumer_name)
         new_thread = Consumer(url, q, consumer_name, callback, dataformat)
         new_thread.start()
         sleep(1) # XXX
-        return (consumer_name, new_thread)
+        return new_thread
 
-    def setup_publisher_thread(self, thread_info):
-        params = thread_info.params
+    def create_publisher_thread(self, params):
         url = params['publisher_url']
         publisher_name = params['publisher_name']
+
         LOGGER.info('starting AsyncPublisher %s' % publisher_name)
         new_thread = AsyncPublisher(url, publisher_name)
         new_thread.start()
-        return (publisher_name, new_thread)
+        return new_thread
 
     def get_publisher_paired_with(self, consumer_name):
         self.lock.acquire()
@@ -135,8 +155,12 @@ class ThreadManager(threading.Thread):
                 if self.shutdown_event.isSet() is False:
                         LOGGER.critical("Thread with name %s has died. Attempting to restart..." % dead_thread_name)
                         thread_info = self.registered_threads_info[dead_thread_name]
-                        (new_name, new_consumer) = self.setup_consumer_thread(thread_info)
-                        self.running_threads[new_name] = new_consumer
+                        if thread_info.thread_type == "consumer":
+                            new_consumer = self.setup_consumer_thread(thread_info)
+                            self.running_threads[dead_thread_name] = new_consumer
+                        else:
+                            new_publisher = self.setup_publisher_thread(thread_info)
+                            self.running_threads[dead_thread_name] = new_publisher
         self.lock.release()
 
 

@@ -191,8 +191,9 @@ class DMCS(iip_base):
 
         LOGGER.info('Setting up Base publisher ')
         try: 
-            self._publisher = AsyncPublisher(self.pub_base_broker_url, 'DMCS-Publisher')
-            self._publisher.start()
+            self.setup_unpaired_publisher(self.pub_base_broker_url, 'DMCS-Publisher')
+            #self._publisher = AsyncPublisher(self.pub_base_broker_url, 'DMCS-Publisher')
+            #self._publisher.start()
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to setup_publishers: %s" % e.args) 
             print("DMCS unable to setup_publishers: %s" % e.args) 
@@ -1402,7 +1403,7 @@ class DMCS(iip_base):
         return cdm
 
 
-    def publish_message(self, route_key, msg):
+    def publish_message2(self, route_key, msg):
         # we have to get the publisher each time because we can't guarantee that the publisher
         # that was first created hasn't died and been replaced
         consumer_name = threading.currentThread().getName()
