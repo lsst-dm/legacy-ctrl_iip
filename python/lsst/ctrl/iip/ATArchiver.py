@@ -94,7 +94,7 @@ class ATArchiver(iip_base):
 
         self.DP = False
 
-        print('Extracting values from Config dictionary %s', filename)
+        print('Extracting values from Config dictionary %s' % filename)
         cdm = self.extract_config_values(filename)
 
         logging_dir = cdm[ROOT].get('LOGGING_DIR', None)
