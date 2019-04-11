@@ -28,6 +28,7 @@ from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
 import yaml
 import logging
 import time
+import subprocess
 from lsst.ctrl.iip.Scoreboard import Scoreboard
 from lsst.ctrl.iip.const import *
 
