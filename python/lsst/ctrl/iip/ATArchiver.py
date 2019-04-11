@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import threading
+
 import lsst.ctrl.iip.toolsmod as toolsmod
 from lsst.ctrl.iip.toolsmod import get_timestamp
 import logging
@@ -74,6 +74,7 @@ class ATArchiver(iip_base):
     METRIX = toolsmod.METRIX
     RAFT_LIST = []
     RAFT_CCD_LIST = ['00']
+    date_format='date +%F_%H_%R:%S-'  # Used to generate unique ack_ids
 
 
     def __init__(self, filename):
@@ -817,11 +818,10 @@ class ATArchiver(iip_base):
 
             :return retval: String with ack type followed by next ack id.
         """
-        n = datetime.datetime.now()
-        datestring = n.strftime("%Y-%m-%d_%H_%M_%S")+"-"
+        datestring = os.system(self.date_format)
         self._next_timed_ack_id = self._next_timed_ack_id + 1
-        val = (ack_type + "_" + datestring + str(self._next_timed_ack_id).zfill(6))
-        return val
+        #return (ack_type + "_" + datestring + str(self._next_timed_ack_id.zfill(6)))
+        return (ack_type + "_" + str(datestring) + str(self._next_timed_ack_id).zfill(6))
 
 
 

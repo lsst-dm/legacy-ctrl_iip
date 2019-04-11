@@ -30,6 +30,7 @@ import yaml
 import sys, traceback
 import os, os.path
 import signal
+from subprocess import call
 import time
 import datetime
 from pprint import pprint, pformat
@@ -1081,9 +1082,8 @@ class DMCS(iip_base):
             :return: None.
         """
         try: 
-            start_datetime = datetime.datetime.now()
-            expiry_datetime = start_datetime+datetime.timedelta(seconds=wait_time)
-            expiry_time = expiry_datetime.time()
+            start_time = datetime.datetime.now().time()
+            expiry_time = self.add_seconds(start_time, wait_time)
             ack_msg = {}
             ack_msg[MSG_TYPE] = 'PENDING_ACK'
             ack_msg['EXPIRY_TIME'] = expiry_time
@@ -1529,6 +1529,12 @@ class DMCS(iip_base):
                    % e.args) 
             sys.exit(self.ERROR_CODE_PREFIX + 10) 
         LOGGER.info('DMCS Scoreboard Init complete')
+
+
+    def add_seconds(self, intime, secs):
+        basetime = datetime.datetime(100, 1, 1, intime.hour, intime.minute, intime.second)
+        newtime = basetime + datetime.timedelta(seconds=secs)
+        return newtime.time()
 
 
     def enter_fault_state(self, message):
