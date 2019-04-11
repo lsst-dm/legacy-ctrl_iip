@@ -28,7 +28,6 @@ import yaml
 import zlib
 import signal
 import string
-from subprocess import call
 from lsst.ctrl.iip.const import *
 import lsst.ctrl.iip.toolsmod  
 from lsst.ctrl.iip.toolsmod import *

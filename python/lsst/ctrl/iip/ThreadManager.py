@@ -156,10 +156,10 @@ class ThreadManager(threading.Thread):
                         LOGGER.critical("Thread with name %s has died. Attempting to restart..." % dead_thread_name)
                         thread_info = self.registered_threads_info[dead_thread_name]
                         if thread_info.thread_type == "consumer":
-                            new_consumer = self.setup_consumer_thread(thread_info)
+                            new_consumer = self.create_consumer_thread(thread_info.params)
                             self.running_threads[dead_thread_name] = new_consumer
                         else:
-                            new_publisher = self.setup_publisher_thread(thread_info)
+                            new_publisher = self.create_publisher_thread(thread_info.params)
                             self.running_threads[dead_thread_name] = new_publisher
         self.lock.release()
 

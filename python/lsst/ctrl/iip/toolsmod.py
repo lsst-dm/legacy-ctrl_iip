@@ -20,15 +20,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import subprocess
 import yaml
+import datetime
+import time
 import pprint
 
 def get_timestamp():
-    return (subprocess.check_output('date +"%Y-%m-%d %H:%M:%S.%5N"', shell=True)).decode('ascii')
+    n = datetime.datetime.now()
+    time_stamp = n.strftime("%Y-%m-%d %H:%M:%S.%f")
+    return time_stamp
 
 def get_epoch_timestamp():
-    return (subprocess.check_output('date +"%s%N"', shell=True)).decode('ascii')
+    """return time in "seconds.microseconds" since epoch"""
+    return str(time.time()) 
 
 def singleton(object, instantiated=[]):
     assert object.__class__ not in instantiated, \
