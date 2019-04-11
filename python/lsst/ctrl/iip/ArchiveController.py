@@ -34,7 +34,6 @@ from lsst.ctrl.iip.toolsmod import *
 from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
 import _thread
 import logging
-import threading
 import datetime
 from lsst.ctrl.iip.iip_base import iip_base
 

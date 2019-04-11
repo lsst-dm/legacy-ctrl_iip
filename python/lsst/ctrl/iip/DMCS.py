@@ -35,7 +35,6 @@ import datetime
 from pprint import pprint, pformat
 from time import sleep
 from threading import ThreadError
-import threading
 from lsst.ctrl.iip.ThreadManager import ThreadManager
 from lsst.ctrl.iip.const import *
 from lsst.ctrl.iip.Scoreboard import Scoreboard
