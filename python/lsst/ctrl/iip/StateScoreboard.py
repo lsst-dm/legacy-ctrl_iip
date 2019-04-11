@@ -29,7 +29,7 @@ from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
 import yaml
 import logging
 import time
-import subprocess
+import datetime
 from copy import deepcopy
 from lsst.ctrl.iip.Scoreboard import Scoreboard
 from lsst.ctrl.iip.const import *
@@ -90,7 +90,7 @@ class StateScoreboard(Scoreboard):
 
         self._redis.flushdb()
 
-        weekday = subprocess.check_output('date +"%u"', shell=True).decode("utf-8")
+        weekday = int(datetime.datetime.today().strftime('%w'))
 
         job_num_seed = int(weekday) + 1000
         #set up auto sequence
