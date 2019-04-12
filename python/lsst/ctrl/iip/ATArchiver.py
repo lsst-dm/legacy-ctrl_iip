@@ -38,7 +38,7 @@ import threading
 from threading import Lock
 from lsst.ctrl.iip.const import *
 from lsst.ctrl.iip.Scoreboard import Scoreboard
-#from ForwarderScoreboard import ForwarderScoreboard
+from lsst.ctrl.iip.Credentials import Credentials
 from lsst.ctrl.iip.JobScoreboard import JobScoreboard
 from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from lsst.ctrl.iip.Consumer import Consumer
@@ -91,6 +91,10 @@ class ATArchiver(iip_base):
         """
         super().__init__(filename)
 
+        cred = Credentials('iip_cred.yaml')
+        self.service_user = cred.getUser('service_user')
+        self.service_passwd = cred.getPasswd('service_passwd')
+
         self.DP = False
 
         print('Extracting values from Config dictionary %s' % filename)
@@ -131,13 +135,9 @@ class ATArchiver(iip_base):
 
         self._next_timed_ack_id = 0
 
-        self.base_broker_url = "amqp://" + self._msg_name + ":" + \
-                                            self._msg_passwd + "@" + \
-                                            str(self._base_broker_addr)
+        self.base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr)
 
-        self.pub_base_broker_url = "amqp://" + self._msg_pub_name + ":" + \
-                                            self._msg_pub_passwd + "@" + \
-                                            str(self._base_broker_addr)
+        self.pub_base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr)
 
 
 
@@ -159,7 +159,8 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
+        #LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
+        LOGGER.info('Setting up ATArchiver publisher')
         self.setup_unpaired_publisher(self.pub_base_broker_url, 'ATArchiver-publisher')
 
 
@@ -974,10 +975,6 @@ class ATArchiver(iip_base):
             sys.exit(101)
 
         try:
-            self._msg_name = cdm[ROOT]['AUX_BROKER_NAME']      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT]['AUX_BROKER_PASSWD']   
-            self._msg_pub_name = cdm[ROOT]['AUX_BROKER_PUB_NAME']      # Message broker user & passwd
-            self._msg_pub_passwd = cdm[ROOT]['AUX_BROKER_PUB_PASSWD']   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['AUX_FORWARDERS']
             self._wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
@@ -1040,7 +1037,6 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        LOGGER.info('Building self.base_broker_url. Result is %s', self.base_broker_url)
 
 
         # Set up kwargs that describe consumers to be started

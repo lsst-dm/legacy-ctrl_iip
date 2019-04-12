@@ -22,7 +22,9 @@
 
 import logging
 from logging.handlers import RotatingFileHandler
+
 import os
+import os.path
 import signal
 import sys
 import threading
@@ -135,10 +137,7 @@ class iip_base:
         LOGGER.info("Shutting down threads.")
         self.shutdown_event.set()
         self.thread_manager.shutdown_threads()
-        LOGGER.info("Thread Manager shutting down and app exiting...")
-        #sys.exit(0)
-        #print("\n")
-        #os._exit(0)
+        LOGGER.info("Thread Manager shut down complete.")
 
     def register_SIGINT_handler(self):
         signal.signal(signal.SIGINT, self.signal_handler)

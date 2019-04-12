@@ -94,7 +94,7 @@ class Consumer(threading.Thread):
         :rtype: pika.SelectConnection
 
         """
-        LOGGER.info('Connecting to %s', self._url)
+        LOGGER.info('Connecting...')
         return pika.SelectConnection(pika.URLParameters(self._url),
                                      self.on_connection_open,
                                      stop_ioloop_on_close=False)
@@ -386,15 +386,3 @@ class Consumer(threading.Thread):
         """This method closes the connection to RabbitMQ."""
         LOGGER.info('Closing connection')
         self._connection.close()
-
-def main():
-    example = Consumer('amqp://Fm:Fm@141.142.208.191:5672/%2Fbunny')
-    try:
-        example.run()
-    except KeyboardInterrupt:
-        example.stop()
-
-
-if __name__ == '__main__':
-    main()
-

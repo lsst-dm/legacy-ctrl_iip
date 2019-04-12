@@ -31,6 +31,7 @@ import string
 from lsst.ctrl.iip.const import *
 import lsst.ctrl.iip.toolsmod  
 from lsst.ctrl.iip.toolsmod import *
+from lsst.ctrl.iip.Credentials import Credentials
 from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
 import _thread
 import logging
@@ -52,6 +53,11 @@ class ArchiveController(iip_base):
 
     def __init__(self, filename=None):
         super().__init__(filename)
+
+        cred = Credentials('iip_cred.yaml')
+        self.service_user = cred.getUser('service_user')
+        self.service_passwd = cred.getPasswd('service_passwd')
+
         self._session_id = None
         self._name = "ARCHIVE_CTRL"
         
@@ -62,12 +68,6 @@ class ArchiveController(iip_base):
         print('Logs will be written to %s' % log_file)
 
         try:
-            self._archive_name = cdm[ROOT]['ARCHIVE_BROKER_NAME'] 
-            self._archive_passwd = cdm[ROOT]['ARCHIVE_BROKER_PASSWD']
-
-            self._archive_pub_name = cdm[ROOT]['ARCHIVE_BROKER_PUB_NAME'] 
-            self._archive_pub_passwd = cdm[ROOT]['ARCHIVE_BROKER_PUB_PASSWD']
-
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self.incr_db_instance = cdm[ROOT]['SCOREBOARDS']['ARC_CTRL_RCPT_SCBD']
 
@@ -100,14 +100,8 @@ class ArchiveController(iip_base):
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
             self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
 
-        self._base_broker_url = "amqp://" + self._archive_name + ":" + \
-                                 self._archive_passwd + "@" + str(self._base_broker_addr)
-
-        self._pub_base_broker_url = "amqp://" + self._archive_pub_name + ":" + \
-                                 self._archive_pub_passwd + "@" + str(self._base_broker_addr)
-
-        LOGGER.info('Building _base_broker_url connection string for Archive Controller.' + \
-                    ' Result is %s' % self._base_broker_url)
+        self._base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr) 
+        self._pub_base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr) 
 
         self._msg_actions = { 'ARCHIVE_HEALTH_CHECK': self.process_health_check,
                               'NEW_AR_ARCHIVE_ITEM': self.process_new_ar_archive_item,
@@ -130,7 +124,7 @@ class ArchiveController(iip_base):
         self.setup_consumer()
 
     def setup_consumer(self):
-        LOGGER.info('Setting up archive consumers on %s', self._base_broker_url)
+        LOGGER.info('Setting up archive consumers')
         LOGGER.info('Running start_new_thread for archive consumer')
 
         #self.shutdown_event = threading.Event() 
@@ -152,8 +146,7 @@ class ArchiveController(iip_base):
 
 
     def setup_publisher(self):
-        LOGGER.info('Setting up Archive publisher on %s using %s',\
-                     self._pub_base_broker_url, self._base_msg_format)
+        LOGGER.info('Setting up Archive publisher')
         self.setup_unpaired_publisher(self._pub_base_broker_url, "ArchiveController-Publisher")
 
 
