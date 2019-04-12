@@ -309,7 +309,6 @@ class ATArchiver(iip_base):
         start_int_params['SESSION_ID'] = session_id
         start_int_params['IMAGE_ID'] = image_id
         start_int_params['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
-        print("process_at_start_integration: current thread ", threading.currentThread().getName())
         self.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
 
         ar_response = self.simple_progressive_ack_timer(self.ARCHIVE, 4.0)
@@ -323,7 +322,6 @@ class ATArchiver(iip_base):
             target_dir = self.archive_xfer_root 
  
         else:
-            print("self._archive_ack = ", self._archive_ack)
             target_dir = self._archive_ack['TARGET_DIR']
           
  
@@ -359,9 +357,8 @@ class ATArchiver(iip_base):
         xfer_params_dict['AT_FWDR'] = self._current_fwdr['FQN']
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
-        self.prp.pprint(fwdr_new_target_params)
+        #self.prp.pprint(fwdr_new_target_params)
         self.clear_fwdr_state()
-        print("process_at_start_integration: current thread ", threading.currentThread().getName())
         self.publish_message(route_key, fwdr_new_target_params)
        
 
@@ -435,7 +432,6 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        print("accept_job: current thread ", threading.currentThread().getName())
         self.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
 
 
@@ -461,7 +457,6 @@ class ATArchiver(iip_base):
         dmcs_message[ACK_BOOL] = False 
         dmcs_message['COMPONENT'] = self.COMPONENT_NAME
         self.JOB_SCBD.set_value_for_job(params[JOB_NUM], STATE, "JOB_REFUSED")
-        print("refuse_job: current thread ", threading.currentThread().getName())
         self.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
 
 
@@ -573,7 +568,6 @@ class ATArchiver(iip_base):
         xferd_list_msg[ACK_ID] = archive_readout_ack
         xferd_list_msg['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
         xferd_list_msg['RESULT_SET'] = result_set
-        print("process_at_readout_responses: current thread ", threading.currentThread().getName())
         self.publish_message(self.ARCHIVE_CTRL_CONSUME, xferd_list_msg) 
            
         xferd_responses = self.simple_progressive_ack_timer(self.ARCHIVE, 8.0) 
@@ -591,7 +585,6 @@ class ATArchiver(iip_base):
             rlist = []
             final_msg['RESULT_SET']['FILENAME_LIST'] = flist
             final_msg['RESULT_SET']['RECEIPT_LIST'] = rlist
-            print("process_at_readout_responses: current thread ", threading.currentThread().getName())
             self.publish_message(reply_queue, final_msg)
 
             return
@@ -605,7 +598,6 @@ class ATArchiver(iip_base):
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['ACK_BOOL'] = True
         ack_msg['RESULT_LIST'] = results
-        print("process_at_readout_responses: current thread ", threading.currentThread().getName())
         self.publish_message(reply_queue, ack_msg)
 
 
