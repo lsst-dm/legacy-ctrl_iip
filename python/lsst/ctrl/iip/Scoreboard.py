@@ -33,7 +33,7 @@ from lsst.ctrl.iip.iip_base import iip_base
 
 LOGGER = logging.getLogger(__name__)
 
-class Scoreboard(iip_base):
+class Scoreboard():
     """This is the parent class of the three scoreboard classes. 
        It, and they, form an interface for the Redis in-memory DB
        that continually stores state information about components and jobs.

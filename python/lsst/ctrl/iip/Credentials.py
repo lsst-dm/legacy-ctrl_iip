@@ -20,12 +20,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import logging
 import os
 import os.path
 import stat
 import sys
 import yaml
 from lsst.ctrl.iip.ThreadManager import ThreadManager
+
+LOGGER = logging.getLogger(__name__)
 
 class Credentials:
 
@@ -50,7 +53,9 @@ class Credentials:
             
             # check that the permissions are set to rwx for only the user
             if (mode & (stat.S_IWOTH | stat.S_IWGRP | stat.S_IROTH | stat.S_IRGRP)):
-                print("directory '%s' is unsecure.  Run 'chmod 700 %s' to fix this." % (config_dir, config_dir))
+                msg = "directory '%s' is unsecure.  Run 'chmod 700 %s' to fix this." % (config_dir, config_dir)
+                print(msg)
+                LOGGER.info(msg)
                 sys.exit(100)
             filename = os.path.join(config_dir, cred_file)
             # check that the credential file exists
@@ -59,30 +64,40 @@ class Credentials:
                 mode = stat_info.st_mode
                 # check that the credential file is set to rw for only the user
                 if (mode & (stat.S_IWOTH | stat.S_IWGRP | stat.S_IROTH | stat.S_IRGRP)):
-                    print("file '%s' is unsecure.  Run 'chmod 600 %s' to fix this." % (filename, filename))
+                    msg = "file '%s' is unsecure.  Run 'chmod 600 %s' to fix this." % (filename, filename)
+                    print(msg)
+                    LOGGER.info(msg)
                 else:
                     # after all that checking, load the YAML file containing the secure file
                     return self.loadYamlFile(filename)
             else:
-                print("can not find creditials file '%s'." % filename)
+                msg = "can not find creditials file '%s'." % filename
+                print(msg)
+                LOGGER.info(msg)
             sys.exit(100)
         else:
             path = os.path.join(config_dir, cred_file)
-            print("can not read creditials file '%s'." % path)
+            msg = "can not read creditials file '%s'." % path
+            print(msg)
+            LOGGER.info(msg)
         sys.exit(100)
 
     def loadYamlFile(self, config_file):
         try:
             f = open(config_file)
         except Exception:
-            print("Can't open %s" % config_file)
+            msg = "Can't open %s" % config_file
+            print(msg)
+            LOGGER.info(msg)
             sys.exit(10)
 
         config = None
         try:
             config = yaml.safe_load(f)
         except Exception:
-            print("Error reading %s" % config_file)
+            msg = "Error reading %s" % config_file
+            print(msg)
+            LOGGER.info(msg)
         finally:
             f.close()
         return config

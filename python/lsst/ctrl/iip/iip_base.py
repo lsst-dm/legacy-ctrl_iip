@@ -38,8 +38,10 @@ LOGGER = logging.getLogger(__name__)
 class iip_base:
     """Base class"""
 
-    def __init__(self, filename):
-        self.cred = Credentials('iip_cred.yaml')
+    def __init__(self, filename, log_filename):
+        self._config = self.loadConfigFile(filename)
+        self.setupLogging(log_filename)
+        self._cred = Credentials('iip_cred.yaml')
         self.thread_manager = self.setup_thread_manager()
 
     def loadConfigFile(self, filename):
@@ -78,14 +80,22 @@ class iip_base:
             f.close()
         return config
 
-    def setupLogging(self, log_dir_location, filename):
+    def getCredentials(self):
+        return self._cred
+
+    def getConfiguration(self):
+        return self._config
+
+    def setupLogging(self, filename):
         """Setup writing to a log. If the IIP_LOG_DIR environment variable
         is set, use that.  Otherwise, use log_dir_location if it was
         specified. If it wasn't, default to /tmp.
         Params
         ------
-        log_dir_location:  the directory to write the log file to
+        filename:  the log file to write to
         """
+
+        log_dir_location = self._config[ROOT].get('LOGGING_DIR', None)
 
         log_dir = None
 

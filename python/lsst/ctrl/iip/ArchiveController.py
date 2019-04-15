@@ -51,21 +51,17 @@ class ArchiveController(iip_base):
     ERROR_CODE_PREFIX = '54'
     YAML = 'YAML'
 
-    def __init__(self, filename=None):
-        super().__init__(filename)
+    def __init__(self, filename):
+        super().__init__(filename, 'ArchiveController.log')
 
-        self.service_user = self.cred.getUser('service_user')
-        self.service_passwd = self.cred.getPasswd('service_passwd')
+        cred = self.getCredentials()
+        self.service_user = cred.getUser('service_user')
+        self.service_passwd = cred.getPasswd('service_passwd')
 
         self._session_id = None
         self._name = "ARCHIVE_CTRL"
         
-        cdm = self.loadConfigFile(filename)
-        logging_dir = cdm[ROOT].get('LOGGING_DIR', None)
-
-        log_file = self.setupLogging(logging_dir, 'ArchiveController.log')
-        print('Logs will be written to %s' % log_file)
-
+        cdm = self.getConfiguration()
         try:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self.incr_db_instance = cdm[ROOT]['SCOREBOARDS']['ARC_CTRL_RCPT_SCBD']

@@ -89,23 +89,16 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        super().__init__(filename)
+        super().__init__(filename, 'ATArchiver.log')
 
+        self.cred = self.getCredentials()
         self.service_user = self.cred.getUser('service_user')
         self.service_passwd = self.cred.getPasswd('service_passwd')
 
         self.DP = False
 
-        print('Extracting values from Config dictionary %s' % filename)
         cdm = self.extract_config_values(filename)
 
-        logging_dir = cdm[ROOT].get('LOGGING_DIR', None)
-
-        log_file = self.setupLogging(logging_dir, 'ATArchiver.log')
-        print("Logs will be written to %s" % log_file)
-
-
-        toolsmod.singleton(self)
         self._fwdr_state_dict = {}  # Used for ACK analysis...
         self._archive_ack = {}  # Used to determine archive response
         self._current_fwdr = None
@@ -958,12 +951,7 @@ class ATArchiver(iip_base):
 
             :return: True.
         """
-        cdm = None
-        try:
-            cdm = self.loadConfigFile(filename)
-        except IOError as e:
-            LOGGER.critical("Unable to find CFG Yaml file %s\n" % self._config_file)
-            sys.exit(101)
+        cdm = self.getConfiguration()
 
         try:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
