@@ -30,6 +30,7 @@ import sys
 import threading
 import yaml
 from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Credentials import Credentials
 from lsst.ctrl.iip.ThreadManager import ThreadManager
 
 LOGGER = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ class iip_base:
     """Base class"""
 
     def __init__(self, filename):
+        self.cred = Credentials('iip_cred.yaml')
         self.thread_manager = self.setup_thread_manager()
 
     def loadConfigFile(self, filename):

@@ -104,9 +104,8 @@ class DMCS(iip_base):
         super().__init__(filename)
         toolsmod.singleton(self) # XXX - not sure what this is intended to do, since DMCS only gets called once
 
-        cred = Credentials('iip_cred.yaml')
-        self.service_user = cred.getUser('service_user')
-        self.service_passwd = cred.getPasswd('service_passwd')
+        self.service_user = self.cred.getUser('service_user')
+        self.service_passwd = self.cred.getPasswd('service_passwd')
 
 
         print('Extracting values from Config dictionary %s' % filename)

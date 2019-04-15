@@ -54,9 +54,8 @@ class ArchiveController(iip_base):
     def __init__(self, filename=None):
         super().__init__(filename)
 
-        cred = Credentials('iip_cred.yaml')
-        self.service_user = cred.getUser('service_user')
-        self.service_passwd = cred.getPasswd('service_passwd')
+        self.service_user = self.cred.getUser('service_user')
+        self.service_passwd = self.cred.getPasswd('service_passwd')
 
         self._session_id = None
         self._name = "ARCHIVE_CTRL"

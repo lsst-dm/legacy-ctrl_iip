@@ -91,9 +91,8 @@ class ATArchiver(iip_base):
         """
         super().__init__(filename)
 
-        cred = Credentials('iip_cred.yaml')
-        self.service_user = cred.getUser('service_user')
-        self.service_passwd = cred.getPasswd('service_passwd')
+        self.service_user = self.cred.getUser('service_user')
+        self.service_passwd = self.cred.getPasswd('service_passwd')
 
         self.DP = False
 

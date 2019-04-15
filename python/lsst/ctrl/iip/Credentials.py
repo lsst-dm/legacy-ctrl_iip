@@ -51,7 +51,7 @@ class Credentials:
             # check that the permissions are set to rwx for only the user
             if (mode & (stat.S_IWOTH | stat.S_IWGRP | stat.S_IROTH | stat.S_IRGRP)):
                 print("directory '%s' is unsecure.  Run 'chmod 700 %s' to fix this." % (config_dir, config_dir))
-                os._exit(100)
+                sys.exit(100)
             filename = os.path.join(config_dir, cred_file)
             # check that the credential file exists
             if os.path.isfile(filename):
@@ -65,11 +65,11 @@ class Credentials:
                     return self.loadYamlFile(filename)
             else:
                 print("can not find creditials file '%s'." % filename)
-            os._exit(100)
+            sys.exit(100)
         else:
             path = os.path.join(config_dir, cred_file)
             print("can not read creditials file '%s'." % path)
-        os._exit(100)
+        sys.exit(100)
 
     def loadYamlFile(self, config_file):
         try:
