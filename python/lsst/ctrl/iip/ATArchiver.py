@@ -38,7 +38,7 @@ import threading
 from threading import Lock
 from lsst.ctrl.iip.const import *
 from lsst.ctrl.iip.Scoreboard import Scoreboard
-#from ForwarderScoreboard import ForwarderScoreboard
+from lsst.ctrl.iip.Credentials import Credentials
 from lsst.ctrl.iip.JobScoreboard import JobScoreboard
 from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from lsst.ctrl.iip.Consumer import Consumer
@@ -91,6 +91,9 @@ class ATArchiver(iip_base):
         """
         super().__init__(filename)
 
+        self.service_user = self.cred.getUser('service_user')
+        self.service_passwd = self.cred.getPasswd('service_passwd')
+
         self.DP = False
 
         print('Extracting values from Config dictionary %s' % filename)
@@ -131,13 +134,9 @@ class ATArchiver(iip_base):
 
         self._next_timed_ack_id = 0
 
-        self.base_broker_url = "amqp://" + self._msg_name + ":" + \
-                                            self._msg_passwd + "@" + \
-                                            str(self._base_broker_addr)
+        self.base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr)
 
-        self.pub_base_broker_url = "amqp://" + self._msg_pub_name + ":" + \
-                                            self._msg_pub_passwd + "@" + \
-                                            str(self._base_broker_addr)
+        self.pub_base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr)
 
 
 
@@ -159,7 +158,8 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
+        #LOGGER.info('Setting up ATArchiver publisher on %s using %s', self.pub_base_broker_url, self._base_msg_format)
+        LOGGER.info('Setting up ATArchiver publisher')
         self.setup_unpaired_publisher(self.pub_base_broker_url, 'ATArchiver-publisher')
 
 
@@ -308,7 +308,6 @@ class ATArchiver(iip_base):
         start_int_params['SESSION_ID'] = session_id
         start_int_params['IMAGE_ID'] = image_id
         start_int_params['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
-        print("process_at_start_integration: current thread ", threading.currentThread().getName())
         self.publish_message(self.ARCHIVE_CTRL_CONSUME, start_int_params)
 
         ar_response = self.simple_progressive_ack_timer(self.ARCHIVE, 4.0)
@@ -322,7 +321,6 @@ class ATArchiver(iip_base):
             target_dir = self.archive_xfer_root 
  
         else:
-            print("self._archive_ack = ", self._archive_ack)
             target_dir = self._archive_ack['TARGET_DIR']
           
  
@@ -358,9 +356,8 @@ class ATArchiver(iip_base):
         xfer_params_dict['AT_FWDR'] = self._current_fwdr['FQN']
         fwdr_new_target_params['XFER_PARAMS'] = xfer_params_dict
         route_key = self._current_fwdr["CONSUME_QUEUE"]
-        self.prp.pprint(fwdr_new_target_params)
+        #self.prp.pprint(fwdr_new_target_params)
         self.clear_fwdr_state()
-        print("process_at_start_integration: current thread ", threading.currentThread().getName())
         self.publish_message(route_key, fwdr_new_target_params)
        
 
@@ -434,7 +431,6 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        print("accept_job: current thread ", threading.currentThread().getName())
         self.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
 
 
@@ -460,7 +456,6 @@ class ATArchiver(iip_base):
         dmcs_message[ACK_BOOL] = False 
         dmcs_message['COMPONENT'] = self.COMPONENT_NAME
         self.JOB_SCBD.set_value_for_job(params[JOB_NUM], STATE, "JOB_REFUSED")
-        print("refuse_job: current thread ", threading.currentThread().getName())
         self.publish_message(self.DMCS_ACK_CONSUME, dmcs_message)
 
 
@@ -572,7 +567,6 @@ class ATArchiver(iip_base):
         xferd_list_msg[ACK_ID] = archive_readout_ack
         xferd_list_msg['REPLY_QUEUE'] = self.AT_FOREMAN_ACK_PUBLISH
         xferd_list_msg['RESULT_SET'] = result_set
-        print("process_at_readout_responses: current thread ", threading.currentThread().getName())
         self.publish_message(self.ARCHIVE_CTRL_CONSUME, xferd_list_msg) 
            
         xferd_responses = self.simple_progressive_ack_timer(self.ARCHIVE, 8.0) 
@@ -590,7 +584,6 @@ class ATArchiver(iip_base):
             rlist = []
             final_msg['RESULT_SET']['FILENAME_LIST'] = flist
             final_msg['RESULT_SET']['RECEIPT_LIST'] = rlist
-            print("process_at_readout_responses: current thread ", threading.currentThread().getName())
             self.publish_message(reply_queue, final_msg)
 
             return
@@ -604,7 +597,6 @@ class ATArchiver(iip_base):
         ack_msg['ACK_ID'] = readout_ack_id
         ack_msg['ACK_BOOL'] = True
         ack_msg['RESULT_LIST'] = results
-        print("process_at_readout_responses: current thread ", threading.currentThread().getName())
         self.publish_message(reply_queue, ack_msg)
 
 
@@ -974,10 +966,6 @@ class ATArchiver(iip_base):
             sys.exit(101)
 
         try:
-            self._msg_name = cdm[ROOT]['AUX_BROKER_NAME']      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT]['AUX_BROKER_PASSWD']   
-            self._msg_pub_name = cdm[ROOT]['AUX_BROKER_PUB_NAME']      # Message broker user & passwd
-            self._msg_pub_passwd = cdm[ROOT]['AUX_BROKER_PUB_PASSWD']   
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self._forwarder_dict = cdm[ROOT][XFER_COMPONENTS]['AUX_FORWARDERS']
             self._wfs_raft = cdm[ROOT]['ATS']['WFS_RAFT']
@@ -1040,7 +1028,6 @@ class ATArchiver(iip_base):
 
             :return: None.
         """
-        LOGGER.info('Building self.base_broker_url. Result is %s', self.base_broker_url)
 
 
         # Set up kwargs that describe consumers to be started

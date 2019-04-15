@@ -23,7 +23,8 @@
 import lsst.ctrl.iip.toolsmod
 import time
 import redis
-from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.Credentials import Credentials
+from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 import sys
 import yaml
 import logging
@@ -42,13 +43,15 @@ class Scoreboard(iip_base):
 
     def __init__(self, filename=None):
 
+        cred = Credentials('iip_cred.yaml')
+        name = cred.getUser('service_user')
+        passwd = cred.getPasswd('service_passwd')
+
         if filename is not None:
             raise Exception("DEBUG: Expected that no filename was present:  Got %s " % filename)
         self.cdm = self.loadConfigFile('L1SystemCfg.yaml')
 
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
-        name = self.cdm['ROOT']['BASE_BROKER_NAME']
-        passwd = self.cdm['ROOT']['BASE_BROKER_PASSWD']
         self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
 
         self.audit_format = "YAML"
@@ -56,7 +59,8 @@ class Scoreboard(iip_base):
             self.audit_format = self.cdm['ROOT']['AUDIT_MSG_FORMAT']
 
         try:
-            self.audit_publisher = SimplePublisher(self.broker_url, self.audit_format)
+            self.audit_publisher = AsyncPublisher(self.broker_url, "audit_publisher")
+            self.audit_publisher.start()
         except L1RabbitConnectionError as e:
             LOGGER.error("Scoreboard Parent Class cannot create SimplePublisher:  ", e.arg)
             print("No Publisher for YOU")

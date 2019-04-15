@@ -22,12 +22,15 @@
 
 import logging
 from logging.handlers import RotatingFileHandler
+
 import os
+import os.path
 import signal
 import sys
 import threading
 import yaml
 from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.Credentials import Credentials
 from lsst.ctrl.iip.ThreadManager import ThreadManager
 
 LOGGER = logging.getLogger(__name__)
@@ -36,6 +39,7 @@ class iip_base:
     """Base class"""
 
     def __init__(self, filename):
+        self.cred = Credentials('iip_cred.yaml')
         self.thread_manager = self.setup_thread_manager()
 
     def loadConfigFile(self, filename):
@@ -135,10 +139,7 @@ class iip_base:
         LOGGER.info("Shutting down threads.")
         self.shutdown_event.set()
         self.thread_manager.shutdown_threads()
-        LOGGER.info("Thread Manager shutting down and app exiting...")
-        #sys.exit(0)
-        #print("\n")
-        #os._exit(0)
+        LOGGER.info("Thread Manager shut down complete.")
 
     def register_SIGINT_handler(self):
         signal.signal(signal.SIGINT, self.signal_handler)

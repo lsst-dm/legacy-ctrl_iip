@@ -35,6 +35,7 @@ import datetime
 from pprint import pprint, pformat
 from time import sleep
 from threading import ThreadError
+from lsst.ctrl.iip.Credentials import Credentials
 from lsst.ctrl.iip.ThreadManager import ThreadManager
 from lsst.ctrl.iip.const import *
 from lsst.ctrl.iip.Scoreboard import Scoreboard
@@ -103,6 +104,9 @@ class DMCS(iip_base):
         super().__init__(filename)
         toolsmod.singleton(self) # XXX - not sure what this is intended to do, since DMCS only gets called once
 
+        self.service_user = self.cred.getUser('service_user')
+        self.service_passwd = self.cred.getPasswd('service_passwd')
+
 
         print('Extracting values from Config dictionary %s' % filename)
         cdm = self.extract_config_values(filename)
@@ -114,13 +118,8 @@ class DMCS(iip_base):
         LOGGER.info('DMCS Init beginning')
 
 
-        self.pub_base_broker_url = "amqp://" + self._pub_name + ":" + \
-                                            self._pub_passwd + "@" + \
-                                            str(self._base_broker_addr)
+        self.pub_base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr)
 
-        #self.pub_fault_base_broker_url = "amqp://" + self._pub_fault_name + ":" + \
-        #                                    self._pub_fault_passwd + "@" + \
-        #                                    str(self._base_broker_addr)
 
         # These dicts call the correct handler method for the message_type of incoming messages
         self._OCS_msg_actions = { 'ENTER_CONTROL': self.process_enter_control_command,
@@ -184,8 +183,6 @@ class DMCS(iip_base):
 
             :return: None.
         """
-
-        LOGGER.info('Building publishing pub_base_broker_url. Result is %s', self.pub_base_broker_url)        
 
         LOGGER.info('Setting up Base publisher ')
         try: 
@@ -452,6 +449,7 @@ class DMCS(iip_base):
                 ack_msg['ACK_STATEMENT'] = "Current state is " + current_state + ". Device \
                                            state must be in ENABLE state for SET_VALUE command."
 
+            LOGGER.info(ack_msg['ACK_STATEMENT'])
             self.publish_message(self.DMCS_OCS_PUBLISH, ack_msg)
         except L1RedisError as e: 
             LOGGER.error("DMCS unable to process_set_value_command - No redis connection: %s" % e.args) 
@@ -1356,13 +1354,6 @@ class DMCS(iip_base):
             sys.exit(101) 
 
         try:
-            self._msg_name = cdm[ROOT]['DMCS_BROKER_NAME']      # Message broker user & passwd
-            self._msg_passwd = cdm[ROOT]['DMCS_BROKER_PASSWD']
-            self._pub_name = cdm[ROOT]['DMCS_BROKER_PUB_NAME']
-            self._pub_passwd = cdm[ROOT]['DMCS_BROKER_PUB_PASSWD']
-            self._pub_fault_name = cdm[ROOT]['DMCS_FAULT_PUB_NAME']
-            self._pub_fault_passwd = cdm[ROOT]['DMCS_FAULT_PUB_PASSWD']
-
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
             self.ddict = cdm[ROOT]['FOREMAN_CONSUME_QUEUES']
             self.rdict = cdm[ROOT]['DEFAULT_RAFT_CONFIGURATION']
@@ -1400,10 +1391,7 @@ class DMCS(iip_base):
 
 
     def setup_consumer_threads(self):
-        base_broker_url = "amqp://" + self._msg_name + ":" + \
-                                            self._msg_passwd + "@" + \
-                                            str(self._base_broker_addr)
-        LOGGER.info('Building _base_broker_url. Result is %s', base_broker_url)
+        base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr)
 
 
         # Set up kwargs that describe consumers to be started

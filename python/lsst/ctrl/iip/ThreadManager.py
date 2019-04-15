@@ -177,20 +177,6 @@ class ThreadManager(threading.Thread):
 
         LOGGER.info("consumer thread shutdown completed")
 
-    def shutdown_threads2(self):
-        self.lock.acquire()
-        num_threads = len(self.running_threads)
-        LOGGER.info("shutting down %d threads" % num_threads)
-        for i in range (0, num_threads):
-            LOGGER.info("Stopping rabbit connection in %s" % self.running_threads[i].name)
-            self.running_threads[i].stop()
-            LOGGER.info("Shutting down consumer %s" % self.running_threads[i].name)
-            self.running_threads[i].join()
-            LOGGER.info("consumer %s finished" % self.running_threads[i].name)
-        self.lock.release()
-
-        LOGGER.info("consumer thread shutdown completed")
-
     def run(self):
         self.start_background_loop()
 
