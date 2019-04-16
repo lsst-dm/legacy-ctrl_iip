@@ -101,21 +101,16 @@ class DMCS(iip_base):
 
             :return: None.
         """
-        super().__init__(filename)
-        toolsmod.singleton(self) # XXX - not sure what this is intended to do, since DMCS only gets called once
+        super().__init__(filename, 'DMCS.log')
 
-        self.service_user = self.cred.getUser('service_user')
-        self.service_passwd = self.cred.getPasswd('service_passwd')
+        cred = self.getCredentials()
+        self.service_user = cred.getUser('service_user')
+        self.service_passwd = cred.getPasswd('service_passwd')
 
 
-        print('Extracting values from Config dictionary %s' % filename)
-        cdm = self.extract_config_values(filename)
+        cdm = self.extract_config_values()
 
-        logging_dir = cdm[ROOT].get('LOGGING_DIR', None)
-        log_file = self.setupLogging(logging_dir, 'DMCS.log')
-        print("Logs will be written to %s" % log_file)
-
-        LOGGER.info('DMCS Init beginning')
+        LOGGER.info('DMCS init beginning')
 
 
         self.pub_base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr)
@@ -620,7 +615,8 @@ class DMCS(iip_base):
             :return: None.
         """
         x = self.STATE_SCBD.at_device_is_enabled()
-        print("enabled is set to: %s" % x)
+        if self.DP:
+            print("enabled is set to: %s" % x)
         if self.STATE_SCBD.at_device_is_enabled():
             LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
             raft_ccd_list = []
@@ -658,7 +654,7 @@ class DMCS(iip_base):
             wait_time = 5  # seconds...
             self.set_pending_nonblock_acks(acks, wait_time)
         else:
-            LOGGER.debug("Big Trouble in Little China - start_int msg for AT, but it is not enabled!")
+            LOGGER.debug("start_int msg for AT, but it is not enabled!")
 
 
     def process_readout_event(self, params):
@@ -1344,14 +1340,8 @@ class DMCS(iip_base):
             return None
 
 
-    def extract_config_values(self, filename):
-        LOGGER.info('Reading YAML Config file')
-        try:
-            cdm = self.loadConfigFile(filename)
-        except IOError as e:
-            LOGGER.critical("Unable to find CFG Yaml file\n")
-            ### FIXXX FIXXX Change to Fault state
-            sys.exit(101) 
+    def extract_config_values(self):
+        cdm = self.getConfiguration()
 
         try:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
