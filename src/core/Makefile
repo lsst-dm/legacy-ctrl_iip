@@ -1,13 +1,21 @@
-INCLUDE		= -I/opt/lsst/include -I../../include/core
+INCLUDE		= -I/opt/lsst/include \
+		  -I../../include/core \
+		  -I../../include/ocs
 LDPATH		= -L/opt/lsst/lib 
 LOG_LIB         = -lboost_log -lboost_system -lboost_thread
 LIBS		= -lyaml-cpp
 OBJ_DIR		= ../obj
 
-all: builddir A
+all: builddir SimplePublisher Consumer SimpleLogger IIPBase
 
 builddir:
 	mkdir -p $(OBJ_DIR)
+
+SimplePublisher: SimplePublisher.cpp
+	g++ -std=c++11 $(INCLUDE) $(LDPATH) -c -o $(OBJ_DIR)/$@.o $^ -lSimpleAmqpClient 
+
+Consumer: Consumer.cpp 
+	g++ -std=c++11 $(INCLUDE) $(LDPATH) -c -o $(OBJ_DIR)/$@.o $^ -lSimpleAmqpClient 
 
 SimpleLogger: SimpleLogger.cpp
 	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LDPATH) $< -c -o $(OBJ_DIR)/$@.o $(LOG_LIB)

@@ -46,30 +46,15 @@ L1_OBJ         = ../obj/OCS_Bridge.o ../obj/SimplePublisher.o ../obj/Toolsmod.o
 OBJ_DIR        = ../obj
 BIN_DIR	       = ../../bin
 
-all: builddir OCS_Bridge Consumer SimplePublisher Toolsmod CommandListener EventSubscriber AckSubscriber
+all: CommandListener EventSubscriber AckSubscriber
 
-builddir:
-	mkdir -p $(OBJ_DIR)
-
-OCS_Bridge: OCS_Bridge.cpp SimplePublisher Toolsmod
-	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) $(OBJ_DIR)/SimplePublisher.o $(OBJ_DIR)/Toolsmod.o -c -o $(OBJ_DIR)/$@.o $< -lSimpleAmqpClient -lyaml-cpp 
-
-SimplePublisher: SimplePublisher.cpp
-	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/$@.o $^ -lSimpleAmqpClient 
-
-Consumer: Consumer.cpp 
-	g++ -std=c++11 $(DM_INCLUDE) $(DM_LDPATH) -c -o $(OBJ_DIR)/$@.o $^ -lSimpleAmqpClient 
-
-Toolsmod: Toolsmod.cpp
-	g++ -std=c++11 $(DM_INCLUDE) -c -o $(OBJ_DIR)/$@.o $< 
-
-CommandListener: CommandListener.cpp SimplePublisher Toolsmod OCS_Bridge
+CommandListener: CommandListener.cpp
 	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $(BIN_DIR)/$@ $< $(SAL_LIB) $(L1_LIB)
 
-EventSubscriber: EventSubscriber.cpp SimplePublisher
+EventSubscriber: EventSubscriber.cpp
 	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) -o $(BIN_DIR)/$@ $< $(SAL_LIB) $(L1_LIB)
 
-AckSubscriber: AckSubscriber.cpp Consumer
+AckSubscriber: AckSubscriber.cpp
 	g++ -std=c++11 $(SAL_INCLUDE) $(DM_INCLUDE) $(SAL_LDPATH) $(DM_LDPATH) $(DM_OBJ) $(L1_OBJ) ../obj/Consumer.o -o $(BIN_DIR)/$@ $< $(SAL_LIB) $(L1_LIB)
 
 install:
@@ -78,4 +63,6 @@ install:
 	install -m 755 -D ../bin/* $(DM_BUILDDIR)/bin
 
 clean: 
-	rm -i ../OCS_Bridge.o ../SimplePublisher.o ../Consumer.o ../Toolsmod.o CommandListener EventSubscriber AckSubscriber
+	rm $(BIN_DIR)/CommandListener \
+	   $(BIN_DIR)/EventSubscriber \
+	   $(BIN_DIR)/AckSubscriber
