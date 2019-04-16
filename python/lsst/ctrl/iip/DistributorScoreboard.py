@@ -42,17 +42,11 @@ class DistributorScoreboard(Scoreboard):
     DB_TYPE = ""
     DB_INSTANCE = None
 
-    def __init__(self, db_type, db_instance, ddict):
+    def __init__(self, db_type, db_instance, ddict, cred, cdm):
+        super().__init__(cred, cdm)
         LOGGER.info('Setting up DistributorScoreboard')
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
-
-        try:
-            Scoreboard.__init__(self)
-        except L1RabbitConnectionError as e:
-            LOGGER.error('Failed to make connection to Message Broker: %s', e.arg)
-            print("No Monitoring for YOU")
-            raise L1Error('Calling super.init in DistScoreboard init caused: %s', e.arg)
 
         try:
             self._redis = self.connect()

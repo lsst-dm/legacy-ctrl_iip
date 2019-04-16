@@ -41,7 +41,8 @@ class IncrScoreboard(Scoreboard):
     RECEIPT_SEQUENCE_NUM = 'RECEIPT_SEQUENCE_NUM' 
   
 
-    def __init__(self, db_type, db_instance):
+    def __init__(self, db_type, db_instance, cred, cdm):
+        super().__init__(cred, cdm)
         LOGGER.info('Setting up IncrScoreboard')
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
