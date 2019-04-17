@@ -29,7 +29,6 @@ namespace src = boost::log::sources;
 
 class IIPBase {
     public:
-        src::severity_logger< severity_level > lg;
         char *iip_config_dir, *iip_log_dir, *ctrl_iip_dir;
         YAML::Node l1_config;
 

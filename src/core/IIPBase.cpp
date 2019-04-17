@@ -59,15 +59,7 @@ string IIPBase::get_log_filepath() {
     return path;
 }
 
-Node IIPBase::load_config_file(string filename) { 
-    string config_filename;
-    if (filename.empty()) { 
-        config_filename = "L1SystemCfg.yaml"; 
-    }
-    else { 
-        config_filename = filename;
-    }
-
+Node IIPBase::load_config_file(string config_filename) { 
     if (!this->iip_config_dir && !this->ctrl_iip_dir) { 
         cout << "Please set environment variable CTRL_IIP_DIR or IIP_CONFIG_DIR" << endl;
         exit(-1);
@@ -83,7 +75,7 @@ Node IIPBase::load_config_file(string filename) {
         config_file = config_dir + "/etc/config/" + config_filename;
     }
     else {
-        cout << "Cannot find configuration file " << filename << endl;
+        cout << "Cannot find configuration file " << config_filename << endl;
 	exit(-1); 
     }
     cout << "Loaded configuration from " << config_file << endl;
@@ -92,7 +84,7 @@ Node IIPBase::load_config_file(string filename) {
         return LoadFile(config_file)["ROOT"];
     }
     catch (BadFile& e) { 
-        cout << "Cannot read configuration file " << filename << endl;
+        cout << "Cannot read configuration file " << config_filename << endl;
         exit(-1); 
     }  
 }
