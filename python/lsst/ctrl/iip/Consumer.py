@@ -95,9 +95,8 @@ class Consumer(threading.Thread):
 
         """
         LOGGER.info('Connecting...')
-        return pika.SelectConnection(pika.URLParameters(self._url),
-                                     self.on_connection_open,
-                                     stop_ioloop_on_close=False)
+        return pika.SelectConnection(parameters=pika.URLParameters(self._url),
+                                     on_open_callback=self.on_connection_open)
 
     def on_connection_open(self, unused_connection):
         """This method is called by pika once the connection to RabbitMQ has
@@ -184,7 +183,7 @@ class Consumer(threading.Thread):
         LOGGER.info('Adding channel close callback')
         self._channel.add_on_close_callback(self.on_channel_closed)
 
-    def on_channel_closed(self, channel, reply_code, reply_text):
+    def on_channel_closed(self, channel, reason):
         """Invoked by pika when RabbitMQ unexpectedly closes the channel.
         Channels are usually closed if you attempt to do something that
         violates the protocol, such as re-declare an exchange or queue with
@@ -196,8 +195,7 @@ class Consumer(threading.Thread):
         :param str reply_text: The text reason the channel was closed
 
         """
-        LOGGER.warning('Channel %i was closed: (%s) %s',
-                       channel, reply_code, reply_text)
+        LOGGER.warning('Channel %i was closed: %s' % (channel, reason))
         self._connection.close()
 
     def setup_exchange(self, exchange_name):
@@ -276,7 +274,10 @@ class Consumer(threading.Thread):
         self.add_on_cancel_callback()
         #self._consumer_tag = self._channel.basic_consume(self.on_message, self.QUEUE)
         self._channel.basic_qos(prefetch_count=1)
-        self._consumer_tag = self._channel.basic_consume(self._message_callback, self.QUEUE)
+        if pika.__version__ == "0.11.2": # TODO:  Remove this when the system is upgraded to Pika 1.0.1
+            self._consumer_tag = self._channel.basic_consume(self._message_callback, self.QUEUE)
+        else:
+            self._consumer_tag = self._channel.basic_consume(self.QUEUE, self._message_callback)
 
     def add_on_cancel_callback(self):
         """Add a callback that will be invoked if RabbitMQ cancels the consumer
@@ -335,7 +336,7 @@ class Consumer(threading.Thread):
         """
         if self._channel:
             LOGGER.info('Sending a Basic.Cancel RPC command to RabbitMQ')
-            self._channel.basic_cancel(self.on_cancelok, self._consumer_tag)
+            self._channel.basic_cancel(consumer_tag=self._consumer_tag, callback=self.on_cancelok)
 
     def on_cancelok(self, unused_frame):
         """This method is invoked by pika when RabbitMQ acknowledges the
