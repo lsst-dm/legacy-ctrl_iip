@@ -117,7 +117,7 @@ class Distributor(iip_base):
 
     def on_message(self, ch, method, properties, body):
         ch.basic_ack(method.delivery_tag) 
-        msg_dict = yaml.load(body)
+        msg_dict = yaml.safe_load(body)
         LOGGER.info('In %s message callback', self._name)
         LOGGER.debug('Thread in %s callback is %s', self._name, _thread.get_ident())
         LOGGER.debug('%s callback message body is: %s', self._name, str(msg_dict))

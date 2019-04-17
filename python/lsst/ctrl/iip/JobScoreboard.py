@@ -288,7 +288,7 @@ class JobScoreboard(Scoreboard):
             pairs =  self._redis.hget(str(job_number), 'PAIRS')
         ### XXX FIX - Check for existence of pairs...
         if pairs:
-            return yaml.load(pairs)
+            return yaml.safe_load(pairs)
         else:
             LOGGER.critical("ERROR: No pairs associated with JOB %s" % job_number)
             return None
@@ -309,7 +309,7 @@ class JobScoreboard(Scoreboard):
             rafts =  self._redis.hget(str(job_number), 'RAFTS')
         ### XXX FIX - Check for existence of pairs...
         if rafts:
-            return yaml.load(rafts)
+            return yaml.safe_load(rafts)
         else:
             return None
 
@@ -341,7 +341,7 @@ class JobScoreboard(Scoreboard):
             sched =  self._redis.hget(str(job_number), 'WORK_SCHEDULE')
 
         if sched:
-            return yaml.load(sched)
+            return yaml.safe_load(sched)
         else:
             return None
 
@@ -358,7 +358,7 @@ class JobScoreboard(Scoreboard):
         if self.check_connection():
             results =  self._redis.hget(str(job_number), 'RESULTS')
         if results:
-            return yaml.load(results)
+            return yaml.safe_load(results)
         else:
             return None
 
