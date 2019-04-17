@@ -1,9 +1,12 @@
 INSTALL_DIR		= /opt/lsst/dm-prompt
 
-all: ocsbuild
+all: core ocsbuild
+
+core:
+	$(MAKE) -C src/core
 
 ocsbuild:
-	 $(MAKE) -C src/ocs
+	$(MAKE) -C src/ocs
 
 clean:
 	rm -rf $(INSTALL_DIR)
