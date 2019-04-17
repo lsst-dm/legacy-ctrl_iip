@@ -68,7 +68,7 @@ class JobScoreboard(Scoreboard):
     prp = toolsmod.prp
   
 
-    def __init__(self, db_type, db_instance):
+    def __init__(self, db_type, db_instance, cred, cdm):
         """After connecting to the Redis database instance 
            JOB_SCOREBOARD_DB, this redis database is flushed 
            for a clean start. A 'charge_database' method is 
@@ -93,15 +93,11 @@ class JobScoreboard(Scoreboard):
            COMPLETE
            TERMINATED
         """
+        super().__init__(cred, cdm)
         LOGGER.info('Setting up JobScoreboard')
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
-        try:
-            Scoreboard.__init__(self)
-        except Exception as e:
-            LOGGER.error('Job SCBD Auditor Failed to make connection to Message Broker:  ', e.arg)
-            raise L1RabbitConnectionError('Calling super.init() in JobScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()

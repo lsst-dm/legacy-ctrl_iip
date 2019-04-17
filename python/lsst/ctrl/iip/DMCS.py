@@ -38,8 +38,6 @@ from threading import ThreadError
 from lsst.ctrl.iip.Credentials import Credentials
 from lsst.ctrl.iip.ThreadManager import ThreadManager
 from lsst.ctrl.iip.const import *
-from lsst.ctrl.iip.Scoreboard import Scoreboard
-from lsst.ctrl.iip.JobScoreboard import JobScoreboard
 from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from lsst.ctrl.iip.StateScoreboard import StateScoreboard
 from lsst.ctrl.iip.BacklogScoreboard import BacklogScoreboard
@@ -1447,12 +1445,14 @@ class DMCS(iip_base):
          
 
     def setup_scoreboards(self):
+        cred = self.getCredentials()
+        config = self.getConfiguration()
         try: 
             LOGGER.info('Setting up DMCS Scoreboards')
-            self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', self.backlog_db_instance)
-            self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance)
-            self.INCR_SCBD = IncrScoreboard('DMCS_INCR_SCBD', self.incr_db_instance)
-            self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict, self.rdict)
+            self.BACKLOG_SCBD = BacklogScoreboard('DMCS_BACKLOG_SCBD', self.backlog_db_instance, cred, config)
+            self.ACK_SCBD = AckScoreboard('DMCS_ACK_SCBD', self.ack_db_instance, cred, config)
+            self.INCR_SCBD = IncrScoreboard('DMCS_INCR_SCBD', self.incr_db_instance, cred, config)
+            self.STATE_SCBD = StateScoreboard('DMCS_STATE_SCBD', self.state_db_instance, self.ddict, self.rdict, cred, config)
         except L1RabbitConnectionError as e: 
             LOGGER.error("DMCS unable to complete setup_scoreboards - No Rabbit Connect: %s" % e.args)
         except L1RedisError as e: 

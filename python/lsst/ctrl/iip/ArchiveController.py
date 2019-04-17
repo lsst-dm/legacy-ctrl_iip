@@ -107,7 +107,7 @@ class ArchiveController(iip_base):
         # Set up Incr Scbd...
         try:
             LOGGER.info('Setting up Archive Incr Scoreboard')
-            self.INCR_SCBD = IncrScoreboard('ARC_CTRL_RCPT_SCBD', self.incr_db_instance)
+            self.INCR_SCBD = IncrScoreboard('ARC_CTRL_RCPT_SCBD', self.incr_db_instance, cred, cdm)
         except L1RedisError as e:
             LOGGER.error("DMCS unable to complete setup_scoreboards - " + \
                          "No Redis connect: %s" % e.args)

@@ -54,7 +54,7 @@ class AckScoreboard(Scoreboard):
     DB_INSTANCE = None
   
 
-    def __init__(self, db_type, db_instance):
+    def __init__(self, db_type, db_instance, cred, cdm):
         """After connecting to the Redis database instance 
            ACK_SCOREBOARD_DB, this redis database is flushed 
            for a clean start. 
@@ -66,15 +66,10 @@ class AckScoreboard(Scoreboard):
            3) As new acks with a particular TIMED_ACK_ID are received, the data is added to that row.
            4) After a timer event elapses, the scoreboard is locked and checked  to see which ACKs were received.
         """
+        super().__init__(cred, cdm)
         LOGGER.info('Setting up AckScoreboard')
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
-        try:
-            Scoreboard.__init__(self)
-        except L1RabbitConnectionError as e:
-            LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print("No Auditing for YOU")
-            raise L1Error('Calling super.init in AckScoreboard init caused: ', e.arg)
 
         self._redis = self.connect()
         self._redis.flushdb()

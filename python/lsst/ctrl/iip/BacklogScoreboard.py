@@ -58,16 +58,11 @@ class BacklogScoreboard(Scoreboard):
     DB_TYPE = ""
   
 
-    def __init__(self, db_type, db_instance):
+    def __init__(self, db_type, db_instance, cred, cdm):
+        super().__init__(cred, cdm)
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._session_id = str(1)
-        try:
-            Scoreboard.__init__(self)
-        except L1RabbitConnectionError as e:
-            LOGGER.error('Failed to make connection to Message Broker:  ', e.arg)
-            print("No Monitoring for YOU")
-            raise L1Error('Calling super.init in StateScoreboard init caused: ', e.arg)
 
         try:
             self._redis = self.connect()
@@ -145,25 +140,3 @@ class BacklogScoreboard(Scoreboard):
         monitor_data['TIME'] = get_epoch_timestamp()
         monitor_data['DATA_TYPE'] = self.DB_TYPE
         return monitor_data
-
-
-
-
-def main():
-  bls = BacklogScoreboard()
-  print("Backlog Scoreboard seems to be running OK")
-  time.sleep(2)
-  print("Done.")
-  #jbs.charge_database()
-  #jbs.print_all()
-  #Ps = jbs.get_value_for_job(str(1), 'PAIRS')
-  #print "printing Ps"
-  #print Ps
-  #ppps = eval(Ps)
-  #pps = ppps.keys()
-  #print "final line"
-  #print ppps == pairs
-
-
-
-if __name__ == "__main__": main()
