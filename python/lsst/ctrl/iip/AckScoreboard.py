@@ -137,7 +137,7 @@ class AckScoreboard(Scoreboard):
         #        self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
         #    else:
         #        # un yaml list, and component name, then re - yaml
-        #        l = yaml.load(self._redis.hget(ack_id_string, 'COMPONENTS'))
+        #        l = yaml.safe_load(self._redis.hget(ack_id_string, 'COMPONENTS'))
         #        l.append(ack_component_name)
         #        self._redis.hset(ack_id_string, 'COMPONENTS', yaml.dump(l))
 
@@ -173,7 +173,7 @@ class AckScoreboard(Scoreboard):
                 component_dict = {}
                 keys = self._redis.hkeys(timed_ack)
                 for key in keys:
-                   component_dict[key] = yaml.load(self._redis.hget(timed_ack, key))
+                   component_dict[key] = yaml.safe_load(self._redis.hget(timed_ack, key))
 
                 return component_dict
                 

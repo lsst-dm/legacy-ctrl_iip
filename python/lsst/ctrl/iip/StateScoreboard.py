@@ -268,7 +268,7 @@ class StateScoreboard(Scoreboard):
         if len == 0:
             return None
         for i in range(0, len):
-            tmp_dict = yaml.load(self._redis.lindex('FAULT_HISTORY', i))
+            tmp_dict = yaml.safe_load(self._redis.lindex('FAULT_HISTORY', i))
             fault_list.append(deepcopy(tmp_dict)) 
         return fault_list
         
@@ -393,7 +393,7 @@ class StateScoreboard(Scoreboard):
         if self.check_connection():
             current_session = self._redis.get(self.CURRENT_SESSION_ID)
             current_session_rafts = str(current_session) + "_RAFTS"
-            rdict = yaml.load(self._redis.hget(current_session_rafts, self.RAFTS))
+            rdict = yaml.safe_load(self._redis.hget(current_session_rafts, self.RAFTS))
             LOGGER.info("raft dictionary is: %s" % rdict)
             return self.raft_dict_to_lists(rdict)
         else:
@@ -410,7 +410,7 @@ class StateScoreboard(Scoreboard):
 
     def get_current_configured_rafts(self):
         if self.check_connection():
-            return yaml.load(self._redis.hget(self.CURRENT_RAFT_CONFIGURATION, self.RAFTS))
+            return yaml.safe_load(self._redis.hget(self.CURRENT_RAFT_CONFIGURATION, self.RAFTS))
         else:
             LOGGER.error('Unable to retrieve current configured rafts due to lack of redis connection')
 
@@ -563,7 +563,7 @@ class StateScoreboard(Scoreboard):
             ccds =  self._redis.hget(str(job_number), 'CCDS')
         ### XXX FIX - Check for existence of pairs...
         if ccds:
-            return yaml.load(ccds)
+            return yaml.safe_load(ccds)
         else:
             return None
 
