@@ -37,10 +37,7 @@ from time import sleep
 import threading
 from threading import Lock
 from lsst.ctrl.iip.const import *
-from lsst.ctrl.iip.Scoreboard import Scoreboard
 from lsst.ctrl.iip.Credentials import Credentials
-from lsst.ctrl.iip.JobScoreboard import JobScoreboard
-from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 from lsst.ctrl.iip.iip_base import iip_base

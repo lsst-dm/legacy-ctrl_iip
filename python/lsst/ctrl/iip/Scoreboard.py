@@ -33,7 +33,7 @@ from lsst.ctrl.iip.iip_base import iip_base
 
 LOGGER = logging.getLogger(__name__)
 
-class Scoreboard(iip_base):
+class Scoreboard:
     """This is the parent class of the three scoreboard classes. 
        It, and they, form an interface for the Redis in-memory DB
        that continually stores state information about components and jobs.
@@ -41,18 +41,15 @@ class Scoreboard(iip_base):
 
     AUDIT_QUEUE = 'audit_consume'
 
-    def __init__(self, filename=None):
+    def __init__(self, cred, cdm):
 
-        cred = Credentials('iip_cred.yaml')
-        name = cred.getUser('service_user')
-        passwd = cred.getPasswd('service_passwd')
-
-        if filename is not None:
-            raise Exception("DEBUG: Expected that no filename was present:  Got %s " % filename)
-        self.cdm = self.loadConfigFile('L1SystemCfg.yaml')
+        self.cred = cred
+        self.cdm = cdm
 
         broker_address = self.cdm['ROOT']['BASE_BROKER_ADDR']
-        self.broker_url = "amqp://" + name + ":" + passwd + "@" + str(broker_address)
+        name = cred.getUser('service_user')
+        passwd = cred.getUser('service_passwd')
+        self.broker_url = "amqp://%s:%s@%s" % (name, passwd, broker_address)
 
         self.audit_format = "YAML"
         if 'AUDIT_MSG_FORMAT' in self.cdm['ROOT']:
