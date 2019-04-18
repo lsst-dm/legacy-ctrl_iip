@@ -1,6 +1,6 @@
 # Cfg settings for system
 ROOT:
-  LOGGING_DIR: /tmp
+  LOGGING_DIR: /var/log/iip
   NUMBER_OF_PAIRS: 10
 
   # Broker user names and passwds
