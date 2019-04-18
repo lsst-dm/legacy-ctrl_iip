@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -21,8 +21,7 @@
 
 
 from lxml import etree
-from lsst.ctrl.iip.const import *
-from copy import deepcopy 
+from copy import deepcopy
 import sys
 
 
@@ -36,8 +35,8 @@ class XMLHandler:
         self._schemadoc = etree.parse(self._schemafile)
         self._schemaNG = etree.RelaxNG(self._schemadoc)
         self._consumer_callback = callback
-    
-    def xmlcallback(self, ch, method, properties, body): 
+
+    def xmlcallback(self, ch, method, properties, body):
         """ Decode the message body before consuming
             Setting the consumer callback function
         """
@@ -62,35 +61,35 @@ class XMLHandler:
         root = etree.Element("messageDict")
         msg = etree.Element("message", MSG_TYPE=pydict["MSG_TYPE"])
         root.append(msg)
-        subTree = self.recursive_encodeXML(msg, pydict)
+        subTree = self.recursive_encodeXML(msg, pydict)  # XXX - never used??
         return root
 
-    def recursive_encodeXML(self, node, msgDict): 
+    def recursive_encodeXML(self, node, msgDict):
         """ Recursively encode the XML dictionary
             :param node: empty XML node to add elements
             :param msgDict: python dictionary to convert values from
             :type node: lxml Element
             :type msgDict: dict
-        """ 
-        for kee, val in list(msgDict.items()): 
-            if kee != "MSG_TYPE": 
+        """
+        for kee, val in list(msgDict.items()):
+            if kee != "MSG_TYPE":
                 subNode = etree.SubElement(node, kee)
                 if type(val) != dict:
-                    if kee == "ACK_BOOL": 
-                        boolean = str(val).lower() 
+                    if kee == "ACK_BOOL":
+                        boolean = str(val).lower()
                         subNode.set("ack_bool_" + boolean, boolean)
                     else:
                         subNode.text = str(val)
                 else:
-                    subsubNode = self.recursive_encodeXML(subNode, val)
-        return self.get_parent(node) 
+                    subsubNode = self.recursive_encodeXML(subNode, val)  # XXX - never used??
+        return self.get_parent(node)
 
-    def get_parent(self, node): 
+    def get_parent(self, node):
         """ Recursively calls the parent node of current element
             :param node: XML root node to call its parent
             :type node: lxml Element
-        """ 
-        if node.getparent() is None: 
+        """
+        if node.getparent() is None:
             return node
         else:
             return self.get_parent(node.getparent())
@@ -107,22 +106,22 @@ class XMLHandler:
         xmlDict["message"]["MSG_TYPE"] = next(val for kee, val in message.attrib.items() if kee.startswith("MSG_TYPE"))
         return xmlDict["message"]
 
-    def recursive_decodeXML(self, rootnode, msgDict): 
+    def recursive_decodeXML(self, rootnode, msgDict):
         """ Recursively decode XML back to python dictionary
             :param rootnode: XML root node to convert to python dictionary
             :param msgDict: empty python dictionary to add elements
             :type rootnode: lxml Element
             :type msgDict: dict
         """
-        for node in rootnode:  
-            if len(node) != 0:  
-                smallDict = {} 
+        for node in rootnode:
+            if len(node) != 0:
+                smallDict = {}
                 self.recursive_decodeXML(node, smallDict)
                 msgDict[node.tag] = smallDict
             else:
-                if len(node.attrib) != 0: 
+                if len(node.attrib) != 0:
                     ack_bool = next(val for kee, val in node.attrib.items() if kee.startswith("ack_bool"))
-                    msgDict[node.tag] = True if ack_bool == "True" else False 
+                    msgDict[node.tag] = True if ack_bool == "True" else False
                 else:
                     msgDict[node.tag] = node.text
         return msgDict
