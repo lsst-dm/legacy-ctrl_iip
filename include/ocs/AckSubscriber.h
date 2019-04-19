@@ -4,12 +4,14 @@
 #include "SAL_CatchupArchiver.h" 
 #include "SAL_PromptProcessing.h" 
 #include "SAL_ATArchiver.h"
+#include "IIPBase.h"
 
 /** Rabbitmq subscriber class to ack back messages from OCS after processing */ 
-class AckSubscriber : public OCS_Bridge { 
+class AckSubscriber : public IIPBase { 
     public: 
 
         /** Consumer object to listen to messages from rabbitmq */ 
+        string base_broker_addr;
         Consumer* ack_consumer; 
         SAL_MTArchiver ar; 
         SAL_CatchupArchiver cu; 

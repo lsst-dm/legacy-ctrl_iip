@@ -24,15 +24,15 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 #include "SimpleLogger.h"
-
-namespace src = boost::log::sources;
+#include "SimplePublisher.h"
 
 class IIPBase {
     public:
         char *iip_config_dir, *iip_log_dir, *ctrl_iip_dir;
-        YAML::Node l1_config;
+        YAML::Node config_root;
 
         IIPBase(std::string, std::string);
         std::string get_log_filepath();
         YAML::Node load_config_file(std::string);
+        std::string get_amqp_url(std::string, std::string, std::string);
 };

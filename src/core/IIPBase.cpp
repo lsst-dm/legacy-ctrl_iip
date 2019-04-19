@@ -22,7 +22,6 @@
  */
 
 #include "IIPBase.h"
-#include "SimpleLogger.h"
 
 BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
 #include "IIPMacro.h"
@@ -37,14 +36,14 @@ IIPBase::IIPBase(string configfilename, string logfilename) {
     this->ctrl_iip_dir = getenv("CTRL_IIP_DIR");
 
     // Read config file
-    this->l1_config = load_config_file(configfilename);
+    this->config_root = load_config_file(configfilename);
     init_log(this->get_log_filepath(), logfilename);
     LOG_DBG << "Base constructor complete";
 }
 
 string IIPBase::get_log_filepath() { 
     string path;
-    Node log_node = this->l1_config["LOGGING_DIR"];
+    Node log_node = this->config_root["LOGGING_DIR"];
     if (this->iip_log_dir) { 
         path = this->iip_log_dir;    
     }
@@ -87,4 +86,15 @@ Node IIPBase::load_config_file(string config_filename) {
         cout << "Cannot read configuration file " << config_filename << endl;
         exit(-1); 
     }  
+}
+
+string IIPBase::get_amqp_url(string username, string passwd, string broker_url) { 
+    ostringstream base_broker_url; 
+    base_broker_url << "amqp://" \
+        << username << ":" \
+        << passwd << "@" \
+        << broker_url;
+    string url = base_broker_url.str();
+    LOG_DBG << "Constructed amqp url is: " << url; 
+    return url;
 }

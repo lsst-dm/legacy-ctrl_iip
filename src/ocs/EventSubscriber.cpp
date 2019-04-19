@@ -25,6 +25,8 @@
 #include <sstream>
 #include <iostream>
 #include <pthread.h>
+#include <yaml-cpp/yaml.h>
+#include <stdlib.h>
 #include "SAL_MTCamera.h"
 #include "SAL_ATCamera.h"
 #include "SAL_EFD.h"
@@ -32,12 +34,13 @@
 #include "ccpp_sal_ATCamera.h"
 #include "ccpp_sal_EFD.h"
 #include "os.h"
-#include <yaml-cpp/yaml.h>
-#include <stdlib.h>
 
-#include "SimplePublisher.h"
-#include "Toolsmod.h"
 #include "EventSubscriber.h"
+#include "Toolsmod.h"
+
+BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
+#include "IIPMacro.h"
+
 
 using namespace DDS;
 using namespace MTCamera;
@@ -47,42 +50,49 @@ using namespace YAML;
 
 typedef void* (*funcptr)(void *args);  
 
-EventSubscriber::EventSubscriber() { 
-    Node config_file = loadConfigFile("L1SystemCfg.yaml"); 
-    Node root = config_file["ROOT"]; 
-    base_broker_addr = root["BASE_BROKER_ADDR"].as<string>(); 
-    queue_name = root["OCS"]["OCS_PUBLISH"].as<string>(); 
-    total_events = 9;
+EventSubscriber::EventSubscriber() : IIPBase("L1SystemCfg.yaml", "EventSubscriber") { 
+    this->total_events = 9;
 
     setup_events_listeners(); 
-    cout << "=== dm EVENT/Telemetry controller ready" << endl; 
+    LOG_DBG << "=== dm EVENT/Telemetry controller ready"; 
 }
 
 EventSubscriber::~EventSubscriber() { 
 } 
 
 void EventSubscriber::setup_events_listeners() { 
-    funcptr thread_funcs[] {   &EventSubscriber::run_ccs_takeImages, 
-                               &EventSubscriber::run_ccs_startIntegration, 
-                               &EventSubscriber::run_ccs_endReadout, 
-                               &EventSubscriber::run_tcs_target, 
-                               &EventSubscriber::run_takeImageDone,
-                               &EventSubscriber::run_getHeaderService, 
-                               &EventSubscriber::run_atcamera_startIntegration, 
-                               &EventSubscriber::run_atcamera_endReadout, 
-                               &EventSubscriber::run_efd_largeFileObjectAvailable};
+    funcptr thread_funcs[] {   
+        &EventSubscriber::run_ccs_takeImages, 
+        &EventSubscriber::run_ccs_startIntegration, 
+        &EventSubscriber::run_ccs_endReadout, 
+        &EventSubscriber::run_tcs_target, 
+        &EventSubscriber::run_takeImageDone,
+        &EventSubscriber::run_getHeaderService, 
+        &EventSubscriber::run_atcamera_startIntegration, 
+        &EventSubscriber::run_atcamera_endReadout, 
+        &EventSubscriber::run_efd_largeFileObjectAvailable
+    };
     
-    for (int i = 0; i < total_events; i++) { 
-        ostringstream rmq_url; 
-        rmq_url << "amqp://EVN_" << (i+1) << ":EVN_" << (i+1) << "@" << base_broker_addr; 
+    Node ocs;
+    string user, passwd, base_addr, publishq;
+    try { 
+        ocs = this->config_root["OCS"];
+        user = ocs["OCS_NAME"].as<string>();
+        passwd = ocs["OCS_PASSWD"].as<string>();
+	base_addr = this->config_root["BASE_BROKER_ADDR"].as<string>(); 
+        publishq = this->config_root["OCS"]["OCS_PUBLISH"].as<string>(); 
+    }
+    catch (YAML::TypedBadConversion<string>& e) { 
+	LOG_CRT << "Cannot read ocs fields from L1SystemCfg.yaml"; 
+	exit(-1); 
+    }
     
-        cout << rmq_url.str() << endl; 
+    string amqp_url = this->get_amqp_url(user, passwd, base_addr);
+    for (int i = 0; i < this->total_events; i++) { 
         pthread_t thread; 
-        
         thread_args = new event_args; 
-        thread_args->publish_queue = queue_name; 
-        thread_args->broker_addr = rmq_url.str(); 
-        
+        thread_args->publish_queue = publishq; 
+        thread_args->broker_addr = amqp_url; 
         pthread_create(&thread, NULL, thread_funcs[i], thread_args); 
     }  
 } 
@@ -104,7 +114,7 @@ void *EventSubscriber::run_ccs_takeImages(void *args) {
         status = mgr.acceptCommand_takeImages(&SALInstance); 
 
         if (status > 0) { 
-            cout << "=== Command nextVisit Received. =" << endl; 
+            LOG_DBG << "=== Command nextVisit Received. ="; 
             Emitter msg;
             msg << BeginMap; 
             msg << Key << "MSG_TYPE" << Value << "DMCS_TCS_TARGET"; 
@@ -114,7 +124,7 @@ void *EventSubscriber::run_ccs_takeImages(void *args) {
             msg << Key << "VISIT_ID" << Value << "visit_123";
 	    msg << Key << "TARGET_ID" << Value << "targe_321"; 
             msg << EndMap; 	
-	    cout << "ER: " << msg.c_str() << endl; 
+	    LOG_DBG << "ER: " << msg.c_str(); 
             publisher->publish_message(queue, msg.c_str());
         } 
         os_nanoSleep(delay_10ms); 
@@ -140,7 +150,7 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
         status = mgr.getEvent_startIntegration(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event startIntegration received = " << endl;
+            LOG_DBG << "=== Event startIntegration received = ";
 		/** 		
             Emitter msg;
             msg << BeginMap; 
@@ -151,7 +161,7 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
             msg << Key << "VISIT_ID" << Value << "visit_123";
 	    msg << Key << "TARGET_ID" << Value << "targe_321"; 
             msg << EndMap; 	
-	    cout << "ER: " << msg.c_str() << endl; 
+	    LOG_DBG << "ER: " << msg.c_str(); 
             publisher->publish_message(queue, msg.c_str());
 		*/ 
         } 
@@ -178,13 +188,13 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
         status = mgr.getEvent_endReadout(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event endReadout received = " << endl;
+            LOG_DBG << "=== Event endReadout received = ";
             Emitter msg; 
             msg << BeginMap; 
             msg << Key << "MSG_TYPE" << Value << "DMCS_END_READOUT"; 
             msg << Key << "IMAGE_ID" << Value << SALInstance.imageName;   
             msg << EndMap; 
-            cout << "XXX: " << msg.c_str() << endl;
+            LOG_DBG << "XXX: " << msg.c_str();
             publisher->publish_message(queue, msg.c_str());
         } 
         os_nanoSleep(delay_10ms); 
@@ -192,69 +202,7 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
     mgr.salShutdown(); 
     return 0;
 } 
-/** 
-void *EventSubscriber::run_ccs_endReadout(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_archiver mgr = SAL_archiver(); 
-    archiver_logevent_endReadoutC SALInstance; 
 
-    mgr.salEvent("archiver_logevent_endReadout"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.getEvent_endReadout(&SALInstance); 
-
-        if (status == SAL__OK) { 
-            cout << "=== Event endReadout received = " << endl;
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: DMCS_END_READOUT" 
-                << ", IMAGE_ID: " << SALInstance.ImageName << "}"; 
-            publisher->publish_message(queue, msg.str());
-        } 
-        os_nanoSleep(delay_10ms); 
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
-*/
-
-
-/**
-void *EventSubscriber::run_ccs_startIntegration(void *args) { 
-    event_args *params = ((event_args *)args); 
-    string queue = params->publish_queue; 
-    string broker_addr = params->broker_addr; 
- 
-    os_time delay_10ms = { 0, 10000000 };
-    int status = -1; 
-    SAL_camera mgr = SAL_camera(); 
-    MTCamera_logevent_startIntegrationC SALInstance; 
-
-    mgr.salEvent("MTCamera_logevent_startIntegration"); 
-    SimplePublisher *publisher = new SimplePublisher(broker_addr); 
-
-    while(1) { 
-        status = mgr.getEvent_startIntegration(&SALInstance); 
-
-        if (status == SAL__OK) { 
-            cout << "=== Event dmcs_endreadout received = " << endl;
-            ostringstream msg; 
-            msg << "{ MSG_TYPE: DMCS_END_READOUT" 
-                << ", IMAGE_ID: " << SALInstance.imageName << "}"; 
-            cout << "XXX " << msg.str() << endl;
-            publisher->publish_message(queue, msg.str()); 
-        } 
-        os_nanoSleep(delay_10ms);
-    }  
-    mgr.salShutdown(); 
-    return 0;
-} 
-*/ 
 void *EventSubscriber::run_tcs_target(void *args) { 
     /** 
     event_args *params = ((event_args *)args); 
@@ -272,7 +220,7 @@ void *EventSubscriber::run_tcs_target(void *args) {
     while (1) {
         cmdId = mgr.acceptCommand_target(&SALInstance);
         if (cmdId > 0) {
-            cout << "=== tcs command target received = " << endl;
+            LOG_DBG << "=== tcs command target received = ";
 
             ostringstream msg; 
             msg << " { MSG_TYPE: DMCS_TCS_TARGET" 
@@ -315,7 +263,7 @@ void *EventSubscriber::run_takeImageDone(void *args) {
         status = mgr.getEvent_takeImageDone(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event takeImageDone received = " << endl;
+            LOG_DBG << "=== Event takeImageDone received = ";
             ostringstream msg; 
             msg << "{ MSG_TYPE: DMCS_TAKE_IMAGES_DONE }"; 
             publisher->publish_message(queue, msg.str()); 
@@ -345,13 +293,13 @@ void *EventSubscriber::run_getHeaderService(void *args) {
         status = mgr.getEvent_LargeFileObjectAvailable(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event HeaderService received = " << endl;
+            LOG_DBG << "=== Event HeaderService received = ";
             Emitter msg;
             msg << BeginMap; 
             msg << Key << "MSG_TYPE" << Value << "DMCS_HEADER_READY"; 
             msg << Key << "FILENAME" << Value << SALInstance.URL; 
             msg << EndMap; 	
-	    cout << "HR: " << msg.c_str() << endl; 
+	    LOG_DBG << "HR: " << msg.c_str(); 
             publisher->publish_message(queue, msg.c_str()); 
         } 
         os_nanoSleep(delay_10ms);
@@ -378,7 +326,7 @@ void *EventSubscriber::run_atcamera_startIntegration(void *args) {
         status = mgr.getEvent_startIntegration(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event DMCS_AT_START_INTEGRATION received = " << endl;
+            LOG_DBG << "=== Event DMCS_AT_START_INTEGRATION received = ";
             Emitter msg; 
             msg << BeginMap; 
             msg << Key << "MSG_TYPE" << Value << "DMCS_AT_START_INTEGRATION"; 
@@ -387,8 +335,7 @@ void *EventSubscriber::run_atcamera_startIntegration(void *args) {
             msg << Key << "IMAGE_SEQUENCE_NAME" << Value << SALInstance.imageSequenceName; 
             msg << Key << "IMAGES_IN_SEQUENCE" << Value << SALInstance.imagesInSequence; 
             msg << EndMap; 
-	    cout << "msg is: " << endl; 
-            cout << msg.c_str() << endl; 
+	    LOG_DBG << "Published msg is: " << msg.c_str(); 
             publisher->publish_message(queue, msg.c_str()); 
         } 
         os_nanoSleep(delay_10ms);
@@ -414,7 +361,7 @@ void *EventSubscriber::run_atcamera_endReadout(void *args) {
         status = mgr.getEvent_endReadout(&SALInstance); 
 
         if (status == SAL__OK) { 
-            cout << "=== Event DMCS_AT_END_READOUT received = " << endl;
+            LOG_DBG << "=== Event DMCS_AT_END_READOUT received = ";
             Emitter msg; 
             msg << BeginMap; 
             msg << Key << "MSG_TYPE" << Value << "DMCS_AT_END_READOUT"; 
@@ -423,8 +370,7 @@ void *EventSubscriber::run_atcamera_endReadout(void *args) {
             msg << Key << "IMAGE_SEQUENCE_NAME" << Value << SALInstance.imageSequenceName; 
             msg << Key << "IMAGES_IN_SEQUENCE" << Value << SALInstance.imagesInSequence; 
             msg << EndMap; 
-            cout << "msg is: " << endl; 
-            cout << msg.c_str() << endl; 
+	    LOG_DBG << "Published msg is: " << msg.c_str(); 
             publisher->publish_message(queue, msg.c_str()); 
         } 
         os_nanoSleep(delay_10ms);
@@ -453,11 +399,11 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
             string device = SALInstance.generator; 
             string msg_type; 
             if (device == "atHeaderService") { 
-                cout << "=== Event AuxTel HeaderService received = " << endl;
+                LOG_DBG << "=== Event AuxTel HeaderService received = ";
                 msg_type = "DMCS_AT_HEADER_READY"; 
             } 
             else { 
-                cout << "=== Event Regular HeaderService received = " << endl;
+                LOG_DBG << "=== Event Regular HeaderService received = ";
                 msg_type = "DMCS_HEADER_READY"; 
             } 
 
@@ -468,8 +414,7 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
             msg << Key << "IMAGE_ID" << Value << SALInstance.id; 
             msg << EndMap; 	
 
-	    cout << "msg is: " << endl; 
-            cout << msg.c_str() << endl; 
+	    LOG_DBG << "Published msg is: " << msg.c_str(); 
             publisher->publish_message(queue, msg.c_str()); 
         } 
         os_nanoSleep(delay_10ms);
