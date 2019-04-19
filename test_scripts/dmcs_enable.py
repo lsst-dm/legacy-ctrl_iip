@@ -45,5 +45,3 @@ if __name__ == "__main__":
     sp1.publish_message("ocs_dmcs_consume", msg)
 
     sp1.close()
-
-

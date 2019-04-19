@@ -31,7 +31,6 @@ from lsst.ctrl.iip.const import MSG_TYPE
 from lsst.ctrl.iip.const import REPLY_QUEUE
 from lsst.ctrl.iip.const import ROOT
 from lsst.ctrl.iip.const import BASE_BROKER_ADDR
-from lsst.ctrl.iip.const import BASE_MSG_FORMAT
 from lsst.ctrl.iip.toolsmod import L1Error
 from lsst.ctrl.iip.toolsmod import L1MessageError
 from lsst.ctrl.iip.toolsmod import L1RedisError
@@ -92,7 +91,7 @@ class ArchiveController(iip_base):
         self._base_msg_format = self.YAML
 
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
-            self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
+            self._base_msg_format = cdm[ROOT]['BASE_MSG_FORMAT']
 
         cred = self.getCredentials()
         service_user = cred.getUser('service_user')
