@@ -24,10 +24,12 @@
 #include <string.h>
 #include <iostream> 
 #include <yaml-cpp/yaml.h>
-#include "OCS_Bridge.h"
 #include "AckSubscriber.h"
 #include "SAL_defines.h"
 #include "Toolsmod.h"
+
+BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
+#include "IIPMacro.h"
 
 using namespace std; 
 using namespace YAML; 
@@ -88,7 +90,7 @@ class Command {
         }; 
 };  
 
-AckSubscriber::AckSubscriber() : OCS_Bridge() { 
+AckSubscriber::AckSubscriber() : IIPBase("L1SystemCfg.yaml", "AckSubscriber") { 
     setup_consumer(); 
 } 
 
@@ -96,7 +98,23 @@ AckSubscriber::~AckSubscriber() {
 }
 
 void AckSubscriber::setup_consumer() { 
-    ack_consumer = new Consumer(base_broker_addr, OCS_CONSUME); 
+    Node ocs;
+    string user, passwd, publishq, consumeq, base_addr;
+    try { 
+        ocs = this->config_root["OCS"];
+        user = ocs["OCS_NAME"].as<string>();
+        passwd = ocs["OCS_PASSWD"].as<string>();
+        publishq = ocs["OCS_PUBLISH"].as<string>();
+        consumeq = ocs["OCS_CONSUME"].as<string>();
+	base_addr = this->config_root["BASE_BROKER_ADDR"].as<string>(); 
+    }
+    catch (YAML::TypedBadConversion<string>& e) { 
+	LOG_CRT << "Cannot read ocs fields from L1SystemCfg.yaml"; 
+	exit(-1); 
+    }
+    this->base_broker_addr = this->get_amqp_url(user, passwd, base_addr);
+
+    ack_consumer = new Consumer(this->base_broker_addr, consumeq); 
     ar = SAL_MTArchiver(); 
     cu = SAL_CatchupArchiver(); 
     pp = SAL_PromptProcessing(); 
@@ -153,7 +171,7 @@ void AckSubscriber::run() {
     at.salEventPub("ATArchiver_logevent_processingStatus");
 
     cout << "============> running CONSUMER <=============" << endl; 
-    Consumer *telemetry_consumer = new Consumer(base_broker_addr, "telemetry_queue"); 
+    Consumer *telemetry_consumer = new Consumer(this->base_broker_addr, "telemetry_queue"); 
 
     consumer_thread_args *telemetry_args = new consumer_thread_args; 
     telemetry_args->consumer = telemetry_consumer; 

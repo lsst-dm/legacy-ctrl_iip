@@ -1,3 +1,4 @@
+#include "IIPBase.h"
 #include "SAL_MTArchiver.h" 
 #include "SAL_CatchupArchiver.h"
 #include "SAL_PromptProcessing.h" 
@@ -11,7 +12,7 @@ extern int next_timed_ack_id;
 /** CommandListener listens to messages from OCS Bridge. It is a child class of a class called
   * OCS_Bridge which handles configuration file openings and setting up publisher to RabbitMq.
   */ 
-class CommandListener : public OCS_Bridge { 
+class CommandListener : public IIPBase { 
     public: 
 	struct ocs_thread_args { 
 	    SimplePublisher* publisher; 

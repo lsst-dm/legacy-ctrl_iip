@@ -27,9 +27,11 @@
 #include <string>
 #include <algorithm>
 #include <yaml-cpp/yaml.h>
-#include "OCS_Bridge.h" 
 #include "CommandListener.h"
 #include "Toolsmod.h"
+
+BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
+#include "IIPMacro.h"
 
 using namespace std;
 using namespace YAML;
@@ -66,7 +68,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
     while (1) { 
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
 	if (cmdId > 0) { 
-	    cout << "== " << device << " " << command_name << " Command" << endl; 
+	    LOG_DBG << "Got command " << command_name << "for device " << device << " at " << to_string(cmdId); 
 	    string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
             Emitter ack_msg; 
             ack_msg << BeginMap; 
@@ -75,7 +77,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
             ack_msg << Key << "CMD_ID" << Value << to_string(cmdId); 
 	    ack_msg << Key << "ACK_ID" << Value << ack_id; 
             ack_msg << EndMap; 
-	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
+	    LOG_DBG << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str(); 
 
             Emitter book_keeping; 
             book_keeping << BeginMap; 
@@ -87,7 +89,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	    book_keeping << Key << "CMD_ID" << Value << to_string(cmdId); 
 	    book_keeping << Key << "DEVICE" << Value << device; 
             book_keeping << EndMap; 
-	    cout << "XXX BOOK_KEEPING: " << book_keeping.c_str() << endl; 
+	    LOG_DBG << "XXX BOOK_KEEPING: " << book_keeping.c_str(); 
 
 	    publisher->publish_message(consume_q, book_keeping.c_str()); 
 	    publisher->publish_message(publish_q, ack_msg.c_str());  
@@ -109,7 +111,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
     while (1) { 
 	cmdId = (mgr.*acceptCommand)(&SALInstance); 
 	if (cmdId > 0) { 
-	    cout << "== " << device << " " << command_name << " Command" << endl; 
+	    LOG_DBG << "Got command " << command_name << "for device " << device << " at " << to_string(cmdId); 
 	    string ack_id = CommandListener::get_next_timed_ack_id(command_name); 
             Emitter ack_msg; 
             ack_msg << BeginMap; 
@@ -119,7 +121,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	    ack_msg << Key << "ACK_ID" << Value << ack_id; 
 	    ack_msg << Key << "CFG_KEY" << Value << SALInstance.settingsToApply; 
             ack_msg << EndMap; 
-	    cout << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
+	    LOG_DBG << "XXX NORMAL: " << command_name << ": " << ack_msg.c_str() << endl; 
 
             Emitter book_keeping; 
             book_keeping << BeginMap; 
@@ -131,7 +133,7 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
 	    book_keeping << Key << "CMD_ID" << Value << to_string(cmdId); 
 	    book_keeping << Key << "DEVICE" << Value << device; 
             book_keeping << EndMap; 
-	    cout << "XXX BOOK_KEEPING: " << book_keeping.c_str() << endl; 
+	    LOG_DBG << "XXX BOOK_KEEPING: " << book_keeping.c_str() << endl; 
 
 	    publisher->publish_message(consume_q, book_keeping.c_str()); 
 	    publisher->publish_message(publish_q, ack_msg.c_str());  
@@ -141,11 +143,29 @@ string consume_q, funcptr<SAL_device, SAL_struct> acceptCommand){
     mgr.salShutdown(); 
 }  
 
-CommandListener::CommandListener() : OCS_Bridge() { 
+CommandListener::CommandListener(): IIPBase("L1SystemCfg.yaml", "CommandListener") { 
+    Node ocs;
+    string user, passwd, publishq, consumeq, base_addr;
+    try { 
+        ocs = this->config_root["OCS"];
+        user = ocs["OCS_NAME"].as<string>();
+        passwd = ocs["OCS_PASSWD"].as<string>();
+        publishq = ocs["OCS_PUBLISH"].as<string>();
+        consumeq = ocs["OCS_CONSUME"].as<string>();
+	base_addr = this->config_root["BASE_BROKER_ADDR"].as<string>(); 
+    }
+    catch (YAML::TypedBadConversion<string>& e) { 
+	LOG_CRT << "Cannot read ocs fields from L1SystemCfg.yaml"; 
+	exit(-1); 
+    }
+
+    string url = this->get_amqp_url(user, passwd, base_addr);
+    SimplePublisher *ocs_publisher = new SimplePublisher(url);
+
     command_args = new ocs_thread_args; 
     command_args->publisher = ocs_publisher;
-    command_args->publish_queue = OCS_PUBLISH;  
-    command_args->consume_queue = OCS_CONSUME; 
+    command_args->publish_queue = publishq;  
+    command_args->consume_queue = consumeq; 
     command_args->ar = SAL_MTArchiver(); 
     command_args->cu = SAL_CatchupArchiver(); 
     command_args->pp = SAL_PromptProcessing(); 
@@ -156,7 +176,7 @@ CommandListener::CommandListener() : OCS_Bridge() {
     setup_promptprocessing_listeners();  
     setup_atArchiver_listeners();
     setup_resolve_publisher(); 
-    cout << "=== dm COMMAND controller ready" << endl; 
+    LOG_DBG << "=== dm COMMAND controller ready"; 
 } 
 
 CommandListener::~CommandListener(){ 
@@ -171,6 +191,7 @@ void CommandListener::setup_archiver_listeners() {
     pthread_create(&ar_enterControl, NULL, &CommandListener::run_ar_enterControl, command_args); 
     pthread_create(&ar_exitControl, NULL, &CommandListener::run_ar_exitControl, command_args); 
     pthread_create(&ar_abort, NULL, &CommandListener::run_ar_abort, command_args); 
+    LOG_DBG << "Finished setting up archiver listeners"; 
 } 
 
 void CommandListener::setup_catchuparchiver_listeners() { 
@@ -182,6 +203,7 @@ void CommandListener::setup_catchuparchiver_listeners() {
     pthread_create(&cu_enterControl, NULL, &CommandListener::run_cu_enterControl, command_args); 
     pthread_create(&cu_exitControl, NULL, &CommandListener::run_cu_exitControl, command_args); 
     pthread_create(&cu_abort, NULL, &CommandListener::run_cu_abort, command_args); 
+    LOG_DBG << "Finished setting up catchuparchiver listeners"; 
 }
 
 void CommandListener::setup_promptprocessing_listeners() { 
@@ -193,6 +215,7 @@ void CommandListener::setup_promptprocessing_listeners() {
     pthread_create(&pp_enterControl, NULL, &CommandListener::run_pp_enterControl, command_args); 
     pthread_create(&pp_exitControl, NULL, &CommandListener::run_pp_exitControl, command_args); 
     pthread_create(&pp_abort, NULL, &CommandListener::run_pp_abort, command_args); 
+    LOG_DBG << "Finished setting up promptprocessing listeners"; 
 }
 
 void CommandListener::setup_atArchiver_listeners() { 
@@ -206,6 +229,7 @@ void CommandListener::setup_atArchiver_listeners() {
     pthread_create(&atar_exitControl, NULL, &CommandListener::run_atar_exitControl, command_args); 
     pthread_create(&atar_abort, NULL, &CommandListener::run_atar_abort, command_args); 
     pthread_create(&atar_resetFromFault, NULL, &CommandListener::run_atar_resetFromFault, command_args); 
+    LOG_DBG << "Finished setting up atArchiver listeners"; 
 } 
 
 void *CommandListener::run_ar_start(void *pargs) {
@@ -217,6 +241,7 @@ void *CommandListener::run_ar_start(void *pargs) {
     
     funcptr<SAL_MTArchiver, MTArchiver_command_startC> ar_start = &SAL_MTArchiver::acceptCommand_start;   
     listenCommand_start(ar, "AR", "START", rabbit_publisher, publish_q, consume_q, ar_start);  
+    LOG_DBG << "Finished setting up archiver START command thread"; 
     return 0; 
 } 
 
@@ -557,7 +582,7 @@ void *CommandListener::run_atar_resetFromFault(void *pargs) {
 } 
 
 void CommandListener::setup_resolve_publisher() { 
-    cout << "Setting up OCS RESOLVE publisher" << endl; 
+    LOG_DBG << "Setting up OCS RESOLVE publisher" << endl; 
     pthread_t resolvethread; 
     pthread_create(&resolvethread, NULL, &CommandListener::run_resolve_publisher, command_args); 
 } 
@@ -593,8 +618,11 @@ string CommandListener::get_device(string name) {
 
 int main() { 
     CommandListener cmd; 
+    usleep(10000000); 
+    /**
     while (1) { 
 
     } 
+    */
     return 0; 
 } 

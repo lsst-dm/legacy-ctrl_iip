@@ -1,4 +1,6 @@
-class EventSubscriber { 
+#include "IIPBase.h"
+
+class EventSubscriber : public IIPBase { 
     public: 
         struct event_args { 
             string publish_queue; 
@@ -10,8 +12,6 @@ class EventSubscriber {
         EventSubscriber(); 
         ~EventSubscriber();
 
-        string base_broker_addr; 
-        string queue_name; 
         int total_events;
 
         void setup_events_listeners(); 
