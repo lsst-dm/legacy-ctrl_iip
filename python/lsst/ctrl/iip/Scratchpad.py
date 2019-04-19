@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -19,15 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from lsst.ctrl.iip.toolsmod import get_timestamp
-from lsst.ctrl.iip.const import *
-import yaml
-import os
-import sys
-import logging
-import time
-import pika
-from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 
 
 class Scratchpad:
@@ -38,17 +30,16 @@ class Scratchpad:
         self._passwd = 'scratchpad'
         self._pad = {}
         self._broker_url = broker_url
-        self._publisher = SimplePublisher(self._broker_url)
+        self._publisher = AsyncPublisher(self._broker_url, "scratchpad")
+        self._publisher.start()
 
+    def set_job_value(self, job_number, key, val):
+        # tmp_dict = {}
+        # tmp_dict[key] = val
+        self._pad[job_number][key] = val
 
-
-    def set_job_value(self, job_number, kee, val):
-        #tmp_dict = {}
-        #tmp_dict[kee] = val
-        self._pad[job_number][kee] = val 
-
-    def get_job_value(self, job_number, kee):
-        return self._pad[job_number]['XFER_PARAMS'][kee]
+    def get_job_value(self, job_number, key):
+        return self._pad[job_number]['XFER_PARAMS'][key]
 
     def set_job_transfer_params(self, job_number, params):
         tmp_dict = {}
@@ -56,10 +47,7 @@ class Scratchpad:
         self._pad[job_number] = tmp_dict
 
     def set_job_state(self, job_number, state):
-        self._pad[job_number]['STATE'] = state 
+        self._pad[job_number]['STATE'] = state
 
     def keys(self):
         return list(self._pad.keys())
-
-
-

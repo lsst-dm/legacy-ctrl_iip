@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -29,11 +29,12 @@ import signal
 import sys
 import threading
 import yaml
-from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.const import ROOT
 from lsst.ctrl.iip.Credentials import Credentials
 from lsst.ctrl.iip.ThreadManager import ThreadManager
 
 LOGGER = logging.getLogger(__name__)
+
 
 class iip_base:
     """Base class"""
@@ -50,7 +51,6 @@ class iip_base:
         variable $IIP_CONFIG_DIR exists, files are loaded from that location
         instead.
         """
-
 
         config_file = filename
 
@@ -109,18 +109,17 @@ class iip_base:
 
         log_file = os.path.join(log_dir, filename)
 
-        LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
+        FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
         LOGGER = logging.getLogger(__name__)
         LOGGER.setLevel(logging.DEBUG)
-        handler = RotatingFileHandler(log_file, maxBytes=2000000, backupCount = 10)
-        handler.setFormatter(LOG_FORMAT)
+        handler = RotatingFileHandler(log_file, maxBytes=2000000, backupCount=10)
+        handler.setFormatter(FORMAT)
         LOGGER.addHandler(handler)
 
-        logging.basicConfig(filename=log_file, level=logging.INFO, format=LOG_FORMAT)
-
+        logging.basicConfig(filename=log_file, level=logging.INFO, format=FORMAT)
 
         return log_file
-    
+
     def setup_thread_manager(self):
         self.shutdown_event = threading.Event()
         self.shutdown_event.clear()
@@ -133,9 +132,6 @@ class iip_base:
 
     def setup_unpaired_publisher(self, url, name):
         self.thread_manager.add_unpaired_publisher_thread(url, name)
-
-    #def get_publisher_paired_with(self, consumer_name):
-    #    return self.thread_manager.get_publisher_paired_with(consumer_name)
 
     def publish_message(self, route_key, msg):
         # we have to get the publisher each time because we can't guarantee that the publisher

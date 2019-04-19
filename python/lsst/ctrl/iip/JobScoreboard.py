@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -23,25 +23,24 @@
 import redis
 import lsst.ctrl.iip.toolsmod as toolsmod
 from lsst.ctrl.iip.toolsmod import get_timestamp
-from lsst.ctrl.iip.toolsmod import get_epoch_timestamp
 from lsst.ctrl.iip.toolsmod import L1RedisError
-from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
 import yaml
 import logging
 import time
-import subprocess
+import sys
 from lsst.ctrl.iip.Scoreboard import Scoreboard
-from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.const import STATE
 
 LOGGER = logging.getLogger(__name__)
+
 
 class JobScoreboard(Scoreboard):
     """Extends parent Scoreboard class and provides initialization
        for Redis jobs table, each row being a new job.
 
-       As seen as in the first class variable below, when the 
-       connection to Redis is opened, the Job scoreboard is 
-       assigned to Redis's rdDatabase instance 8. Redis launches with a default 
+       As seen as in the first class variable below, when the
+       connection to Redis is opened, the Job scoreboard is
+       assigned to Redis's rdDatabase instance 8. Redis launches with a default
        15 separate database instances.
     """
     JOBS = 'JOBS'
@@ -66,16 +65,15 @@ class JobScoreboard(Scoreboard):
     PP = 'PP'
     CU = 'CU'
     prp = toolsmod.prp
-  
 
     def __init__(self, db_type, db_instance, cred, cdm):
-        """After connecting to the Redis database instance 
-           JOB_SCOREBOARD_DB, this redis database is flushed 
-           for a clean start. A 'charge_database' method is 
+        """After connecting to the Redis database instance
+           JOB_SCOREBOARD_DB, this redis database is flushed
+           for a clean start. A 'charge_database' method is
            included for testing the module.
 
-           Each job will be tracked in one of these states: 
-           NEW 
+           Each job will be tracked in one of these states:
+           NEW
            BASE_RESOURCES_QUERY
            BASE_INSUFFICIENT_RESOURCES
            NCSA_RESOURCES_QUERY
@@ -102,27 +100,26 @@ class JobScoreboard(Scoreboard):
         try:
             self._redis = self.connect()
         except Exception as e:
-            LOGGER.error("Cannot make connection to Redis: %s." % e.arg)  
+            LOGGER.error("Cannot make connection to Redis: %s." % e.arg)
             raise L1RedisError('Calling redis connect in JobScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
 
         self._redis.set(self.CURRENT_SESSION_ID, "session_100")
 
-#        weekday = subprocess.check_output('date +"%u"', shell=True)
-#        job_num_seed = str(weekday) + "000"
-#        #set up auto sequence
-#        self._redis.set(self.JOB_SEQUENCE_NUM, job_num_seed)
-      
+        # weekday = subprocess.check_output('date +"%u"', shell=True)
+        # job_num_seed = str(weekday) + "000"
+        # #set up auto sequence
+        # self._redis.set(self.JOB_SEQUENCE_NUM, job_num_seed)
+
         LOGGER.info('JobScoreboard initialization is complete')
-    
 
     def connect(self):
-        #pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
-        #return redis.Redis(connection_pool=pool)
+        # pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
+        # return redis.Redis(connection_pool=pool)
         try:
-            sconn = redis.StrictRedis(host='localhost',port='6379', \
-                                      charset='utf-8', db=self.DB_INSTANCE, \
+            sconn = redis.StrictRedis(host='localhost', port='6379',
+                                      charset='utf-8', db=self.DB_INSTANCE,
                                       decode_responses=True)
             sconn.ping()
             LOGGER.info("Redis connected. Connection details are: %s", sconn)
@@ -132,12 +129,11 @@ class JobScoreboard(Scoreboard):
             LOGGER.critical("Exiting due to Redis connection failure.")
             sys.exit(100)
 
-
     def check_connection(self):
         ok_flag = False
-        for i in range (1,4):
+        for i in range(1, 4):
             try:
-                #response = self._redis.client_list()
+                # response = self._redis.client_list()
                 response = self._redis.ping()
                 ok_flag = True
                 break
@@ -150,12 +146,10 @@ class JobScoreboard(Scoreboard):
             else:
                 LOGGER.info('Attempting to reconnect to Redis - all set now')
                 return True
-        else: 
+        else:
             LOGGER.info('In add_job, could not reconnect to Redis after 3 attempts')
             raise L1RedisError
             return False
-
-
 
     def add_job(self, job_number, visit_id, raft_list, raft_ccd_list):
         """All job rows created in the scoreboard begin with this method
@@ -174,23 +168,22 @@ class JobScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to add new job; Redis connection unavailable')
 
-
     def set_job_params(self, job_number, in_params):
         """Sets a number of job row fields at once.
 
            :param str job_number: Cast as str below just in case an int type slipped in.
            :param dict params: A python dict of key/value pairs.
-        """  
+        """
         if self.check_connection():
             for kee in list(in_params.keys()):
                 self._redis.hset(job_number, kee, in_params[kee])
 
-            #params = {}
-            #params[JOB_NUM] = job_number
-            #params['SUB_TYPE'] = self.JOB_STATE
-            #params['STATE'] = self.get_job_state(job_number)
-            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            #self.persist(self.build_monitor_data(params))
+            # params = {}
+            # params[JOB_NUM] = job_number
+            # params['SUB_TYPE'] = self.JOB_STATE
+            # params['STATE'] = self.get_job_state(job_number)
+            # params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            # self.persist(self.build_monitor_data(params))
         else:
             LOGGER.error('Unable to set job params; Redis connection unavailable')
             return False
@@ -198,31 +191,28 @@ class JobScoreboard(Scoreboard):
     def set_job_state(self, job_number, state):
         if self.check_connection():
             self._redis.hset(job_number, STATE, state)
-            #params = {}
-            #params[JOB_NUM] = job_number
-            #params['SUB_TYPE'] = self.JOB_STATE
-            #params['STATE'] = state
-            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            #self.persist(self.build_monitor_data(params))
-
+            # params = {}
+            # params[JOB_NUM] = job_number
+            # params['SUB_TYPE'] = self.JOB_STATE
+            # params['STATE'] = state
+            # params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            # self.persist(self.build_monitor_data(params))
 
     def get_job_state(self, job_number):
         if self.check_connection():
             return self._redis.hget(job_number, STATE)
 
-
     def set_job_status(self, job_number, status):
         if self.check_connection():
             job = str(job_number)
             result = self._redis.hset(job, self.STATUS, status)
-            #params = {}
-            #params[JOB_NUM] = job
-            #params['SUB_TYPE'] = self.JOB_STATUS
-            #params[self.STATUS] = status
-            #params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
-            #self.persist(self.build_monitor_data(params))
+            # params = {}
+            # params[JOB_NUM] = job
+            # params['SUB_TYPE'] = self.JOB_STATUS
+            # params[self.STATUS] = status
+            # params['IMAGE_ID'] = self._redis.hget(job_number, 'IMAGE_ID')
+            # self.persist(self.build_monitor_data(params))
             return result
-
 
     def set_value_for_job(self, job_number, kee, val):
         """Set a specific field in a job row with a key and value.
@@ -232,7 +222,7 @@ class JobScoreboard(Scoreboard):
            :param str val: The value to be used for above key.
         """
         if self.check_connection():
-            job = str(job_number) 
+            job = str(job_number)
             if kee == 'STATE':
                 self.set_job_state(job, val)
             elif kee == 'STATUS':
@@ -241,11 +231,11 @@ class JobScoreboard(Scoreboard):
                 self._redis.hset(job, kee, val)
             return True
         else:
-           return False
+            return False
 
     def get_value_for_job(self, job_number, kee):
         """Return a value for a specific field.
-  
+
            :param str job_number: The job in which field value is needed.
            :param str kee: The name of the field to retrieve desired data.
         """
@@ -254,13 +244,12 @@ class JobScoreboard(Scoreboard):
         else:
             return None
 
-
     def set_pairs_for_job(self, job_number, pairs):
-        """Pairs is a temporary relationship between Forwarders 
+        """Pairs is a temporary relationship between Forwarders
            and Distributors that lasts for one job. Note the use of yaml...
-           Unlike python dicts, Redis is not a nested level database. For a 
-           field to have a dict attached to it, it is necessary to serialize 
-           the dict using yaml, json, or pickle. Pyyaml is already in use 
+           Unlike python dicts, Redis is not a nested level database. For a
+           field to have a dict attached to it, it is necessary to serialize
+           the dict using yaml, json, or pickle. Pyyaml is already in use
            for conf files.
 
            :param str job_number: cast as str below just to make certain.
@@ -273,7 +262,6 @@ class JobScoreboard(Scoreboard):
         else:
             return False
 
-
     def get_pairs_for_job(self, job_number):
         """Return Forwarder-Distributor pairs for a specific job number.
 
@@ -281,8 +269,8 @@ class JobScoreboard(Scoreboard):
            :rtype dict
         """
         if self.check_connection():
-            pairs =  self._redis.hget(str(job_number), 'PAIRS')
-        ### XXX FIX - Check for existence of pairs...
+            pairs = self._redis.hget(str(job_number), 'PAIRS')
+        # XXX FIX - Check for existence of pairs...
         if pairs:
             return yaml.safe_load(pairs)
         else:
@@ -299,23 +287,21 @@ class JobScoreboard(Scoreboard):
         else:
             return False
 
-
     def get_rafts_for_job(self, job_number):
         if self.check_connection():
-            rafts =  self._redis.hget(str(job_number), 'RAFTS')
-        ### XXX FIX - Check for existence of pairs...
+            rafts = self._redis.hget(str(job_number), 'RAFTS')
+        # XXX FIX - Check for existence of pairs...
         if rafts:
             return yaml.safe_load(rafts)
         else:
             return None
 
-
     def set_work_schedule_for_job(self, job_number, schedule):
-        """The work schedule is a temporary relationship between Forwarders 
+        """The work schedule is a temporary relationship between Forwarders
            and CCDs that lasts for one job. Note the use of yaml...
-           Unlike python dicts, Redis is not a nested level database. For a 
-           field to have a dict attached to it, it is necessary to serialize 
-           the dict using yaml, json, or pickle. Pyyaml is already in use 
+           Unlike python dicts, Redis is not a nested level database. For a
+           field to have a dict attached to it, it is necessary to serialize
+           the dict using yaml, json, or pickle. Pyyaml is already in use
            for conf files.
 
            :param str job_number: cast as str below just to make certain.
@@ -331,16 +317,14 @@ class JobScoreboard(Scoreboard):
         else:
             return False
 
-
     def get_work_schedule_for_job(self, job_number):
         if self.check_connection():
-            sched =  self._redis.hget(str(job_number), 'WORK_SCHEDULE')
+            sched = self._redis.hget(str(job_number), 'WORK_SCHEDULE')
 
         if sched:
             return yaml.safe_load(sched)
         else:
             return None
-
 
     def set_results_for_job(self, job_number, results):
         if self.check_connection():
@@ -349,28 +333,23 @@ class JobScoreboard(Scoreboard):
         else:
             return False
 
-
     def get_results_for_job(self, job_number):
         if self.check_connection():
-            results =  self._redis.hget(str(job_number), 'RESULTS')
+            results = self._redis.hget(str(job_number), 'RESULTS')
         if results:
             return yaml.safe_load(results)
         else:
             return None
 
-
     def get_device_for_job(self, job_number):
         if self.check_connection():
             return self._redis.hget(job_number, 'DEVICE')
-            
 
     def set_session(self, session_id):
         self._redis.set(self.CURRENT_SESSION_ID, session_id)
 
-
     def get_current_session(self):
         return self._redis.get(self.CURRENT_SESSION_ID)
-
 
     def set_visit_id(self, visit_id, ra, dec, angle):
         if self.check_connection():
@@ -379,27 +358,23 @@ class JobScoreboard(Scoreboard):
             self._redis.hset(visit_id, self.RA, ra)
             self._redis.hset(visit_id, self.DEC, dec)
             self._redis.hset(visit_id, self.ANGLE, angle)
-            #params = {}
-            #params['SUB_TYPE'] = 'VISIT'
-            #params['VISIT_ID'] = visit_id
-            #params['BORE_SIGHT'] = bore_sight
-            #self.persist(self.build_monitor_data(params))
-
+            # params = {}
+            # params['SUB_TYPE'] = 'VISIT'
+            # params['VISIT_ID'] = visit_id
+            # params['BORE_SIGHT'] = bore_sight
+            # self.persist(self.build_monitor_data(params))
 
     def get_current_visit(self):
         if self.check_connection():
             return self._redis.lindex(self.VISIT_ID_LIST, 0)
 
-
     def get_boresight_for_visit_id(self, visit_id):
         if self.check_connection():
             return self._redis.hget(visit_id, 'BORE_SIGHT')
 
-             
     def delete_job(self, job_number):
-        #self._redis.hdel(self.JOBS, str(job_number))
+        # self._redis.hdel(self.JOBS, str(job_number))
         self._redis.lrem(self.JOBS, 0, str(job_number))
-
 
     def build_monitor_data(self, params):
         monitor_data = {}
@@ -412,7 +387,6 @@ class JobScoreboard(Scoreboard):
         monitor_data['DATA_TYPE'] = self.DB_TYPE
         return monitor_data
 
-
     def set_current_device_job(self, job_number, device):
         if self.check_connection():
             if device == self.AR:
@@ -422,16 +396,14 @@ class JobScoreboard(Scoreboard):
             if device == self.CU:
                 self._redis.rpush('CU_JOBS', job_number)
 
-
     def get_current_device_job(self, device):
         if self.check_connection():
             if device == self.AR:
-                return self._redis.lindex('AR_JOBS', 0) 
+                return self._redis.lindex('AR_JOBS', 0)
             if device == self.PP:
-                return self._redis.lindex('PP_JOBS', 0) 
+                return self._redis.lindex('PP_JOBS', 0)
             if device == self.CU:
-                return self._redis.lindex('CU_JOBS', 0) 
-
+                return self._redis.lindex('CU_JOBS', 0)
 
     def print_all(self):
         dump_dict = {}
@@ -445,11 +417,8 @@ class JobScoreboard(Scoreboard):
         print(dump_dict)
 
 
-def main():
-  jbs = JobScoreboard()
-  print("Job Scoreboard seems to be running OK")
-  time.sleep(2)
-  print("Done.")
-
-
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    jbs = JobScoreboard()
+    print("Job Scoreboard seems to be running OK")
+    time.sleep(2)
+    print("Done.")

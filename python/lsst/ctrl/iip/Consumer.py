@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -21,8 +21,8 @@
 
 
 """NOTE:
-   This file is owes a small part of its existence to the 
-   excellant tutorial file available on the Pika usage examples pages, 
+   This file is owes a small part of its existence to the
+   excellant tutorial file available on the Pika usage examples pages,
    which uses the BSD license; that is, credit the file:
    http://pika.readthedocs.org/en/0.10.0/examples/asynchronous_consumer_example.html
 
@@ -32,11 +32,11 @@
 import logging
 import pika
 import threading
-from time import sleep
-from lsst.ctrl.iip.XMLHandler import *
-from lsst.ctrl.iip.YamlHandler import *
+from lsst.ctrl.iip.XMLHandler import XMLHandler
+from lsst.ctrl.iip.YamlHandler import YamlHandler
 
 LOGGER = logging.getLogger(__name__)
+
 
 class Consumer(threading.Thread):
     """This is an example consumer that will handle unexpected interactions
@@ -72,19 +72,18 @@ class Consumer(threading.Thread):
         self._publisher = None
         self._url = amqp_url
         self._message_callback = callback
-        #self._message_callback = None
         self.name = name
         self.QUEUE = queue
         self.ROUTING_KEY = queue
-        self._xml_handler = None 
-        self._yaml_handler = None 
+        self._xml_handler = None
+        self._yaml_handler = None
         self._format_options = formatOptions
         if self._format_options == "XML":
             self._xml_handler = XMLHandler(callback)
-            self._message_callback = self._xml_handler.xmlcallback  
+            self._message_callback = self._xml_handler.xmlcallback
         else:
             self._yaml_handler = YamlHandler(callback)
-            self._message_callback = self._yaml_handler.yaml_callback  
+            self._message_callback = self._yaml_handler.yaml_callback
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -209,11 +208,6 @@ class Consumer(threading.Thread):
 
         """
         self.start_consuming()
-        #self.setup_queue(self.QUEUE)
-        #LOGGER.info('Declaring exchange %s', exchange_name)
-        #self._channel.exchange_declare(self.on_exchange_declareok,
-        #                               exchange_name,
-        #                               self.EXCHANGE_TYPE)
 
     def on_exchange_declareok(self, unused_frame):
         """Invoked by pika when RabbitMQ has finished the Exchange.Declare RPC
@@ -274,7 +268,6 @@ class Consumer(threading.Thread):
         """
         LOGGER.info('Issuing consumer related RPC commands')
         self.add_on_cancel_callback()
-        #self._consumer_tag = self._channel.basic_consume(self.on_message, self.QUEUE)
         self._channel.basic_qos(prefetch_count=1)
         self._consumer_tag = self._channel.basic_consume(self._message_callback, self.QUEUE)
 
@@ -313,7 +306,6 @@ class Consumer(threading.Thread):
         :param str|unicode body: The message body
 
         """
-        
         LOGGER.info('Received message  %s', body)
 
         self.acknowledge_message(basic_deliver.delivery_tag)

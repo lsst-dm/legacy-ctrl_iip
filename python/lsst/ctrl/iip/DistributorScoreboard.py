@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -20,20 +20,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-## STATE Column: { STANDBY, PENDING_XFER, MAKING_XFER, XFER_COMPLETE }
-## STATUS Column: { HEALTHY, UNHEALTHY, UNKNOWN }
+# STATE Column: { STANDBY, PENDING_XFER, MAKING_XFER, XFER_COMPLETE }
+# STATUS Column: { HEALTHY, UNHEALTHY, UNKNOWN }
 
 import logging
 import redis
-import time
 import sys
-from lsst.ctrl.iip.toolsmod import get_epoch_timestamp
+from lsst.ctrl.iip.toolsmod import L1Error
 from lsst.ctrl.iip.toolsmod import L1RedisError
-from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
 from lsst.ctrl.iip.Scoreboard import Scoreboard
-from lsst.ctrl.iip.const import * 
 
 LOGGER = logging.getLogger(__name__)
+
 
 class DistributorScoreboard(Scoreboard):
     DISTRIBUTOR_ROWS = 'distributor_rows'
@@ -62,10 +60,8 @@ class DistributorScoreboard(Scoreboard):
             fields = ddict[distributor]
             name = fields['NAME']
             ip_addr = fields['IP_ADDR']
-            target_dir = fields['TARGET_DIR']
-            xfer_login = name + "@" + ip_addr 
+            xfer_login = name + "@" + ip_addr
             routing_key = fields['CONSUME_QUEUE']
-            publish_queue = "distributor_publish"
 
             for field in fields:
                 self._redis.hset(distributor, field, fields[field])
@@ -73,19 +69,17 @@ class DistributorScoreboard(Scoreboard):
                 self._redis.hset(distributor, 'STATUS', 'HEALTHY')
                 self._redis.hset(distributor, 'ROUTING_KEY', routing_key)
                 self._redis.hset(distributor, 'MATE', 'NONE')
-  
 
             self._redis.lpush(self.DISTRIBUTOR_ROWS, distributor)
-        
-        #self.persist_snapshot(self._redis)
 
+        # self.persist_snapshot(self._redis)
 
     def connect(self):
-        #pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
-        #self._redis = redis.Redis(connection_pool=pool)
+        # pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
+        # self._redis = redis.Redis(connection_pool=pool)
         try:
-            sconn = redis.StrictRedis(host='localhost',port='6379', \
-                                      charset='utf-8', db=self.DB_INSTANCE, \
+            sconn = redis.StrictRedis(host='localhost', port='6379',
+                                      charset='utf-8', db=self.DB_INSTANCE,
                                       decode_responses=True)
             sconn.ping()
             LOGGER.info("Redis connected. Connection details are: %s", sconn)
@@ -95,22 +89,19 @@ class DistributorScoreboard(Scoreboard):
             LOGGER.critical("Exiting due to Redis connection failure.")
             sys.exit(100)
 
-    
     def print_all(self):
         all_distributors = self.return_distributors_list()
         for distributor in all_distributors:
             print(distributor)
             print(self._redis.hgetall(distributor))
         print("--------Finished In get_all--------")
-        #return self._redis.hgetall(all_distributors)
-
+        # return self._redis.hgetall(all_distributors)
 
     def return_distributors_list(self):
         all_distributors = self._redis.lrange(self.DISTRIBUTOR_ROWS, 0, -1)
         return all_distributors
 
-
-    def get_healthy_distributors_list(self): 
+    def get_healthy_distributors_list(self):
         healthy_distributors = []
         distributors = self._redis.lrange(self.DISTRIBUTOR_ROWS, 0, -1)
         for distributor in distributors:
@@ -121,7 +112,6 @@ class DistributorScoreboard(Scoreboard):
 
         return healthy_distributors
 
-
     def set_distributor_params(self, distributor, params):
         """The distributor paramater must be the fully
            qualified name, such as DISTRIBUTOR_2
@@ -129,36 +119,30 @@ class DistributorScoreboard(Scoreboard):
         """
         for kee in list(params.keys()):
             self._redis.hset(distributor, kee, params[kee])
-        #self.persist_snapshot(self._redis, "distributorscoreboard") 
-
+        # self.persist_snapshot(self._redis, "distributorscoreboard")
 
     def set_value_for_multiple_distributors(self, distributors, kee, val):
         for distributor in distributors:
             self._redis.hset(distributor, kee, val)
-        #self.persist_snapshot(self._redis, "distributorscoreboard") 
-
+        # self.persist_snapshot(self._redis, "distributorscoreboard")
 
     def set_params_for_multiple_distributors(self, distributors, params):
         for distributor in distributors:
             kees = list(params.keys())
             for kee in kees:
                 self._redis.hset(distributor, kee, params[kee])
-        #self.persist_snapshot(self._redis, "distributorscoreboard") 
-
+        # self.persist_snapshot(self._redis, "distributorscoreboard")
 
     def get_value_for_distributor(self, distributor, kee):
         return self._redis.hget(distributor, kee)
 
-
     def set_distributor_state(self, distributor, state):
-        self._redis.hset(distributor,'STATE', state)
-        #self.persist_snapshot(self._redis, "distributorscoreboard") 
-
+        self._redis.hset(distributor, 'STATE', state)
+        # self.persist_snapshot(self._redis, "distributorscoreboard")
 
     def set_distributor_status(self, distributor, status):
-        self._redis.hset(distributor,'STATUS', status)
-        #self.persist_snapshot(self._redis, "distributorscoreboard") 
-
+        self._redis.hset(distributor, 'STATUS', status)
+        # self.persist_snapshot(self._redis, "distributorscoreboard")
 
     def get_routing_key(self, distributor):
-        return self._redis.hget(distributor,'ROUTING_KEY')
+        return self._redis.hget(distributor, 'ROUTING_KEY')

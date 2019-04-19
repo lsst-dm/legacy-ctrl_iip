@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -19,21 +19,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 import logging
 import threading
 import sys
-import yaml
-
 import pika
-from pika.exceptions import *
-
-import lsst.ctrl.iip.toolsmod
-from lsst.ctrl.iip.toolsmod import L1Exception
-from lsst.ctrl.iip.toolsmod import L1MessageError
-from lsst.ctrl.iip.YamlHandler import * 
+from pika.exceptions import AMQPError
+from lsst.ctrl.iip.YamlHandler import YamlHandler
 
 LOGGER = logging.getLogger(__name__)
+
 
 class AsyncPublisher(threading.Thread):
 
@@ -52,15 +46,13 @@ class AsyncPublisher(threading.Thread):
 
         try:
             self.connect()
-        except:
-           LOGGER.error('No channel - connection channel is None')
-       
+        except Exception:
+            LOGGER.error('No channel - connection channel is None')
 
     def connect(self):
         self._connection = pika.SelectConnection(pika.URLParameters(self._url),
-                                                    on_open_callback=self.on_connection_open,
-                                                    on_close_callback=self.on_connection_closed);
-
+                                                 on_open_callback=self.on_connection_open,
+                                                 on_close_callback=self.on_connection_closed)
 
     def on_connection_open(self, connection):
         LOGGER.info("connection opened")
@@ -82,16 +74,18 @@ class AsyncPublisher(threading.Thread):
         self._channel.add_on_close_callback(self.on_channel_closed)
 
     def on_channel_closed(self, channel, reason):
-        LOGGER.info('Channel %i was closed %s' %(channel, reason))
+        LOGGER.info('Channel %i was closed %s' % (channel, reason))
         self._channel = None
         self._connection.close()
 
     def on_connection_closed(self, connection, reason):
-        # params: connection - closed object connection
-        # params: reason - reason for closure
+        """
+        Params:
+            connection - closed object connection
+            reason - reason for closure
+        """
         self._channel = None
         self._connect = None
-
 
     def close(self):
         self._channel.close()
@@ -104,16 +98,16 @@ class AsyncPublisher(threading.Thread):
         LOGGER.info("Sending msg to %s", route_key)
 
         # TODO:  This if-clause likely should be taken out.
-        if self._channel == None or self._channel.is_closed == True:
+        if self._channel is None or self._channel.is_closed is True:
             try:
                 self.connect()
-            except AMQPError as e:
+            except AMQPError:
                 LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
-                sys.exit(105) # XXX
+                sys.exit(105)  # XXX - why 105?
 
-        # Since this is asynchronous, it's possible to still be in the 
-        # process of getting setup and having self._channel be None when 
-        # publish_message is being called from another thread, so we wait 
+        # Since this is asynchronous, it's possible to still be in the
+        # process of getting setup and having self._channel be None when
+        # publish_message is being called from another thread, so we wait
         # here until setup is completed.
         if self.setup_complete_event.wait():
             self._channel.basic_publish(exchange='message', routing_key=route_key, body=encoded_data)
@@ -125,4 +119,3 @@ class AsyncPublisher(threading.Thread):
 
     def run(self):
         self._connection.ioloop.start()
-
