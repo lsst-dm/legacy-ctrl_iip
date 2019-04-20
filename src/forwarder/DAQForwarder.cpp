@@ -38,23 +38,13 @@
 #include "fitsio.h"
 #include <errno.h>
 #include "Exceptions.h"
-#include "SimpleLogger.h"
 #include "Toolsmod.h"
-
-#include "daq/Location.hh"
-#include "daq/LocationSet.hh"
-
-#include "ims/Store.hh"
-#include "ims/Image.hh"
-#include "ims/Source.hh"
-#include "ims/Slice.hh"
-#include "ims/Science.hh"
-#include "ims/WaveFront.hh"
-
-#include "rms/InstructionList.hh"
-#include "rms/Instruction.hh"
+#include "Forwarder.h"
 #include <openssl/md5.h>
 #include <boost/crc.hpp>
+
+BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
+#include "IIPMacro.h"
 
 #define NUM_CCDS_IN_ALL 9
 #define SECONDARY_HDU 2
@@ -69,10 +59,6 @@
 #define STRAIGHT_PIX_MASK 0x20000
 #define DEBUG 1
 
-// Macros for Logger
-#define LOG_INF  LOGGER(my_logger::get(), info)  
-#define LOG_DBG  LOGGER(my_logger::get(), debug)  
-#define LOG_CRT  LOGGER(my_logger::get(), critical)  
 #define METRIX 1
 #define DUMP_MAP 1
 #define PRIVATE_BUFFER_SIZE  1024  // Used by crc32 code
@@ -80,180 +66,6 @@
 
 using namespace std;
 using namespace YAML;
-
-BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(my_logger, src::severity_logger_mt< severity_level >);
-
-class Forwarder {
-    public:
-
-    //Important 'per readout' values
-    std::vector<string> visit_raft_list;
-    std::vector<std::vector<string>> visit_ccd_list_by_raft;
-    std::vector<string> image_id_list;
-
-    std::vector<string> current_image_work_list;
-    std::vector<string> files_transferred_list;
-    std::vector<string> checksum_list;
-    std::map<string, map<string,string> > image_ids_to_jobs_map;
-
-    std::string Session_ID = "";
-    std::string Visit_ID = "";
-    std::string Job_Num = "";
-    std::string Target_Location = "/tmp/target";
-    std::string Daq_Addr = "";
-    std::string Work_Dir = ""; 
-    std::string Src_Dir = ""; 
-    std::string Name = ""; //such as FORWARDER_1
-    std::string Lower_Name; //such as f1
-    std::string Component = ""; //such as FORWARDER_1
-    std::string Foreman_Reply_Queue = "";
-    std::string Device_Type = "";
-    std::string WFS_RAFT = "";
-    std::string Checksum_Type = "";
-    bool Checksum_Enabled = false;
-    bool is_naxis_set = true;  // If true, registers will NOT be read
-    long Naxis_1 = NAXIS1;
-    long Naxis_2 = NAXIS2;
-    int Num_Images = 0; 
-    int ERROR_CODE_PREFIX; 
-    std::string Telemetry_Queue = "telemetry_queue";
-    std::vector<string> Segment_Names = {"00","01","02","03","04","05","06","07",\
-                                         "10","11","12","13","14","15","16","17"};
-
-    std::vector<string> Newest_Segment_Names = {"07","06","05","04","03","02","01","00",\
-                                         "10","11","12","13","14","15","16","17"};
-
-    // Works for Main Camera
-    std::vector<string> New_Segment_Names = {"17","16","15","14","13","12","11","10",\
-                                             "00","01","02","03","04","05","06","07"};
-
-    // Works for ATS cam
-    std::vector<string> ATS_Segment_Names = {"00","01","02","03","04","05","06","07",\
-                                             "17","16","15","14","13","12","11","10"};
-
-    
-    std::string consume_queue = "";
-    std::string fetch_consume_queue = "";
-    std::string format_consume_queue = "";
-    std::string forward_consume_queue = "";
-
-    //General Forwarder consumers
-    Consumer *from_foreman_consumer;
-    Consumer *from_fetch_consumer;
-    Consumer *from_format_consumer;
-    Consumer *from_forward_consumer;
-
-    //Consumers in work threads
-    Consumer *from_forwarder_to_fetch;
-    Consumer *from_forwarder_to_format;
-    Consumer *from_forwarder_to_forward;
-
-    //Publishers
-    SimplePublisher *FWDR_pub;
-    SimplePublisher *FWDR_to_fetch_pub;
-    SimplePublisher *FWDR_to_format_pub;
-    SimplePublisher *FWDR_to_forward_pub;
-    SimplePublisher *fetch_pub;
-    SimplePublisher *fmt_pub;
-    SimplePublisher *fwd_pub;
-    
-    string USER, PASSWD, BASE_BROKER_ADDR, FQN, HOSTNAME; 
-    string IP_ADDR, CONSUME_QUEUE, USER_FORWARD_PUB, PASSWD_FORWARD_PUB;
-    string USER_PUB, PASSWD_PUB, USER_FETCH_PUB, PASSWD_FETCH_PUB; 
-    string USER_FORMAT_PUB, PASSWD_FORMAT_PUB;
-    string FETCH_USER, FETCH_USER_PASSWD, FORMAT_USER, FORMAT_USER_PASSWD;  
-    string FORWARD_USER, FORWARD_USER_PASSWD;
-    string FETCH_USER_PUB, FETCH_USER_PUB_PASSWD, FORMAT_USER_PUB, FORMAT_USER_PUB_PASSWD; 
-    string FORWARD_USER_PUB, FORWARD_USER_PUB_PASSWD;
-
-    //vector<string> readout_img_ids; 
-    std::map<string, map<string,string>> readout_img_ids; 
-    //map<(pair<string, pair<string,string> >),string> img_to_raft_ccd_pair; 
-    map<pair<string,pair<string,string> >, string> img_to_raft_ccd_pair; 
-    map<string, vector<string> > img_to_raft_list; 
-    map<string, vector<vector<string> > > img_to_raft_ccd_list; 
-    map<string, vector<string>> header_info_dict; 
-    map<string, string> take_img_done_msg; 
-
-    Forwarder();
-    ~Forwarder();
-    void setup_consumers(string);
-    void setup_publishers(string); 
-
-    //Declarations for message callbacks
-    void on_foreman_message(string body);
-    void on_fetch_message(string body);
-    void on_format_message(string body);
-    void on_forward_message(string body);
-
-    void on_forwarder_to_fetch_message(string body);
-    void on_forwarder_to_format_message(string body);
-    void on_forwarder_to_forward_message(string body);
-
-    //Declarations message handlers within callbacks
-    void process_new_visit(Node n);
-    void process_health_check(Node n);
-    void process_xfer_params(Node n);
-    void process_at_xfer_params(Node n);
-    void process_take_images_done(Node n);
-    void process_end_readout(Node n);
-    void process_at_end_readout(Node n);
-    void process_header_ready(Node n); 
-
-    void process_fetch(Node n);
-    void process_at_fetch(Node n);
-    void process_fetch_ack(Node n);
-    void process_fetch_end_readout(Node n);
-    void process_fetch_health_check(Node n);
-    void process_fetch_health_check_ack(Node n);
-    void process_format(Node n);
-    void process_format_ack(Node n);
-    void process_format_health_check(Node n);
-    void process_format_health_check_ack(Node n);
-    void process_forward(Node n);
-    void process_forward_ack(Node n);
-    void process_forward_health_check(Node n);
-    void process_forward_health_check_ack(Node n);
-
-    void run();
-    static void *run_thread(void *);
-
-    int fetch_readout_image(string image_id, string dir_prefix);
-    int fetch_readout_raft(string raft, vector<string> ccd_list, \
-                           string image_id, string dir_prefix);
-    int fetch_reassemble_raft_image(string raft, map<string, vector<string>> source_boards, \
-                                    string image_id, string dir_prefix);
-    int fetch_reassemble_process(string raft, string image_id, const DAQ::Location& location, \
-                                 const IMS::Image& image, std::vector<string> ccds_for_board, \
-                                 string dir_prefix);
-    int fetch_at_reassemble_process(string raft, string ccd, string image_id, string dir_prefix);
-    void get_register_metadata(const DAQ::Location& location, const IMS::Image& image);
-    void fetch_set_up_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, 
-                                  string raft, string ccd, string dir_prefix);
-    void fetch_set_up_at_filehandles(std::vector<std::ofstream*> &fh_set, string image_id, 
-                                     string dir_prefix);
-    void fetch_close_filehandles(std::vector<std::ofstream*> &fh_set);
-    int check_for_image_existence(std::string);
-    void send_telemetry(int, std::string);
-
-    long* format_read_img_segment(const char*);
-    void format_write_img(Node);
-    void format_assemble_img(Node);
-    void format_send_completed_msg(std::string, std::string);
-    void format_look_for_work(std::string); 
-    void format_process_end_readout(Node); 
-    void format_get_header(Node); 
-    vector<string> format_list_files(string); 
-    Node format_get_binary_path(std::string); 
-    int format_get_total_ccds(string); 
-
-    void forward_process_end_readout(Node); 
-    void forward_process_take_images_done(Node); 
-    std::string forward_send_result_set(std::string, std::string, std::string);
-    std::string forward_calculate_md5_checksum(std::string);
-    std::string forward_calculate_crc32_checksum(std::string);
-    void dump_map(string description);
-};
 
 using funcptr = void(Forwarder::*)(Node);
 
@@ -365,81 +177,54 @@ map<string, vector<string>> All_Boards = {
 
 };
 
-Forwarder::Forwarder() {
-    // init_log 
-    init_log("Forwarder");
-
-    // Read config file
-    Node config_file = loadConfigFile("ForwarderCfg.yaml");
-
+Forwarder::Forwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder"){
+    this->Naxis_1 = NAXIS1;
+    this->Naxis_2 = NAXIS2;
     Node root;
     string NAME, BASE_BROKER_ADDR, FQN, HOSTNAME, IP_ADDR;
     ERROR_CODE_PREFIX = 5600; 
     try {
-        root = config_file["ROOT"];
+        root = this->config_root;
         this->Name = root["NAME"].as<string>();
         this->Component = root["FQN"].as<string>();
         this->Lower_Name = root["LOWER_NAME"].as<string>();
-        USER = root["USER"].as<string>();
-        PASSWD = root["PASSWD"].as<string>();
-        USER_PUB = root["USER_PUB"].as<string>();
-        PASSWD_PUB = root["PASSWD_PUB"].as<string>();
-        USER_FETCH_PUB = root["USER_FETCH_PUB"].as<string>();
-        PASSWD_FETCH_PUB = root["PASSWD_FETCH_PUB"].as<string>();
-        USER_FORMAT_PUB = root["USER_FORMAT_PUB"].as<string>();
-        PASSWD_FORMAT_PUB = root["PASSWD_FORMAT_PUB"].as<string>();
-        USER_FORWARD_PUB = root["USER_FORWARD_PUB"].as<string>();
-        PASSWD_FORWARD_PUB = root["PASSWD_FORWARD_PUB"].as<string>();
+        this->USER = root["USER"].as<string>();
+        this->PASSWD = root["PASSWD"].as<string>();
         this->BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); 
 
-        HOSTNAME = root["HOSTNAME"].as<string>();
-        IP_ADDR = root["IP_ADDR"].as<string>();
+        this->HOSTNAME = root["HOSTNAME"].as<string>();
+        this->IP_ADDR = root["IP_ADDR"].as<string>();
         this->Work_Dir = root["WORK_DIR"].as<string>();
         this->Src_Dir = root["SRC_DIR"].as<string>(); 
         this->consume_queue = root["CONSUME_QUEUE"].as<string>();
         this->fetch_consume_queue = root["FETCH_CONSUME_QUEUE"].as<string>();
         this->format_consume_queue = root["FORMAT_CONSUME_QUEUE"].as<string>();
         this->forward_consume_queue = root["FORWARD_CONSUME_QUEUE"].as<string>();
-        this->FETCH_USER = root["FETCH_USER"].as<string>();
-        this->FETCH_USER_PASSWD = root["FETCH_USER_PASSWD"].as<string>();
-        this->FETCH_USER_PUB = root["FETCH_USER_PUB"].as<string>();
-        this->FETCH_USER_PUB_PASSWD = root["FETCH_USER_PUB_PASSWD"].as<string>();
-
-        this->FORMAT_USER = root["FORMAT_USER"].as<string>();
-        this->FORMAT_USER_PASSWD = root["FORMAT_USER_PASSWD"].as<string>();
-        this->FORMAT_USER_PUB = root["FORMAT_USER_PUB"].as<string>();
-        this->FORMAT_USER_PUB_PASSWD = root["FORMAT_USER_PUB_PASSWD"].as<string>();
-
-        this->FORWARD_USER = root["FORWARD_USER"].as<string>();
-        this->FORWARD_USER_PASSWD = root["FORWARD_USER_PASSWD"].as<string>();
-        this->FORWARD_USER_PUB = root["FORWARD_USER_PUB"].as<string>();
-        this->FORWARD_USER_PUB_PASSWD = root["FORWARD_USER_PUB_PASSWD"].as<string>();
 
         //this->WFS_RAFT = root["ATS"]["WFS_RAFT"].as<string>();
         //cout << "Setting WFS_RAFT class var to:  " << this->WFS_RAFT << endl << endl << endl;
     }
     catch (YAML::TypedBadConversion<string>& e) {
         LOG_CRT << e.what();
-        LOG_CRT << "In ForwarderCfg.yaml, cannot read required elements from this file.";
+        LOG_CRT << "Cannot read required fields from ForwarderCfg.yaml.";
         // FIX Set Fault State instead?
-        exit(EXIT_FAILURE);
+        exit(-1);
     }
 
     // Read L1 config file
     Node L1_config_file;
     try {
-        L1_config_file = loadConfigFile("L1SystemCfg.yaml");
+        L1_config_file = this->load_config_file("L1SystemCfg.yaml");
     }
     catch (YAML::BadFile& e) {
         LOG_CRT << "Error reading L1SystemCfg.yaml file.";
-        cout << "Error reading L1SystemCfg.yaml file." << endl;
         // FIX Set Fault State instead?
-        exit(EXIT_FAILURE);
+        exit(-1);
     }
 
     try {
         Node cdm;
-        cdm = L1_config_file["ROOT"];
+        cdm = L1_config_file;
         if((cdm["ARCHIVE"]["CHECKSUM_ENABLED"].as<string>()) == "yes") {
             this->Checksum_Enabled = true;
             this->Checksum_Type = cdm["ARCHIVE"]["CHECKSUM_TYPE"].as<string>();
@@ -449,68 +234,38 @@ Forwarder::Forwarder() {
         }
     }
     catch (YAML::TypedBadConversion<string>& e) {
-        cout << e.what() << endl;
-        cout << "ERROR: In L1SystemCfg.yaml, can't read required elements from this file." << endl;
+        LOG_CRT << e.what() << endl;
+        LOG_CRT << "Cannot read required fields from L1SystemCfg.yaml." << endl;
+        exit(-1);
     }
 
 
-    setup_consumers(BASE_BROKER_ADDR);
-    setup_publishers(BASE_BROKER_ADDR);
+    setup_consumers(this->BASE_BROKER_ADDR);
+    setup_publishers(this->BASE_BROKER_ADDR);
     LOG_DBG << "Forwarder construction complete.";  
     
 }
 
 void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
-    LOG_DBG << "Entering setup_consumers function."; 
-    //Consumers for Primary Forwarder
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << this->USER << ":" << this->PASSWD << this->BASE_BROKER_ADDR ;
-    LOG_DBG << "Consumer broker URL is: " << full_broker_url.str();
-    from_foreman_consumer = new Consumer(full_broker_url.str(), this->consume_queue);
+    string full_broker_url = this->get_amqp_url(this->USER, this->PASSWD, BASE_BROKER_ADDR);
+    LOG_DBG << "Consumer broker URL is: " << full_broker_url;
 
-    ostringstream consume_queue1;
-    consume_queue1 << this->consume_queue << "_from_fetch";
-    from_fetch_consumer = new Consumer(full_broker_url.str(), consume_queue1.str());
-    LOG_DBG << "Consuming from queue: " << consume_queue1.str();
+    ostringstream from_fetch_q, from_format_q, from_forward_q;
+    from_fetch_q << this->consume_queue << "_from_fetch";
+    from_format_q << this->consume_queue << "_from_format";
+    from_forward_q << this->consume_queue << "_from_forward";
 
-    ostringstream consume_queue2;
-    consume_queue2 << this->consume_queue << "_from_format";
-    from_format_consumer = new Consumer(full_broker_url.str(), consume_queue2.str());
-    LOG_DBG << "Consuming from queue: " << consume_queue2.str();
+    LOG_DBG << "Fetch consumer is consuming from queue: " << from_fetch_q.str();
+    LOG_DBG << "Format consumer is consuming from queue: " << from_format_q.str();
+    LOG_DBG << "Forward consumer is consuming from queue: " << from_forward_q.str();
 
-    ostringstream consume_queue3;
-    consume_queue3 << this->consume_queue << "_from_forward";
-    ostringstream from_fwd_broker_url;
-    from_fwd_broker_url << "amqp://" << this->USER << ":" << this->PASSWD <<this->BASE_BROKER_ADDR ;
-    from_forward_consumer = new Consumer(full_broker_url.str(), consume_queue3.str());
-    LOG_DBG << "Consumer broker URL is: " << from_fwd_broker_url.str();
-    LOG_DBG << "Consuming from queue: " << consume_queue3.str();
-
-    //Consumers for sub-components
-    //ostringstream consume_queue;
-
-    ostringstream full_broker_url2;
-    full_broker_url2 << "amqp://" << this->FETCH_USER << ":" << this->FETCH_USER_PASSWD \
-                     << this->BASE_BROKER_ADDR ;
-    from_forwarder_to_fetch = new Consumer(full_broker_url.str(), this->fetch_consume_queue);
-    LOG_DBG << "Consumer broker URL is: " << full_broker_url2.str();
-    LOG_DBG << "Consuming from queue: " << this->fetch_consume_queue;
-
-    ostringstream full_broker_url3;
-    full_broker_url3 << "amqp://" << this->FORMAT_USER << ":" << this->FORMAT_USER_PASSWD \
-                     << this->BASE_BROKER_ADDR;
-    from_forwarder_to_format = new Consumer(full_broker_url.str(), this->format_consume_queue);
-    LOG_DBG << "Consumer broker URL is: " << full_broker_url3.str();
-    LOG_DBG << "Consuming from queue: " << this->format_consume_queue;
-    //cout << this->format_consume_queue << endl; 
-
-    ostringstream full_broker_url4;
-    full_broker_url4 << "amqp://" << this->FORWARD_USER << ":" << this->FORWARD_USER_PASSWD \
-                                  << this->BASE_BROKER_ADDR ;
-    from_forwarder_to_forward = new Consumer(full_broker_url.str(), this->forward_consume_queue);
-    LOG_DBG << "Consumer broker URL is: " << full_broker_url4.str();
-    LOG_DBG << "Consuming from queue: " << this->forward_consume_queue;
-
+    from_foreman_consumer = new Consumer(full_broker_url, this->consume_queue);
+    from_fetch_consumer = new Consumer(full_broker_url, from_fetch_q.str());
+    from_format_consumer = new Consumer(full_broker_url, from_format_q.str());
+    from_forward_consumer = new Consumer(full_broker_url, from_forward_q.str());
+    from_forwarder_to_fetch = new Consumer(full_broker_url, this->fetch_consume_queue);
+    from_forwarder_to_format = new Consumer(full_broker_url, this->format_consume_queue);
+    from_forwarder_to_forward = new Consumer(full_broker_url, this->forward_consume_queue);
     LOG_DBG << "Finished setting broker urls for consumers"; 
 }
 
@@ -555,25 +310,13 @@ void Forwarder::run() {
     args7->funcptr = &Forwarder::on_forwarder_to_forward_message;
 
     //Create then run threads
-    pthread_t t1;
+    pthread_t t1, t2, t3, t4, t5, t6, t7;
     pthread_create(&t1, NULL, &Forwarder::run_thread, args1);
-
-    pthread_t t2;
     pthread_create(&t2, NULL, &Forwarder::run_thread, args2);
-
-    pthread_t t3;
     pthread_create(&t3, NULL, &Forwarder::run_thread, args3);
-
-    pthread_t t4;
     pthread_create(&t4, NULL, &Forwarder::run_thread, args4);
-
-    pthread_t t5;
     pthread_create(&t5, NULL, &Forwarder::run_thread, args5);
-
-    pthread_t t6;
     pthread_create(&t6, NULL, &Forwarder::run_thread, args6);
-
-    pthread_t t7;
     pthread_create(&t7, NULL, &Forwarder::run_thread, args7);
 
     LOG_DBG << "Finished setting up threads for consumers."; 
@@ -593,44 +336,18 @@ void *Forwarder::run_thread(void *pargs) {
 
 
 void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
-    LOG_DBG << "Entering setup_publishers function."; 
-    //Publishers
-    ostringstream full_broker_url;
-    full_broker_url << "amqp://" << this->USER_PUB << ":" << this->PASSWD_PUB << this->BASE_BROKER_ADDR;
-    LOG_DBG << "Publisher broker URL is: " << full_broker_url.str();
-    FWDR_pub = new SimplePublisher(full_broker_url.str());
+    string full_broker_url = this->get_amqp_url(this->USER, this->PASSWD, BASE_BROKER_ADDR);
+    LOG_DBG << "Publisher broker URL is: " << full_broker_url;
 
-    ostringstream full_broker_url1;
-    full_broker_url1 << "amqp://" << this->USER_FETCH_PUB << ":" << this->PASSWD_FETCH_PUB << this->BASE_BROKER_ADDR;
-    LOG_DBG << "Publisher broker URL is: " << full_broker_url1.str();
-    FWDR_to_fetch_pub = new SimplePublisher(full_broker_url1.str());
-
-    ostringstream full_broker_url2;
-    full_broker_url2 << "amqp://" << this->USER_FORMAT_PUB << ":" << this->PASSWD_FORMAT_PUB << this->BASE_BROKER_ADDR;
-    LOG_DBG << "Publisher broker URL is: " << full_broker_url2.str();
-    FWDR_to_format_pub = new SimplePublisher(full_broker_url2.str());
-
-    ostringstream full_broker_url3;
-    full_broker_url3 << "amqp://" << this->USER_FORWARD_PUB << ":" << this->PASSWD_FORWARD_PUB << this->BASE_BROKER_ADDR;
-    LOG_DBG << "Publisher broker URL is: " << full_broker_url3.str();
-    FWDR_to_forward_pub = new SimplePublisher(full_broker_url3.str());
-
-    ostringstream full_broker_url4;
-    full_broker_url4 << "amqp://" << this->FETCH_USER_PUB << ":" << this->FETCH_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
-    LOG_DBG << "Publisher broker URL is: " << full_broker_url4.str();
-    fetch_pub = new SimplePublisher(full_broker_url4.str());
-
-    ostringstream full_broker_url5;
-    full_broker_url5 << "amqp://" << this->FORMAT_USER_PUB << ":" << this->FORMAT_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
-    LOG_DBG << "Publisher broker URL is: " << full_broker_url5.str();
-    fmt_pub = new SimplePublisher(full_broker_url5.str());
-
-    ostringstream full_broker_url6;
-    full_broker_url6 << "amqp://" << this->FORWARD_USER_PUB << ":" << this->FORWARD_USER_PUB_PASSWD << this->BASE_BROKER_ADDR;
-    LOG_DBG << "Publisher broker URL is: " << full_broker_url6.str();
-    fwd_pub = new SimplePublisher(full_broker_url6.str());
+    FWDR_pub = new SimplePublisher(full_broker_url);
+    FWDR_to_fetch_pub = new SimplePublisher(full_broker_url);
+    FWDR_to_format_pub = new SimplePublisher(full_broker_url);
+    FWDR_to_forward_pub = new SimplePublisher(full_broker_url);
+    fetch_pub = new SimplePublisher(full_broker_url);
+    fmt_pub = new SimplePublisher(full_broker_url);
+    fwd_pub = new SimplePublisher(full_broker_url);
     
-    LOG_DBG << "Setting up publishers is complete."; 
+    LOG_DBG << "Finished setting up publishers."; 
 }
 
 
@@ -682,8 +399,6 @@ void Forwarder::on_forward_message(string body) {
     funcptr action = on_forward_message_actions[message_type];
     (this->*action)(node);
 }
-
-
 
 //Messages received by the fetch, format, and forward threads
 void Forwarder::on_forwarder_to_fetch_message(string body) {
@@ -2099,7 +1814,7 @@ vector<string> Forwarder::format_list_files(string path) {
 
         sort(file_names.begin(), file_names.end()); 
         closedir(dir);
-        LOGGER(my_logger::get() , debug) << "Added file list for further processing."; 
+        LOG_DBG << "Added file list for further processing."; 
         return file_names; 
     } 
     catch (exception& e) { 

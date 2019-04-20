@@ -24,7 +24,6 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 #include "SimpleLogger.h"
-#include "SimplePublisher.h"
 
 class IIPBase {
     public:
