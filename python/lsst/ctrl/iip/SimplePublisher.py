@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -21,116 +21,74 @@
 
 
 import pika
-from pika.exceptions import *
+from pike.exceptions import AMQPError
 import logging
-import yaml
 import sys
-import lsst.ctrl.iip.toolsmod
-from lsst.ctrl.iip.toolsmod import L1Exception
-from lsst.ctrl.iip.toolsmod import L1MessageError
-from lsst.ctrl.iip.XMLHandler import * 
-from lsst.ctrl.iip.YamlHandler import * 
+from lsst.ctrl.iip.XMLHandler import XMLHandler
+from lsst.ctrl.iip.YamlHandler import YamlHandler
 
 LOGGER = logging.getLogger(__name__)
 
+
 class SimplePublisher:
 
-  EXCHANGE = 'message'
+    EXCHANGE = 'message'
 
-  def __init__(self, amqp_url, formatOptions=None):
+    def __init__(self, amqp_url, formatOptions=None):
 
-    self._connection = None
-    self._channel = None
-    self._message_number = 0
-    self._stopping = False
-    self._url = amqp_url
-    self._closing = False
-    self._xml_handler = None
-    self._format_options = formatOptions
+        self._connection = None
+        self._channel = None
+        self._message_number = 0
+        self._stopping = False
+        self._url = amqp_url
+        self._closing = False
+        self._xml_handler = None
+        self._format_options = formatOptions
 
-    if formatOptions == "XML":
-        self._message_handler = XMLHandler()
-    else:
-        self._message_handler = YamlHandler()
+        if formatOptions == "XML":
+            self._message_handler = XMLHandler()
+        else:
+            self._message_handler = YamlHandler()
 
-    try:
-       self.connect()
-    except:
-       LOGGER.error('No channel - connection channel is None')
-       
-
-  def connect(self):
-    self._connection = pika.BlockingConnection(pika.URLParameters(self._url))
-    self._channel = self._connection.channel()
-    if self._channel == None:
-      LOGGER.error('No channel - connection channel is None')
-
-  def publish(self, route_key, msg): 
-      try: 
-          self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=msg)
-      except pika.exceptions.ConnectionClosed: 
-          LOGGER.critical("Connection timed out. Reconnected and republish message")
-          self.connect()
-          self.publish(route_key, msg)
-
-  def close(self):
-    self._channel.close()
-    self._connection.close()
-    self._connection = None
-    self._channel = None
-
-  def publish_message_old(self, route_key, msg):
-    if self._channel == None or self._channel.is_closed == True:
-       try:
-         self.connect()
-       except AMQPError as e:
-         LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
-         sys.exit(105)
-
-    LOGGER.debug ("Sending msg to %s", route_key)
-
-    # XXX This XML part is broken because self._xml_handler is never set; _message_handler is.
-    if self._format_options == "XML":
         try:
-            xmlRoot = self._xml_handler.encodeXML(msg)
-            valid = self._xml_handler.validate(xmlRoot)
-            if valid: 
-                xmlMsg = self._xml_handler.tostring(xmlRoot)
-                self.publish(route_key, xmlMsg)
-            else: 
-                raise L1MessageError("Message is invalid XML.")
-        except L1MessageError as e:
-            raise L1MessageError("Message is invalid XML.")
-    else: 
-        yamldict = self._message_handler.encode_message(msg)
-        self.publish(route_key, yamldict)
+            self.connect()
+        except Exception:
+            LOGGER.error('No channel - connection channel is None')
 
-  def publish_message(self, route_key, msg):
+    def connect(self):
+        self._connection = pika.BlockingConnection(pika.URLParameters(self._url))
+        self._channel = self._connection.channel()
+        if self._channel is None:
+            LOGGER.error('No channel - connection channel is None')
 
-    encoded_data = None
-
-    # XXX This XML part is broken because self._xml_handler is never set; _message_handler is.
-    if self._format_options == "XML":
+    def publish(self, route_key, msg):
         try:
-            xmlRoot = self._xml_handler.encodeXML(msg)
-            valid = self._xml_handler.validate(xmlRoot)
-            if valid: 
-                encoded_data = self._xml_handler.tostring(xmlRoot)
-            else: 
-                raise L1MessageError("Message is invalid XML.")
-        except L1MessageError as e:
-            raise L1MessageError("Message is invalid XML.")
-    else: 
+            self._channel.basic_publish(exchange=self.EXCHANGE, routing_key=route_key, body=msg)
+        except pika.exceptions.ConnectionClosed:
+            LOGGER.critical("Connection timed out. Reconnected and republish message")
+            self.connect()
+            self.publish(route_key, msg)
+
+    def close(self):
+        self._channel.close()
+        self._connection.close()
+        self._connection = None
+        self._channel = None
+
+    def publish_message(self, route_key, msg):
+
+        encoded_data = None
+
         # YAML
         encoded_data = self._message_handler.encode_message(msg)
 
-    LOGGER.debug ("Sending msg to %s", route_key)
+        LOGGER.debug("Sending msg to %s", route_key)
 
-    if self._channel == None or self._channel.is_closed == True:
-       try:
-         self.connect()
-       except AMQPError as e:
-         LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
-         sys.exit(105)
+        if self._channel is None or self._channel.is_closed is True:
+            try:
+                self.connect()
+            except AMQPError:
+                LOGGER.critical('Unable to create connection to rabbit server. Heading for exit...')
+                sys.exit(105)
 
-    self.publish(route_key, encoded_data)
+        self.publish(route_key, encoded_data)

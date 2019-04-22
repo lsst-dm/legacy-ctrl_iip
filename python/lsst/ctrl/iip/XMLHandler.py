@@ -103,7 +103,8 @@ class XMLHandler:
         pydict = {}
         message = rootNode.find("message")
         xmlDict = self.recursive_decodeXML(rootNode, pydict)
-        xmlDict["message"]["MSG_TYPE"] = next(val for kee, val in message.attrib.items() if kee.startswith("MSG_TYPE"))
+        xmlDict["message"]["MSG_TYPE"] = \
+            next(val for kee, val in message.attrib.items() if kee.startswith("MSG_TYPE"))
         return xmlDict["message"]
 
     def recursive_decodeXML(self, rootnode, msgDict):
