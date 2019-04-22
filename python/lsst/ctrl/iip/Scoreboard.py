@@ -20,8 +20,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
 from lsst.ctrl.iip.toolsmod import L1Error
+from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
 from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 import logging
 

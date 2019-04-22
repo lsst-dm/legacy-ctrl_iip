@@ -33,7 +33,6 @@ from threading import ThreadError
 from lsst.ctrl.iip.const import FAULT
 from lsst.ctrl.iip.const import BASE_BROKER_ADDR
 from lsst.ctrl.iip.const import ROOT
-from lsst.ctrl.iip.const import L1ConsumerError
 from lsst.ctrl.iip.const import MSG_TYPE
 from lsst.ctrl.iip.const import ACK_ID
 from lsst.ctrl.iip.const import IMAGE_ID
@@ -43,6 +42,7 @@ from lsst.ctrl.iip.AckScoreboard import AckScoreboard
 from lsst.ctrl.iip.StateScoreboard import StateScoreboard
 from lsst.ctrl.iip.BacklogScoreboard import BacklogScoreboard
 from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
+from lsst.ctrl.iip.toolsmod import L1ConsumerError
 from lsst.ctrl.iip.toolsmod import L1Error
 from lsst.ctrl.iip.toolsmod import L1RedisError
 from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
