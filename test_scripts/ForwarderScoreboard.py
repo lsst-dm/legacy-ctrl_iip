@@ -1,4 +1,4 @@
-from Scoreboard import Scoreboard
+from lsst.ctrl.iip.Scoreboard import Scoreboard
 import redis
 import sys
 import yaml

@@ -1,7 +1,7 @@
 from const import ROOT
 import toolsmod
-from Consumer import Consumer
-from SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.Consumer import Consumer
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 import logging
 import _thread
 
