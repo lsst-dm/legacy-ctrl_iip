@@ -1,17 +1,14 @@
-import sys
-sys.path.append('../python/lsst/iip')
 import toolsmod
 import time
-from SimplePublisher import SimplePublisher
-from Consumer import Consumer
-from AuxDevice import AuxDevice
+from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 
-# TODO: gonna be lsst unitTest
+
 class AuxDeviceTestCase():
     AUX_ACK_QUEUE = 'at_foreman_ack_publish'
     DMCS_PUBLISH_QUEUE = 'at_foreman_consume'
     DMCS_ACK_QUEUE = 'dmcs_ack_consume'
     ARCHIVE_PUBLISH_QUEUE = 'archive_ctrl_publish'
+    # FIXME: load from standard configuration area
     CFG_FILE = '../etc/config/L1SystemCfg_Test.yaml'
     FORWARDER = 'FORWARDER_99'
     ARCHIVE_CTRL = 'ARCHIVE_CTRL'
@@ -21,37 +18,37 @@ class AuxDeviceTestCase():
     IMAGE_INDEX = 0
     IMAGE_SEQUENCE_NAME = 'seq_1000'
     IMAGES_IN_SEQUENCE = 1
-    
+
     def setUp(self):
-        # read CFG file 
+        # read CFG file
         self._cfg_root = toolsmod.intake_yaml_file(self.CFG_FILE)['ROOT']
 
-        # setup forwarder publisher 
+        # setup forwarder publisher
         self._fwdr_cfg = self._cfg_root['XFER_COMPONENTS']['AUX_FORWARDERS'][self.FORWARDER]
-        self._fwdr_amqp = 'amqp://' + \
-                self._fwdr_cfg['NAME'] + ':' + \
-                self._fwdr_cfg['NAME'] + '@' + \
-                self._cfg_root['BASE_BROKER_ADDR']
+        # FIXME: change to using iip_cred.yaml
+        self._fwdr_amqp = 'amqp://%s:%s@%s' % (self._fwdr_cfg['NAME'],
+                                               self._fwdr_cfg['NAME'],
+                                               self._cfg_root['BASE_BROKER_ADDR'])
         self._fwdr_publisher = SimplePublisher(self._fwdr_amqp, 'YAML')
 
         # setup dmcs publisher
-        self._dmcs_amqp = 'amqp://' + \
-                self._cfg_root['DMCS_BROKER_PUB_NAME'] + ':' + \
-                self._cfg_root['DMCS_BROKER_PUB_PASSWD'] + '@' + \
-                self._cfg_root['BASE_BROKER_ADDR']
+        # FIXME: change to using iip_cred.yaml
+        self._dmcs_amqp = 'amqp://%s:%s@%s' % (self._cfg_root['DMCS_BROKER_PUB_NAME'],
+                                               self._cfg_root['DMCS_BROKER_PUB_PASSWD'],
+                                               self._cfg_root['BASE_BROKER_ADDR'])
         self._dmcs_publisher = SimplePublisher(self._dmcs_amqp, 'YAML')
 
         # setup archiveController publisher
-        self._at_ctrl_amqp = 'amqp://' + \
-                self._cfg_root['ARCHIVE_BROKER_PUB_NAME'] + ':' + \
-                self._cfg_root['ARCHIVE_BROKER_PUB_PASSWD'] + '@' + \
-                self._cfg_root['BASE_BROKER_ADDR']
+        # FIXME: change to using iip_cred.yaml
+        self._at_ctrl_amqp = 'amqp://%s:%s@%s' % (self._cfg_root['ARCHIVE_BROKER_PUB_NAME'],
+                                                  self._cfg_root['ARCHIVE_BROKER_PUB_PASSWD'],
+                                                  self._cfg_root['BASE_BROKER_ADDR'])
         self._at_ctrl_publisher = SimplePublisher(self._at_ctrl_amqp, 'YAML')
 
     def tearDown(self):
-        pass 
+        pass
 
-    def test_at_start_integration(self): 
+    def test_at_start_integration(self):
         msg = {}
         msg['MSG_TYPE'] = 'AT_START_INTEGRATION'
         msg['JOB_NUM'] = 'job_6'
@@ -66,15 +63,15 @@ class AuxDeviceTestCase():
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
         self._dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
 
-    def test_at_new_session(self): 
-        msg = {} 
+    def test_at_new_session(self):
+        msg = {}
         msg['MSG_TYPE'] = 'AT_NEW_SESSION'
         msg['SESSION_ID'] = self.SESSION_ID
         msg['REPLY_QUEUE'] = self.DMCS_ACK_QUEUE
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
         self._dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
 
-    def test_at_fwdr_health_check_ack(self): 
+    def test_at_fwdr_health_check_ack(self):
         msg = {}
         msg['MSG_TYPE'] = 'AT_FWDR_HEALTH_CHECK_ACK'
         msg['ACK_BOOL'] = 'True'
@@ -92,7 +89,7 @@ class AuxDeviceTestCase():
 
     def test_at_fwdr_end_readout_ack(self):
         # Currently not used
-        msg = {} 
+        msg = {}
         msg['MSG_TYPE'] = 'AT_FWDR_END_READOUT_ACK'
         msg['COMPONENT'] = self.FORWARDER
         msg['JOB_NUM'] = self.JOB_NUM
@@ -100,28 +97,28 @@ class AuxDeviceTestCase():
         msg['IMAGE_ID'] = self.IMAGE_ID
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_101'
         msg['ACK_BOOL'] = 'True'
-        result_set = {} 
+        result_set = {}
         result_set['FILENAME_LIST'] = 'xxx'
         result_set['CHECKSUM_LIST'] = 'csum1lk123lkj'
         msg['RESULT_SET'] = result_set
         self._fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
-
     def test_at_items_xferd_ack(self):
         # Currently not used
+        msg = {}
         msg['MSG_TYPE'] = 'AT_ITEMS_XFERD_ACK'
         msg['COMPONENT'] = self.ARCHIVE_CTRL
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
         msg['ACK_BOOL'] = True
         msg['REPLY_QUEUE'] = self.AUX_ACK_QUEUE
-        result_set = {} 
+        result_set = {}
         result_set['RECEIPT_LIST'] = ['receipt1']
         result_set['FILENAME_LIST'] = ['file1']
         msg['RESULT_SET'] = result_set
         self._at_ctrl_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
     def test_at_header_ready(self):
-        msg = {} 
+        msg = {}
         msg['MSG_TYPE'] = 'AT_HEADER_READY'
         msg['IMAGE_ID'] = 'IMG_100'
         msg['FILENAME'] = 'http://141.142.238.177:8000/AT_O_20190312_000007.header'
@@ -130,7 +127,7 @@ class AuxDeviceTestCase():
         self._dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
 
     def test_at_fwdr_header_ready_ack(self):
-        msg = {} 
+        msg = {}
         msg['MSG_TYPE'] = 'AT_FWDR_HEADER_READY_ACK'
         msg['COMPONENT'] = self.FORWARDER
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
@@ -138,11 +135,11 @@ class AuxDeviceTestCase():
         self._fwdr_publisher.publish_message(self.AUX_ACK_QUEUE, msg)
 
     def test_new_archive_item_ack(self):
-        # don't think this is used 
+        # don't think this is used
         pass
 
     def test_new_ar_archive_item_ack(self):
-        # don't think this is used 
+        # don't think this is used
         pass
 
     def test_new_at_archive_item_ack(self):
@@ -157,7 +154,7 @@ class AuxDeviceTestCase():
         self._at_ctrl_publisher.publish_message(self.ARCHIVE_PUBLISH_QUEUE, msg)
 
     def test_at_end_readout(self):
-        msg = {} 
+        msg = {}
         msg['MSG_TYPE'] = 'AT_END_READOUT'
         msg['JOB_NUM'] = self.JOB_NUM
         msg['IMAGE_ID'] = self.IMAGE_ID
@@ -169,17 +166,17 @@ class AuxDeviceTestCase():
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_100'
         self._dmcs_publisher.publish_message(self.DMCS_PUBLISH_QUEUE, msg)
 
-    def run(self): 
+    def run(self):
         self.setUp()
         time.sleep(5)
         print('[x] Finished setting up publishers.')
 
-        self.test_at_new_session() 
+        self.test_at_new_session()
         time.sleep(5)
         print('[x] Finished setting up new session. Ready to receive params')
-    
+
         print('[x] DMCS sending start integration to Aux')
-        self.test_at_start_integration() 
+        self.test_at_start_integration()
         time.sleep(5)
 
         print('[x] Aux: Checking if there are healthy forwarders')
@@ -191,7 +188,7 @@ class AuxDeviceTestCase():
         self.test_new_at_archive_item_ack()
         time.sleep(5)
         print('[x] Received ack from ArchiveController')
-        
+
         print('[x] Aux: Sending parameters for file transfer to Forwarder')
         self.test_at_fwdr_xfer_params_ack()
         time.sleep(5)
@@ -206,15 +203,14 @@ class AuxDeviceTestCase():
         time.sleep(5)
         print('[x] Received header ready ack from Forwarder')
 
-        print('[x] DMCS sending end readout to Aux') 
+        print('[x] DMCS sending end readout to Aux')
         self.test_at_end_readout()
         time.sleep(5)
         print('[DONE] Sender testing complete')
 
         self.tearDown()
 
-def main(): 
+
+if __name__ == '__main__':
     auxTest = AuxDeviceTestCase()
     auxTest.run()
-
-if __name__ == '__main__': main()

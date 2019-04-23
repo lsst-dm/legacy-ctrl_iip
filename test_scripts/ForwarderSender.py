@@ -1,8 +1,8 @@
 import time
 from Sender import Sender
 
-class ForwarderSender(Sender):
 
+class ForwarderSender(Sender):
 
     def __init__(self, filename, timer):
         Sender.__init__(self, filename)
@@ -12,7 +12,7 @@ class ForwarderSender(Sender):
             ('1', 'n'): self.run_oneFwdr_manyImages
         }
 
-        if timer is None: 
+        if timer is None:
             self._timer = int(self.get_timer())
         else:
             self._timer = int(timer)
@@ -25,7 +25,7 @@ class ForwarderSender(Sender):
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_ACK_test'
         self._aux_publisher.publish_message(fwdr['CONSUME_QUEUE'], msg)
 
-    def send_xfer_params(self, target_location, fwdr, image, raft_list, ccd_list): 
+    def send_xfer_params(self, target_location, fwdr, image, raft_list, ccd_list):
         msg = {}
         msg['MSG_TYPE'] = 'AT_FWDR_XFER_PARAMS'
         msg['SESSION_ID'] = self._session_id
@@ -55,13 +55,13 @@ class ForwarderSender(Sender):
         self._aux_publisher.publish_message(fwdr['CONSUME_QUEUE'], msg)
 
     def send_header_ready(self, fwdr, image):
-        msg = {} 
+        msg = {}
         msg['MSG_TYPE'] = 'AT_FWDR_HEADER_READY'
         msg['FILENAME'] = self.get_header_file()
         msg['IMAGE_ID'] = image['IMAGE_ID']
         msg['ACK_ID'] = msg['MSG_TYPE'] + '_ACK_test'
         msg['REPLY_QUEUE'] = fwdr['PUBLISH_QUEUE']
-        self._aux_publisher.publish_message(fwdr['CONSUME_QUEUE'], msg) 
+        self._aux_publisher.publish_message(fwdr['CONSUME_QUEUE'], msg)
 
     def run_sequence(self, target_location, fwdr, image, raft, ccd):
         self.send_health_check(fwdr)
@@ -88,7 +88,7 @@ class ForwarderSender(Sender):
         target_location = self.get_target_location(device)
         image = self.get_single_image()
         self.run_sequence(target_location, fwdr, image, raft_list, ccd_list)
-        
+
     def run_oneFwdr_manyImages(self, device):
         fwdr = self.get_single_forwarder()
         raft_list, ccd_list = self.get_partition(device)

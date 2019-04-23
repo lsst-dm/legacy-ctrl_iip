@@ -1,5 +1,7 @@
-import sys, getopt
+import getopt
+import sys
 from ForwarderSender import ForwarderSender
+
 
 def usage():
     print('USAGE:')
@@ -15,7 +17,8 @@ def usage():
     print('CAMERA:')
     print('    * AT')
 
-def main():
+
+if __name__ == "__main__":
     config = None
     timer = None
     forwarder = None
@@ -23,9 +26,9 @@ def main():
     devices = ['fwdr']
     cameras = ['AT']
 
-    try: 
+    try:
         opts, args = getopt.getopt(sys.argv[1:], 'h:', [
-            'config=', 
+            'config=',
             'tucson',
             'ncsa',
             'timer=',
@@ -65,5 +68,3 @@ def main():
 
     fwdr = ForwarderSender(config, timer)
     fwdr.run((forwarder, image), args[1])
-    
-if __name__ == "__main__": main()
