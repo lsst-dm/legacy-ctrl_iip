@@ -21,7 +21,7 @@
 
 
 import pika
-from pike.exceptions import AMQPError
+from pika.exceptions import AMQPError
 import logging
 import sys
 from lsst.ctrl.iip.XMLHandler import XMLHandler
