@@ -21,6 +21,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <chrono>
+#include <thread>
 #include <iostream> 
 #include <sstream> 
 #include <pthread.h>
@@ -618,11 +620,9 @@ string CommandListener::get_device(string name) {
 
 int main() { 
     CommandListener cmd; 
-    usleep(10000000); 
-    /**
     while (1) { 
-
+    
+        this_thread::sleep_for(chrono::milliseconds(1));
     } 
-    */
     return 0; 
 } 

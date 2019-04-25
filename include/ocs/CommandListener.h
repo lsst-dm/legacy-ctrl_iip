@@ -7,6 +7,7 @@
 #include "ccpp_sal_CatchupArchiver.h"
 #include "ccpp_sal_PromptProcessing.h" 
 #include "ccpp_sal_ATArchiver.h"
+#include "SimplePublisher.h"
 
 extern int next_timed_ack_id; 
 /** CommandListener listens to messages from OCS Bridge. It is a child class of a class called

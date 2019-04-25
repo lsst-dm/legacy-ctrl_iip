@@ -1,3 +1,3 @@
 #! /bin/bash
-source /opt/sal/ts_sal/setup.env
+source $L1_INSTALL_PATH/bin/setup.env
 ./EventSubscriber

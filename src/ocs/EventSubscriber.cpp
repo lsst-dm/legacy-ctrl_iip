@@ -33,10 +33,10 @@
 #include "ccpp_sal_MTCamera.h"
 #include "ccpp_sal_ATCamera.h"
 #include "ccpp_sal_EFD.h"
-#include "os.h"
 
 #include "EventSubscriber.h"
 #include "Toolsmod.h"
+#include "SimplePublisher.h"
 
 BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
 #include "IIPMacro.h"
@@ -398,7 +398,7 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
         if (status == SAL__OK) { 
             string device = SALInstance.generator; 
             string msg_type; 
-            if (device == "atHeaderService") { 
+            if (device == "ATHeaderService") { 
                 LOG_DBG << "=== Event AuxTel HeaderService received = ";
                 msg_type = "DMCS_AT_HEADER_READY"; 
             } 
