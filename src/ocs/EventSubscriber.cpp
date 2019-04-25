@@ -77,8 +77,8 @@ void EventSubscriber::setup_events_listeners() {
     string user, passwd, base_addr, publishq;
     try { 
         ocs = this->config_root["OCS"];
-        user = ocs["OCS_NAME"].as<string>();
-        passwd = ocs["OCS_PASSWD"].as<string>();
+        user = this->credentials->get_user("service_user");
+        passwd = this->credentials->get_user("service_passwd");
 	base_addr = this->config_root["BASE_BROKER_ADDR"].as<string>(); 
         publishq = this->config_root["OCS"]["OCS_PUBLISH"].as<string>(); 
     }

@@ -38,6 +38,8 @@ IIPBase::IIPBase(string configfilename, string logfilename) {
     // Read config file
     this->config_root = load_config_file(configfilename);
     init_log(this->get_log_filepath(), logfilename);
+
+    this->credentials = new Credentials("iip_cred.yaml");
     LOG_DBG << "Base constructor complete";
 }
 

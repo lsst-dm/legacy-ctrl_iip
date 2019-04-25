@@ -24,11 +24,13 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 #include "SimpleLogger.h"
+#include "Credentials.h"
 
 class IIPBase {
     public:
         char *iip_config_dir, *iip_log_dir, *ctrl_iip_dir;
         YAML::Node config_root;
+        Credentials *credentials;
 
         IIPBase(std::string, std::string);
         std::string get_log_filepath();
