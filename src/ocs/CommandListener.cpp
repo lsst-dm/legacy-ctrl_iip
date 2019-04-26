@@ -618,11 +618,9 @@ string CommandListener::get_device(string name) {
 
 int main() { 
     CommandListener cmd; 
-    usleep(10000000); 
-    /**
     while (1) { 
-
+    
+        sleep(5);
     } 
-    */
     return 0; 
 } 
