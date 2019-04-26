@@ -22,8 +22,8 @@ LDPATH      	= -L$(L1_LIB_PATH)/lib \
 		  -L$(OSPL_HOME)/lib \
 		  $(SAL_LDPATH)
 L1_LIB         	= -lpthread -lyaml-cpp -lSimpleAmqpClient \
-                  -lboost_log -lboost_system -lboost_thread
-L1_OBJ         	= ../obj/IIPBase.o ../obj/SimpleLogger.o ../obj/SimplePublisher.o ../obj/Toolsmod.o ../obj/Consumer.o
+                  -lboost_log -lboost_system -lboost_filesystem -lboost_thread
+L1_OBJ         	= ../obj/IIPBase.o ../obj/SimpleLogger.o ../obj/SimplePublisher.o ../obj/Toolsmod.o ../obj/Consumer.o ../obj/Credentials.o
 OBJ_DIR        	= ../obj
 BIN_DIR	       	= ../../bin
 EXE		= CommandListener EventSubscriber AckSubscriber
