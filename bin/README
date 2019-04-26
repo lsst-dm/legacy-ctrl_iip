@@ -1,3 +1,5 @@
+Please run $CTRL_IIP_DIR/bin/setup.env to setup SAL environment before running the applications.
+
 -- Test Scripts --
 The run_overnight.sh script runs the overnight_demo.sh n the background as a NOHUP
 with stdout and stderr sent to /dev/null
