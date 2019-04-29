@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -23,9 +23,8 @@
 from Scoreboard import Scoreboard
 import redis
 import sys
-import yaml
 import logging
-from lsst.ctrl.iip.const import * 
+from lsst.ctrl.iip.toolsmod import L1RedisError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -35,11 +34,10 @@ class IncrScoreboard(Scoreboard):
     PUBLISH_QUEUE = 'forwarder_publish'
     DB_TYPE = ""
     DB_INSTANCE = None
-    SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM' 
-    JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM' 
-    ACK_SEQUENCE_NUM = 'ACK_SEQUENCE_NUM' 
-    RECEIPT_SEQUENCE_NUM = 'RECEIPT_SEQUENCE_NUM' 
-  
+    SESSION_SEQUENCE_NUM = 'SESSION_SEQUENCE_NUM'
+    JOB_SEQUENCE_NUM = 'JOB_SEQUENCE_NUM'
+    ACK_SEQUENCE_NUM = 'ACK_SEQUENCE_NUM'
+    RECEIPT_SEQUENCE_NUM = 'RECEIPT_SEQUENCE_NUM'
 
     def __init__(self, db_type, db_instance, cred, cdm):
         super().__init__(cred, cdm)
@@ -47,8 +45,8 @@ class IncrScoreboard(Scoreboard):
         self.DB_TYPE = db_type
         self.DB_INSTANCE = db_instance
         self._redis = self.connect()
-        #Do NOT do this...in order to save sequence numbers between restarts
-        #self._redis.flushdb()
+        # Do NOT do this...in order to save sequence numbers between restarts
+        # self._redis.flushdb()
 
         # FIX Test that incrementable vals already exist - else set them to 100, or some such...
         if not (self._redis.exists(self.SESSION_SEQUENCE_NUM)):
@@ -59,15 +57,13 @@ class IncrScoreboard(Scoreboard):
             self._redis.set(self.ACK_SEQUENCE_NUM, 1)
         if not (self._redis.exists(self.RECEIPT_SEQUENCE_NUM)):
             self._redis.set(self.RECEIPT_SEQUENCE_NUM, 100)
-    
-
 
     def connect(self):
-        #pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
-        #return redis.Redis(connection_pool=pool)
+        # pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
+        # return redis.Redis(connection_pool=pool)
         try:
-            sconn = redis.StrictRedis(host='localhost',port='6379', \
-                                      charset='utf-8', db=self.DB_INSTANCE, \
+            sconn = redis.StrictRedis(host='localhost', port='6379',
+                                      charset='utf-8', db=self.DB_INSTANCE,
                                       decode_responses=True)
             sconn.ping()
             LOGGER.info("Redis connected. Connection details are: %s", sconn)
@@ -77,12 +73,11 @@ class IncrScoreboard(Scoreboard):
             LOGGER.critical("Exiting due to Redis connection failure.")
             sys.exit(100)
 
-
     def check_connection(self):
         ok_flag = False
-        for i in range (1,4):
+        for i in range(1, 4):
             try:
-                #response = self._redis.client_list()
+                # response = self._redis.client_list()
                 response = self._redis.ping()
                 ok_flag = True
                 break
@@ -100,7 +95,6 @@ class IncrScoreboard(Scoreboard):
             raise L1RedisError
             return False
 
-
     def get_next_session_id(self):
         if self.check_connection():
             self._redis.incr(self.SESSION_SEQUENCE_NUM)
@@ -109,7 +103,6 @@ class IncrScoreboard(Scoreboard):
             return id
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
-
 
     def get_next_job_num(self, session):
         if self.check_connection():
@@ -138,22 +131,17 @@ class IncrScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to increment job number due to lack of redis connection')
 
-
-    ##########################################
-    ## These methods that add arbitrary values 
-    ## to the sequence nums are for start up
-    ## in case dump.rdb missed an increment
-    ########################################### 
+    # These methods that add arbitrary values
+    # to the sequence nums are for start up
+    # in case dump.rdb missed an increment
 
     def add_to_session_id(self, val):
         if self.check_connection():
             session_id = self._redis.get(self.SESSION_SEQUENCE_NUM)
-            new_session_id = int(session_id) + val 
+            new_session_id = int(session_id) + val
             self._redis.set(self.SESSION_SEQUENCE_NUM, new_session_id)
         else:
             LOGGER.error('Unable to add to session_id due to lack of redis connection')
-
-
 
     def add_to_job_num(self, val):
         if self.check_connection():
@@ -163,26 +151,21 @@ class IncrScoreboard(Scoreboard):
         else:
             LOGGER.error('Unable to add to job number due to lack of redis connection')
 
-
     def add_to_next_timed_ack_id(self, val):
         if self.check_connection():
             ack_id = self._redis.get(self.ACK_SEQUENCE_NUM)
-            new_ack_id = int(ack_id) + val 
+            new_ack_id = int(ack_id) + val
             self._redis.set(self.ACK_SEQUENCE_NUM, new_ack_id)
         else:
             LOGGER.error('Unable to add to ack_id due to lack of redis connection')
 
-
-
     def add_to_next_receipt_id(self, val):
         if self.check_connection():
             receipt_id = self._redis.get(self.RECEIPT_SEQUENCE_NUM)
-            new_receipt_id = int(receipt_id) + val 
+            new_receipt_id = int(receipt_id) + val
             self._redis.set(self.RECEIPT_SEQUENCE_NUM, new_receipt_id)
         else:
             LOGGER.error('Unable to add to receipt_id due to lack of redis connection')
-
-
 
     def print_all(self):
         all_forwarders = self.return_forwarders_list()
@@ -190,7 +173,3 @@ class IncrScoreboard(Scoreboard):
             print(forwarder)
             print(self._redis.hgetall(forwarder))
         print("--------Finished In print_all--------")
-
-
-
-

@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -25,9 +25,9 @@ import logging
 from time import sleep
 from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
-from copy import deepcopy
 
 LOGGER = logging.getLogger(__name__)
+
 
 class ThreadManager(threading.Thread):
 
@@ -38,7 +38,7 @@ class ThreadManager(threading.Thread):
             self.params = params
 
     def __init__(self, name, shutdown_event):
-        threading.Thread.__init__(self, group=None, target=None, name=name) 
+        threading.Thread.__init__(self, group=None, target=None, name=name)
         self.registered_threads_info = {}
         self.running_threads = {}
         self.paired_name = {}
@@ -64,7 +64,7 @@ class ThreadManager(threading.Thread):
 
             publisher_thread = self.create_publisher_thread(params)
             self.running_threads[publisher_name] = publisher_thread
-        
+
         consumer_name = params['name']
         thread_info = self.ThreadInfo(consumer_name, "consumer", params)
         self.registered_threads_info[consumer_name] = thread_info
@@ -89,7 +89,7 @@ class ThreadManager(threading.Thread):
 
         publisher_thread = self.create_publisher_thread(params)
         self.running_threads[publisher_name] = publisher_thread
- 
+
         main_thread_name = threading.main_thread().getName()
         self.paired_name[main_thread_name] = publisher_name
         self.lock.release()
@@ -105,7 +105,7 @@ class ThreadManager(threading.Thread):
         LOGGER.info('starting Consumer %s' % consumer_name)
         new_thread = Consumer(url, q, consumer_name, callback, dataformat)
         new_thread.start()
-        sleep(1) # XXX
+        sleep(1)  # XXX
         return new_thread
 
     def create_publisher_thread(self, params):
@@ -123,7 +123,6 @@ class ThreadManager(threading.Thread):
         thr = self.running_threads[publisher_name]
         self.lock.release()
         return thr
-        
 
     def get_thread_by_name(self, name):
         self.lock.aquire()
@@ -135,34 +134,33 @@ class ThreadManager(threading.Thread):
         # Time for threads to start and quiesce
         sleep(2)
         while 1:
-            # self.get_next_backlog_item() 
+            # self.get_next_backlog_item()
             if self.shutdown_event.isSet():
                 return
             sleep(1)
             self.check_thread_health()
-            # self.resolve_non-blocking_acks() 
+            # self.resolve_non-blocking_acks()
 
     def check_thread_health(self):
         self.lock.acquire()
-        
+
         for (cur_name, cur_thread) in list(self.running_threads.items()):
             if cur_thread.is_alive():
                 continue
             else:
                 dead_thread_name = cur_thread.name
                 del self.running_threads[cur_name]
-                ### Restart thread...
+                # Restart thread...
                 if self.shutdown_event.isSet() is False:
-                        LOGGER.critical("Thread with name %s has died. Attempting to restart..." % dead_thread_name)
-                        thread_info = self.registered_threads_info[dead_thread_name]
-                        if thread_info.thread_type == "consumer":
-                            new_consumer = self.create_consumer_thread(thread_info.params)
-                            self.running_threads[dead_thread_name] = new_consumer
-                        else:
-                            new_publisher = self.create_publisher_thread(thread_info.params)
-                            self.running_threads[dead_thread_name] = new_publisher
+                    LOGGER.critical("Thread with name %s has died. Restarting..." % dead_thread_name)
+                    thread_info = self.registered_threads_info[dead_thread_name]
+                    if thread_info.thread_type == "consumer":
+                        new_consumer = self.create_consumer_thread(thread_info.params)
+                        self.running_threads[dead_thread_name] = new_consumer
+                    else:
+                        new_publisher = self.create_publisher_thread(thread_info.params)
+                        self.running_threads[dead_thread_name] = new_publisher
         self.lock.release()
-
 
     def shutdown_threads(self):
         self.lock.acquire()
@@ -179,4 +177,3 @@ class ThreadManager(threading.Thread):
 
     def run(self):
         self.start_background_loop()
-

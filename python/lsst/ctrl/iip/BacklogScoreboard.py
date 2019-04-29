@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -21,33 +21,28 @@
 
 
 import redis
-from lsst.ctrl.iip.toolsmod import get_timestamp
-from lsst.ctrl.iip.toolsmod import get_epoch_timestamp
-from lsst.ctrl.iip.toolsmod import L1RedisError
-from lsst.ctrl.iip.toolsmod import L1RabbitConnectionError
-import yaml
 import logging
-import time
+from lsst.ctrl.iip.toolsmod import get_epoch_timestamp
+from lsst.ctrl.iip.toolsmod import L1Error
+from lsst.ctrl.iip.toolsmod import L1RedisError
 from lsst.ctrl.iip.Scoreboard import Scoreboard
-from lsst.ctrl.iip.const import *
 
 LOGGER = logging.getLogger(__name__)
 
 
-########################################################
-## This Scoreboard keeps track of jobs or partial jobs
-## that must be done. Backlog job items might be added
-## because one or more CCDs were dropped during transfer
-## or perhaps the Long Haul Network is down and jobs
-## are queued in this scoreboard for transfer later.
-## Finally, during the night, archiving may fall behind
-## so archive jobs are added to the backlog scoreboard.
-## A policy module will be used to determine how
-## backlog jobs are sorted and the next job is
-## chosen.
-
-
 class BacklogScoreboard(Scoreboard):
+    """
+    This Scoreboard keeps track of jobs or partial jobs
+    that must be done. Backlog job items might be added
+    because one or more CCDs were dropped during transfer
+    or perhaps the Long Haul Network is down and jobs
+    are queued in this scoreboard for transfer later.
+    Finally, during the night, archiving may fall behind
+    so archive jobs are added to the backlog scoreboard.
+    A policy module will be used to determine how
+    backlog jobs are sorted and the next job is chosen.
+    """
+
     JOBS = 'JOBS'
     SESSIONS = 'SESSIONS'
     VISITS = 'VISITS'
@@ -56,7 +51,6 @@ class BacklogScoreboard(Scoreboard):
     STATUS = 'STATUS'
     SUB_TYPE = 'SUB_TYPE'
     DB_TYPE = ""
-  
 
     def __init__(self, db_type, db_instance, cred, cdm):
         super().__init__(cred, cdm)
@@ -67,22 +61,19 @@ class BacklogScoreboard(Scoreboard):
         try:
             self._redis = self.connect()
         except L1RedisError as e:
-            LOGGER.error("Cannot make connection to Redis:  " , e)  
+            LOGGER.error("Cannot make connection to Redis:  ", e)
             print("No Redis for YOU")
             raise L1Error('Calling redis connect in StateScoreboard init caused:  ', e.arg)
 
         self._redis.flushdb()
 
-
-
     def connect(self):
         pool = redis.ConnectionPool(host='localhost', port=6379, db=self.DB_INSTANCE)
-        return redis.Redis(connection_pool=pool) 
-
+        return redis.Redis(connection_pool=pool)
 
     def check_connection(self):
         ok_flag = False
-        for i in range (1,4):
+        for i in range(1, 4):
             try:
                 response = self._redis.client_list()
                 ok_flag = True
@@ -96,12 +87,10 @@ class BacklogScoreboard(Scoreboard):
             else:
                 LOGGER.info('In add_job, had to reconnect to Redis - all set now')
                 return True
-        else: 
+        else:
             LOGGER.info('In add_job, could not reconnect to Redis after 3 attempts')
             raise L1RedisError
             return False
-
-
 
     def add_job_to_backlog(self, params):
         # Params should include:
@@ -127,8 +116,6 @@ class BacklogScoreboard(Scoreboard):
 
     def get_waiting_time(self, job_num):
         pass
-
-
 
     def build_monitor_data(self, params):
         monitor_data = {}

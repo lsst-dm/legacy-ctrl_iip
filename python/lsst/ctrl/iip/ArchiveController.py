@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -19,27 +19,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
-import pika
 import os
 import os.path
 import hashlib
-import yaml
 import zlib
 import signal
-import string
-from lsst.ctrl.iip.const import *
-import lsst.ctrl.iip.toolsmod  
-from lsst.ctrl.iip.toolsmod import *
-from lsst.ctrl.iip.Credentials import Credentials
+import sys
+from lsst.ctrl.iip.const import ACK_BOOL
+from lsst.ctrl.iip.const import COMPONENT
+from lsst.ctrl.iip.const import MSG_TYPE
+from lsst.ctrl.iip.const import REPLY_QUEUE
+from lsst.ctrl.iip.const import ROOT
+from lsst.ctrl.iip.const import BASE_BROKER_ADDR
+from lsst.ctrl.iip.toolsmod import L1Error
+from lsst.ctrl.iip.toolsmod import L1MessageError
+from lsst.ctrl.iip.toolsmod import L1RedisError
+from lsst.ctrl.iip.toolsmod import get_epoch_timestamp
 from lsst.ctrl.iip.IncrScoreboard import IncrScoreboard
-import _thread
 import logging
 import datetime
 from lsst.ctrl.iip.iip_base import iip_base
 
-
 LOGGER = logging.getLogger(__name__)
+
 
 class ArchiveController(iip_base):
 
@@ -54,13 +56,9 @@ class ArchiveController(iip_base):
     def __init__(self, filename):
         super().__init__(filename, 'ArchiveController.log')
 
-        cred = self.getCredentials()
-        self.service_user = cred.getUser('service_user')
-        self.service_passwd = cred.getPasswd('service_passwd')
-
         self._session_id = None
         self._name = "ARCHIVE_CTRL"
-        
+
         cdm = self.getConfiguration()
         try:
             self._base_broker_addr = cdm[ROOT][BASE_BROKER_ADDR]
@@ -78,7 +76,7 @@ class ArchiveController(iip_base):
                 elif cdm[ROOT]['ARCHIVE']['CHECKSUM_TYPE'] == 'CRC32':
                     self.CHECKSUM_TYPE = 'CRC32'
                 else:
-                    self.CHECKSUM_ENABLED = False # if bad type, turn off csum's
+                    self.CHECKSUM_ENABLED = False  # if bad type, turn off csum's
             else:
                 self.CHECKSUM_ENABLED = False
         except KeyError as e:
@@ -93,26 +91,28 @@ class ArchiveController(iip_base):
         self._base_msg_format = self.YAML
 
         if 'BASE_MSG_FORMAT' in cdm[ROOT]:
-            self._base_msg_format = cdm[ROOT][BASE_MSG_FORMAT]
+            self._base_msg_format = cdm[ROOT]['BASE_MSG_FORMAT']
 
-        self._base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr) 
-        self._pub_base_broker_url = "amqp://%s:%s@%s" % (self.service_user, self.service_passwd, self._base_broker_addr) 
+        cred = self.getCredentials()
+        service_user = cred.getUser('service_user')
+        service_passwd = cred.getPasswd('service_passwd')
 
-        self._msg_actions = { 'ARCHIVE_HEALTH_CHECK': self.process_health_check,
-                              'NEW_AR_ARCHIVE_ITEM': self.process_new_ar_archive_item,
-                              'NEW_AT_ARCHIVE_ITEM': self.process_new_at_archive_item,
-                              'AR_ITEMS_XFERD': self.process_ar_transfer_complete,
-                              'AT_ITEMS_XFERD': self.process_at_transfer_complete }
+        self._base_broker_url = "amqp://%s:%s@%s" % (service_user, service_passwd, self._base_broker_addr)
+        self._pub_base_broker_url = "amqp://%s:%s@%s" % (service_user, service_passwd, self._base_broker_addr)
+
+        self._msg_actions = {'ARCHIVE_HEALTH_CHECK': self.process_health_check,
+                             'NEW_AR_ARCHIVE_ITEM': self.process_new_ar_archive_item,
+                             'NEW_AT_ARCHIVE_ITEM': self.process_new_at_archive_item,
+                             'AR_ITEMS_XFERD': self.process_ar_transfer_complete,
+                             'AT_ITEMS_XFERD': self.process_at_transfer_complete}
 
         # Set up Incr Scbd...
         try:
             LOGGER.info('Setting up Archive Incr Scoreboard')
             self.INCR_SCBD = IncrScoreboard('ARC_CTRL_RCPT_SCBD', self.incr_db_instance, cred, cdm)
         except L1RedisError as e:
-            LOGGER.error("DMCS unable to complete setup_scoreboards - " + \
-                         "No Redis connect: %s" % e.args)
-            print("DMCS unable to complete setup_scoreboards - No Redis connection: %s" % e.args)
-            ### FIXX - send Fault Instead...
+            LOGGER.error("DMCS unable to complete setup_scoreboards - No Redis connect: %s" % e.args)
+            # FIXX - send Fault Instead...
             sys.exit(self.ERROR_CODE_PREFIX + 12)
 
         self.setup_publisher()
@@ -121,9 +121,6 @@ class ArchiveController(iip_base):
     def setup_consumer(self):
         LOGGER.info('Setting up archive consumers')
         LOGGER.info('Running start_new_thread for archive consumer')
-
-        #self.shutdown_event = threading.Event() 
-        #self.shutdown_event.clear() 
 
         kws = {}
         md = {}
@@ -139,11 +136,9 @@ class ArchiveController(iip_base):
 
         self.add_thread_groups(kws)
 
-
     def setup_publisher(self):
         LOGGER.info('Setting up Archive publisher')
         self.setup_unpaired_publisher(self._pub_base_broker_url, "ArchiveController-Publisher")
-
 
     def on_archive_message(self, ch, method, properties, msg_dict):
         ch.basic_ack(method.delivery_tag)
@@ -151,32 +146,28 @@ class ArchiveController(iip_base):
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
 
-
     def process_health_check(self, params):
         """Input 'params' for this method is a dict made up of:
            :param str 'MESSAGE_TYPE' value  is 'ARCHIVE_HEALTH_CHECK'
-           :param str 'ACK_ID' value  is an alphanumeric string, with 
-               the numeric part a momotonically increasing sequence. 
-               This value is passed back to the foreman and used to keep 
+           :param str 'ACK_ID' value  is an alphanumeric string, with
+               the numeric part a momotonically increasing sequence.
+               This value is passed back to the foreman and used to keep
                track of acknowledgement time.
-           :param str 'SESSION_ID' Might be useful for the controller to 
+           :param str 'SESSION_ID' Might be useful for the controller to
                generate a target location for new items to be archived?
         """
-        #self.send_audit_message("received_", params)
+        # self.send_audit_message("received_", params)
         self.send_health_ack_response("ARCHIVE_HEALTH_CHECK_ACK", params)
-        
 
     def process_new_ar_archive_item(self, params):
-        #self.send_audit_message("received_", params)
+        # self.send_audit_message("received_", params)
         final_target_dir = self.construct_send_target_dir(self._archive_ar_xfer_root)
         self.send_new_item_ack(final_target_dir, params)
 
-
     def process_new_at_archive_item(self, params):
-        #self.send_audit_message("received_", params)
+        # self.send_audit_message("received_", params)
         final_target_dir = self.construct_send_target_dir(self._archive_at_xfer_root)
         self.send_new_item_ack(final_target_dir, params)
-
 
     def process_ar_transfer_complete(self, params):
         transfer_results = {}
@@ -185,20 +176,19 @@ class ArchiveController(iip_base):
         csums = params['RESULT_SET']['CHECKSUM_LIST']
         num_ccds = len(ccds)
         transfer_results = {}
-        RECEIPT_LIST = [] 
+        RECEIPT_LIST = []
         for i in range(0, num_ccds):
-            ccd = ccds[i]
+            ccd = ccds[i]  # XXX - never used
             pathway = fnames[i]
             csum = csums[i]
             transfer_result = self.check_transferred_file(pathway, csum)
-            if transfer_result == None:
+            if transfer_result is None:
                 RECEIPT_LIST.append('0')
             else:
-                RECEIPT_LIST.append(transfer_result) 
+                RECEIPT_LIST.append(transfer_result)
         transfer_results['CCD_LIST'] = ccds
         transfer_results['RECEIPT_LIST'] = RECEIPT_LIST
         self.send_transfer_complete_ack(transfer_results, params)
-
 
     def process_at_transfer_complete(self, params):
         transfer_results = {}
@@ -207,26 +197,25 @@ class ArchiveController(iip_base):
         csums = params['RESULT_SET']['CHECKSUM_LIST']
         num_ccds = len(ccds)
         transfer_results = {}
-        RECEIPT_LIST = [] 
+        RECEIPT_LIST = []
         for i in range(0, num_ccds):
-            ccd = ccds[i]
+            ccd = ccds[i]  # XXX - never used
             pathway = fnames[i]
             csum = csums[i]
             transfer_result = self.check_transferred_file(pathway, csum)
-            if transfer_result == None:
+            if transfer_result is None:
                 RECEIPT_LIST.append('0')
             else:
-                RECEIPT_LIST.append(transfer_result) 
+                RECEIPT_LIST.append(transfer_result)
         transfer_results['CCD_LIST'] = ccds
         transfer_results['RECEIPT_LIST'] = RECEIPT_LIST
         self.send_transfer_complete_ack(transfer_results, params)
 
-
     def check_transferred_file(self, pathway, csum):
         if not os.path.isfile(pathway):
-            return ('-1') # File doesn't exist
+            return ('-1')  # File doesn't exist
 
-        if self.CHECKSUM_ENABLED == True:
+        if self.CHECKSUM_ENABLED:
             if self.CHECKSUM_TYPE == 'MD5':
                 new_csum = self.calculate_md5(pathway)
                 if new_csum != csum:
@@ -243,7 +232,6 @@ class ArchiveController(iip_base):
 
         return self.next_receipt_number()
 
-
     def calculate_crc32(self, filename):
         new_crc32 = 0
         buffersize = 65536
@@ -255,9 +243,9 @@ class ArchiveController(iip_base):
                 while len(buffr) > 0:
                     crcvalue = zlib.crc32(buffr, crcvalue)
                     buffr = afile.read(buffersize)
-        except IOError as e:
-            LOGGER.critical("Unable to open file %s for CRC32 calculation. " + \
-                            "Returning zero receipt value" % filename )
+        except IOError:
+            LOGGER.critical("Unable to open file %s for CRC32 calculation. " +
+                            "Returning zero receipt value" % filename)
             return new_crc32
 
         new_crc32 = format(crcvalue & 0xFFFFFFFF, '08x').upper()
@@ -266,40 +254,35 @@ class ArchiveController(iip_base):
 
         return new_crc32
 
-
     def calculate_md5(self, filename):
         new_md5 = 0
         try:
             with open(filename) as file_to_calc:
                 data = file_to_calc.read()
                 new_md5 = hashlib.md5(data).hexdigest()
-        except IOError as e:
-            LOGGER.critical("Unable to open file %s for MD5 calculation. " +\
+        except IOError:
+            LOGGER.critical("Unable to open file %s for MD5 calculation. " +
                             "Returning zero receipt value" % filename)
             return new_md5
 
         LOGGER.debug("Returning newly calculated md5 value: " % new_md5)
-        print("Returning newly calculated md5 value: " % new_md5)
 
         return new_md5
-
 
     def next_receipt_number(self):
         current_receipt = self.INCR_SCBD.get_next_receipt_id()
         return current_receipt
 
-
     def send_health_ack_response(self, type, params):
-        try:
-            ack_id = params.get("ACK_ID")
-            self._current_session_id = params.get("SESSION_ID")
-        except:
-            if ack_id == None:
-                LOGGER.info('%s failed, missing ACK_ID field', type)
-                raise L1MessageError("Missing ACK_ID message param needed for send_ack_response")
-            else:
-                LOGGER.info('%s failed, missing SESSION_ID field', type)
-                raise L1MessageError("Missing SESSION_ID param needed for send_ack_response")
+        ack_id = params.get("ACK_ID")
+        if ack_id is None:
+            LOGGER.info('%s failed, missing ACK_ID field', type)
+            raise L1MessageError("Missing ACK_ID message param needed for send_ack_response")
+
+        self._current_session_id = params.get("SESSION_ID")
+        if self._current_session_id is None:
+            LOGGER.info('%s failed, missing SESSION_ID field', type)
+            raise L1MessageError("Missing SESSION_ID param needed for send_ack_response")
 
         msg_params = {}
         msg_params[MSG_TYPE] = type
@@ -309,15 +292,12 @@ class ArchiveController(iip_base):
         LOGGER.info('%s sent for ACK ID: %s', type, ack_id)
         self.publish_message(self.ACK_PUBLISH, msg_params)
 
-
     def send_audit_message(self, prefix, params):
         audit_params = {}
         audit_params['SUB_TYPE'] = str(prefix) + str(params['MSG_TYPE']) + "_msg"
         audit_params['DATA_TYPE'] = self._name
         audit_params['TIME'] = get_epoch_timestamp()
         self.publish_message(self.AUDIT_CONSUME, audit_params)
-
-
 
     def construct_send_target_dir(self, target_dir):
         today = datetime.datetime.now()
@@ -329,7 +309,7 @@ class ArchiveController(iip_base):
         # to both create and write to a specific directory.
         # The common group must be made the primary group for both users like this:
         # usermod -g ARCHIVE ATS_user
-        # and the sticky bit must be set when the group is created. 
+        # and the sticky bit must be set when the group is created.
         # chmod is called after creation to deal with system umask
         if os.path.isdir(final_target_dir):
             pass
@@ -338,7 +318,6 @@ class ArchiveController(iip_base):
             os.chmod(final_target_dir, 0o775)
 
         return final_target_dir
-
 
     def send_new_item_ack(self, target_dir, params):
         ack_params = {}
@@ -353,17 +332,15 @@ class ArchiveController(iip_base):
         ack_params['ACK_BOOL'] = True
         self.publish_message(reply_queue, ack_params)
 
-
     def send_transfer_complete_ack(self, transfer_results, params):
         ack_params = {}
         keez = list(params.keys())
         for kee in keez:
             if kee == 'MSG_TYPE' or kee == 'CCD_LIST':
                 continue
-            ### XXX FIXME Dump loop and just pull the correct values from the input params
+            # XXX FIXME Dump loop and just pull the correct values from the input params
             ack_params[kee] = params[kee]
 
-        
         ack_params['MSG_TYPE'] = 'AR_ITEMS_XFERD_ACK'
         ack_params['COMPONENT'] = self._name
         ack_params['ACK_ID'] = params['ACK_ID']
@@ -371,7 +348,6 @@ class ArchiveController(iip_base):
         ack_params['RESULTS'] = transfer_results
 
         self.publish_message(self.ACK_PUBLISH, ack_params)
-
 
 
 if __name__ == "__main__":

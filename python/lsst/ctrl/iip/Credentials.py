@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -26,15 +26,15 @@ import os.path
 import stat
 import sys
 import yaml
-from lsst.ctrl.iip.ThreadManager import ThreadManager
 
 LOGGER = logging.getLogger(__name__)
+
 
 class Credentials:
 
     def __init__(self, filename):
         self.cred = self.loadSecureFile(filename)
-    
+
     def getUser(self, user_alias):
         return self.cred['rabbitmq_users'][user_alias]
 
@@ -45,15 +45,15 @@ class Credentials:
         """load a secure YAML file"""
 
         home = os.environ["HOME"]
-        config_dir = os.path.join(home,".lsst")
+        config_dir = os.path.join(home, ".lsst")
         # check for the existence of the configuration directory
         if os.path.isdir(config_dir):
             stat_info = os.stat(config_dir)
             mode = stat_info.st_mode
-            
+
             # check that the permissions are set to rwx for only the user
             if (mode & (stat.S_IWOTH | stat.S_IWGRP | stat.S_IROTH | stat.S_IRGRP)):
-                msg = "directory '%s' is unsecure.  Run 'chmod 700 %s' to fix this." % (config_dir, config_dir)
+                msg = "directory '%s' is unsecure. Run 'chmod 700 %s'." % (config_dir, config_dir)
                 print(msg)
                 LOGGER.info(msg)
                 sys.exit(100)
@@ -64,7 +64,7 @@ class Credentials:
                 mode = stat_info.st_mode
                 # check that the credential file is set to rw for only the user
                 if (mode & (stat.S_IWOTH | stat.S_IWGRP | stat.S_IROTH | stat.S_IRGRP)):
-                    msg = "file '%s' is unsecure.  Run 'chmod 600 %s' to fix this." % (filename, filename)
+                    msg = "file '%s' is unsecure.  Run 'chmod 600 %s'." % (filename, filename)
                     print(msg)
                     LOGGER.info(msg)
                 else:

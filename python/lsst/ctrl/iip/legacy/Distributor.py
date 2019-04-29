@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -20,23 +20,40 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import pika
 from Scratchpad import Scratchpad
 from toolsmod import get_timestamp
 import yaml
 import sys
 import time
 import logging
-import os
 import subprocess
 import _thread
-from lsst.ctrl.iip.toolsmod import L1Error
-from lsst.ctrl.iip.const import *
+from lsst.ctrl.iip.const import ACK_BOOL
+from lsst.ctrl.iip.const import JOB_NUM
+from lsst.ctrl.iip.const import MSG_TYPE
+from lsst.ctrl.iip.const import NAME
+from lsst.ctrl.iip.const import TIMED_ACK
+from lsst.ctrl.iip.const import DISTRIBUTOR_JOB_PARAMS_ACK
+from lsst.ctrl.iip.const import DISTRIBUTOR_READOUT
+from lsst.ctrl.iip.const import DISTRIBUTOR_JOB_PARAMS
+from lsst.ctrl.iip.const import DISTRIBUTOR_HEALTH_CHECK
+from lsst.ctrl.iip.const import ROOT
+from lsst.ctrl.iip.const import PASSWD
+from lsst.ctrl.iip.const import FQN
+from lsst.ctrl.iip.const import NCSA_BROKER_ADDR
+from lsst.ctrl.iip.const import CONSUME_QUEUE
+from lsst.ctrl.iip.const import PUBLISH_QUEUE
+from lsst.ctrl.iip.const import HOSTNAME
+from lsst.ctrl.iip.const import IP_ADDR
+from lsst.ctrl.iip.const import TARGET_DIR
+from lsst.ctrl.iip.const import SENTINEL_FILE
+from lsst.ctrl.iip.const import TRANSFER_PARAMS
 from lsst.ctrl.iip.Consumer import Consumer
-from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 from lsst.ctrl.iip.iip_base import iip_base
 
 LOGGER = logging.getLogger(__name__)
+
 
 class Distributor(iip_base):
     """This is a basic Distributor class. The cadence of the file
@@ -81,13 +98,11 @@ class Distributor(iip_base):
             print("Bailing out...")
             sys.exit(99)
 
+        self._ncsa_broker_url = "amqp://%s:%s@%s" % (self._name, self._passwd, str(self._ncsa_broker_addr))
 
-        self._home_dir = "/home/" + self._name + "/"
-        self._ncsa_broker_url = "amqp://" + self._name + ":" + self._passwd + "@" + str(self._ncsa_broker_addr)
-
-        self._msg_actions = { DISTRIBUTOR_HEALTH_CHECK: self.process_health_check,
-                              DISTRIBUTOR_JOB_PARAMS: self.process_job_params,
-                              DISTRIBUTOR_READOUT: self.process_foreman_readout }
+        self._msg_actions = {DISTRIBUTOR_HEALTH_CHECK: self.process_health_check,
+                             DISTRIBUTOR_JOB_PARAMS: self.process_job_params,
+                             DISTRIBUTOR_READOUT: self.process_foreman_readout}
 
         self.setup_publishers()
         self.setup_consumers()
@@ -95,8 +110,8 @@ class Distributor(iip_base):
 
     def setup_publishers(self):
         LOGGER.info('Setting up publisher for Distributor on %s', self._ncsa_broker_url)
-        self._publisher = SimplePublisher(self._ncsa_broker_url)
-
+        self._publisher = AsyncPublisher(self._ncsa_broker_url, "Distributor")
+        self._publisher.start()
 
     def setup_consumers(self):
         LOGGER.info('Distributor %s setting up consumer on %s', self._name, self._ncsa_broker_url)
@@ -105,26 +120,25 @@ class Distributor(iip_base):
 
         self._consumer = Consumer(self._ncsa_broker_url, self._consume_queue)
         try:
-            _thread.start_new_thread(self.run_consumer, (threadname, 2,) )
+            _thread.start_new_thread(self.run_consumer, (threadname, 2,))
             LOGGER.info('Started distributor consumer thread %s', threadname)
-        except:
+        except Exception:
             LOGGER.critical('Cannot start Distributor consumer thread, exiting...')
             sys.exit(107)
-
 
     def run_consumer(self, threadname, delay):
         self._consumer.run(self.on_message)
 
     def on_message(self, ch, method, properties, body):
-        ch.basic_ack(method.delivery_tag) 
+        ch.basic_ack(method.delivery_tag)
         msg_dict = yaml.safe_load(body)
         LOGGER.info('In %s message callback', self._name)
         LOGGER.debug('Thread in %s callback is %s', self._name, _thread.get_ident())
         LOGGER.debug('%s callback message body is: %s', self._name, str(msg_dict))
 
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
+        # XXX - result is never checked
         result = handler(msg_dict)
-
 
     def process_health_check(self, params):
         job_number = params[JOB_NUM]
@@ -132,14 +146,13 @@ class Distributor(iip_base):
         self._job_scratchpad.set_job_value(job_number, "ADD_JOB_TIME", get_timestamp())
         self.send_ack_response("DISTRIBUTOR_HEALTH_ACK", params)
 
-
+    # XXX - job_number is undefined
     def process_job_params(self, params):
         transfer_params = params[TRANSFER_PARAMS]
         self._job_scratchpad.set_job_transfer_params(params[JOB_NUM], transfer_params)
         self._job_scratchpad.set_job_value(job_number, "STATE", "READY_WITH_PARAMS")
         self._job_scratchpad.set_job_value(job_number, "READY_WITH_PARAMS_TIME", get_timestamp())
         self.send_ack_response(DISTRIBUTOR_JOB_PARAMS_ACK, params)
-
 
     def process_foreman_readout(self, params):
         LOGGER.info('At Top of Distributor readout')
@@ -148,19 +161,14 @@ class Distributor(iip_base):
         result = subprocess.check_output(cmd, shell=True)
         LOGGER.info('check_sentinel test is complete')
         # xfer complete
-        #xfer_time = ""
+        # xfer_time = ""
 
         """
-###########XXXXXXXXXXXXXXX###############
-####  Checking for and processing image file goes here
+        Checking for and processing image file goes here
         """
         command = "cat " + self._target_dir + "rcv_logg.test"
         cat_result = subprocess.check_output(command, shell=True)
 
-        #filename = self._target_dir + "rcv_logg.test"
-        #f = open(filename, 'r')
-        #for line in f:
-        #    xfer_time = xfer_time + line + "\n"
         msg = {}
         msg[MSG_TYPE] = 'XFER_TIME'
         msg[NAME] = self._name
@@ -196,36 +204,24 @@ class Distributor(iip_base):
             self._publisher.publish_message("reports", yaml.dump(msg_params))
             LOGGER.info('%s sent for ACK ID: %s and JOB_NUM: %s', type, timed_ack, job_num)
 
-
     def register(self):
         pass
-        #acknowledge_msg = {'MSG_TYPE':'ack_' + msg_type,'MSG_NUM':str(Msg_num)}
-        #Msg_num = Msg_num + 1
-        #ack = yaml.dump(acknowledge_msg)
-
-        #channel_to.queue_declare(queue=Qname_to)
-        #channel_to.basic_publish(exchange='', routing_key=Qname_to, body=ack)
-
+        # acknowledge_msg = {'MSG_TYPE':'ack_' + msg_type,'MSG_NUM':str(Msg_num)}
+        # Msg_num = Msg_num + 1
+        # ack = yaml.dump(acknowledge_msg)
+        # channel_to.queue_declare(queue=Qname_to)
+        # channel_to.basic_publish(exchange='', routing_key=Qname_to, body=ack)
 
 
-def main():
+if __name__ == "__main__":
     dist = Distributor('DistributorCfg.yaml')
     print("Starting Distributor event loop...")
     try:
         while 1:
+            time.sleep(60)
             pass
     except KeyboardInterrupt:
         pass
 
     print("")
     print("Distributor Finished")
-
-
-if __name__ == "__main__": main()
-
-
-
-
-
-
-

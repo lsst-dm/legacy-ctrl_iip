@@ -1,5 +1,5 @@
 # This file is part of ctrl_iip
-# 
+#
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
 # (https://www.lsst.org).
@@ -20,11 +20,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from lsst.ctrl.iip.const import *
 from copy import deepcopy
-from lsst.ctrl.iip.toolsmod import get_timestamp
 import yaml
-import sys
 import datetime
 
 
@@ -42,25 +39,22 @@ class YamlHandler:
     def dt_representer(self, dumper, data):
         s = data.strftime(self.dateformat)
         return dumper.represent_scalar('datetime.time', s)
-    
-    def yaml_callback(self, ch, method, properties, body): 
+
+    def yaml_callback(self, ch, method, properties, body):
         """ Decode the message body before consuming
             Setting the consumer callback function
         """
         pydict = self.decode_message(body)
         self._consumer_callback(ch, method, properties, pydict)
 
-
     def encode_message(self, dictValue):
         pydict = deepcopy(dictValue)
         yaml_body = yaml.safe_dump(pydict)
         return yaml_body
 
-
     def decode_message(self, body):
-        tmpdict = yaml.safe_load(body) 
+        tmpdict = yaml.safe_load(body)
         return tmpdict
-
 
     def print_yaml(self, body):
         print(str(body))
