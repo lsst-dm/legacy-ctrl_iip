@@ -232,12 +232,6 @@ class AuxDevice:
 
         if self.DP:
             print("\n\nIn AuxDevice on_ack_message - receiving this message: %s" % body)
-
-        # XXX FIX Ignoring all log messages
-        return
-
-
-
         handler = self._msg_actions.get(msg_dict[MSG_TYPE])
         result = handler(msg_dict)
     
@@ -399,8 +393,11 @@ class AuxDevice:
 
 
         forwarders = list(self._forwarder_dict.keys())
+        print(forwarders)
         for x in range (0, len(forwarders)):
             route_key = self._forwarder_dict[forwarders[x]]["CONSUME_QUEUE"]
+            print(route_key)
+            print(self._forwarder_dict)
             self._publisher.publish_message(route_key, msg_params)
         return len(forwarders)
 
@@ -704,6 +701,7 @@ class AuxDevice:
         LOGGER.debug('In top of process_health_check_ack')
         LOGGER.debug('Message from process_health_chech_ack is: %s', pformat(str(params)))
         component = params[COMPONENT]  # The component is the name of the fwdr responding
+        print('COMPONENT: %s' % component)
         self.set_fwdr_state(component, HEALTHY)
        
  
