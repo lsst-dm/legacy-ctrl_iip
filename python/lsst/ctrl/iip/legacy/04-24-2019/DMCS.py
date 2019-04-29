@@ -69,7 +69,7 @@ from toolsmod import L1Error
 from toolsmod import L1RedisError
 from toolsmod import L1RabbitConnectionError
 
-LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
+LOG_FORMAT = logging.Formatter('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 handler = RotatingFileHandler('logs/DMCS.log', maxBytes=2000000, backupCount = 10)
@@ -236,12 +236,12 @@ class DMCS:
         try: 
             ch.basic_ack(method.delivery_tag)
             LOGGER.info('Processing message in OCS message callback')
-            LOGGER.debug('Message and properties from DMCS callback message body is: %s', 
-                        (str(msg_dict),properties))
+            LOGGER.debug('Message and properties from DMCS callback message body is: %s' %\
+                        str(msg_dict))
 
             print('Processing message in OCS message callback')
-            print('Message and properties from DMCS callback message body is: %s', 
-                        (str(msg_dict),properties))
+            print('Message and properties from DMCS callback message body is: %s' %\
+                        str(msg_dict))
 
             handler = self._OCS_msg_actions.get(msg_dict[MSG_TYPE])
             if handler == None:
@@ -272,12 +272,12 @@ class DMCS:
         try: 
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in ACK message callback')
-            LOGGER.debug('Message and properties from ACK callback message body is: %s', 
-                         (str(msg_dict),properties))
+            LOGGER.debug('Message and properties from ACK callback message body is: %s' %\
+                         str(msg_dict))
 
             print('Processing message in ACK message callback')
-            print('Message and properties from ACK callback message body is: %s and %s', 
-                         (str(msg_dict),properties))
+            print('Message and properties from ACK callback message body is: %s' %\
+                         str(msg_dict))
 
             handler = self._foreman_msg_actions.get(msg_dict[MSG_TYPE])
             if handler == None:
@@ -320,7 +320,7 @@ class DMCS:
         try:
             ch.basic_ack(method.delivery_tag) 
             LOGGER.info('Processing message in FAULT message callback')
-            LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s' % 
+            LOGGER.debug('Message and properties from FAULT callback message body are: %s and %s' % \
                          (pformat(str(msg_dict)), pformat(properties)))
     
             err_code = msg_dict['ERROR_CODE']
@@ -1586,7 +1586,7 @@ class DMCS:
 
 
 def main():
-    logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO, format=LOG_FORMAT)
+    logging.basicConfig(filename='logs/DMCS.log', level=logging.INFO)#, format=LOG_FORMAT)
     dmsc = DMCS()
     print("DMCS seems to be working")
     try:
