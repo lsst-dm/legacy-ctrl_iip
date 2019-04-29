@@ -28,6 +28,7 @@ enum severity_level {
     critical
 }; 
 
+static src::severity_logger< severity_level > lg;
 BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", severity_level); 
 
 std::ostream& operator<< (std::ostream&, severity_level);

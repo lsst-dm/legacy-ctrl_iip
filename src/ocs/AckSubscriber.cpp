@@ -103,7 +103,7 @@ void AckSubscriber::setup_consumer() {
     try { 
         ocs = this->config_root["OCS"];
         user = this->credentials->get_user("service_user");
-        passwd = this->credentials->get_user("service_passwd");
+        passwd = this->credentials->get_passwd("service_passwd");
         publishq = ocs["OCS_PUBLISH"].as<string>();
         consumeq = ocs["OCS_CONSUME"].as<string>();
 	base_addr = this->config_root["BASE_BROKER_ADDR"].as<string>(); 

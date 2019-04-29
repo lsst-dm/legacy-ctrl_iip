@@ -1,7 +1,6 @@
 #include <boost/filesystem.hpp>
 #include "Credentials.h"
 #include "SimpleLogger.h"
-BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
 #include "IIPMacro.h"
 
 using namespace YAML;
@@ -18,8 +17,12 @@ Node Credentials::load_secure_file(string filename) {
     fs::path dirpath = home / lsst;
     fs::path filepath = dirpath / filename;
     LOG_DBG << "Secure filepath is " << filepath;
+    LOG_DBG << "Secure filepath is " << filepath;
     if (!fs::exists(filepath)) { 
-        LOG_CRT << "Secure file " << filename << " doesn't exist.";
+        ostringstream message;
+        message << "Secure file " << filename << " doesn't exist.";
+        cout << message.str() << endl;
+        LOG_CRT << message.str();
         exit(-1);
     }
     fs::perms dirperm = fs::status(dirpath).permissions();
@@ -27,17 +30,17 @@ Node Credentials::load_secure_file(string filename) {
     if (dirperm != fs::owner_all) { 
         ostringstream message;
         message <<  "Directory " << dirpath << " is not secure.";
-        LOG_CRT << message;
-        cout << message << endl;
+        cout << message.str() << endl;
         cout << "Please run `chmod 700 " << dirpath << "` to fix it." << endl;
+        LOG_CRT << message.str();
         exit(-1);
     }
     if (fileperm != (fs::owner_read | fs::owner_write)) { 
         ostringstream message;
         message << "File " << filepath << " is not secure.";
-        LOG_CRT << message;
-        cout << message << endl;
+        cout << message.str() << endl;
         cout << "Please run `chmod 600 " << filepath << "` to fix it." << endl;
+        LOG_CRT << message.str();
         exit(-1);
     }
     try { 

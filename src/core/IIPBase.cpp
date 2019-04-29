@@ -22,8 +22,6 @@
  */
 
 #include "IIPBase.h"
-
-BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
 #include "IIPMacro.h"
 
 using namespace std; 
