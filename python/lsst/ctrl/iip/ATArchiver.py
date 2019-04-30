@@ -851,28 +851,30 @@ class ATArchiver(iip_base):
         else:
             return None
 
-    def simple_progressive_ack_timer(self, type, seconds):
+    def simple_progressive_ack_timer(self, ccs_type, seconds):
         counter = 0.0
         while (counter < seconds):
             counter = counter + 0.5
             sleep(0.3)
-            if type == self.FWDR:
+            if ccs_type == self.FWDR:
                 if self.did_current_fwdr_respond():
                     return True
-            elif type == self.ARCHIVE:
+            elif ccs_type == self.ARCHIVE:
                 if self.did_archive_respond():
                     return True
 
         # Try one final time
-        if type == self.FWDR:
+        if ccs_type == self.FWDR:
             if self.did_current_fwdr_respond():
                 return True
-        elif type == self.ARCHIVE:
+        elif ccs_type == self.ARCHIVE:
             if self.did_archive_respond():
                 sleep(0.3)  # XXX Some time for ack thread to finish writing...
                 return True
         else:
             return False
+        # if it hasn't been resolved, return False
+        return False
 
     def send_fault_state_event(self, error_code, desc, type, comp):
         msg_params = {}
