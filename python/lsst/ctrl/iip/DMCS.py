@@ -1017,10 +1017,9 @@ class DMCS(iip_base):
         try:
             start_datetime = datetime.datetime.now()
             expiry_datetime = start_datetime+datetime.timedelta(seconds=wait_time)
-            expiry_time = expiry_datetime.time()
             ack_msg = {}
             ack_msg[MSG_TYPE] = 'PENDING_ACK'
-            ack_msg['EXPIRY_TIME'] = expiry_time
+            ack_msg['EXPIRY_TIME'] = expiry_datetime
             for ack in acks:
                 ack_msg[ACK_ID] = ack
                 self.publish_message("dmcs_ack_consume", ack_msg)
