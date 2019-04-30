@@ -22,8 +22,6 @@
  */
 
 #include "IIPBase.h"
-
-BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
 #include "IIPMacro.h"
 
 using namespace std; 
@@ -38,6 +36,8 @@ IIPBase::IIPBase(string configfilename, string logfilename) {
     // Read config file
     this->config_root = load_config_file(configfilename);
     init_log(this->get_log_filepath(), logfilename);
+
+    this->credentials = new Credentials("iip_cred.yaml");
     LOG_DBG << "Base constructor complete";
 }
 

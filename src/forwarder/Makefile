@@ -7,8 +7,8 @@ LIBPATH         = -L$(LSST_PATH)/lib -Wl,-rpath,$(LSST_PATH)/lib \
 DAQ_LIBPATH     = -L$(RELEASE)/x86/lib -Wl,-rpath,$(RELEASE)/x86/lib  
 LIB             = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcurl
 DAQ_LIB         = -ldaq_daq -ldaq_ims -ldaq_dsi -ldaq_osa -ldaq_dss -ldaq_net -lcrypto
-LOG_LIB         = -lboost_log -lboost_system -lboost_thread
-OBJ_RULES       = IIPBase.o SimpleLogger.o SimplePublisher.o Toolsmod.o Consumer.o
+LOG_LIB         = -lboost_log -lboost_system -lboost_filesystem -lboost_thread
+OBJ_RULES       = IIPBase.o SimpleLogger.o SimplePublisher.o Toolsmod.o Consumer.o Credentials.o
 OBJ		= $(addprefix ../obj/,$(OBJ_RULES))
 BIN_DIR         = ../../bin
 

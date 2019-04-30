@@ -42,8 +42,6 @@
 #include "Forwarder.h"
 #include <openssl/md5.h>
 #include <boost/crc.hpp>
-
-BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(lg, src::severity_logger_mt< severity_level >);
 #include "IIPMacro.h"
 
 #define NUM_CCDS_IN_ALL 9
@@ -188,8 +186,8 @@ Forwarder::Forwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder"){
         this->Name = root["NAME"].as<string>();
         this->Component = root["FQN"].as<string>();
         this->Lower_Name = root["LOWER_NAME"].as<string>();
-        this->USER = root["USER"].as<string>();
-        this->PASSWD = root["PASSWD"].as<string>();
+        this->USER = this->credentials->get_user("service_user");
+        this->PASSWD = this->credentials->get_passwd("service_passwd");
         this->BASE_BROKER_ADDR = root["BASE_BROKER_ADDR"].as<string>(); 
 
         this->HOSTNAME = root["HOSTNAME"].as<string>();

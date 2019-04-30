@@ -9,8 +9,11 @@
     << std::setw(5) << std::setfill(' ') << __LINE__\
     << "    "
 
-#define LOG_INF LOGGER(lg::get(), info)  
-#define LOG_DBG LOGGER(lg::get(), debug)  
-#define LOG_CRT LOGGER(lg::get(), critical)  
+//#define LOG_INF LOGGER(lg::get(), info)  
+//#define LOG_DBG LOGGER(lg::get(), debug)  
+//#define LOG_CRT LOGGER(lg::get(), critical)  
+#define LOG_DBG LOGGER(lg, debug)  
+#define LOG_INF LOGGER(lg, info)  
+#define LOG_CRT LOGGER(lg, critical)  
 
 #endif
