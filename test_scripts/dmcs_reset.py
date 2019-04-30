@@ -2,7 +2,11 @@ import time
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
 
 if __name__ == "__main__":
-    sp1 = SimplePublisher('amqp://DMCS:DMCS@141.142.238.10:5672/%2Ftest_at', "YAML")
+    cred = Credentials("iip_cred.yaml")
+    user = cred.getUser()
+    passwd = cred.getPasswd()
+    url = 'amqp://%s:%s@141.142.238.10:5672/%2Ftest_at' % (user, passwd)
+    sp1 = SimplePublisher(url, "YAML")
 
     msg = {}
     msg['MSG_TYPE'] = "RESET_FROM_FAULT"

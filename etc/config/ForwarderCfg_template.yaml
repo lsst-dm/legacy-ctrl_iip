@@ -12,8 +12,6 @@ ROOT:
     LOGGING_DIR: /tmp
     NAME: F99
     LOWER_NAME: f99
-    USER: F99
-    PASSWD: F99
     FQN: FORWARDER_99
     IP_ADDR: 141.142.238.161
     HOSTNAME: lsst-wf-base01.ncsa.illinois.edu
