@@ -1,0 +1,22 @@
+Run the following commands:
+
+rabbitmqctl add_vhost /bunny_at
+rabbitmqctl add_vhost /test_at
+
+rabbitmqctl add_user iip <PASSWORD>
+rabbitmqctl set_permissions -p /bunny_at iip ".*" ".*" ".*"    
+rabbitmqctl set_permissions -p /test_at iip ".*" ".*" ".*"   
+---
+
+and add the file:
+
+$HOME/.lsst/iip_cred.yaml
+
+with the contents:
+
+rabbitmq_users:
+    service_user: iip
+    service_passwd: <PASSWORD>
+
+---
+substitute the password you want to use for "<PASSWORD>" 
