@@ -10,8 +10,6 @@
 # the hostname or IP, plus the vhost like this:
 
 # Unique identifiers
-NAME: D1
-PASSWD: D1
 NCSA_BROKER_ADDR: 141.142.237.171:5672/%2fbunny
 FQN: D1_DISTRIBUTOR
 HOSTNAME: lsst-wf-dist01.ncsa.illinois.edu

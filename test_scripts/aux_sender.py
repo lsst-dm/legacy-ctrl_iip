@@ -1,6 +1,7 @@
 import toolsmod
 import time
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
+from lsst.ctrl.iip.Credentials import Credentials
 
 
 class AuxDeviceTestCase():
@@ -20,29 +21,26 @@ class AuxDeviceTestCase():
     IMAGES_IN_SEQUENCE = 1
 
     def setUp(self):
+
+        cred = Credentials("iip_cred.yaml")
+        user = cred.getUser()
+        passwd = cred.getPasswd()
+
         # read CFG file
         self._cfg_root = toolsmod.intake_yaml_file(self.CFG_FILE)['ROOT']
 
         # setup forwarder publisher
         self._fwdr_cfg = self._cfg_root['XFER_COMPONENTS']['AUX_FORWARDERS'][self.FORWARDER]
-        # FIXME: change to using iip_cred.yaml
-        self._fwdr_amqp = 'amqp://%s:%s@%s' % (self._fwdr_cfg['NAME'],
-                                               self._fwdr_cfg['NAME'],
-                                               self._cfg_root['BASE_BROKER_ADDR'])
+
+        self._fwdr_amqp = 'amqp://%s:%s@%s' % (user, passwd, self._cfg_root['BASE_BROKER_ADDR'])
         self._fwdr_publisher = SimplePublisher(self._fwdr_amqp, 'YAML')
 
         # setup dmcs publisher
-        # FIXME: change to using iip_cred.yaml
-        self._dmcs_amqp = 'amqp://%s:%s@%s' % (self._cfg_root['DMCS_BROKER_PUB_NAME'],
-                                               self._cfg_root['DMCS_BROKER_PUB_PASSWD'],
-                                               self._cfg_root['BASE_BROKER_ADDR'])
+        self._dmcs_amqp = 'amqp://%s:%s@%s' % (user, passwd, self._cfg_root['BASE_BROKER_ADDR'])
         self._dmcs_publisher = SimplePublisher(self._dmcs_amqp, 'YAML')
 
         # setup archiveController publisher
-        # FIXME: change to using iip_cred.yaml
-        self._at_ctrl_amqp = 'amqp://%s:%s@%s' % (self._cfg_root['ARCHIVE_BROKER_PUB_NAME'],
-                                                  self._cfg_root['ARCHIVE_BROKER_PUB_PASSWD'],
-                                                  self._cfg_root['BASE_BROKER_ADDR'])
+        self._at_ctrl_amqp = 'amqp://%s:%s@%s' % (user, passwd, self._cfg_root['BASE_BROKER_ADDR'])
         self._at_ctrl_publisher = SimplePublisher(self._at_ctrl_amqp, 'YAML')
 
     def tearDown(self):
