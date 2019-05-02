@@ -7,8 +7,10 @@ BindsTo=l1d-ctrl_iip.target
 [Service]
 Type=simple
 User=ATS
-WorkingDirectory=/opt/lsst/dm-prompt/python
-ExecStart=/opt/rh/rh-python36/root/usr/bin/python3 DMCS.py
+Environment="CTRL_IIP_DIR=/home/ATS/src/git/ctrl_iip" "PYTHONPATH=/home/ATS/src/git/ctrl_iip/python"
+PassEnvironment=CTRL_IIP_DIR PYTHONPATH
+WorkingDirectory=/home/ATS/src/git/ctrl_iip/python/lsst/ctrl/iip
+ExecStart=/bin/python3 DMCS.py
 Restart=always
 
 [Install]

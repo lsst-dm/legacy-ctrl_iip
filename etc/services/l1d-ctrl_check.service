@@ -6,7 +6,7 @@ BindsTo=l1d-ctrl_iip.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/lsst/dm-prompt/bin
+WorkingDirectory=/home/ATS/src/git/ctrl_iip/bin
 ExecStart=/usr/bin/bash check_services.sh
 Restart=always
 
