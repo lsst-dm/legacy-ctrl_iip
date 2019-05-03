@@ -95,6 +95,6 @@ string IIPBase::get_amqp_url(string username, string passwd, string broker_url) 
         << passwd << "@" \
         << broker_url;
     string url = base_broker_url.str();
-    LOG_DBG << "Constructed amqp url is: " << url; 
+    LOG_DBG << "Constructed amqp connection to " << broker_url; 
     return url;
 }

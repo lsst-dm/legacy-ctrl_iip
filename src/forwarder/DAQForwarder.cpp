@@ -246,7 +246,6 @@ Forwarder::Forwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder"){
 
 void Forwarder::setup_consumers(string BASE_BROKER_ADDR){
     string full_broker_url = this->get_amqp_url(this->USER, this->PASSWD, BASE_BROKER_ADDR);
-    LOG_DBG << "Consumer broker URL is: " << full_broker_url;
 
     ostringstream from_fetch_q, from_format_q, from_forward_q;
     from_fetch_q << this->consume_queue << "_from_fetch";
@@ -335,7 +334,6 @@ void *Forwarder::run_thread(void *pargs) {
 
 void Forwarder::setup_publishers(string BASE_BROKER_ADDR){
     string full_broker_url = this->get_amqp_url(this->USER, this->PASSWD, BASE_BROKER_ADDR);
-    LOG_DBG << "Publisher broker URL is: " << full_broker_url;
 
     FWDR_pub = new SimplePublisher(full_broker_url);
     FWDR_to_fetch_pub = new SimplePublisher(full_broker_url);
