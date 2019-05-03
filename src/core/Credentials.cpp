@@ -55,7 +55,6 @@ Node Credentials::load_secure_file(string filename) {
 string Credentials::get_user(string user_alias) { 
     try { 
         string user = this->credentials["rabbitmq_users"][user_alias].as<string>();
-        LOG_DBG << "Secure rabbitmq username is " << user;
         return user;
     }
     catch (YAML::TypedBadConversion<string>& e) { 
@@ -67,7 +66,6 @@ string Credentials::get_user(string user_alias) {
 string Credentials::get_passwd(string passwd_alias) { 
     try { 
         string passwd = this->credentials["rabbitmq_users"][passwd_alias].as<string>();
-        LOG_DBG << "Secure rabbitmq passwd is " << passwd;
         return passwd;
     }
     catch (YAML::TypedBadConversion<string>& e) { 
