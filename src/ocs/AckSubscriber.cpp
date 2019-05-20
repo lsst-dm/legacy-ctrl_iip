@@ -286,6 +286,7 @@ void AckSubscriber::process_summary_state(Node n) {
         string summary_state = n["CURRENT_STATE"].as<string>(); 
         long priority = 0; 
 
+        /**
         if (device == "AR") { 
             MTArchiver_logevent_summaryStateC data; 
             data.summaryState = summary_states[summary_state]; 
@@ -304,7 +305,8 @@ void AckSubscriber::process_summary_state(Node n) {
             data.priority = priority; 
             pp.logEvent_summaryState(&data, priority); 
         }
-        else if (device == "AT") { 
+        */
+        if (device == "AT") {
             ATArchiver_logevent_summaryStateC data; 
             data.summaryState = summary_states[summary_state]; 
             data.priority = priority; 
@@ -326,6 +328,7 @@ void AckSubscriber::process_recommended_settings_version(Node n) {
         string recommended_setting = n["CFG_KEY"].as<string>(); 
         long priority = 0; 
 
+        /**
         if (device == "AR") { 
             MTArchiver_logevent_settingVersionsC data; 
             data.recommendedSettingsVersion = recommended_setting; 
@@ -344,7 +347,8 @@ void AckSubscriber::process_recommended_settings_version(Node n) {
             data.priority = priority; 
             pp.logEvent_settingVersions(&data, priority); 
         }
-        else if (device == "AT") { 
+        */
+        if (device == "AT") {
             ATArchiver_logevent_settingVersionsC data; 
             data.recommendedSettingsVersion = recommended_setting; 
             data.priority = priority; 
@@ -368,6 +372,7 @@ void AckSubscriber::process_settings_applied(Node n) {
 	string settings = n["SETTINGS"].as<string>();
         long priority = 0; 
 
+        /**
         if (device == "AR") { 
             MTArchiver_logevent_settingsAppliedC data; 
 	    data.settings = settings;
@@ -385,7 +390,8 @@ void AckSubscriber::process_settings_applied(Node n) {
             // PromptProcessing_logevent_settingsAppliedC data; 
             // pp.logEvent_settingsApplied(&data, priority); 
         }
-        else if (device == "AT") { 
+        */
+        if (device == "AT") {
             ATArchiver_logevent_settingsAppliedC data; 
 	    data.settings = settings;
             data.tsSALVersion = ts_sal; 
@@ -407,6 +413,7 @@ void AckSubscriber::process_applied_settings_match_start(Node n) {
         bool settings_applied = n["APPLIED"].as<bool>(); 
         long priority = 0; 
 
+        /**
         if (device == "AR") { 
             MTArchiver_logevent_appliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
@@ -425,7 +432,8 @@ void AckSubscriber::process_applied_settings_match_start(Node n) {
             data.priority = priority; 
             pp.logEvent_appliedSettingsMatchStart(&data, priority); 
         }
-        else if (device == "AT") { 
+        */
+        if (device == "AT") {
             ATArchiver_logevent_appliedSettingsMatchStartC data; 
             data.appliedSettingsMatchStartIsTrue = settings_applied; 
             data.priority = priority; 
@@ -445,6 +453,7 @@ void AckSubscriber::process_error_code(Node n) {
         long error_code = n["ERROR_CODE"].as<long>(); 
         long priority = 0; 
 
+        /**
         if (device == "AR") { 
             MTArchiver_logevent_errorCodeC data; 
             data.errorCode = error_code; 
@@ -463,7 +472,8 @@ void AckSubscriber::process_error_code(Node n) {
             data.priority = priority; 
             pp.logEvent_errorCode(&data, priority); 
         }
-        else if (device == "AT") { 
+        */
+        if (device == "AT") {
             ATArchiver_logevent_errorCodeC data; 
             data.errorCode = error_code; 
             data.priority = priority; 
