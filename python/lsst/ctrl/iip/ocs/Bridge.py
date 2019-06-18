@@ -126,13 +126,3 @@ class Bridge(iip_base):
         self.shutdown_event.set()
         self.thread_manager.shutdown_threads()
         print("done")
-
-    def on_dmcs_message(self, ch, method, properties, msg_dict):
-        """ Calls the appropriate OCS action handler according to message type.
-            @params ch: Channel to message broker, unused unless testing.
-            @params method: Delivery method from Pika, unused unless testing.
-            @params properties: Properties from OCSBridge callback message body.
-            @params msg_dict: A dictionary that stores the message body.
-            @return: None
-        """
-        print("+")
