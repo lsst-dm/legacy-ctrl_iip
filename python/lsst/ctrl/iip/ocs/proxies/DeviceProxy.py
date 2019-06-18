@@ -308,7 +308,6 @@ class DeviceProxy:
         """Acknowledge commands received from DMCS to OCS
         @param msg: message received from DMCS
         """
-        print("msg = ", msg)
         cmd_id = msg["CMD_ID"]
         ack_command = self.get_ack_command(msg_type)
         ack_command(cmd_id, SAL__CMD_COMPLETE, 0, "Done: OK")
