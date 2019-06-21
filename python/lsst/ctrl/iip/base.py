@@ -117,10 +117,7 @@ class base:
         return log_file
 
     def shutdown(self):
-        LOGGER.info("Shutting down threads.")
-        self.shutdown_event.set()
-        self.thread_manager.shutdown_threads()
-        LOGGER.info("Thread Manager shut down complete.")
+        pass
 
     def register_SIGINT_handler(self):
         signal.signal(signal.SIGINT, self.signal_handler)

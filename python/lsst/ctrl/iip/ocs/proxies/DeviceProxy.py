@@ -26,8 +26,6 @@ from lsst.ctrl.iip.ocs.Action import Action
 
 LOGGER = logging.getLogger(__name__)
 
-SAL__CMD_COMPLETE = 303
-
 
 class DeviceProxy:
     """Serves as a proxy of a CSC device
@@ -68,9 +66,12 @@ class DeviceProxy:
             "OFFLINE": getattr(module, "SAL__STATE_OFFLINE"),
             "STANDBY": getattr(module, "SAL__STATE_STANDBY")
         }
+        self.cmd_complete = getattr(module, "SAL__CMD_COMPLETE")
 
-    def get_summary_states(self, states):
-        return self.summary_states
+    def get_sal_summary_state(self, state):
+        if state in self.summary_states:
+            return self.summary_states[state]
+        return None
 
     def get_abbreviation(self):
         return self.device_abbr
@@ -231,7 +232,7 @@ class DeviceProxy:
         # If local_ack is True, then send back a SAL ack immeditely, and return.
         # This is done for stand-alone loopback testing.
         if self.local_ack:
-            action.ack_method(cmdId, SAL__CMD_COMPLETE, 0, "Done : OK")
+            action.ack_method(cmdId, self.cmd_complete, 0, "Done : OK")
             return
 
         # retrieve the next acknowledgement number to return
@@ -310,7 +311,7 @@ class DeviceProxy:
         """
         cmd_id = msg["CMD_ID"]
         ack_command = self.get_ack_command(msg_type)
-        ack_command(cmd_id, SAL__CMD_COMPLETE, 0, "Done: OK")
+        ack_command(cmd_id, self.cmd_complete, 0, "Done: OK")
         LOGGER.info("Published %s acknowledgement to OCS for commandId %s" % (self.device_abbr, cmd_id))
 
     def publish_log_event(self, event_name, msg):

@@ -53,3 +53,9 @@ class iip_base(base):
 
         pub = self.thread_manager.get_publisher_paired_with(consumer_name)
         pub.publish_message(route_key, msg)
+
+    def shutdown(self):
+        LOGGER.info("Shutting down threads.")
+        self.shutdown_event.set()
+        self.thread_manager.shutdown_threads()
+        LOGGER.info("Thread Manager shut down complete.")
