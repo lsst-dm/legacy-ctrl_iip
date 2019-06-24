@@ -63,8 +63,7 @@ class BaseTestCase(unittest.TestCase):
     def test_load_missing_file(self):
         self.remove_vars()
         with self.assertRaises(SystemExit):
-            _base = base("fake.yaml", "test_log")
-            print(_base)
+            _base = base("fake.yaml", "test_log")  # noqa: F841
         self.add_vars()
 
     def test_bad_configuration(self):
@@ -72,8 +71,7 @@ class BaseTestCase(unittest.TestCase):
         self.remove_ctrl_iip_dir()
         del os.environ["IIP_CONFIG_DIR"]
         with self.assertRaises(Exception):
-            _base = base("fake.yaml", "test_log")
-            print(_base)
+            _base = base("fake.yaml", "test_log")  # noqa: F841
         self.add_ctrl_iip_dir()
         self.add_vars()
 
@@ -81,8 +79,7 @@ class BaseTestCase(unittest.TestCase):
         self.remove_vars()
         del os.environ["IIP_CONFIG_DIR"]
         _base = base("L1SystemCfg.yaml", "test_log")
-        _config = _base.getConfiguration()
-        print(_config)
+        _config = _base.getConfiguration()  # noqa: F841
         self.add_vars()
 
     def remove_iip_log_dir(self):
