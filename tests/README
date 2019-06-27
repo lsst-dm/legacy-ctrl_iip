@@ -1,0 +1,14 @@
+To run these unit tests have the following packages installed:
+
+flake8
+pytest
+pytest-flake8
+pytest-cov
+pyyaml
+pika
+lxml
+
+To run:
+
+$ cd $CTRL_IIP_DIR
+$ pytest --cov-report html:tests/htmlcov --cov=lsst.ctrl.iip tests/

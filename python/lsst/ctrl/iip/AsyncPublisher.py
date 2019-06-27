@@ -111,6 +111,7 @@ class AsyncPublisher(threading.Thread):
         # here until setup is completed.
         if self.setup_complete_event.wait():
             self._channel.basic_publish(exchange='message', routing_key=route_key, body=encoded_data)
+            LOGGER.info("message sent")
 
     def stop(self):
         LOGGER.info('Stopping')
