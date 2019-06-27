@@ -33,13 +33,20 @@ class EFDMessages(Messages):
 
     def build_largeFileObjectAvailable_message(self, data):
         d = {}
-        d['MSG_TYPE'] = "DMCS_HEADER_READY"
+
+        device = data.generator
+        if device == "ATHeaderService":
+            d['MSG_TYPE'] = "DMCS_AT_HEADER_READY"
+        else:
+            d['MSG_TYPE'] = "DMCS_HEADER_READY"
 
         d['FILENAME'] = data.url
         d['IMAGE_ID'] = data.id
 
         d['byteSize'] = data.byteSize
         d['checkSum'] = data.checkSum
+        d['generator'] = data.generator
+            
         d['generator'] = data.generator
         d['mimeType'] = data.mimeType
         d['url'] = data.url
