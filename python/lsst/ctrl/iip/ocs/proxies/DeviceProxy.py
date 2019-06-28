@@ -302,6 +302,8 @@ class DeviceProxy:
             self.process_book_keeping(msg)
         elif msg_type == "RESOLVE_ACK":
             self.process_resolve_ack(msg)
+        elif msg_type == "TELEMETRY":
+            self.process_telemetry(msg)
         else:
             LOGGER.error("Can't handle %s in device %s" % (msg_type, self.device_name))
 
@@ -313,6 +315,10 @@ class DeviceProxy:
         ack_command = self.get_ack_command(msg_type)
         ack_command(cmd_id, self.cmd_complete, 0, "Done: OK")
         LOGGER.info("Published %s acknowledgement to OCS for commandId %s" % (self.device_abbr, cmd_id))
+
+    def process_telemetry(self, msg):
+        """Process a telemetry message"""
+        LOGGER.error(f"Unable to process telemetry message: {msg}")
 
     def publish_log_event(self, event_name, msg):
         """Publish SAL events back to OCS

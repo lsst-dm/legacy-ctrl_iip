@@ -20,19 +20,24 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from lsst.ctrl.iip.Consumer import Consumer
 
 LOGGER = logging.getLogger(__name__)
 
 
-class Responder:
-    """Responds via SAL to messages received by the bridge
+class TelemetryForwarder:
+    """Forwards telemetry messages to to SAL
     """
-
-    def __init__(self, bridge):
+    def __init__(self, bridge, url):
         self.bridge = bridge
 
-    def on_dmcs_message(self, ch, method, properties, msg_dict):
-        """ Calls the appropriate OCS action handler according to message type.
+        # setup rabbitmq consumer to listen to for telementry
+        self.consumer = Consumer(url, "telemetry_queue", "Thread-dmcs_ocs_publish",
+                                 self.on_telemetry_message, "YAML")
+        self.consumer.start()
+
+    def on_telemetry_message(self, ch, method, properties, msg_dict):
+        """ Calls the appropriate OCS action handler according to message type, for a device
             @params ch: Channel to message broker, unused unless testing.
             @params method: Delivery method from Pika, unused unless testing.
             @params properties: Properties from OCSBridge callback message body.
@@ -40,26 +45,17 @@ class Responder:
             @return: None
         """
         ch.basic_ack(method.delivery_tag)
-        LOGGER.info("Processing message in DMCS message callback")
-        LOGGER.info("Message and properties from DMCS callback message body is: %s and %s" %
+        LOGGER.info("Message and properties from OCS callback message body is: %s and %s" %
                     (str(msg_dict), properties))
 
-        try:
-            device_abbr = msg_dict["DEVICE"]
-            device = self.bridge.get_device(device_abbr)
-            if device is None:
-                LOGGER.error("%s is not in registered devices" % device_abbr)
-                return
-            device.outgoing_message_handler(msg_dict)
-        except KeyError as e:
-            msg = "Bridge received malformed  message: %s" % e.args
-            LOGGER.error(msg)
-        except Exception as e:
-            msg = "Bridge unable to act on on_dmcs_message: %s" % e.args
-            LOGGER.error(msg)
+        # get the correct device proxy 
+        device_abbr = msg_dict["DEVICE"]
+        device = self.bridge.get_device(device_abbr)
+        if device is None:
+            LOGGER.error("%s is not in registered devices" % device_abbr)
+            return
 
-    def process_book_keeping(self, msg_dict):
-        pass
+        device.outgoing_message_handler(msg_dict)
 
-    def process_resolve_ack(self, msg_dict):
-        pass
+    def stop(self):
+        self.consumer.stop()

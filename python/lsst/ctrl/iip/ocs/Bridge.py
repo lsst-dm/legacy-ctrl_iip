@@ -25,6 +25,7 @@ from lsst.ctrl.iip.iip_base import iip_base
 from lsst.ctrl.iip.AsyncPublisher import AsyncPublisher
 from lsst.ctrl.iip.Consumer import Consumer
 from lsst.ctrl.iip.ocs.Responder import Responder
+from lsst.ctrl.iip.ocs.TelemetryForwarder import TelemetryForwarder
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,6 +73,8 @@ class Bridge(iip_base):
         self.consumer = Consumer(url, self.consumeq, "Thread-dmcs_ocs_publish",
                                  self.responder.on_dmcs_message, "YAML")
         self.consumer.start()
+
+        self.telemetry_forwarder = TelemetryForwarder(self, url)
 
     def register_devices(self, devices):
         """Register devices with this bridge. Note that setting
@@ -122,6 +125,7 @@ class Bridge(iip_base):
         print("shutting down threads...")
         self.bookkeeping_publisher.stop()
         self.ack_publisher.stop()
+        self.telemetry_forwarder.stop()
         self.consumer.stop()
         self.shutdown_event.set()
         self.thread_manager.shutdown_threads()
