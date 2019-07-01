@@ -19,8 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 from lsst.ctrl.iip.ocs.proxies.DeviceProxy import DeviceProxy
 from lsst.ctrl.iip.ocs.messages.ATArchiverMessages import ATArchiverMessages
+
+LOGGER = logging.getLogger(__name__)
 
 
 class ATArchiverProxy(DeviceProxy):
@@ -28,3 +31,11 @@ class ATArchiverProxy(DeviceProxy):
     """
     def __init__(self, local_ack, debugLevel):
         super().__init__("ATArchiver", "AT", ATArchiverMessages(), local_ack, debugLevel)
+
+    def process_telemetry(self, msg):
+        event_object = self.create_logevent_object("processingStatus")
+        build_data = getattr(self.messages, "build_processingStatus_object")
+        data = build_data(event_object, msg)
+        log_event = self.get_log_event_method("processingStatus")
+        log_event(data, 0)
+        LOGGER.info(f"Published telemetry event to OCS")

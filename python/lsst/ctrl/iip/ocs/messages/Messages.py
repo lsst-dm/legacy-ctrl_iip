@@ -19,6 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 
 class Messages:
     """Base class which keeps the types of commmands, events and log events a CSC acts on or issues.
@@ -57,3 +61,6 @@ class Messages:
         for command in self.commands:
             acks.append("%s_ACK" % command)
         return acks
+
+    def process_telemetry(self, msg):
+        LOGGER.error(f"Unable to process telemetry message {msg}")

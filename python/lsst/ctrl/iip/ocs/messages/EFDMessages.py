@@ -46,7 +46,7 @@ class EFDMessages(Messages):
         d['byteSize'] = data.byteSize
         d['checkSum'] = data.checkSum
         d['generator'] = data.generator
-            
+
         d['generator'] = data.generator
         d['mimeType'] = data.mimeType
         d['url'] = data.url
