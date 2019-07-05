@@ -588,6 +588,7 @@ class DMCS(iip_base):
             :return: None.
         """
         x = self.STATE_SCBD.at_device_is_enabled()
+        print("XXX Enabled: ", x)
         if self.DP:
             print("enabled is set to: %s" % x)
         if self.STATE_SCBD.at_device_is_enabled():
@@ -628,6 +629,9 @@ class DMCS(iip_base):
             self.set_pending_nonblock_acks(acks, wait_time)
         else:
             LOGGER.debug("start_int msg for AT, but it is not enabled!")
+            err = "Cannot process startIntegration for image %s because ATArchiver \
+                    is not enabled yet." % params["IMAGE_ID"]
+            self.publish_telemetry("AT", 100, err)
 
     def process_readout_event(self, params):
         """ Send readout message to all enabled devices with details of job, including
@@ -680,30 +684,37 @@ class DMCS(iip_base):
             :return: None.
         """
         try:
-            msg_params = {}
-            msg_params[MSG_TYPE] = 'AT_END_READOUT'
-            msg_params[IMAGE_ID] = params[IMAGE_ID]
-            msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
-            msg_params['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
-            msg_params['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']
-            msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
-            session_id = self.STATE_SCBD.get_current_session()
-            msg_params['SESSION_ID'] = session_id
+            # TODO: temporary fix for receiving message when ATArchiver is not enabled
+            if self.STATE_SCBD.at_device_is_enabled():
+                LOGGER.debug("In process_at_start_integration_event, msg is: %s" % params)
+                msg_params = {}
+                msg_params[MSG_TYPE] = 'AT_END_READOUT'
+                msg_params[IMAGE_ID] = params[IMAGE_ID]
+                msg_params['IMAGE_INDEX'] = params['IMAGE_INDEX']
+                msg_params['IMAGE_SEQUENCE_NAME'] = params['IMAGE_SEQUENCE_NAME']
+                msg_params['IMAGES_IN_SEQUENCE'] = params['IMAGES_IN_SEQUENCE']
+                msg_params['REPLY_QUEUE'] = 'dmcs_ack_consume'
+                session_id = self.STATE_SCBD.get_current_session()
+                msg_params['SESSION_ID'] = session_id
 
-            acks = []
-            ack_id = self.INCR_SCBD.get_next_timed_ack_id("AT_END_READOUT_ACK")
-            acks.append(ack_id)
-            msg_params[ACK_ID] = ack_id
-            job_num = self.STATE_SCBD.get_current_device_job('AT')
-            msg_params[JOB_NUM] = job_num
-            self.STATE_SCBD.set_job_state(job_num, "READOUT")
-            rkey = self.STATE_SCBD.get_device_consume_queue('AT')
-            LOGGER.info("Publishing end readout to: %s" % rkey)
-            LOGGER.debug("Publishing end readout message %s to: %s" % (pformat(msg_params), rkey))
-            self.publish_message(rkey, msg_params)
+                acks = []
+                ack_id = self.INCR_SCBD.get_next_timed_ack_id("AT_END_READOUT_ACK")
+                acks.append(ack_id)
+                msg_params[ACK_ID] = ack_id
+                job_num = self.STATE_SCBD.get_current_device_job('AT')
+                msg_params[JOB_NUM] = job_num
+                self.STATE_SCBD.set_job_state(job_num, "READOUT")
+                rkey = self.STATE_SCBD.get_device_consume_queue('AT')
+                LOGGER.info("Publishing end readout to: %s" % rkey)
+                LOGGER.debug("Publishing end readout message %s to: %s" % (pformat(msg_params), rkey))
+                self.publish_message(rkey, msg_params)
 
-            wait_time = 5  # seconds...
-            self.set_pending_nonblock_acks(acks, wait_time)
+                wait_time = 5  # seconds...
+                self.set_pending_nonblock_acks(acks, wait_time)
+            else: 
+                err = "Cannot process endReadout for image %s because ATArchiver \
+                        is not enabled yet." % params["IMAGE_ID"]
+                self.publish_telemetry("AT", 100, err)
         except L1RabbitConnectionError as e:
             LOGGER.error("DMCS unable to process_at_end_readout_event - No rabbit connection: %s" % e.args)
             print("DMCS unable to process_at_end_readout_event - No rabbit connection: %s" % e.args)
@@ -763,17 +774,22 @@ class DMCS(iip_base):
             self.publish_message(self.STATE_SCBD.get_device_consume_queue(k), msg_params)
 
     def process_at_header_ready_event(self, params):
-        ack_id = self.get_next_timed_ack_id('AT_HEADER_READY_ACK')
-        msg_params = {}
-        fname = params['FILENAME']
-        msg_params['FILENAME'] = fname
-        msg_params[MSG_TYPE] = 'AT_HEADER_READY'
-        msg_params[IMAGE_ID] = params[IMAGE_ID]
-        msg_params["REPLY_QUEUE"] = "at_foreman_ack_publish"
-        msg_params[ACK_ID] = ack_id
-        job_num = self.STATE_SCBD.get_current_device_job('AT')
-        self.STATE_SCBD.set_job_state(job_num, "HEADER_READY")
-        self.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+        if self.STATE_SCBD.at_device_is_enabled():
+            ack_id = self.get_next_timed_ack_id('AT_HEADER_READY_ACK')
+            msg_params = {}
+            fname = params['FILENAME']
+            msg_params['FILENAME'] = fname
+            msg_params[MSG_TYPE] = 'AT_HEADER_READY'
+            msg_params[IMAGE_ID] = params[IMAGE_ID]
+            msg_params["REPLY_QUEUE"] = "at_foreman_ack_publish"
+            msg_params[ACK_ID] = ack_id
+            job_num = self.STATE_SCBD.get_current_device_job('AT')
+            self.STATE_SCBD.set_job_state(job_num, "HEADER_READY")
+            self.publish_message(self.STATE_SCBD.get_device_consume_queue('AT'), msg_params)
+        else: 
+            err = "Cannot process largeFileObjectAvailable for image %s \
+                    because ATArchiver is not enabled yet." % params["IMAGE_ID"]
+            self.publish_telemetry("AT", 100, err)
 
     def process_request_ack_id(self, params):
         ack_id = self.INCR_SCBD.get_next_timed_ack_id("")
@@ -1443,6 +1459,22 @@ class DMCS(iip_base):
     def dmcs_finalize(self):
         self.STATE_SCBD.scbd_finalize()
 
+    def publish_telemetry(self, device, status_code, err_msg):
+        """Publish system statuses such as forwarder file transfer status, 
+        error event messages as telemetry message to OCSBridge
+
+        Args:
+            device: Commandable SAL Components Abbreviation
+            status_code: Status code number
+            err_msg: Error message
+        """
+        msg = {} 
+        msg["MSG_TYPE"] = "TELEMETRY"
+        msg["STATUS_CODE"] = status_code
+        msg["DEVICE"] = device
+        msg["DESCRIPTION"] = err_msg
+        self.publish_message("telemetry_queue", msg)
+        LOGGER.info("Published telemetry message %s." % str(msg))
 
 if __name__ == "__main__":
     dmcs = DMCS('L1SystemCfg.yaml')
