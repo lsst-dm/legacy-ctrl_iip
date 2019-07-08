@@ -106,7 +106,7 @@ class base:
 
         log_file = os.path.join(log_dir, filename)
 
-        FORMAT = ('%(levelname) -10s %(asctime)s.%(msecs)06dZ %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
+        FORMAT = ('%(levelname) -10s %(asctime)s.%(msecs)03dZ %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
         LOGGER = logging.getLogger(__name__)
         logging.Formatter.converter = time.gmtime
         LOGGER.setLevel(logging.DEBUG)
