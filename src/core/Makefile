@@ -5,7 +5,12 @@ LDPATH		= -L/opt/lsst/lib
 LOG_LIB         = -lboost_log -lboost_filesystem -lboost_system -lboost_thread
 LIBS		= -lyaml-cpp -lpthread
 OBJ_DIR		= ../obj
-OBJ		= SimplePublisher.o Consumer.o SimpleLogger.o Toolsmod.o IIPBase.o Credentials.o
+OBJ		= $(OBJ_DIR)/SimplePublisher.o \
+	          $(OBJ_DIR)/Consumer.o \
+	          $(OBJ_DIR)/SimpleLogger.o \
+	          $(OBJ_DIR)/Toolsmod.o \
+	          $(OBJ_DIR)/IIPBase.o \
+	          $(OBJ_DIR)/Credentials.o
 
 all: builddir $(OBJ)
 .PHONY: clean
@@ -13,26 +18,23 @@ all: builddir $(OBJ)
 builddir:
 	mkdir -p $(OBJ_DIR)
 
-SimplePublisher.o: SimplePublisher.cpp
-	g++ -std=c++11 $(INCLUDE) $(LDPATH) -c -o $(OBJ_DIR)/$@ $< -lSimpleAmqpClient 
+$(OBJ_DIR)/SimplePublisher.o: SimplePublisher.cpp
+	g++ -std=c++11 $(INCLUDE) -c -o $@ $<
 
-Consumer.o: Consumer.cpp 
-	g++ -std=c++11 $(INCLUDE) $(LDPATH) -c -o $(OBJ_DIR)/$@ $< -lSimpleAmqpClient 
+$(OBJ_DIR)/Consumer.o: Consumer.cpp 
+	g++ -std=c++11 $(INCLUDE) -c -o $@ $<
 
-SimpleLogger.o: SimpleLogger.cpp
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LDPATH) $< -c -o $(OBJ_DIR)/$@ $(LOG_LIB)
+$(OBJ_DIR)/SimpleLogger.o: SimpleLogger.cpp
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) -c -o $@ $<
 
-Toolsmod.o: Toolsmod.cpp
-	g++ -std=c++11 $(INCLUDE) -c -o $(OBJ_DIR)/$@ $<
+$(OBJ_DIR)/Toolsmod.o: Toolsmod.cpp
+	g++ -std=c++11 $(INCLUDE) -c -o $@ $<
 
-Credentials.o: Credentials.cpp SimpleLogger.o
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LDPATH) $(OBJ_DIR)/SimpleLogger.o $< -c -o $(OBJ_DIR)/$@ $(LOG_LIB)
+$(OBJ_DIR)/Credentials.o: Credentials.cpp
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) -c -o $@ $<
 
-IIPBase.o: IIPBase.cpp SimpleLogger.o SimplePublisher.o Credentials.o
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LDPATH) $(OBJ_DIR)/SimplePublisher.o $(OBJ_DIR)/Credentials.o $(OBJ_DIR)/SimpleLogger.o $< -c -o $(OBJ_DIR)/$@ $(LOG_LIB)
-
-A: A.cpp IIPBase.o SimpleLogger.o Credentials.o
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LDPATH) $(OBJ_DIR)/SimpleLogger.o $(OBJ_DIR)/Credentials.o $(OBJ_DIR)/IIPBase.o $< -o $@ -lpthread $(LOG_LIB) $(LIBS)
+$(OBJ_DIR)/IIPBase.o: IIPBase.cpp
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) -c -o $@ $<
 
 clean:
 	rm $(OBJ_DIR)/$(OBJ)

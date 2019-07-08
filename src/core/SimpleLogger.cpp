@@ -41,6 +41,7 @@ std::ostream& operator<< (std::ostream& strm, severity_level level) {
 
 void init_log(std::string filepath, std::string filename) { 
     logging::add_common_attributes(); 
+    logging::core::get()->add_global_attribute("UTCTime", attrs::utc_clock());
     boost::shared_ptr< file_sink > sink(new file_sink(
         keywords::file_name = filepath + "/" + filename + ".%Y-%m-%d.%H-%M-%S.%N.log", 
         keywords::rotation_size = 1 * 1024 * 1024, 
@@ -51,7 +52,7 @@ void init_log(std::string filepath, std::string filename) {
         expr::stream
             << std::left
             << std::setw(10) << std::setfill(' ') << severity
-            << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S") 
+            << expr::format_date_time< boost::posix_time::ptime >("UTCTime", "%Y-%m-%d %H:%M:%S.%fZ") 
             << expr::smessage
     ); 
 
