@@ -107,7 +107,7 @@ if __name__ == "__main__":
     start_parser = subparsers.add_parser('start')
     start_parser.add_argument('-s', '--settings', dest="settings", required=True, help="setting to apply")
 
-    cmds = ['enable', 'disable', 'enterControl','exitControl', 'standby', 'abort']
+    cmds = ['enable', 'disable', 'enterControl','exitControl', 'standby', 'abort', 'resetFromFault']
     for x in cmds:
         p = subparsers.add_parser(x)
 
