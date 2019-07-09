@@ -1,21 +1,21 @@
 # startup sequence 
-python36 command.py -D ATArchiver enterControl
+python3 command.py -D ATArchiver enterControl
 sleep 4
 echo "[OK] ENTER_CONTROL COMPLETE." 
 
-python36 command.py -D ATArchiver start --settings Normal
+python3 command.py -D ATArchiver start --settings Normal
 sleep 4 
 echo "[OK] START COMPLETE." 
 
-#python36 command.py -D ATArchiver standby
+#python3 command.py -D ATArchiver standby
 #sleep 4
 #echo "[OK] STANDBY COMPLETE." 
 
-#python36 command.py -D ATArchiver disable
+#python3 command.py -D ATArchiver disable
 #sleep 4
 #echo "[OK] DISABLE COMPLETE." 
 
-python36 command.py -D ATArchiver enable
+python3 command.py -D ATArchiver enable
 sleep 4
 echo "[OK] ENABLE COMPLETE." 
 
