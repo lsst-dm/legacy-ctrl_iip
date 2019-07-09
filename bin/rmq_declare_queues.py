@@ -2,8 +2,9 @@ import pika
 import argparse
 from lsst.ctrl.iip.Credentials import Credentials
 
+
 class Setup:
-    def __init__(self, vhost, hostname=None): 
+    def __init__(self, vhost, hostname=None):
         cred = Credentials("iip_cred.yaml")
 
         user = cred.getUser("service_user")
@@ -17,7 +18,7 @@ class Setup:
             pika.URLParameters(url)
         )
         self.channel = connection.channel()
-        
+
         self.DEFAULT_QUEUES = [
             "at_foreman_consume",
             "at_foreman_ack_publish",
@@ -51,25 +52,26 @@ class Setup:
             "f99_consume_from_forward",
             "ar_foreman_ack_publish",
             "telemetry_queue",
-            "test_dmcs_ocs_publish" #optional test queue for dmcs_ocs test
-        ] 
+            "test_dmcs_ocs_publish"  # optional test queue for dmcs_ocs test
+        ]
 
     def setup(self):
         # declare exchange
         self.channel.exchange_declare(
-            exchange='message', 
-            exchange_type='direct', 
+            exchange='message',
+            exchange_type='direct',
             durable=True
         )
-        
+
         # create queues
-        for queue in self.DEFAULT_QUEUES: 
-            self.channel.queue_declare(queue=queue,durable=True)
+        for queue in self.DEFAULT_QUEUES:
+            self.channel.queue_declare(queue=queue, durable=True)
             self.channel.queue_bind(
-                queue=queue, 
-                exchange='message', 
-                routing_key=queue 
+                queue=queue,
+                exchange='message',
+                routing_key=queue
             )
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -77,13 +79,13 @@ def main():
                 '%2f'. Example - /test_at is %2ftest_at "
     )
     parser.add_argument(
-        "vhost", 
-        type=str, 
+        "vhost",
+        type=str,
         help="Existing vhost name"
     )
     parser.add_argument(
-        "--hostname", 
-        type=str, 
+        "--hostname",
+        type=str,
         help="hostname where rabbitmq server is running"
     )
 
@@ -92,6 +94,7 @@ def main():
     s.setup()
 
     print(f"Creating queues for vhost {args.vhost} complete.")
+
 
 if __name__ == '__main__':
     main()
