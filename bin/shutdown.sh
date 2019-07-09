@@ -1,14 +1,14 @@
 # Shutdown sequence 
 # Command Sequence is DISABLE > STANDBY > EXIT_CONTROL 
 
-/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_disable_commander 0
+python36 command.py -D ATArchiver disable
 echo "[OK] DISABLE COMPLETE." 
 sleep 4
 
-/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_standby_commander 0
+python36 command.py -D ATArchiver standby
 echo "[OK] STANDBY COMPLETE." 
 sleep 4 
 
-/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_exitControl_commander 0
+python36 command.py -D ATArchiver exitControl
 echo "[OK] EXIT_CONTROL  COMPLETE." 
 sleep 4
