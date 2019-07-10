@@ -1,0 +1,3 @@
+rabbitmq_users:
+    service_user: ${RABBITMQ_USER}
+    service_passwd: ${RABBITMQ_PASSWD}
