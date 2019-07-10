@@ -1,21 +1,21 @@
 # startup sequence 
-/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_enterControl_commander 0
+python3 command.py -D ATArchiver enterControl
 sleep 4
 echo "[OK] ENTER_CONTROL COMPLETE." 
 
-/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_start_commander Normal
+python3 command.py -D ATArchiver start --settings Normal
 sleep 4 
 echo "[OK] START COMPLETE." 
 
-#/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_standby_commander 0
+#python3 command.py -D ATArchiver standby
 #sleep 4
 #echo "[OK] STANDBY COMPLETE." 
 
-#/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_disable_commander 0
+#python3 command.py -D ATArchiver disable
 #sleep 4
 #echo "[OK] DISABLE COMPLETE." 
 
-/opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_enable_commander 0
+python3 command.py -D ATArchiver enable
 sleep 4
 echo "[OK] ENABLE COMPLETE." 
 

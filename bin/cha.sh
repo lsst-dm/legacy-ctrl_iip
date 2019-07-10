@@ -2,21 +2,16 @@
 
 # startup sequence
 
-  /opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_enterControl_commander 0
-  sleep 3
-
-  /opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_start_commander Normal
-  sleep 3
-
-  /opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_standby_commander 0
-  sleep 1
-
-  /opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_disable_commander 0
-  sleep 1
-
-  /opt/sal/ts_sal/test/atArchiver/cpp/src/sacpp_atArchiver_enable_commander 0
-  sleep 1
-  echo "[OK] ENABLE COMPLETE."
-  echo "System UP and running."
-  echo " "
-
+python3 command.py -D ATArchiver enterControl
+sleep 3
+python3 command.py -D ATArchiver start --settings Normal
+sleep 3
+python3 command.py -D ATArchiver standby
+sleep 1
+python3 command.py -D ATArchiver disable
+sleep 1
+python3 command.py -D ATArchiver enable
+sleep 1
+echo "[OK] ENABLE COMPLETE."
+echo "System UP and running."
+echo

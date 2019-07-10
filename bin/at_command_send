@@ -1,25 +1,25 @@
-/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_enterControl_commander 0
+python3 command.py -D ATArchiver enterControl
 sleep 2
 
-/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_exitControl_commander 0
+python3 command.py -D ATArchiver exitControl
 sleep 2
 
-/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_enable_commander 0
+python3 command.py -D ATArchiver enable
 sleep 2
 
-/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_disable_commander 0
+python3 command.py -D ATArchiver disable
 sleep 2
 
-/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_standby_commander 0
+python3 command.py -D ATArchiver standby
 sleep 2
 
-/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_start_commander Normal 0
+python3 command.py -D ATArchiver start --settings Normal
 sleep 2
 
-/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_abort_commander 0
+python3 command.py -D ATArchiver abort
 sleep 2
 
-/opt/sal/ts_sal/test/ATArchiver/cpp/src/sacpp_ATArchiver_resetFromFault_commander 0
+python3 command.py -D ATArchiver resetFromFault
 sleep 2
 
 
