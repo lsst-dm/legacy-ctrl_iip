@@ -26,6 +26,7 @@ import os
 import os.path
 import signal
 import sys
+import time
 import yaml
 from lsst.ctrl.iip.const import ROOT
 from lsst.ctrl.iip.Credentials import Credentials
@@ -105,14 +106,14 @@ class base:
 
         log_file = os.path.join(log_dir, filename)
 
-        FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
+        FORMAT = ('%(levelname) -10s %(asctime)s.%(msecs)03dZ %(name) -30s %(funcName) -35s %(lineno) -5d: %(message)s')
         LOGGER = logging.getLogger(__name__)
+        logging.Formatter.converter = time.gmtime
         LOGGER.setLevel(logging.DEBUG)
         handler = RotatingFileHandler(log_file, maxBytes=2000000, backupCount=10)
-        handler.setFormatter(FORMAT)
         LOGGER.addHandler(handler)
+        logging.basicConfig(filename=log_file, level=logging.INFO, format=FORMAT, datefmt="%Y-%m-%d %H:%M:%S")
 
-        logging.basicConfig(filename=log_file, level=logging.INFO, format=FORMAT)
 
         return log_file
 

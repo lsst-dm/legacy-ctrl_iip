@@ -17,7 +17,7 @@ all: DAQForwarder
 .PHONY: all dependency
 
 dependency:
-	$(MAKE) -C ../core $(OBJ_RULES)
+	$(MAKE) -C ../core $(OBJ)
 
 DAQForwarder: DAQForwarder.cpp dependency
 	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -ggdb -o $(BIN_DIR)/$@ $< $(LIB) $(DAQ_LIB) $(LOG_LIB)
