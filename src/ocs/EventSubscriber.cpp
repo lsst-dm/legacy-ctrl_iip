@@ -143,7 +143,7 @@ void *EventSubscriber::run_ccs_startIntegration(void *args) {
     SAL_MTCamera mgr = SAL_MTCamera(); 
     MTCamera_logevent_startIntegrationC SALInstance; 
 
-    mgr.salEvent("MTCamera_logevent_startIntegration"); 
+    mgr.salEventSub("MTCamera_logevent_startIntegration"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -181,7 +181,7 @@ void *EventSubscriber::run_ccs_endReadout(void *args) {
     SAL_MTCamera mgr = SAL_MTCamera(); 
     MTCamera_logevent_endReadoutC SALInstance; 
 
-    mgr.salEvent("MTCamera_logevent_endReadout"); 
+    mgr.salEventSub("MTCamera_logevent_endReadout"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -256,7 +256,7 @@ void *EventSubscriber::run_takeImageDone(void *args) {
     SAL_archiver mgr = SAL_archiver(); 
     archiver_logevent_takeImageDoneC SALInstance; 
 
-    mgr.salEvent("archiver_logevent_takeImageDone"); 
+    mgr.salEventSub("archiver_logevent_takeImageDone"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -286,7 +286,7 @@ void *EventSubscriber::run_getHeaderService(void *args) {
     SAL_headerService mgr = SAL_headerService(); 
     headerService_logevent_LargeFileObjectAvailableC SALInstance; 
 
-    mgr.salEvent("headerService_logevent_LargeFileObjectAvailable"); 
+    mgr.salEventSub("headerService_logevent_LargeFileObjectAvailable"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -319,7 +319,7 @@ void *EventSubscriber::run_atcamera_startIntegration(void *args) {
     SAL_ATCamera mgr = SAL_ATCamera(); 
     ATCamera_logevent_startIntegrationC SALInstance; 
 
-    mgr.salEvent("ATCamera_logevent_startIntegration"); 
+    mgr.salEventSub("ATCamera_logevent_startIntegration"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -354,7 +354,7 @@ void *EventSubscriber::run_atcamera_endReadout(void *args) {
     SAL_ATCamera mgr = SAL_ATCamera(); 
     ATCamera_logevent_endReadoutC SALInstance; 
 
-    mgr.salEvent("ATCamera_logevent_endReadout"); 
+    mgr.salEventSub("ATCamera_logevent_endReadout"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
@@ -389,7 +389,7 @@ void *EventSubscriber::run_efd_largeFileObjectAvailable(void *args) {
     SAL_EFD mgr = SAL_EFD(); 
     EFD_logevent_largeFileObjectAvailableC SALInstance; 
 
-    mgr.salEvent("EFD_logevent_largeFileObjectAvailable"); 
+    mgr.salEventSub("EFD_logevent_largeFileObjectAvailable"); 
     SimplePublisher *publisher = new SimplePublisher(broker_addr); 
 
     while(1) { 
