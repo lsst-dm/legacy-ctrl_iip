@@ -31,6 +31,19 @@ class DefaultMessages(Messages):
         self.log_events = ["summaryState", "settingVersions", "errorCode", "appliedSettingsMatchStart",
                            "settingsApplied"]
 
+        self.translation_table = { 'enable': 'ENABLE',
+                                   'start': 'START',
+                                   'disable': 'DISABLE',
+                                   'enterControl': 'ENTER_CONTROL',
+                                   'exitControl': 'EXIT_CONTROL',
+                                   'standby': 'STANDBY',
+                                   'abort': 'ABORT' }
+
+
+
+    def translate(self, command):
+        return self.translation_table[command]
+
     def build_settingVersions_object(self, data, msg):
         """Build settingVersions SAL message object
         @param data: settingVersions SAL structure

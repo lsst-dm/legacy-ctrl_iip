@@ -47,9 +47,31 @@ class DeviceProxy:
         self.events = messages.get_events()
         self.event_actions = None
 
+        # TODO: These translation tables are here because these events
+        # are renamed in other portions of the software, instead of using
+        # the names they were originally given.  These tables are here
+        # temporarily, and the code that uses them should be removed
+        # once this is fixed throughout the rest of the system.
         self.translations = {
-            "SUMMARY_STATE_EVENT": "summaryState"
+            "SUMMARY_STATE_EVENT": "summaryState",
+            "RECOMMENDED_SETTINGS_VERSION_EVENT": "settingVersions",
+            "SETTINGS_APPLIED_EVENTS": "settingsApplied",
+            "APPLIED_SETTINGS_MATCH_START_EVENT": "appliedSettingsMatchStart",
+            "ERROR_CODE_EVENT": "errorCode"
         }
+
+        self.translated_cmd_acks = {
+            "START_ACK": "start_ACK",
+            "STOP_ACK": "stop_ACK",
+            "ENABLE_ACK": "enable_ACK",
+            "DISABLE_ACK": "disable_ACK",
+            "ENTER_CONTROL_ACK": "enterControl_ACK",
+            "STANDBY_ACK": "standby_ACK",
+            "EXIT_CONTROL_ACK": "exitControl_ACK",
+            "ABORT_ACK": "abort_ACK",
+            "RESET_FROM_FAULT_ACK": "resetFromFault_ACK"
+        }
+
 
         module = importlib.import_module("SALPY_%s" % device_name)
         class_ = getattr(module, "SAL_%s" % (device_name))
@@ -162,7 +184,7 @@ class DeviceProxy:
         @return a dictionary containing the message parts
         """
         d = {}
-        d['MSG_TYPE'] = command
+        d['MSG_TYPE'] = self.messages.translate(command)
         d['DEVICE'] = self.device_abbr
         d['CMD_ID'] = cmdId
         d['ACK_ID'] = ack_id
@@ -180,7 +202,7 @@ class DeviceProxy:
         """
         d = {}
         d['MSG_TYPE'] = 'BOOK_KEEPING'
-        d['SUB_TYPE'] = command
+        d['SUB_TYPE'] = self.messages.translate(command)
         d['ACK_ID'] = ack_id
         d['CHECKBOX'] = 'false'
         d['TIME'] = self.get_current_time()
@@ -296,6 +318,9 @@ class DeviceProxy:
 
         if msg_type in self.command_acks:
             self.ack_cmd(msg_type, msg)
+        elif msg_type in self.translated_cmd_acks:
+            translated_msg_type = self.translated_cmd_acks[msg_type]
+            self.ack_cmd(translated_msg_type, msg)
         elif msg_type in self.log_events:
             self.publish_log_event(msg_type, msg)
         elif msg_type == "BOOK_KEEPING":
