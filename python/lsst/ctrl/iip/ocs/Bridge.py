@@ -58,10 +58,8 @@ class Bridge(iip_base):
 
         url = 'amqp://%s:%s@%s' % (self.service_user, self.service_passwd, broker)
         self.bookkeeping_publisher = AsyncPublisher(url, 'bookkeeping')
-        self.bookkeeping_publisher.start()
 
         self.ack_publisher = AsyncPublisher(url, 'ack_publisher')
-        self.ack_publisher.start()
 
         self.devices = None
 
@@ -72,7 +70,6 @@ class Bridge(iip_base):
         # setup rabbitmq consumer to listen to DMCS
         self.consumer = Consumer(url, self.consumeq, "Thread-dmcs_ocs_publish",
                                  self.responder.on_dmcs_message, "YAML")
-        self.consumer.start()
 
         self.telemetry_forwarder = TelemetryForwarder(self, url)
 
@@ -108,6 +105,13 @@ class Bridge(iip_base):
         attempting to retrieve messages each device is capable of retrieving.
         This method returns when self.shut_down_event is set.
         """
+
+        # start RabbitMQ async listeners
+        self.bookkeeping_publisher.start()
+        self.ack_publisher.start()
+        self.consumer.start()
+        self.telemetry_forwarder.start()
+
         LOGGER.info("listening")
         print("listening")
         while True:

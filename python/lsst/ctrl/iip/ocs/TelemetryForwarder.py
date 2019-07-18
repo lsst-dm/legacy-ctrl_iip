@@ -34,7 +34,6 @@ class TelemetryForwarder:
         # setup rabbitmq consumer to listen to for telementry
         self.consumer = Consumer(url, "telemetry_queue", "Thread-dmcs_ocs_publish",
                                  self.on_telemetry_message, "YAML")
-        self.consumer.start()
 
     def on_telemetry_message(self, ch, method, properties, msg_dict):
         """ Calls the appropriate OCS action handler according to message type, for a device
@@ -56,6 +55,9 @@ class TelemetryForwarder:
             return
 
         device.outgoing_message_handler(msg_dict)
+
+    def start(self):
+        self.consumer.start()
 
     def stop(self):
         self.consumer.stop()

@@ -44,10 +44,6 @@ class AsyncPublisher(threading.Thread):
 
         self._message_handler = YamlHandler()
 
-        try:
-            self.connect()
-        except Exception:
-            LOGGER.error('No channel - connection channel is None')
 
     def connect(self):
         self._connection = pika.SelectConnection(pika.URLParameters(self._url),
@@ -119,4 +115,8 @@ class AsyncPublisher(threading.Thread):
         LOGGER.info('Stopped')
 
     def run(self):
+        try:
+            self.connect()
+        except Exception:
+            LOGGER.error('No channel - connection channel is None')
         self._connection.ioloop.start()
