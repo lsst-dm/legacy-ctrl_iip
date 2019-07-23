@@ -23,6 +23,7 @@ import logging
 import threading
 import sys
 import pika
+from pprint import pformat
 from pika.exceptions import AMQPError
 from lsst.ctrl.iip.YamlHandler import YamlHandler
 
@@ -107,7 +108,7 @@ class AsyncPublisher(threading.Thread):
         # here until setup is completed.
         if self.setup_complete_event.wait():
             self._channel.basic_publish(exchange='message', routing_key=route_key, body=encoded_data)
-            LOGGER.info("message sent")
+            LOGGER.info('message sent message body is: %s', pformat(str(msg)))
 
     def stop(self):
         LOGGER.info('Stopping')
