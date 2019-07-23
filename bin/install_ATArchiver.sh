@@ -1,7 +1,7 @@
 DOWNLOAD_DIR=~/downloads
 CTRL_IIP_PREFIX=/home/ATS/src/git 
 
-yum update -y && yum install -y cmake make gcc-c++ openssl openssl-devel
+yum update -y && yum install -y cmake make gcc-c++ openssl openssl-devel librabbitmq-0.8.0 librabbitmq-devel-0.8.0
 useradd ATS
 useradd redis
 
@@ -20,7 +20,7 @@ cd $DOWNLOAD_DIR
 curl -L https://dl.bintray.com/boostorg/release/1.66.0/source/boost_1_66_0.tar.gz -o boost_1_66_0.tar.gz
 tar zxvf boost_1_66_0.tar.gz
 cd boost_1_66_0
-./bootstrap.sh --prefix=/opt/lsst
+./bootstrap.sh
 ./b2 install
 
 # download yaml-cpp
@@ -29,17 +29,17 @@ curl -L https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.5.3.tar.gz -o yaml
 tar zxvf yaml-cpp-0.5.3.tar.gz
 cd yaml-cpp-yaml-cpp-0.5.3/
 mkdir build && cd build
-cmake -DCMAKE_INSTALL_PREFIX=/opt/lsst -DBOOST_ROOT=/opt/lsst ..
+cmake ..
 cmake --build . --target install
 
 # download rabbitmq
-cd $DOWNLOAD_DIR
-curl -L https://github.com/alanxz/rabbitmq-c/releases/download/v0.8.0/rabbitmq-c-0.8.0.tar.gz -o rabbitmq-c-0.8.0.tar.gz
-tar zxvf rabbitmq-c-0.8.0.tar.gz
-cd rabbitmq-c-0.8.0/
-mkdir build && cd build
-cmake -DCMAKE_INSTALL_PREFIX=/opt/lsst -DBOOST_ROOT=/opt/lsst ..
-cmake --build . --target install
+#cd $DOWNLOAD_DIR
+#curl -L https://github.com/alanxz/rabbitmq-c/releases/download/v0.8.0/rabbitmq-c-0.8.0.tar.gz -o rabbitmq-c-0.8.0.tar.gz
+#tar zxvf rabbitmq-c-0.8.0.tar.gz
+#cd rabbitmq-c-0.8.0/
+#mkdir build && cd build
+#cmake ..
+#cmake --build . --target install
 
 # download SimpleAmqpClient
 cd $DOWNLOAD_DIR
@@ -47,7 +47,7 @@ curl -L https://github.com/alanxz/SimpleAmqpClient/archive/v2.4.0.tar.gz -o v2.4
 tar zxvf v2.4.0.tar.gz
 cd SimpleAmqpClient-2.4.0/
 mkdir build && cd build
-cmake -DCMAKE_INSTALL_PREFIX=/opt/lsst -DBOOST_ROOT=/opt/lsst ..
+cmake ..
 cmake --build . --target install
 
 # download cfitsio
@@ -56,7 +56,7 @@ curl -L http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio3450.tar.gz -o
 tar zxvf cfitsio3450.tar.gz
 cd cfitsio/
 mkdir build && cd build
-cmake -DCMAKE_INSTALL_PREFIX=/opt/lsst -DBOOST_ROOT=/opt/lsst ..
+cmake ..
 cmake --build . --target install
 
 chown -R ATS:ATS /home/ATS 
@@ -85,17 +85,3 @@ chown -R redis:redis /var/lib/redis
 # Copy systemd unit files
 cp $CTRL_IIP_PREFIX/ctrl_iip/etc/services/* /etc/systemd/system/
 systemctl enable l1d-ctrl_iip.target
-
-# Install SAL
-SAL_VERSION=3.10.0_001
-OPSL_VERSION=6.9.0
-curl -L https://raw.githubusercontent.com/menanteau/lsst_ts_install_patch/master/lsst-ts.repo -o /etc/yum.repos.d/lsst-ts.repo
-yum -y install OpenSpliceDDS-$OSPL_VERSION
-yum -y install \
-    ATArchiver-$SAL_VERSION \
-    MTArchiver-$SAL_VERSION \
-    CatchupArchiver-$SAL_VERSION \
-    PromptProcessing-$SAL_VERSION \
-    ATCamera-$SAL_VERSION \
-    MTCamera-$SAL_VERSION \
-    EFD-$SAL_VERSION
