@@ -32,15 +32,6 @@ mkdir build && cd build
 cmake ..
 cmake --build . --target install
 
-# download rabbitmq
-#cd $DOWNLOAD_DIR
-#curl -L https://github.com/alanxz/rabbitmq-c/releases/download/v0.8.0/rabbitmq-c-0.8.0.tar.gz -o rabbitmq-c-0.8.0.tar.gz
-#tar zxvf rabbitmq-c-0.8.0.tar.gz
-#cd rabbitmq-c-0.8.0/
-#mkdir build && cd build
-#cmake ..
-#cmake --build . --target install
-
 # download SimpleAmqpClient
 cd $DOWNLOAD_DIR
 curl -L https://github.com/alanxz/SimpleAmqpClient/archive/v2.4.0.tar.gz -o v2.4.0.tar.gz
