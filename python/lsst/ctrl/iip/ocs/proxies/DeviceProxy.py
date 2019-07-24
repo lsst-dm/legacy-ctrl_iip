@@ -55,7 +55,7 @@ class DeviceProxy:
         self.translations = {
             "SUMMARY_STATE_EVENT": "summaryState",
             "RECOMMENDED_SETTINGS_VERSION_EVENT": "settingVersions",
-            "SETTINGS_APPLIED_EVENTS": "settingsApplied",
+            "SETTINGS_APPLIED_EVENT": "settingsApplied",
             "APPLIED_SETTINGS_MATCH_START_EVENT": "appliedSettingsMatchStart",
             "ERROR_CODE_EVENT": "errorCode"
         }
