@@ -1,6 +1,4 @@
 #include <yaml-cpp/yaml.h>
-#include "IIPBase.h"
-
 #include "daq/Location.hh"
 #include "daq/LocationSet.hh"
 
@@ -13,6 +11,11 @@
 
 #include "rms/InstructionList.hh"
 #include "rms/Instruction.hh"
+
+#include "core/IIPBase.h"
+#include "forwarder/MessageBuilder.h"
+#include "forwarder/HeaderFetcher.h"
+
 
 class Forwarder : public IIPBase {
     public:
@@ -183,5 +186,10 @@ class Forwarder : public IIPBase {
     std::string forward_calculate_md5_checksum(std::string);
     std::string forward_calculate_crc32_checksum(std::string);
     void dump_map(string description);
+
+    /** hk stuffs **/
+    MessageBuilder _builder;
+    HeaderFetcher _header_fetcher;
+    boost::filesystem::path _header_root;
 };
 

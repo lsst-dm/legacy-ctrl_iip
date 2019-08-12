@@ -1,7 +1,6 @@
 #include <boost/filesystem.hpp>
 #include "Credentials.h"
 #include "SimpleLogger.h"
-#include "IIPMacro.h"
 
 using namespace YAML;
 using namespace std;
@@ -16,7 +15,6 @@ Node Credentials::load_secure_file(string filename) {
     fs::path lsst = ".lsst"; 
     fs::path dirpath = home / lsst;
     fs::path filepath = dirpath / filename;
-    LOG_DBG << "Secure filepath is " << filepath;
     LOG_DBG << "Secure filepath is " << filepath;
     if (!fs::exists(filepath)) { 
         ostringstream message;

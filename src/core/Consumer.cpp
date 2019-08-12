@@ -95,15 +95,19 @@ void Consumer::on_bind_declareok() {
     channel->BindQueue(QUEUE, EXCHANGE, QUEUE); 
 } 
 
-template <typename T>
-void Consumer::run(T *t, callback<T> on_message) { 
+void Consumer::run(function<void (const string&)> on_message) { 
     cout << "##### Start consuming messages ######" << endl;
-    connect(); 
-    string consume_tag = channel->BasicConsume(QUEUE); 
-    while (1) {
-        Envelope::ptr_t envelope = channel->BasicConsumeMessage(consume_tag); 
-        BasicMessage::ptr_t messageEnv = envelope->Message(); 
-        string message = messageEnv->Body();
-        (t->*on_message)(message); 
+    try {
+        connect(); 
+        string consume_tag = channel->BasicConsume(QUEUE); 
+        while (1) {
+            Envelope::ptr_t envelope = channel->BasicConsumeMessage(consume_tag); 
+            BasicMessage::ptr_t messageEnv = envelope->Message(); 
+            string message = messageEnv->Body();
+            on_message(message);
+        }
+    }
+    catch (exception& e) { 
+        cout << e.what() << endl;
     }
 } 

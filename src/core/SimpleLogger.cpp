@@ -43,7 +43,7 @@ void init_log(std::string filepath, std::string filename) {
     logging::add_common_attributes(); 
     logging::core::get()->add_global_attribute("UTCTime", attrs::utc_clock());
     boost::shared_ptr< file_sink > sink(new file_sink(
-        keywords::file_name = filepath + "/" + filename + ".%Y-%m-%d.%H-%M-%S.%N.log", 
+        keywords::file_name = filepath + "/" + filename + ".%Y-%m-%d.%N.log", 
         keywords::rotation_size = 1 * 1024 * 1024, 
         keywords::auto_flush = true
     ));  
