@@ -1,13 +1,17 @@
 from lsst.ctrl.iip.SimplePublisher import SimplePublisher
-from lsst.ctrl.iip.Credentials import Credentials
+from lsst.ctrl.iip.base import base
 import time
 
 def main():
-    cred = Credentials('iip_cred.yaml')
+    instance = base("L1SystemCfg.yaml", "fwd_sender.log")
+    cred = instance.getCredentials()
     user = cred.getUser('service_user')
     passwd = cred.getPasswd('service_passwd')
 
-    url = f'amqp://%s:%s@141.142.238.15:5672/%%2Ftest_at' % (user, passwd)
+    cfg = instance.getConfiguration()
+    vhost = cfg["ROOT"]["BASE_BROKER_ADDR"]
+
+    url = f'amqp://%s:%s@%s' % (user, passwd, vhost)
     sp = SimplePublisher(url, "YAML")
 
     msg = {}
