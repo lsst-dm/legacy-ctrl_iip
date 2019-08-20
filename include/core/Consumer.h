@@ -75,8 +75,8 @@ class Consumer {
           * run implements connection to the broker and message listening
           * @param callback function to pass as a listener for message
           */ 
-        template <typename T>
-        void run(T*, callback<T>); 
+        void run(std::function<void (const std::string&)>);
+
         
         /** bind queue with exchange */ 
         void on_bind_declareok();
