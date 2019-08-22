@@ -22,36 +22,34 @@
  */
 
 #include <iostream>
-#include <exception>
-#include <stdio.h>
-#include "SimplePublisher.h"
+#include "core/SimplePublisher.h"
+#include "core/SimpleLogger.h"
+#include "core/Exceptions.h"
 
-using namespace std; 
-using namespace AmqpClient; 
-
-SimplePublisher::SimplePublisher(string amqpurl) { 
-    url = amqpurl;
-    isConnected = connect(); 
-}
-
-bool SimplePublisher::connect() { 
-    bool connection; 
+/** 
+ * Rabbitmq Publisher that takes amqpurl to set up publishing messages
+ *
+ * @param url RabbitMQ url in the form of "amqp://username:passwd@100.100.0.0/%2fvhost"
+ */ 
+SimplePublisher::SimplePublisher(std::string url) { 
     try { 
-        channel = Channel::CreateFromUri(url); 
-        connection = true; 
-    } 
-    catch (exception& e) { 
-        connection = false; 
-        cout << "Connection was not succesful." << endl; 
-        cout << "SimplePublisher is quitting ... " << endl; 
-        exit(100); 
-    } 
-    return connection;
+        _channel = AmqpClient::Channel::CreateFromUri(url); 
+    }
+    catch (std::exception& e) { 
+        throw L1::PublisherError(e.what());
+    }
 }
 
-void SimplePublisher::publish_message(string queue_name, string msg) {
-    if (isConnected) { 
-        BasicMessage::ptr_t message = BasicMessage::Create(msg); 
-        channel->BasicPublish("", queue_name, message); 
+/** 
+ * Publish message to the rabbitmq broker  
+ * msg must be in the form of "{ MSG_TYPE: HELLO_WORLD }", which looks like python dictionary  
+ *
+ * @param queue_name rabbitmq queue to which the messages are being sent
+ * @param msg message dictionary to publish to the queue
+ */
+void SimplePublisher::publish_message(std::string queue_name, std::string msg) {
+    if (_channel) { 
+        AmqpClient::BasicMessage::ptr_t message = AmqpClient::BasicMessage::Create(msg); 
+        _channel->BasicPublish("", queue_name, message); 
     } 
 }

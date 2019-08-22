@@ -1,6 +1,6 @@
 #include <boost/filesystem.hpp>
-#include "Credentials.h"
-#include "SimpleLogger.h"
+#include "core/Credentials.h"
+#include "core/SimpleLogger.h"
 
 using namespace YAML;
 using namespace std;

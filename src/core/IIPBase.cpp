@@ -21,8 +21,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "IIPBase.h"
-#include "IIPMacro.h"
+#include "core/IIPBase.h"
 
 using namespace std; 
 using namespace YAML;

@@ -1,17 +1,15 @@
 #ifndef EXCEPTIONS_H
 #define EXCEPTIONS_H
 
-#include <string> 
 #include <exception>
-using namespace std;
 
 namespace L1 { 
-    class L1Exception: public exception { 
+    class L1Exception: public std::exception { 
         private:
-            string errormsg; 
+            std::string errormsg; 
 
         public: 
-            L1Exception(const string& msg){
+            L1Exception(const std::string& msg){
                 errormsg = msg; 
             } 
 
@@ -23,77 +21,77 @@ namespace L1 {
     class YamlKeyError : public L1Exception { 
         // Raise when unable to process YAML messages 
         public: 
-            YamlKeyError(const string& msg) : L1Exception(msg) {}
+            YamlKeyError(const std::string& msg) : L1Exception(msg) {}
     }; 
 
     class RabbitConnectionException : public L1Exception { 
         // Raise when unable to connect to rabbit 
         public: 
-            RabbitConnectionException(const string& msg) : L1Exception(msg) {}
+            RabbitConnectionException(const std::string& msg) : L1Exception(msg) {}
     }; 
 
     class ConsumerException : public L1Exception { 
         // Raise as general error for rabbit consumer 
         public: 
-            ConsumerException(const string& msg) : L1Exception(msg) {}
+            ConsumerException(const std::string& msg) : L1Exception(msg) {}
     }; 
 
-    class PublisherException : public L1Exception { 
+    class PublisherError : public L1Exception { 
         // Raise as general error for rabbit publisher
         public: 
-            PublisherException(const string& msg) : L1Exception(msg) {}
+            PublisherError(const std::string& msg) : L1Exception(msg) {}
     }; 
 
     class ForwarderException : public L1Exception { 
         // Raise as general error for forwarder
         public: 
-            ForwarderException(const string& msg) : L1Exception(msg) {}
+            ForwarderException(const std::string& msg) : L1Exception(msg) {}
     }; 
 
     class ConfigIOError : public L1Exception { 
         // Raise when L1Config file cannot be opened 
         public: 
-            ConfigIOError(const string& msg) : L1Exception(msg) {}
+            ConfigIOError(const std::string& msg) : L1Exception(msg) {}
     }; 
 
     class CannotCreateDir: public L1Exception { 
         public: 
-            CannotCreateDir(const string& msg) : L1Exception (msg) {} 
+            CannotCreateDir(const std::string& msg) : L1Exception (msg) {} 
     }; 
 
     class CannotCopyFile: public L1Exception { 
         public: 
-            CannotCopyFile(const string& msg) : L1Exception(msg) {} 
+            CannotCopyFile(const std::string& msg) : L1Exception(msg) {} 
     }; 
 
     class NoHeader: public L1Exception { 
         public: 
-            NoHeader(const string& msg) : L1Exception(msg) {} 
+            NoHeader(const std::string& msg) : L1Exception(msg) {} 
     }; 
 
     class FileExists: public L1Exception { 
         public: 
-            FileExists(const string& msg) : L1Exception(msg) {} 
+            FileExists(const std::string& msg) : L1Exception(msg) {} 
     }; 
 
     class NoCURLHandle: public L1Exception { 
         public: 
-            NoCURLHandle(const string& msg) : L1Exception(msg) {} 
+            NoCURLHandle(const std::string& msg) : L1Exception(msg) {} 
     }; 
 
     class CfitsioError: public L1Exception { 
         public: 
-            CfitsioError(const string& msg) : L1Exception(msg) {} 
+            CfitsioError(const std::string& msg) : L1Exception(msg) {} 
     }; 
 
     class CannotFormatFitsfile: public L1Exception { 
         public: 
-            CannotFormatFitsfile(const string& msg) : L1Exception(msg) {} 
+            CannotFormatFitsfile(const std::string& msg) : L1Exception(msg) {} 
     }; 
 
     class CannotFetchPixel: public L1Exception { 
         public: 
-            CannotFetchPixel(const string& msg) : L1Exception(msg) {} 
+            CannotFetchPixel(const std::string& msg) : L1Exception(msg) {} 
     }; 
 };
 

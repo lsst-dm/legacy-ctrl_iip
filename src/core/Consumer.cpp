@@ -25,7 +25,7 @@
 #include <exception> 
 #include <unistd.h>
 #include <stdlib.h>
-#include "Consumer.h"
+#include "core/Consumer.h"
 
 using namespace std; 
 using namespace AmqpClient;

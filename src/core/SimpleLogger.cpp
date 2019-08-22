@@ -21,7 +21,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "SimpleLogger.h"
+#include "core/SimpleLogger.h"
 
 std::ostream& operator<< (std::ostream& strm, severity_level level) { 
     static const char* log_levels[] = { 
@@ -45,7 +45,8 @@ void init_log(std::string filepath, std::string filename) {
     boost::shared_ptr< file_sink > sink(new file_sink(
         keywords::file_name = filepath + "/" + filename + ".log.%N", 
         keywords::rotation_size = 1 * 1024 * 1024, 
-        keywords::auto_flush = true
+        keywords::auto_flush = true,
+        keywords::open_mode = std::ios_base::out | std::ios_base::app
     ));  
 
     sink->set_formatter(

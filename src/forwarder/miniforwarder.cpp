@@ -4,7 +4,7 @@
 #include "core/Exceptions.h"
 #include "core/Consumer.h"
 #include "core/SimpleLogger.h"
-#include "miniforwarder.h"
+#include "forwarder/miniforwarder.h"
 
 using namespace std;
 using namespace YAML;
@@ -112,12 +112,29 @@ void miniforwarder::end_readout(const Node& n) {
     try { 
         const string image_id = n["IMAGE_ID"].as<string>();
 
+        /** TODO: these should be dynamic information from CSC **/
+        const string raft = "22";
+        const string board_type = "Science";
+        vector<string> ccds { 
+            "00", "01", "02", "10", "11", "12", "20", "21", "22"
+        };
+
+        // for (auto& ccd : ccds) { 
+            //string filename = image_id + "--" + "R" + raft + "S" + ccd;
+            string filename = image_id + "--" + "R" + raft + "S00";
+            path filepath = _fits_path / path(filename);
+            //_daq.fetch(image_id, raft, ccd, board_type, filepath);
+            _daq.fetch(image_id, "00", "00", "WaveFront", filepath);
+        // }
+
+        /**
         path filepath = _fits_path / path(image_id);
         _daq.fetch(image_id, "00", "00", "WaveFront", filepath);
 
         _db.add(image_id, "end_readout");
         assemble(image_id);
         publish_ack(n);
+        */
     }
     catch (exception& e) { 
         LOG_CRT << e.what();

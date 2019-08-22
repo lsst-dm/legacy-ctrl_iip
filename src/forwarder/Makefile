@@ -45,7 +45,7 @@ OBJ		= $(addprefix ../obj/, \
 		      MessageBuilder.o)
 RMQ_OBJ       	= $(addprefix ../obj/, IIPBase.o SimpleLogger.o SimplePublisher.o Toolsmod.o Consumer.o Credentials.o)
 
-all: ../../bin/fwd
+all: fwd
 
 ../obj/%.o: %.cpp
 	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g -c $(INCLUDE) $< -o $@
@@ -53,5 +53,5 @@ all: ../../bin/fwd
 core:
 	$(MAKE) -C ../core $(RMQ_OBJ)
 
-../../bin/fwd: miniforwarder.cpp $(OBJ) core
+fwd: miniforwarder.cpp $(OBJ) core
 	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(RMQ_OBJ) $< -o $@ $(LIB)

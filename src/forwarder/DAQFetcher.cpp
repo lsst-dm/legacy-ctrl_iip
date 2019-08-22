@@ -22,28 +22,26 @@
 #define SCIENCE_PIX_MASK 0x1FFFF
 #define PIX_MASK 0x3FFFF
 
-using namespace std;
 using namespace DAQ;
 using namespace IMS;
 using namespace RMS;
-using namespace std::placeholders;
 using namespace boost::filesystem;
 using namespace L1;
 
-using decode_science_func = void (Science&, int32_t**, const char&, const int32_t&);
-using decode_wavefront_func = void (WaveFront&, int32_t**, const char&, const int32_t&);
+using decode_science_func = void (Science&, std::vector<std::vector<int32_t>>&, const char&, const int32_t&);
+using decode_wavefront_func = void (WaveFront&, std::vector<std::vector<int32_t>>&, const char&, const int32_t&);
 
-DAQFetcher::DAQFetcher(const char* partition, string prefix) 
+DAQFetcher::DAQFetcher(const char* partition, std::string prefix) 
     : _store(partition), _prefix(prefix), _formatter() { 
 }
 
-void DAQFetcher::fetch(string image_id, string raft, string ccd, string board_type, const path& filepath) { 
+void DAQFetcher::fetch(std::string image_id, std::string raft, std::string ccd, std::string board_type, const path& filepath) { 
     if (board_type == "Science") { 
-        auto decoder = bind(&DAQFetcher::decode_science, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4);
+        auto decoder = bind(&DAQFetcher::decode_science, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
         fetch_ccd<Science, decode_science_func>(image_id, raft, ccd, filepath, decoder);
     }
     else if (board_type == "WaveFront") { 
-        auto decoder = bind(&DAQFetcher::decode_wavefront, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4);
+        auto decoder = bind(&DAQFetcher::decode_wavefront, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
         fetch_ccd<WaveFront, decode_wavefront_func>(image_id, raft, ccd, filepath, decoder);
     }
     else { 
@@ -52,24 +50,22 @@ void DAQFetcher::fetch(string image_id, string raft, string ccd, string board_ty
 }
 
 template<typename T, typename U>
-int32_t* DAQFetcher::fetch_ccd(string image_id, string raft, string ccd, const path& filepath, function<U> decode) { 
+void DAQFetcher::fetch_ccd(std::string image_id, std::string raft, std::string ccd, const path& filepath, std::function<U> decode) { 
     if (!has_image(image_id)) { 
         throw CannotFetchPixel("Image " + image_id + " does not exist in the catalog.");
     }
     Image image(image_id.c_str(), _store); 
     
-    string bay_board = raft + "/" + ccd[0];
+    std::string bay_board = raft + "/" + ccd[0];
     Location location(bay_board.c_str());
     Source source(location, image);
     T slice(source);
 
-    long naxes[2];
-    get_naxes(source, naxes);
-
+    //long naxes[2];
+    //get_naxes(source, naxes);
+    long naxes[2] { 576, 2048 };
     long len = naxes[0] * naxes[1]; 
-
-    PixelArray pixel_arr(NUM_AMP, len);
-    int32_t** stripes = pixel_arr.get();
+    std::vector<std::vector<int32_t>> stripes(NUM_AMP, std::vector<int32_t>(0));
 
     int32_t total = 0; 
     bool canAdvance = true; 
@@ -80,10 +76,13 @@ int32_t* DAQFetcher::fetch_ccd(string image_id, string raft, string ccd, const p
         canAdvance = slice.advance();  
     }
 
-    _formatter.write_pix_file(stripes, total, naxes, filepath);
+    PixelArray pixel_arr(stripes);
+    int32_t** pix_2d = pixel_arr.get();
+
+    _formatter.write_pix_file(pix_2d, total, naxes, filepath);
 }
 
-void DAQFetcher::decode_science(Science& slice, int32_t** pixel_data, const char& ccd, const int32_t& total) { 
+void DAQFetcher::decode_science(Science& slice, std::vector<std::vector<int32_t> >& pixel_data, const char& ccd, const int32_t& total) { 
     StripeArray stripe_array1(slice.stripes());
     Stripe* stripe1 = stripe_array1.get();
 
@@ -96,12 +95,14 @@ void DAQFetcher::decode_science(Science& slice, int32_t** pixel_data, const char
     slice.decode012(stripe1, stripe2, stripe3);
 }
 
-void DAQFetcher::decode_wavefront(WaveFront& slice, int32_t** pixel_data, const char& ccd,const int32_t& total) { 
+void DAQFetcher::decode_wavefront(WaveFront& slice, std::vector<std::vector<int32_t> >& pixel_data, const char& ccd,const int32_t& total) { 
     StripeArray stripe_array(slice.stripes());
     Stripe* stripe = stripe_array.get();
     slice.decode(stripe);
 
     for (int i = 0; i < NUM_AMP; i++) { 
+        int32_t size = pixel_data[i].size() + slice.stripes();
+        pixel_data[i].resize(size);
         for (int j = 0; j < slice.stripes(); j++) { 
             pixel_data[i][total + j] = STRAIGHT_PIX_MASK ^ stripe[j].segment[i];
         }
@@ -130,12 +131,12 @@ void DAQFetcher::get_naxes(const Source& source, long* naxes) {
     naxes[1] = naxis_2; 
 }
 
-bool DAQFetcher::has_image(const string& image_id) { 
+bool DAQFetcher::has_image(const std::string& image_id) { 
     Images images(_store);
     const char* id = images.id();
     while (id) { 
         Image image(id, images);
-        if (image_id == string(image.name())) { 
+        if (image_id == std::string(image.name())) { 
             return true;
         }
         id = images.id();
