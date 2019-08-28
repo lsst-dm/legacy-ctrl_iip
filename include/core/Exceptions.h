@@ -93,6 +93,7 @@ namespace L1 {
         public: 
             CannotFetchPixel(const std::string& msg) : L1Exception(msg) {} 
     }; 
+
 };
 
 #endif

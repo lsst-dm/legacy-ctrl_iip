@@ -50,9 +50,6 @@ class miniforwarder : public IIPBase {
         FitsFormatter _fmt;
         Scoreboard _db;
         FileSender _sender;
-
-        // VERY VERY BAD MEMBER
-        std::string _target;
 };
 
 #endif

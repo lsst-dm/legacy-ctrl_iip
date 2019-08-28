@@ -11,3 +11,8 @@ StripeArray::~StripeArray() {
 IMS::Stripe* StripeArray::get() { 
     return _arr;
 }
+
+/**
+StripeArray::StripeArray& operator= (const StripeArray& that) { 
+}
+*/

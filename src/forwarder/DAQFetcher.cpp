@@ -93,6 +93,14 @@ void DAQFetcher::decode_science(Science& slice, std::vector<std::vector<int32_t>
     Stripe* stripe3 = stripe_array3.get();
 
     slice.decode012(stripe1, stripe2, stripe3);
+
+    for (int i = 0; i < NUM_AMP; i++) { 
+        int32_t size = pixel_data[i].size() + slice.stripes();
+        pixel_data[i].resize(size);
+        for (int j = 0; j < slice.stripes(); j++) { 
+            pixel_data[i][total + j] = STRAIGHT_PIX_MASK ^ stripe3[j].segment[i];
+        }
+    }
 }
 
 void DAQFetcher::decode_wavefront(WaveFront& slice, std::vector<std::vector<int32_t> >& pixel_data, const char& ccd,const int32_t& total) { 

@@ -6,7 +6,11 @@
 #include "core/SimpleLogger.h"
 #include "forwarder/miniforwarder.h"
 
-using namespace std;
+using std::string;
+using std::vector;
+using std::exception;
+using std::cout; 
+using std::endl;
 using namespace YAML;
 using namespace L1;
 using namespace boost::filesystem;
@@ -16,7 +20,7 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
                                  , _daq("ats", "_something")
                                  , _fmt()
                                  , _db()
-                                 , _sender() { 
+                                 , _sender() {
     try { 
         const string user = credentials->get_user("service_user");
         const string passwd = credentials->get_user("service_passwd");
@@ -28,10 +32,10 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
         _amqp_url = "amqp://" + user + ":" + passwd + "@" + ip_host;
 
         _actions = {
-            { "AT_FWDR_HEALTH_CHECK", bind(&miniforwarder::health_check, this, _1) },
-            { "AT_FWDR_XFER_PARAMS", bind(&miniforwarder::xfer_params, this, _1) },
-            { "AT_FWDR_HEADER_READY", bind(&miniforwarder::header_ready, this, _1) },
-            { "AT_FWDR_END_READOUT", bind(&miniforwarder::end_readout, this, _1) }
+            { "AT_FWDR_HEALTH_CHECK", bind(&miniforwarder::health_check, this, std::placeholders::_1) },
+            { "AT_FWDR_XFER_PARAMS", bind(&miniforwarder::xfer_params, this, std::placeholders::_1) },
+            { "AT_FWDR_HEADER_READY", bind(&miniforwarder::header_ready, this, std::placeholders::_1) },
+            { "AT_FWDR_END_READOUT", bind(&miniforwarder::end_readout, this, std::placeholders::_1) }
         };
 
         _pub = new SimplePublisher(_amqp_url);
@@ -67,7 +71,7 @@ void miniforwarder::on_message(const string& message) {
 
 void miniforwarder::run() { 
     Consumer consumer(_amqp_url, _consume_q);
-    auto on_msg = bind(&miniforwarder::on_message, this, placeholders::_1);
+    auto on_msg = bind(&miniforwarder::on_message, this, std::placeholders::_1);
     consumer.run(on_msg);
 }
 
@@ -77,12 +81,19 @@ void miniforwarder::health_check(const Node& n) {
 
 void miniforwarder::xfer_params(const Node& n) {
     try { 
-        // BAD MEMBER VARIABLE
-        _target = n["TARGET_LOCATION"].as<string>();
-       
         const string image_id = n["IMAGE_ID"].as<string>();
-        _db.init(image_id); 
 
+        /**
+         * Current raft is a vector for ats compatibility. It should be changed
+         * to a regular string
+         */
+        readout_details info;
+        info.raft = n["RAFT_LIST"].as<vector<string>>();
+        info.ccds = n["RAFT_CCD_LIST"].as<vector<string>>();
+        info.to = n["TARGET_LOCATION"].as<string>();
+
+        _db.add(image_id, info);
+        _db.init(image_id); 
         publish_ack(n);
     }
     catch (exception& e) { 
@@ -100,6 +111,7 @@ void miniforwarder::header_ready(const Node& n) {
         path header = _header_path / path(image_id);
         _hdr.fetch(filename, header);
         _db.add(image_id, "header_ready");
+
         assemble(image_id);
         publish_ack(n);
     }
@@ -111,21 +123,20 @@ void miniforwarder::header_ready(const Node& n) {
 void miniforwarder::end_readout(const Node& n) {
     try { 
         const string image_id = n["IMAGE_ID"].as<string>();
+        const string board_type = "WaveFront";
 
-        /** TODO: these should be dynamic information from CSC **/
-        const string raft = "22";
-        const string board_type = "Science";
-        vector<string> ccds { 
-            "00", "01", "02", "10", "11", "12", "20", "21", "22"
-        };
+        readout_details info = _db.get_info(image_id);
+        /**
+         * Currently raft is a vector for ats compatibility. Should be changed
+         * to regular string
+         */
+        const string raft = info.raft[0]; 
 
-        // for (auto& ccd : ccds) { 
-            //string filename = image_id + "--" + "R" + raft + "S" + ccd;
-            string filename = image_id + "--" + "R" + raft + "S00";
+        for (auto& ccd : info.ccds) { 
+            string filename = image_id + "--" + "R" + raft + "S" + ccd + ".fits";
             path filepath = _fits_path / path(filename);
-            //_daq.fetch(image_id, raft, ccd, board_type, filepath);
-            _daq.fetch(image_id, "00", "00", "WaveFront", filepath);
-        // }
+            _daq.fetch(image_id, raft, ccd, board_type, filepath);
+        }
 
         /**
         path filepath = _fits_path / path(image_id);
@@ -155,16 +166,19 @@ void miniforwarder::publish_ack(const Node& n) {
 }
 
 void miniforwarder::assemble(const string& image_id) { 
+    /**
     if (_db.is_ready(image_id)) { 
         path pix = _fits_path / path(image_id);
         path header = _header_path / path(image_id);
-        path to = path(_target) / path(image_id);
+        readout_details info = _db.get_info(image_id);
+        path to = path(info.to) / path(image_id);
 
         _fmt.write_header(pix, header);
-        _sender.send(pix, to);  // this target is the bad boy
+        _sender.send(pix, to);
         _db.remove(image_id);
         LOG_INF << image_id << " readout complete.";
     }
+    */
 }
 
 path miniforwarder::create_dir(const string& root, const string& dir) { 

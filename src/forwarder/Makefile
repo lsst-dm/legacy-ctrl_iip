@@ -31,18 +31,18 @@ LIBPATH		= -L$(EXPORT_ROOT)/x86/lib -L/opt/lsst/lib
 LIB		= -ldaq_ims -ldaq_daq -ldaq_dsi -lcfitsio \
 		  -lboost_log -lboost_system -lboost_filesystem -lboost_thread -lpthread -lcurl -lSimpleAmqpClient -lyaml-cpp
 OBJ		= $(addprefix ../obj/, \
-		      FileSender.o \
-		      Scoreboard.o \
-		      FitsOpener.o \
-		      FileOpener.o \
-		      PixelArray.o \
-		      StripeArray.o \
-		      Formatter.o \
-		      FitsFormatter.o \
-		      HeaderFetcher.o \
-		      CURLHandle.o \
-		      DAQFetcher.o \
-		      MessageBuilder.o)
+			FileSender.o \
+			Scoreboard.o \
+			FitsOpener.o \
+			FileOpener.o \
+			PixelArray.o \
+			StripeArray.o \
+			Formatter.o \
+			FitsFormatter.o \
+			HeaderFetcher.o \
+			CURLHandle.o \
+			DAQFetcher.o \
+			MessageBuilder.o)
 RMQ_OBJ       	= $(addprefix ../obj/, IIPBase.o SimpleLogger.o SimplePublisher.o Toolsmod.o Consumer.o Credentials.o)
 
 all: fwd
