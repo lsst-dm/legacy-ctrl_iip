@@ -21,13 +21,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "SimpleLogger.h"
+#include "core/SimpleLogger.h"
 
 std::ostream& operator<< (std::ostream& strm, severity_level level) { 
     static const char* log_levels[] = { 
         "debug", 
         "info", 
-        "critical"
+        "critical",
+        "warning"
     }; 
 
     if (static_cast< std::size_t >(level) < sizeof(log_levels) / sizeof(*log_levels)) { 
@@ -39,20 +40,21 @@ std::ostream& operator<< (std::ostream& strm, severity_level level) {
     return strm;
 } 
 
-void init_log(std::string filepath, std::string filename) { 
+void init_log(const std::string& filepath, const std::string& filename) { 
     logging::add_common_attributes(); 
     logging::core::get()->add_global_attribute("UTCTime", attrs::utc_clock());
     boost::shared_ptr< file_sink > sink(new file_sink(
         keywords::file_name = filepath + "/" + filename + ".log.%N", 
         keywords::rotation_size = 1 * 1024 * 1024, 
-        keywords::auto_flush = true
+        keywords::auto_flush = true,
+        keywords::open_mode = std::ios_base::app
     ));  
 
     sink->set_formatter(
         expr::stream
             << std::left
             << std::setw(10) << std::setfill(' ') << severity
-            << expr::format_date_time< boost::posix_time::ptime >("UTCTime", "%Y-%m-%d %H:%M:%S.%fZ") 
+            << expr::format_date_time< boost::posix_time::ptime >("UTCTime", "%Y-%m-%d %H:%M:%S.%f") 
             << expr::smessage
     ); 
 

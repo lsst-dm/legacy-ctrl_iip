@@ -1,13 +1,35 @@
+/*
+ * This file is part of ctrl_iip
+ *
+ * Developed for the LSST Data Management System.
+ * This product includes software developed by the LSST Project
+ * (https://www.lsst.org).
+ * See the COPYRIGHT file at the top-level directory of this distribution
+ * for details of code ownership.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "core/SimpleLogger.h"
 #include "core/Exceptions.h"
 #include "forwarder/Formatter.h"
 
 #define NUM_AMP 16
 
-using namespace boost::filesystem;
-using namespace L1;
+namespace fs = boost::filesystem;
 
-void Formatter::write_pix_file(int32_t** ccd, int32_t& len, long* naxes, const path& filepath) { 
+void Formatter::write_pix_file(int32_t** ccd, int32_t& len, long* naxes, const fs::path& filepath) { 
     try { 
         int status = 0;
         int bitpix = LONG_IMG;
@@ -26,11 +48,12 @@ void Formatter::write_pix_file(int32_t** ccd, int32_t& len, long* naxes, const p
         if (status) { 
             char err[FLEN_ERRMSG];
             fits_read_errmsg(err);
-            throw CfitsioError(string(err));
+            LOG_CRT << std::string(err);
+            throw L1::CannotFormatFitsfile(err);
         }
         LOG_INF << "Finished writing pixel fits file.";
     } 
-    catch (CfitsioError& e) { 
-        LOG_CRT << e.what();
+    catch (L1::CfitsioError& e) { 
+        throw L1::CannotFormatFitsfile(e.what());
     }
 }

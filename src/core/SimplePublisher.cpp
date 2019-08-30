@@ -21,37 +21,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
 #include <exception>
-#include <stdio.h>
-#include "SimplePublisher.h"
+#include "core/SimplePublisher.h"
+#include "core/Exceptions.h"
+#include "core/SimpleLogger.h"
 
-using namespace std; 
-using namespace AmqpClient; 
-
-SimplePublisher::SimplePublisher(string amqpurl) { 
-    url = amqpurl;
-    isConnected = connect(); 
+SimplePublisher::SimplePublisher(const std::string& url) 
+    try : RabbitConnection(url) { 
+}
+catch (L1::RabbitConnectionError& e) { 
+    throw L1::PublisherError(e.what());
 }
 
-bool SimplePublisher::connect() { 
-    bool connection; 
+SimplePublisher::~SimplePublisher() { 
+}
+
+void SimplePublisher::publish_message(const std::string& queue, const std::string& body) {
+    AmqpClient::BasicMessage::ptr_t message = AmqpClient::BasicMessage::Create(body); 
     try { 
-        channel = Channel::CreateFromUri(url); 
-        connection = true; 
-    } 
-    catch (exception& e) { 
-        connection = false; 
-        cout << "Connection was not succesful." << endl; 
-        cout << "SimplePublisher is quitting ... " << endl; 
-        exit(100); 
-    } 
-    return connection;
-}
-
-void SimplePublisher::publish_message(string queue_name, string msg) {
-    if (isConnected) { 
-        BasicMessage::ptr_t message = BasicMessage::Create(msg); 
-        channel->BasicPublish("", queue_name, message); 
-    } 
+        _channel->BasicPublish("", queue, message); 
+    }
+    catch (std::exception& e) { 
+        std::string err = "Cannot publish " + body + " because " + e.what();
+        LOG_CRT << err;
+        throw L1::PublisherError(err);
+    }
 }

@@ -1,83 +1,72 @@
-#include <SimpleAmqpClient/SimpleAmqpClient.h>
+/*
+ * This file is part of ctrl_iip
+ *
+ * Developed for the LSST Data Management System.
+ * This product includes software developed by the LSST Project
+ * (https://www.lsst.org).
+ * See the COPYRIGHT file at the top-level directory of this distribution
+ * for details of code ownership.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-/** callback function to implement in the client class to retrieve messages
-  * @param body message body that is passed from rabbitmq queue
-  */ 
-template <typename T>
-using callback = void (T::*)(std::string); 
+#ifndef CONSUMER_H
+#define CONSUMER_H
 
-/** Rabbitmq message consumer for C++ interface, used to listen to messages from the queue
-  * Consumer object uses AmqpClient Channel object, which is intended for one channel per object.
-  * If we need more consumer/listener for message queue, each consumer should create its channel. 
-  */ 
-class Consumer { 
+#include <iostream>
+#include "core/RabbitConnection.h"
+
+/**
+ * Message Consumer interface to RabbitMQ Server
+ *
+ * Consumer is amqp message publishing object to RabbitMQ Server. It
+ * extends connection to RabbitMQ server from RabbitConnection object.
+ */
+class Consumer : public RabbitConnection { 
     public:
+        /**
+         * Creates connection to RabbitMQ Server
+         *
+         * @param url AMQP Url to RabbbitMQ Server
+         *      Example. `amqp://{user}:{password}@{hostname}/{vhost}`
+         * @param queue Name of the queue to connect to
+         *
+         * @throws L1::ConsumerError Thrown if Consumer cannot connect
+         *      to RabbitMQ Server
+         * 
+         * @exceptsafe Strong exception guarantee
+         */
+        Consumer(const std::string& url, const std::string& queue); 
 
-        /** amqpurl where rabbitmq server resides in */  
-        std::string URL; 
+        /**
+         * Destruct Consumer
+         */
+        ~Consumer();
 
-        /** AmqpClient Channel object that is used to send/receive messages from broker */ 
-        AmqpClient::Channel::ptr_t channel; 
+        /**
+         * Start IO Loop to listen to messages
+         *
+         * @param on_message Function pointer to handle messages
+         *
+         * @throws L1::ConsumerError Thrown if Consumer cannot consume 
+         *      messages from RabbitMQ Server
+         */
+        void run(std::function<void (const std::string&)> on_message);
 
-        /** Rabbitmq Exchange name, default is "message" */ 
-        std::string EXCHANGE; 
-
-        /** Rabbitmq Queue to which messages are delivered */ 
-        std::string QUEUE; 
-
-        /** sleep delay to wait before reconnecting to broker if connection was unsuccessful */  
-        unsigned int SLEEPING_MS;
-
-        /** boolean value to check whether the connection to broker was successful */ 
-        bool isReconnected;
-
-        /** Rabbitmq message listener object, interface for C++
-          * @param amqpurl url to connect to rabbitmq broker 
-          * @param queue listen to messages from this particular queue
-          */ 
-        Consumer(std::string amqpurl, std::string queue); 
-
-        /** connect to rabbitmq broker
-          * if connection was successful, calls on_connection_open() method 
-          * if connection was not successful, calls on_connection_closed() method 
-          */ 
-        void connect();
-
-        /** since connection to broker was successful, calling setting up message exchange */  
-        void on_connection_open(); 
-
-        /** connection to broker was unsuccessful and setting up for reconnection. */ 
-        void on_connection_closed();    
-
-        /** reconnect to message broker 
-          * if reconnection fails, calls sys.exit and quit the program
-          */ 
-        void reconnect(); 
-        
-        /** setting up rabbitmq exchange to listen to messages from 
-          * default exchange is "message" 
-          */ 
-        void setup_exchange(); 
-
-        /** exchange declaration was okay and call setting up queue */ 
-        void on_exchange_declareok(); 
-
-        /** setting up queue to listen to messages
-          * if queue isn't declared in advanced, this is the method that will be called
-          * automatically to declare queue
-          */ 
-        void setup_queue(); 
-
-        /** queue declaration was successful and moving onto queue_binding */ 
-        void on_queue_declareok(); 
-
-        /** run is the entry into consumer class from client
-          * run implements connection to the broker and message listening
-          * @param callback function to pass as a listener for message
-          */ 
-        void run(std::function<void (const std::string&)>);
-
-        
-        /** bind queue with exchange */ 
-        void on_bind_declareok();
+    private:
+        // RabbitMQ consume queue name
+        std::string _queue; 
 }; 
+
+#endif

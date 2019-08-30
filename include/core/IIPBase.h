@@ -21,19 +21,89 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include <yaml-cpp/yaml.h>
-#include "SimpleLogger.h"
-#include "Credentials.h"
+#ifndef IIP_BASE_H
+#define IIP_BASE_H
 
+#include <yaml-cpp/yaml.h>
+#include "core/Credentials.h"
+
+/**
+ * Base class for CTRL_IIP package
+ *
+ * IIPBase handles loading of configuration files, setting up log file paths
+ * and utility functions that are shared across objects.
+ */
 class IIPBase {
     public:
-        char *iip_config_dir, *iip_log_dir, *ctrl_iip_dir;
-        YAML::Node config_root;
-        Credentials *credentials;
+        /**
+         * Construct IIPBase
+         *
+         * Loads configuration file, initializes log file and Credentials 
+         * object for use with iip credentials needed for authentication.
+         *
+         * @param configfilename Name of configuration file to read
+         * @param logfilename Name of log file to insert log statements
+         *
+         * @throws No exception thrown but application will `exit` if
+         *      requirements are not met
+         *
+         * @exceptsafe Strong exception guarantee
+         */
+        IIPBase(const std::string& configfilename, const std::string& logfilename);
 
-        IIPBase(std::string, std::string);
+        /**
+         * Destruct IIPBase
+         */
+        ~IIPBase();
+
+        /**
+         * Get the path to the log file
+         *
+         * Log file directory can be set multiple ways and this method returns
+         * the final file path of the log file. `$IIP_CONFIG_DIR` environment
+         * variable takes precendence over `LOGGING_DIR` (read from 
+         * L1SystemCfg.yaml). If both of them are not set, log file will be
+         * written to `/tmp`.
+         *
+         * @return log file path
+         */
         std::string get_log_filepath();
-        YAML::Node load_config_file(std::string);
-        std::string get_amqp_url(std::string, std::string, std::string);
+
+        /**
+         * Read configuration file
+         * 
+         * Load configuration file from `$IIP_CONFIG_DIR/{filename}` or 
+         * `$CTRL_IIP_DIR/{filename}`. `$IIP_CONFIG_DIR takes precedence over
+         * `$CTRL_IIP_DIR`.
+         *
+         * @param config_filename Name of configuration file
+         * @return Root node of the YAML configuration file
+         *
+         * @throws No exception thrown but application will `exit` if 
+         *      requirements are not met
+         */
+        YAML::Node load_config_file(const std::string& config_filename);
+
+        /**
+         * Construct AMQP URL to RabbitMQ Server
+         *      Example. `amqp://{username}:{password}@{broker_url}`
+         * 
+         * @param username RabbitMQ username
+         * @param password RabbitMQ password
+         * @param broker_url RabbitMQ hostname followed by vhost name
+         *
+         * @return RabbitMQ URL
+         */
+        std::string get_amqp_url(const std::string& username, 
+                                 const std::string& password, 
+                                 const std::string& broker_url);
+
+    protected:
+        // Root node of YAML configuration file
+        YAML::Node _config_root;
+
+        // Credential object instance
+        Credentials* _credentials;
 };
+
+#endif

@@ -43,9 +43,14 @@ OBJ		= $(addprefix ../obj/, \
 		      CURLHandle.o \
 		      DAQFetcher.o \
 		      MessageBuilder.o)
-RMQ_OBJ       	= $(addprefix ../obj/, IIPBase.o SimpleLogger.o SimplePublisher.o Toolsmod.o Consumer.o Credentials.o)
+RMQ_OBJ       	= $(addprefix ../obj/, RabbitConnection.o IIPBase.o SimpleLogger.o SimplePublisher.o Consumer.o Credentials.o)
+
+.PHONY: core mkdir
 
 all: ../../bin/fwd
+
+mkdir:
+	mkdir -p ../obj
 
 ../obj/%.o: %.cpp
 	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g -c $(INCLUDE) $< -o $@
@@ -53,5 +58,5 @@ all: ../../bin/fwd
 core:
 	$(MAKE) -C ../core $(RMQ_OBJ)
 
-../../bin/fwd: miniforwarder.cpp $(OBJ) core
+../../bin/fwd: miniforwarder.cpp mkdir core $(OBJ)
 	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(RMQ_OBJ) $< -o $@ $(LIB)

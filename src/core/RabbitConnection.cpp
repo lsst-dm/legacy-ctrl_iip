@@ -21,36 +21,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef FORMATTER_H
-#define FORMATTER_H
+#include "core/Exceptions.h"
+#include "core/SimpleLogger.h"
+#include "core/RabbitConnection.h"
 
-#include <fitsio.h>
-#include <boost/filesystem.hpp>
+RabbitConnection::RabbitConnection(const std::string& url) { 
+    try { 
+        _channel = AmqpClient::Channel::CreateFromUri(url);
+        LOG_INF << "Made connection to RabbitMQ Server";
+    }
+    catch (std::exception& e) { 
+        std::string err = "Cannot connect to RabbitMQ Server because " + std::string(e.what());
+        LOG_CRT << err;
+        throw L1::RabbitConnectionError(err);
+    }
+}
 
-class Formatter { 
-    public:
-        void write_pix_file(int32_t**, int32_t&, long*, const boost::filesystem::path&);
-};
-
-class FitsFormatter : public Formatter { 
-    public:
-        void write_header(const boost::filesystem::path&, const boost::filesystem::path&);
-        bool contains_excluded_key(const char*);
-};
-
-class FitsOpener { 
-    public:
-        FitsOpener(const boost::filesystem::path&, int);
-        ~FitsOpener();
-        fitsfile* get();
-        int num_hdus();
-    private:
-        fitsfile* _fptr;
-        int _status; 
-};
-
-enum FILE_MODE { 
-    WRITE_ONLY = -1
-};
-
-#endif
+RabbitConnection::~RabbitConnection() { 
+}

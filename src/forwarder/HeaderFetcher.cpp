@@ -1,11 +1,32 @@
+/*
+ * This file is part of ctrl_iip
+ *
+ * Developed for the LSST Data Management System.
+ * This product includes software developed by the LSST Project
+ * (https://www.lsst.org).
+ * See the COPYRIGHT file at the top-level directory of this distribution
+ * for details of code ownership.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <iostream> 
 #include "core/Exceptions.h"
 #include "core/SimpleLogger.h"
 #include "forwarder/HeaderFetcher.h"
 
-using namespace std; 
-using namespace boost::filesystem;
-using namespace L1;
+namespace fs = boost::filesystem;
 
 long TIMEOUT = 2L;
 
@@ -27,7 +48,7 @@ HeaderFetcher::HeaderFetcher() {
  * @param url HTTP url for the header file
  * @param destination target location for written header file
  */
-void HeaderFetcher::fetch(const string& url, const path& destination) { 
+void HeaderFetcher::fetch(const std::string& url, const fs::path& destination) { 
     try { 
         // set error message array to 0
         char error_buffer[CURL_ERROR_SIZE]; 
@@ -48,17 +69,15 @@ void HeaderFetcher::fetch(const string& url, const path& destination) {
         CURLcode status = curl_easy_perform(handle);
         if (status != CURLE_OK) { 
             fp.set_remove();
-            string err = "Cannot pull header file from " + url + " because " + \
-                          string(error_buffer);
-            throw NoHeader(err);
+            std::string err = "Cannot pull header file from " + url + " because " + \
+                          std::string(error_buffer);
+            LOG_CRT << err;
+            throw L1::CannotFetchHeader(err);
         }
         LOG_INF << "Fetched header file from " << url;
     } 
-    catch (FileExists& e) { 
-        LOG_CRT << e.what() << endl;
-    }
-    catch (NoCURLHandle& e) { 
-        LOG_CRT << e.what() << endl;
+    catch (L1::NoCURLHandle& e) { 
+        throw L1::CannotFetchHeader(e.what());
     }
 }
 

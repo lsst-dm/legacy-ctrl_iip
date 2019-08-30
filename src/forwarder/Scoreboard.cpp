@@ -1,6 +1,30 @@
-#include "core/Scoreboard.h"
+/*
+ * This file is part of ctrl_iip
+ *
+ * Developed for the LSST Data Management System.
+ * This product includes software developed by the LSST Project
+ * (https://www.lsst.org).
+ * See the COPYRIGHT file at the top-level directory of this distribution
+ * for details of code ownership.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-using namespace std;
+#include <algorithm>
+#include "core/Exceptions.h"
+#include "core/Scoreboard.h"
+#include "core/SimpleLogger.h"
 
 int NUM_EVENTS = 2;
 
@@ -12,7 +36,7 @@ Scoreboard::~Scoreboard() {
 
 }
 
-bool Scoreboard::is_ready(const string& image_id) { 
+bool Scoreboard::is_ready(const std::string& image_id) { 
     auto list = _db[image_id];
     if (list.size() == NUM_EVENTS) { 
         return true; 
@@ -20,17 +44,32 @@ bool Scoreboard::is_ready(const string& image_id) {
     return false;
 } 
 
-void Scoreboard::init(const string& image_id) { 
-    vector<string> events;
+void Scoreboard::add(const std::string& image_id, const std::string& event) { 
+    auto itr = _db.find(image_id); 
+    std::set<std::string> events;
+    if (itr != _db.end()) {
+        events = _db[image_id];
+    }
+    events.insert(event);
     _db[image_id] = events;
 }
 
-void Scoreboard::add(const string& image_id, const string& event) { 
-    auto list = _db[image_id];
-    list.push_back(event);
-    _db[image_id] = list;
+void Scoreboard::remove(const std::string& image_id) {
+    auto itr = _db.find(image_id); 
+    if (itr == _db.end()) {
+        throw L1::KeyNotFound("Cannot remove " + image_id + " because key not found");
+    }
+    _db.erase(image_id);
 }
 
-void Scoreboard::remove(const string& image_id) {
-    _db.erase(image_id);
+void Scoreboard::add_xfer(const std::string& image_id, const xfer_info& xfer) { 
+    _xfer[image_id] = xfer;
+}
+
+xfer_info Scoreboard::get_xfer(const std::string& image_id) { 
+    auto itr = _db.find(image_id); 
+    if (itr == _db.end()) {
+        throw L1::KeyNotFound("Cannot get transfer parameters for " + image_id + " because key not found");
+    }
+    return _xfer[image_id];
 }
