@@ -18,3 +18,5 @@ ospl-error.log
 ospl-info.log
 *.log
 nohup.out
+core.*
+gmon.out

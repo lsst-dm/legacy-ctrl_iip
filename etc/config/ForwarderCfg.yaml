@@ -18,7 +18,7 @@ ROOT:
     WORK_DIR: /tmp/source
     SRC_DIR: /tmp/gunk
     DAQ_ADDR: LOCAL
-    BASE_BROKER_ADDR: 141.142.238.10:5672/%2ftest_at
+    BASE_BROKER_ADDR: 141.142.238.15:5672/%2ftest_at
 
     CONSUME_QUEUE: f99_consume
     FETCH_CONSUME_QUEUE: fetch_consume_from_f99

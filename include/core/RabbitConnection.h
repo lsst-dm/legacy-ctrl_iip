@@ -21,36 +21,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef FORMATTER_H
-#define FORMATTER_H
+#ifndef RABBIT_CONNECTION_H
+#define RABBIT_CONNECTION_H
 
-#include <fitsio.h>
-#include <boost/filesystem.hpp>
+#include <iostream>
+#include <SimpleAmqpClient/SimpleAmqpClient.h>
 
-class Formatter { 
+/**
+ * Create connection to RabbitMQ Server
+ */
+class RabbitConnection { 
     public:
-        void write_pix_file(int32_t**, int32_t&, long*, const boost::filesystem::path&);
-};
+        /**
+         * Create connection to RabbitMQ Server
+         *
+         * @param url RabbitMQ URL of the form
+         *      `amqp://{username}:{password}@{hostname}/{vhost}`
+         *
+         * @throws L1::RabbitConnectionError if application cannot make
+         *      connection to RabbitMQ Server
+         */
+        RabbitConnection(const std::string& url);
 
-class FitsFormatter : public Formatter { 
-    public:
-        void write_header(const boost::filesystem::path&, const boost::filesystem::path&);
-        bool contains_excluded_key(const char*);
-};
+        /**
+         * Destructs RabbitConnection
+         */
+        ~RabbitConnection();
 
-class FitsOpener { 
-    public:
-        FitsOpener(const boost::filesystem::path&, int);
-        ~FitsOpener();
-        fitsfile* get();
-        int num_hdus();
-    private:
-        fitsfile* _fptr;
-        int _status; 
-};
-
-enum FILE_MODE { 
-    WRITE_ONLY = -1
+    protected:
+        // Amqp Channl object used for connecting to RabbitMQ Server
+        AmqpClient::Channel::ptr_t _channel;  
 };
 
 #endif
