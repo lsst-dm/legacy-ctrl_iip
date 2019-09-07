@@ -26,24 +26,33 @@
 #	rm $(BIN_DIR)/DAQForwarder
 #
 
-INCLUDE		= -I$(EXPORT_ROOT)/include -I/opt/lsst/include -I../../include
-LIBPATH		= -L$(EXPORT_ROOT)/x86/lib -L/opt/lsst/lib
-LIB		= -ldaq_ims -ldaq_daq -ldaq_dsi -lcfitsio \
-		  -lboost_log -lboost_system -lboost_filesystem -lboost_thread -lpthread -lcurl -lSimpleAmqpClient -lyaml-cpp
+INCLUDE		= -I$(EXPORT_ROOT)/include -I/opt/lsst/include \
+		  -I../../include -I/usr/include
+LIBPATH		= -L$(EXPORT_ROOT)/x86/lib -L/opt/lsst/lib -L/usr/lib64
+LIB		= -ldaq_ims -ldaq_daq -ldaq_dsi -lcfitsio -lboost_log \
+		  -lboost_system -lboost_filesystem -lboost_thread -lpthread \
+		  -lcurl -lSimpleAmqpClient -lyaml-cpp -lhiredis
 OBJ		= $(addprefix ../obj/, \
-		      FileSender.o \
-		      Scoreboard.o \
-		      FitsOpener.o \
-		      FileOpener.o \
-		      PixelArray.o \
-		      StripeArray.o \
-		      Formatter.o \
-		      FitsFormatter.o \
-		      HeaderFetcher.o \
-		      CURLHandle.o \
-		      DAQFetcher.o \
-		      MessageBuilder.o)
-RMQ_OBJ       	= $(addprefix ../obj/, RabbitConnection.o IIPBase.o SimpleLogger.o SimplePublisher.o Consumer.o Credentials.o)
+			FileSender.o \
+			Scoreboard.o \
+			FitsOpener.o \
+			FileOpener.o \
+			PixelArray.o \
+			StripeArray.o \
+			Formatter.o \
+			FitsFormatter.o \
+			HeaderFetcher.o \
+			CURLHandle.o \
+			DAQFetcher.o \
+			MessageBuilder.o \
+			RedisResponse.o)
+RMQ_OBJ       	= $(addprefix ../obj/, \
+			RabbitConnection.o \
+			IIPBase.o \
+			SimpleLogger.o \
+			SimplePublisher.o \
+			Consumer.o \
+			Credentials.o)
 
 .PHONY: core mkdir
 
@@ -59,4 +68,7 @@ core:
 	$(MAKE) -C ../core $(RMQ_OBJ)
 
 ../../bin/fwd: miniforwarder.cpp mkdir core $(OBJ)
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(RMQ_OBJ) $< -o $@ $(LIB)
+
+RedisConnection: RedisConnection.cpp ../obj/RedisResponse.o
 	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(RMQ_OBJ) $< -o $@ $(LIB)

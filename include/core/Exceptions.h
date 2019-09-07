@@ -157,6 +157,11 @@ namespace L1 {
         public: 
             KeyNotFound(const std::string& msg) : L1Exception(msg) {} 
     }; 
+
+    class RedisError: public L1Exception { 
+        public: 
+            RedisError(const std::string& msg) : L1Exception(msg) {} 
+    }; 
 };
 
 #endif
