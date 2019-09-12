@@ -4,6 +4,8 @@ LOG_LIB         = -lboost_log -lboost_filesystem -lboost_system -lboost_thread
 LIBS		= -lyaml-cpp -lpthread
 OBJ		= $(addprefix ../obj/, \
 		      RabbitConnection.o \
+		      RedisConnection.o \
+		      RedisResponse.o \
 		      SimplePublisher.o \
 		      Consumer.o \
 		      SimpleLogger.o \

@@ -44,8 +44,16 @@ class Scoreboard {
     public:
         /**
          * Constuct Scoreboard
+         *
+         * @param host hostname of the redis server
+         * @param port port number of redis server(usually 6379)
+         * @param db_num database number to connect
+         * @param password password to authenticate
          */
-        Scoreboard();
+        Scoreboard(const std::string& host,
+                   const int& port,
+                   const int& db_num,
+                   const std::string& password);
 
         /**
          * Destruct Scoreboard
@@ -96,7 +104,20 @@ class Scoreboard {
          */
         xfer_info get_xfer(const std::string&); 
 
+        void set_fwd(const std::string& key, const std::string& body); 
     private:
+        // redis server host name
+        std::string _host;
+
+        // redis server port number
+        int _port;
+
+        // redis server database number
+        int _db_num;
+
+        // redis server password
+        std::string _password;
+
         // map to store image id against events
         std::map<std::string, std::set<std::string>> _db;
 
