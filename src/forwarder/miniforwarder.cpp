@@ -24,6 +24,10 @@
 #include <signal.h>
 #include <iostream>
 #include <cstdio>
+#include <unistd.h> // gethostname
+#include <netdb.h>
+//#include <sys/types.h>
+//#include <sys/socket.h>
 
 #include "core/Exceptions.h"
 #include "core/Consumer.h"
@@ -36,7 +40,6 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
                                  , _hdr()
                                  , _daq("ats")
                                  , _fmt()
-                                 , _db()
                                  , _sender() { 
     try { 
         const std::string user = _credentials->get_user("service_user");
@@ -44,6 +47,10 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
         const std::string ip_host = _config_root["BASE_BROKER_ADDR"].as<std::string>();
         const std::string header_dir = _config_root["HEADER_PATH"].as<std::string>();
         const std::string fits_dir = _config_root["FITS_PATH"].as<std::string>();
+        const std::string redis_host = _config_root["REDIS_HOST"].as<std::string>();
+        const int redis_port = _config_root["REDIS_PORT"].as<int>();
+        const int redis_db = _config_root["REDIS_DB"].as<int>();
+        const std::string redis_pwd = "meh"; // should come from credentials
 
         _name = _config_root["NAME"].as<std::string>();
         _consume_q = _config_root["CONSUME_QUEUE"].as<std::string>();
@@ -57,9 +64,13 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
         };
 
         _pub = new SimplePublisher(_amqp_url);
+        _db = std::unique_ptr<Scoreboard>(
+                new Scoreboard(redis_host, redis_port, redis_db, redis_pwd));
 
         _header_path = create_dir(header_dir);
         _fits_path = create_dir(fits_dir);
+
+        register_fwd();
     }
     catch (L1::PublisherError& e) { exit(-1); }
     catch (L1::CannotCreateDir& e) { exit(-1); }
@@ -108,7 +119,7 @@ void miniforwarder::xfer_params(const YAML::Node& n) {
         xfer_info xfer;
         xfer.target = n["TARGET_LOCATION"].as<std::string>();
 
-        _db.add_xfer(image_id, xfer);
+        _db->add_xfer(image_id, xfer);
         publish_ack(n);
     }
     catch (std::exception& e) { 
@@ -125,7 +136,7 @@ void miniforwarder::header_ready(const YAML::Node& n) {
 
         fs::path header = _header_path / fs::path(image_id);
         _hdr.fetch(filename, header);
-        _db.add(image_id, "header_ready");
+        _db->add(image_id, "header_ready");
         assemble(image_id);
         publish_ack(n);
     }
@@ -142,7 +153,7 @@ void miniforwarder::end_readout(const YAML::Node& n) {
         fs::path filepath = _fits_path / fs::path(image_id + ".fits");
         _daq.fetch(image_id, "00", "00", "WaveFront", filepath);
 
-        _db.add(image_id, "end_readout");
+        _db->add(image_id, "end_readout");
         assemble(image_id);
         publish_ack(n);
     }
@@ -167,8 +178,8 @@ void miniforwarder::publish_ack(const YAML::Node& n) {
 }
 
 void miniforwarder::assemble(const std::string& image_id) { 
-    if (_db.is_ready(image_id)) { 
-        const xfer_info xfer = _db.get_xfer(image_id);
+    if (_db->is_ready(image_id)) { 
+        const xfer_info xfer = _db->get_xfer(image_id);
 
         fs::path pix = _fits_path / fs::path(image_id + ".fits");
         fs::path header = _header_path / fs::path(image_id);
@@ -180,7 +191,7 @@ void miniforwarder::assemble(const std::string& image_id) {
             LOG_INF << "********* READOUT COMPLETE for " << image_id;
 
             // clean up
-            _db.remove(image_id);
+            _db->remove(image_id);
             remove(pix.c_str());
             remove(header.c_str());
         } 
@@ -206,6 +217,40 @@ fs::path miniforwarder::create_dir(const std::string& root) {
         throw L1::CannotCreateDir(err_msg);
     }
     return file_path;
+}
+
+void miniforwarder::register_fwd() { 
+    char hostname[HOST_NAME_MAX];
+    gethostname(hostname, HOST_NAME_MAX);
+
+    struct addrinfo addr;
+    struct addrinfo *infoptr = NULL;
+    addr.ai_family = AF_INET;
+    // TODO: RAII
+    int response = getaddrinfo(hostname, NULL, NULL, &infoptr);
+    if (response) { 
+        LOG_CRT << "Cannot get hostname";
+        throw L1::L1Exception("Cannot get hostname");
+    }
+
+    struct addrinfo *p;
+    char host[256];
+    std::string ip_addr;
+    for (p = infoptr; p != NULL; p = p->ai_next) { 
+        getnameinfo(p->ai_addr, p->ai_addrlen, host, sizeof(host), NULL, 0, NI_NUMERICHOST);
+        ip_addr = host;
+        break;
+    }
+    freeaddrinfo(infoptr);
+
+    YAML::Emitter out;
+    out << YAML::Flow;
+    out << YAML::BeginMap;
+    out << YAML::Key << "hostname" << YAML::Value << hostname;
+    out << YAML::Key << "ip_address" << YAML::Value << ip_addr;
+    out << YAML::Key << "consume_queue" << YAML::Value << _consume_q;
+    out << YAML::EndMap;
+    _db->set_fwd("forwarder_list", out.c_str());
 }
 
 void signal_handler(int signum) { 

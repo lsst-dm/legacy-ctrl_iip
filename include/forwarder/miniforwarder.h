@@ -31,8 +31,8 @@
 
 #include "core/IIPBase.h"
 #include "core/SimplePublisher.h"
-#include "core/Scoreboard.h"
 
+#include "forwarder/Scoreboard.h"
 #include "forwarder/MessageBuilder.h"
 #include "forwarder/HeaderFetcher.h"
 #include "forwarder/DAQFetcher.h"
@@ -55,6 +55,7 @@ class miniforwarder : public IIPBase {
         void assemble(const std::string&);
         void publish_ack(const YAML::Node&);
         boost::filesystem::path create_dir(const std::string&);
+        void register_fwd();
 
     private:
         std::string _name;
@@ -71,7 +72,7 @@ class miniforwarder : public IIPBase {
         HeaderFetcher _hdr;
         DAQFetcher _daq;
         FitsFormatter _fmt;
-        Scoreboard _db;
+        std::unique_ptr<Scoreboard> _db;
         FileSender _sender;
 };
 

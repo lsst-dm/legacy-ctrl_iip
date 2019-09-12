@@ -36,7 +36,6 @@ OBJ		= $(addprefix ../obj/, \
 			FileSender.o \
 			Scoreboard.o \
 			FitsOpener.o \
-			FileOpener.o \
 			PixelArray.o \
 			StripeArray.o \
 			Formatter.o \
@@ -44,13 +43,15 @@ OBJ		= $(addprefix ../obj/, \
 			HeaderFetcher.o \
 			CURLHandle.o \
 			DAQFetcher.o \
-			MessageBuilder.o \
-			RedisResponse.o)
-RMQ_OBJ       	= $(addprefix ../obj/, \
+			MessageBuilder.o)
+CORE_OBJ       	= $(addprefix ../obj/, \
 			RabbitConnection.o \
+			RedisConnection.o \
+			RedisResponse.o \
 			IIPBase.o \
 			SimpleLogger.o \
 			SimplePublisher.o \
+			FileOpener.o \
 			Consumer.o \
 			Credentials.o)
 
@@ -65,10 +66,7 @@ mkdir:
 	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g -c $(INCLUDE) $< -o $@
 
 core:
-	$(MAKE) -C ../core $(RMQ_OBJ)
+	$(MAKE) -C ../core $(CORE_OBJ)
 
 ../../bin/fwd: miniforwarder.cpp mkdir core $(OBJ)
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(RMQ_OBJ) $< -o $@ $(LIB)
-
-RedisConnection: RedisConnection.cpp ../obj/RedisResponse.o
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(RMQ_OBJ) $< -o $@ $(LIB)
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)

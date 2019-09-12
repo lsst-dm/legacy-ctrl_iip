@@ -25,11 +25,18 @@
 #include "core/Exceptions.h"
 #include "core/Scoreboard.h"
 #include "core/SimpleLogger.h"
+#include "core/RedisConnection.h"
 
 int NUM_EVENTS = 2;
 
-Scoreboard::Scoreboard() { 
-
+Scoreboard::Scoreboard(const std::string& host,
+                       const int& port,
+                       const int& db_num,
+                       const std::string& password) { 
+    _host = host;
+    _port = port;
+    _db_num = db_num;
+    _password = password;
 }
 
 Scoreboard::~Scoreboard() { 
@@ -69,7 +76,14 @@ void Scoreboard::add_xfer(const std::string& image_id, const xfer_info& xfer) {
 xfer_info Scoreboard::get_xfer(const std::string& image_id) { 
     auto itr = _db.find(image_id); 
     if (itr == _db.end()) {
-        throw L1::KeyNotFound("Cannot get transfer parameters for " + image_id + " because key not found");
+        throw L1::KeyNotFound("Cannot get transfer parameters for " + image_id +
+                " because key not found");
     }
     return _xfer[image_id];
+}
+
+void Scoreboard::set_fwd(const std::string& key, const std::string& body) { 
+    RedisConnection redis(_host, _port);
+    redis.select(_db_num);
+    redis.lpush(key.c_str(), body);
 }
