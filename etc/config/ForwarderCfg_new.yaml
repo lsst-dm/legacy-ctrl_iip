@@ -1,0 +1,23 @@
+
+# The Message Broker address is made up of port, Vhost path, and user/passwd like this:
+# amqp://F1:F1@141.142.208.191:5672/%2fbunny
+#
+# In  order for this to work, a vhost named /bunny must be created on the
+# RabbitMQ server. In addition, the user name/passwd pairs must also be
+# configured and permissions added for /bunny in the RabbitMQ Mnesia database.
+#
+# Everything up until the '@' sign is handled by the Forwarder class, leaving
+# the hostname or IP, plus the vhost like this:
+ROOT:
+    NAME: f99
+    LOGGING_DIR: /home/hwin16/src/git/ctrl_iip/bin
+    DAQ_ADDR: LOCAL
+    BASE_BROKER_ADDR: 141.142.238.10:5672/%2fbunny_at
+    CONSUME_QUEUE: f99_consume
+
+    HEADER_PATH: /tmp/header
+    FITS_PATH: /tmp/source
+
+    REDIS_HOST: 141.142.238.15
+    REDIS_PORT: 6379
+    REDIS_DB: 10
