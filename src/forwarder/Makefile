@@ -27,7 +27,7 @@
 #
 
 INCLUDE		= -I$(EXPORT_ROOT)/include -I/opt/lsst/include \
-		  -I../../include -I/usr/include
+		  -I../../include
 LIBPATH		= -L$(EXPORT_ROOT)/x86/lib -L/opt/lsst/lib -L/usr/lib64
 LIB		= -ldaq_ims -ldaq_daq -ldaq_dsi -lcfitsio -lboost_log \
 		  -lboost_system -lboost_filesystem -lboost_thread -lpthread \
