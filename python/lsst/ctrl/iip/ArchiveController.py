@@ -290,7 +290,7 @@ class ArchiveController(iip_base):
         msg_params[ACK_BOOL] = "TRUE"
         msg_params['ACK_ID'] = ack_id
         LOGGER.info('%s sent for ACK ID: %s', type, ack_id)
-        self.publish_message(self.ACK_PUBLISH, msg_params)
+        self.publish_message(self.AT_ACK_PUBLISH, msg_params)
 
     def send_audit_message(self, prefix, params):
         audit_params = {}
@@ -347,7 +347,7 @@ class ArchiveController(iip_base):
         ack_params['ACK_BOOL'] = True
         ack_params['RESULTS'] = transfer_results
 
-        self.publish_message(self.ACK_PUBLISH, ack_params)
+        self.publish_message(self.AR_ACK_PUBLISH, ack_params)
 
 
 if __name__ == "__main__":
