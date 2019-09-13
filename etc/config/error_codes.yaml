@@ -1,0 +1,17 @@
+# These are the global error codes for components in IIP
+atarchiver:
+    5700: "ATArchiver error"
+    # setup errors
+    5701: "Couldn't open connection with RabbitMQ broker"
+    5702: "Couldn't open connection with redis broker"
+    5703: "no forwarder on forwarder_list in redis db {redis_db} on {redis_host}"
+    # communication errors
+    5710: "failed to received heartbeat ack from archive controller {component}"
+    5711: "failed to received heartbeat ack from forwarder {component}"
+    5712: "failed to publish message to {queue}"
+    5713: "No xfer_params response from forwarder. Setting fault state with code = {code}"
+    5714: "No endReadout ack from forwarder. Setting fault state with code = {code}"
+    5714: "No largeFileObjectAvailable ack from forwarder. Setting fault state with code = {code}"
+
+daqforwarder:
+    5600: "Forwarder error"
