@@ -21,37 +21,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define BOOST_LOG_DYN_LINK 1
+#ifndef READOUT_PATTERN_H
+#define READOUT_PATTERN_H
 
-#include "core/Exceptions.h"
-#include "core/SimpleLogger.h"
-#include "forwarder/HeaderFetcher.h"
+#include <iostream>
+#include <yaml-cpp/yaml.h>
 
-namespace fs = boost::filesystem;
+class ReadoutPattern { 
+    public:
+        ReadoutPattern(const YAML::Node& n);
+        std::vector<std::string> pattern(const std::string& sensor); 
 
-FileOpener::FileOpener(const fs::path& file) : _remove(false), _filename(file) { 
-    if (fs::exists(file)) { 
-        // Removing is safe for synchronous application. If there is
-        // asynchronous access to file. remove should be carefully
-        // handled.
-        std::string wrn = "Going to overwrite existing header file " + file.string();
-        LOG_WRN << wrn;
-        remove(file.c_str());
-    }
-    _file = fopen(file.c_str(), "w"); 
-}
+    private:
+        YAML::Node _root;
+};
 
-FileOpener::~FileOpener() { 
-    fclose(_file);
-    if (_remove) { 
-        remove(_filename.c_str());
-    }
-}
-
-FILE* FileOpener::get() { 
-    return _file;
-}
-
-void FileOpener::set_remove() {
-    _remove = true;
-}
+#endif

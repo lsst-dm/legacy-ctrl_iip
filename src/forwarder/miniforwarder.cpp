@@ -21,6 +21,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define BOOST_LOG_DYN_LINK 1
+
 #include <signal.h>
 #include <iostream>
 #include <cstdio>
@@ -40,6 +42,7 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
                                  , _hdr()
                                  , _daq("ats")
                                  , _fmt()
+                                 , _readoutpattern(_config_root)
                                  , _sender() { 
     try { 
         const std::string user = _credentials->get_user("service_user");
@@ -63,7 +66,7 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
             { "AT_FWDR_END_READOUT", bind(&miniforwarder::end_readout, this, _1) }
         };
 
-        _pub = new SimplePublisher(_amqp_url);
+        _pub = std::unique_ptr<SimplePublisher>(new SimplePublisher(_amqp_url));
         _db = std::unique_ptr<Scoreboard>(
                 new Scoreboard(redis_host, redis_port, redis_db, redis_pwd));
 
@@ -81,7 +84,6 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
 }
 
 miniforwarder::~miniforwarder() { 
-    delete _pub;
 }
 
 void miniforwarder::on_message(const std::string& message) { 
@@ -186,7 +188,8 @@ void miniforwarder::assemble(const std::string& image_id) {
         fs::path to = fs::path(xfer.target) / fs::path(image_id + ".fits");
 
         try { 
-            _fmt.write_header(pix, header);
+            std::vector<std::string> pattern = _readoutpattern.pattern("WFS");
+            _fmt.write_header(pattern, pix, header);
             _sender.send(pix, to);
             LOG_INF << "********* READOUT COMPLETE for " << image_id;
 
@@ -195,6 +198,7 @@ void miniforwarder::assemble(const std::string& image_id) {
             remove(pix.c_str());
             remove(header.c_str());
         } 
+        catch (L1::InvalidReadoutPattern& e) { }
         catch (L1::CannotFormatFitsfile& e) { }
         catch (L1::CannotCopyFile& e) { } 
         catch (std::exception& e) { 
@@ -244,6 +248,7 @@ void miniforwarder::register_fwd() {
     freeaddrinfo(infoptr);
 
     YAML::Emitter out;
+    out << YAML::DoubleQuoted;
     out << YAML::Flow;
     out << YAML::BeginMap;
     out << YAML::Key << "hostname" << YAML::Value << hostname;

@@ -21,12 +21,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
+#define BOOST_LOG_DYN_LINK 1
 
+#include <iostream>
 #include "daq/Location.hh"
 #include "ims/Image.hh"
 #include "ims/Slice.hh"
-
 #include "core/Exceptions.h"
 #include "core/SimpleLogger.h"
 #include "forwarder/DAQFetcher.h"

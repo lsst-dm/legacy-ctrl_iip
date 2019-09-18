@@ -43,7 +43,8 @@ OBJ		= $(addprefix ../obj/, \
 			HeaderFetcher.o \
 			CURLHandle.o \
 			DAQFetcher.o \
-			MessageBuilder.o)
+			MessageBuilder.o \
+			ReadoutPattern.o)
 CORE_OBJ       	= $(addprefix ../obj/, \
 			RabbitConnection.o \
 			RedisConnection.o \
@@ -63,10 +64,10 @@ mkdir:
 	mkdir -p ../obj
 
 ../obj/%.o: %.cpp
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g -c $(INCLUDE) $< -o $@
+	g++ -std=c++11 -c $(INCLUDE) $< -o $@
 
 core:
 	$(MAKE) -C ../core $(CORE_OBJ)
 
 ../../bin/fwd: miniforwarder.cpp mkdir core $(OBJ)
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)
+	g++ -std=c++11 -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)

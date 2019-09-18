@@ -34,8 +34,12 @@ class Formatter {
 
 class FitsFormatter : public Formatter { 
     public:
-        void write_header(const boost::filesystem::path&, const boost::filesystem::path&);
+        void write_header(const std::vector<std::string>& pattern,
+                          const boost::filesystem::path& pix_path, 
+                          const boost::filesystem::path& header_path);
         bool contains_excluded_key(const char*);
+        int get_segment_num(const std::vector<std::string>& pattern, 
+                            fitsfile* header); 
 };
 
 class FitsOpener { 

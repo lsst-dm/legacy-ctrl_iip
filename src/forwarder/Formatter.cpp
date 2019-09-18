@@ -21,6 +21,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define BOOST_LOG_DYN_LINK 1
+
 #include "core/SimpleLogger.h"
 #include "core/Exceptions.h"
 #include "forwarder/Formatter.h"
@@ -29,7 +31,10 @@
 
 namespace fs = boost::filesystem;
 
-void Formatter::write_pix_file(int32_t** ccd, int32_t& len, long* naxes, const fs::path& filepath) { 
+void Formatter::write_pix_file(int32_t** ccd, 
+                               int32_t& len, 
+                               long* naxes, 
+                               const fs::path& filepath) { 
     try { 
         int status = 0;
         int bitpix = LONG_IMG;

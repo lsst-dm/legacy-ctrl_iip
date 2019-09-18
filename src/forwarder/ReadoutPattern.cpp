@@ -23,35 +23,27 @@
 
 #define BOOST_LOG_DYN_LINK 1
 
+#include <algorithm>
+#include <vector>
 #include "core/Exceptions.h"
 #include "core/SimpleLogger.h"
-#include "forwarder/HeaderFetcher.h"
+#include "forwarder/ReadoutPattern.h"
 
-namespace fs = boost::filesystem;
+const std::string SENSORS = "SENSORS";
 
-FileOpener::FileOpener(const fs::path& file) : _remove(false), _filename(file) { 
-    if (fs::exists(file)) { 
-        // Removing is safe for synchronous application. If there is
-        // asynchronous access to file. remove should be carefully
-        // handled.
-        std::string wrn = "Going to overwrite existing header file " + file.string();
-        LOG_WRN << wrn;
-        remove(file.c_str());
+ReadoutPattern::ReadoutPattern(const YAML::Node& n) { 
+    _root = n;
+}
+
+std::vector<std::string> ReadoutPattern::pattern(const std::string& sensor) { 
+    try { 
+        std::vector<std::string> boards = _root[sensor].as<std::vector<std::string>>();
+        return boards;
     }
-    _file = fopen(file.c_str(), "w"); 
-}
-
-FileOpener::~FileOpener() { 
-    fclose(_file);
-    if (_remove) { 
-        remove(_filename.c_str());
+    catch (YAML::TypedBadConversion<std::vector<std::string>>& e) { 
+        std::string err = "YAML Key \"" + sensor + 
+            "\" does not exist in configuration file";
+        LOG_CRT << err;
+        throw L1::InvalidReadoutPattern(err);
     }
-}
-
-FILE* FileOpener::get() { 
-    return _file;
-}
-
-void FileOpener::set_remove() {
-    _remove = true;
 }

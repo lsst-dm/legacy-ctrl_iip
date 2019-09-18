@@ -24,13 +24,18 @@
 #include <yaml-cpp/yaml.h>
 #include "forwarder/MessageBuilder.h"
 
-const std::string MessageBuilder::build_ack(const std::string& msg_type, const std::string& component, const std::string& ack_id, const std::string& ack_bool) { 
+const std::string MessageBuilder::build_ack(const std::string& msg_type, 
+                                            const std::string& component, 
+                                            const std::string& ack_id, 
+                                            const std::string& ack_bool) { 
     YAML::Emitter msg; 
+    msg << YAML::DoubleQuoted;
+    msg << YAML::Flow;
     msg << YAML::BeginMap; 
-    msg << YAML::Key << "MSG_TYPE" << YAML::Value << msg_type << "_ACK"; 
+    msg << YAML::Key << "MSG_TYPE" << YAML::Value << msg_type + "_ACK"; 
     msg << YAML::Key << "COMPONENT" << YAML::Value << component; 
     msg << YAML::Key << "ACK_ID" << YAML::Value << ack_id; 
-    msg << YAML::Key << "ACK_BOOL" << YAML::Value << ack_bool; 
+    // msg << YAML::Key << "ACK_BOOL" << YAML::Value << ack_bool; 
     msg << YAML::EndMap; 
     return std::string(msg.c_str());
 }
