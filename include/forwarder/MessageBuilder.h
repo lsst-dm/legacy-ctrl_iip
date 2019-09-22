@@ -25,5 +25,11 @@
 
 class MessageBuilder { 
     public:
-        const std::string build_ack(const std::string&, const std::string&, const std::string&, const std::string&);
+        const std::string build_ack(const std::string& msg_type, 
+                                    const std::string& component, 
+                                    const std::string& ack_id, 
+                                    const std::string& ack_bool);
+        const std::string build_xfer_complete(const std::string& filename,
+                                              const std::string& session_id,
+                                              const std::string& job_num);
 };

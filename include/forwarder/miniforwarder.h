@@ -52,15 +52,20 @@ class miniforwarder : public IIPBase {
         void xfer_params(const YAML::Node&);
         void header_ready(const YAML::Node&);
         void end_readout(const YAML::Node&);
+        void process_ack(const YAML::Node&);
 
         void assemble(const std::string&);
         void publish_ack(const YAML::Node&);
+        void publish_xfer_complete(const std::string& to,
+                                   const std::string& session_id,
+                                   const std::string& job_num);
         boost::filesystem::path create_dir(const std::string&);
         void register_fwd();
 
     private:
         std::string _name;
         std::string _consume_q;
+        std::string _archive_q;
         std::string _amqp_url;
 
         boost::filesystem::path _header_path;

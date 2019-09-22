@@ -55,13 +55,15 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
 
         _name = _config_root["NAME"].as<std::string>();
         _consume_q = _config_root["CONSUME_QUEUE"].as<std::string>();
+        _archive_q = _config_root["ARCHIVE_QUEUE"].as<std::string>();
         _amqp_url = "amqp://" + user + ":" + passwd + "@" + ip_host;
 
         _actions = {
             { "AT_FWDR_HEALTH_CHECK", bind(&miniforwarder::health_check, this, _1) },
             { "AT_FWDR_XFER_PARAMS", bind(&miniforwarder::xfer_params, this, _1) },
             { "AT_FWDR_HEADER_READY", bind(&miniforwarder::header_ready, this, _1) },
-            { "AT_FWDR_END_READOUT", bind(&miniforwarder::end_readout, this, _1) }
+            { "AT_FWDR_END_READOUT", bind(&miniforwarder::end_readout, this, _1) },
+            { "FILE_TRANSFER_COMPLETED_ACK", bind(&miniforwarder::process_ack, this, _1) }
         };
 
         _pub = std::unique_ptr<SimplePublisher>(new SimplePublisher(_amqp_url));
@@ -118,6 +120,8 @@ void miniforwarder::xfer_params(const YAML::Node& n) {
         const std::string image_id = n["IMAGE_ID"].as<std::string>();
         xfer_info xfer;
         xfer.target = n["TARGET_LOCATION"].as<std::string>();
+        xfer.session_id = n["SESSION_ID"].as<std::string>();
+        xfer.job_num = n["JOB_NUM"].as<std::string>();
 
         _db->add_xfer(image_id, xfer);
         publish_ack(n);
@@ -163,6 +167,16 @@ void miniforwarder::end_readout(const YAML::Node& n) {
     }
 }
 
+void miniforwarder::process_ack(const YAML::Node& n) { 
+    try { 
+        const std::string msg_type = n["MSG_TYPE"].as<std::string>();
+        LOG_INF << "Get ack for message type " << msg_type;
+    }
+    catch (std::exception& e) { 
+        LOG_CRT << e.what();
+    }
+}
+
 void miniforwarder::publish_ack(const YAML::Node& n) { 
     try { 
         const std::string msg_type = n["MSG_TYPE"].as<std::string>();
@@ -177,9 +191,26 @@ void miniforwarder::publish_ack(const YAML::Node& n) {
     }
 }
 
+void miniforwarder::publish_xfer_complete(const std::string& to,
+                                          const std::string& session_id,
+                                          const std::string& job_num) {
+    try { 
+        const std::string filename = to.substr(to.find(":") + 1);
+        const std::string msg = _builder.build_xfer_complete(filename, 
+                session_id, job_num);
+        _pub->publish_message(_archive_q, msg);
+    }
+    catch (L1::PublisherError& e) { }
+    catch (std::exception& e) {
+        LOG_CRT << e.what();
+    }
+}
+
 void miniforwarder::assemble(const std::string& image_id) { 
     if (_db->is_ready(image_id)) { 
         const xfer_info xfer = _db->get_xfer(image_id);
+        const std::string session_id = xfer.session_id;
+        const std::string job_num = xfer.job_num;
 
         fs::path pix = _fits_path / fs::path(image_id + ".fits");
         fs::path header = _header_path / fs::path(image_id);
@@ -189,6 +220,8 @@ void miniforwarder::assemble(const std::string& image_id) {
             std::vector<std::string> pattern = _readoutpattern.pattern("WFS");
             _fmt.write_header(pattern, pix, header);
             _sender.send(pix, to);
+            publish_xfer_complete(to.string(), session_id, job_num);
+            
             LOG_INF << "********* READOUT COMPLETE for " << image_id;
 
             // clean up
@@ -239,7 +272,8 @@ void miniforwarder::register_fwd() {
     char host[256];
     std::string ip_addr;
     for (p = infoptr; p != NULL; p = p->ai_next) { 
-        getnameinfo(p->ai_addr, p->ai_addrlen, host, sizeof(host), NULL, 0, NI_NUMERICHOST);
+        getnameinfo(p->ai_addr, p->ai_addrlen, host, sizeof(host), NULL, 0, 
+                NI_NUMERICHOST);
         ip_addr = host;
         break;
     }

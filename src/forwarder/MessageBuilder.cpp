@@ -39,3 +39,19 @@ const std::string MessageBuilder::build_ack(const std::string& msg_type,
     msg << YAML::EndMap; 
     return std::string(msg.c_str());
 }
+
+const std::string MessageBuilder::build_xfer_complete(const std::string& filename,
+                                                      const std::string& session_id,
+                                                      const std::string& job_num) { 
+
+    YAML::Emitter msg; 
+    msg << YAML::DoubleQuoted;
+    msg << YAML::Flow;
+    msg << YAML::BeginMap; 
+    msg << YAML::Key << "MSG_TYPE" << YAML::Value << "FILE_TRANSFER_COMPLETED"; 
+    msg << YAML::Key << "FILENAME" << YAML::Value << filename; 
+    msg << YAML::Key << "SESSION_ID" << YAML::Value << session_id; 
+    msg << YAML::Key << "JOB_NUM" << YAML::Value << job_num; 
+    msg << YAML::EndMap; 
+    return std::string(msg.c_str());
+}
