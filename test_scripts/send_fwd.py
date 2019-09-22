@@ -33,14 +33,14 @@ def main():
         sp.publish_message("f99_consume", msg)
         time.sleep(1)
 
-        msg = {}
-        msg["MSG_TYPE"] = "AT_FWDR_HEADER_READY"
-        msg["REPLY_QUEUE"] = "at_foreman_ack_publish"
-        msg["ACK_ID"] = "ack_100"
-        msg["IMAGE_ID"] = image_id
-        msg["FILENAME"] = "http://localhost:8000/ats.header"
-        sp.publish_message("f99_consume", msg)
-        time.sleep(1)
+        #msg = {}
+        #msg["MSG_TYPE"] = "AT_FWDR_HEADER_READY"
+        #msg["REPLY_QUEUE"] = "at_foreman_ack_publish"
+        #msg["ACK_ID"] = "ack_100"
+        #msg["IMAGE_ID"] = image_id
+        #msg["FILENAME"] = "http://localhost:8000/ats.header"
+        #sp.publish_message("f99_consume", msg)
+        #time.sleep(1)
 
         msg = {}
         msg["MSG_TYPE"] = "AT_FWDR_END_READOUT"

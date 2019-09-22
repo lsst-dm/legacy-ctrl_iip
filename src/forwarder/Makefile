@@ -28,7 +28,7 @@
 
 INCLUDE		= -I$(EXPORT_ROOT)/include -I/opt/lsst/include \
 		  -I../../include
-LIBPATH		= -L$(EXPORT_ROOT)/x86/lib -L/opt/lsst/lib -L/usr/lib64
+LDPATH		= -L$(EXPORT_ROOT)/x86/lib -L/opt/lsst/lib -L/usr/lib64
 LIB		= -ldaq_ims -ldaq_daq -ldaq_dsi -lcfitsio -lboost_log \
 		  -lboost_system -lboost_filesystem -lboost_thread -lpthread \
 		  -lcurl -lSimpleAmqpClient -lyaml-cpp -lhiredis
@@ -40,6 +40,7 @@ OBJ		= $(addprefix ../obj/, \
 			StripeArray.o \
 			Formatter.o \
 			FitsFormatter.o \
+			YAMLFormatter.o \
 			HeaderFetcher.o \
 			CURLHandle.o \
 			DAQFetcher.o \
@@ -69,4 +70,7 @@ core:
 	$(MAKE) -C ../core $(CORE_OBJ)
 
 ../../bin/fwd: miniforwarder.cpp mkdir core $(OBJ)
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LDPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)
+
+main: main.cpp $(OBJ) $(CORE_OBJ)
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LDPATH) -o $@ $^ $(LIB)

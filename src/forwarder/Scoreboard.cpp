@@ -23,7 +23,7 @@
 
 #include <algorithm>
 #include "core/Exceptions.h"
-#include "core/Scoreboard.h"
+#include "forwarder/Scoreboard.h"
 #include "core/SimpleLogger.h"
 #include "core/RedisConnection.h"
 

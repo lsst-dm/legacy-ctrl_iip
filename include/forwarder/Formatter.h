@@ -24,18 +24,34 @@
 #ifndef FORMATTER_H
 #define FORMATTER_H
 
+#include <iostream>
 #include <fitsio.h>
 #include <boost/filesystem.hpp>
+#include <yaml-cpp/yaml.h>
 
 class Formatter { 
     public:
-        void write_pix_file(int32_t**, int32_t&, long*, const boost::filesystem::path&);
+        void write_pix_file(int32_t**, 
+                            int32_t&, 
+                            long*, 
+                            const boost::filesystem::path&);
 };
 
 class FitsFormatter : public Formatter { 
     public:
-        void write_header(const boost::filesystem::path&, const boost::filesystem::path&);
+        void write_header(const boost::filesystem::path&, 
+                          const boost::filesystem::path&);
         bool contains_excluded_key(const char*);
+};
+
+class YAMLFormatter : public Formatter { 
+    public:
+        void write_header(const std::string& raft,
+                          const std::vector<std::string>& ccds,
+                          const std::vector<std::string>& pattern,
+                          const boost::filesystem::path& pix_path, 
+                          const boost::filesystem::path& header_path);
+        void write_section(fitsfile* fptr, const YAML::Node& n);
 };
 
 class FitsOpener { 
