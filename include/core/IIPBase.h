@@ -24,6 +24,7 @@
 #ifndef IIP_BASE_H
 #define IIP_BASE_H
 
+#include <memory>
 #include <yaml-cpp/yaml.h>
 #include "core/Credentials.h"
 
@@ -103,7 +104,7 @@ class IIPBase {
         YAML::Node _config_root;
 
         // Credential object instance
-        Credentials* _credentials;
+        std::unique_ptr<Credentials> _credentials;
 };
 
 #endif

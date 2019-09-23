@@ -29,11 +29,10 @@ IIPBase::IIPBase(const std::string& configfilename, const std::string& logfilena
     _config_root = load_config_file(configfilename);
     init_log(get_log_filepath(), logfilename);
 
-    _credentials = new Credentials("iip_cred.yaml");
+    _credentials = std::unique_ptr<Credentials>(new Credentials("iip_cred.yaml"));
 }
 
 IIPBase::~IIPBase() { 
-    delete _credentials;
 }
 
 std::string IIPBase::get_log_filepath() { 
