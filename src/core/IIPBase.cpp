@@ -21,8 +21,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define BOOST_LOG_DYN_LINK 1
-
 #include <iostream>
 #include "core/SimpleLogger.h"
 #include "core/IIPBase.h"

@@ -1,5 +1,3 @@
-#define BOOST_TEST_DYN_LINK 1
-
 #include <memory>
 #include <yaml-cpp/yaml.h>
 #include <boost/test/unit_test.hpp>

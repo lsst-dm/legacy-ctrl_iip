@@ -20,7 +20,7 @@ mkdir:
 	mkdir -p $(OBJ_DIR)
 
 ../obj/%.o: %.cpp
-	g++ -std=c++11 -c $(INCLUDE) $< -o $@
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -c $(INCLUDE) $< -o $@
 
 clean:
 	rm $(OBJ)

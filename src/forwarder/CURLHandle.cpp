@@ -21,7 +21,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define BOOST_LOG_DYN_LINK 1
 #include "core/Exceptions.h"
 #include "core/SimpleLogger.h"
 #include "forwarder/HeaderFetcher.h"

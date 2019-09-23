@@ -10,7 +10,7 @@
 # the hostname or IP, plus the vhost like this:
 ROOT:
     NAME: f99
-    LOGGING_DIR: /home/hwin16/src/git/ctrl_iip/bin
+    LOGGING_DIR: /var/log/iip
     DAQ_ADDR: LOCAL
     BASE_BROKER_ADDR: 141.142.238.15:5672/%2ftest_at
     CONSUME_QUEUE: f99_consume

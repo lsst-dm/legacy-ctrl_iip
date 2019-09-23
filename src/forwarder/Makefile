@@ -56,18 +56,24 @@ CORE_OBJ       	= $(addprefix ../obj/, \
 			Consumer.o \
 			Credentials.o)
 
-.PHONY: core mkdir
+.PHONY: core mkdir clean
 
 all: ../../bin/fwd
 
 mkdir:
 	mkdir -p ../obj
 
-../obj/%.o: %.cpp
-	g++ -std=c++11 -c $(INCLUDE) $< -o $@
-
 core:
 	$(MAKE) -C ../core $(CORE_OBJ)
 
+../obj/%.o: %.cpp
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -c $(INCLUDE) $< -o $@
+
 ../../bin/fwd: miniforwarder.cpp mkdir core $(OBJ)
-	g++ -std=c++11 -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)
+
+debug: miniforwarder.cpp mkdir core $(OBJ)
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)
+
+clean:
+	rm $(OBJ) $(CORE_OBJ)

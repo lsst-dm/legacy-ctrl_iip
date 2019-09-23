@@ -21,8 +21,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define BOOST_LOG_DYN_LINK 1
-
 #include <boost/filesystem.hpp>
 #include "core/Credentials.h"
 #include "core/SimpleLogger.h"

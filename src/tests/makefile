@@ -24,10 +24,10 @@ fwd:
 	make -C ../forwarder $(FWD_OBJ) 
 
 $(OBJ_DIR)/%Test.o: %Test.cpp
-	g++ -std=c++11 $(INCLUDE) -c $< -o $@
+	g++ -std=c++11 -DBOOST_TEST_DYN_LINK $(INCLUDE) -c $< -o $@
 
 runner: Runner.cpp core fwd $(TEST_OBJ)
-	g++ -std=c++11 $(INCLUDE) $(LDPATH) $(OBJ) $(FWD_OBJ) $(TEST_OBJ) $< -o $@ $(BOOST_LIB) $(LIB)
+	g++ -std=c++11 -DBOOST_TEST_DYN_LINK $(INCLUDE) $(LDPATH) $(OBJ) $(FWD_OBJ) $(TEST_OBJ) $< -o $@ $(BOOST_LIB) $(LIB)
 
 test: runner
 	./runner
