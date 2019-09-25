@@ -22,11 +22,9 @@
  */
 
 #include <iostream>
-
 #include "daq/Location.hh"
 #include "ims/Image.hh"
 #include "ims/Slice.hh"
-
 #include "core/Exceptions.h"
 #include "core/SimpleLogger.h"
 #include "forwarder/DAQFetcher.h"

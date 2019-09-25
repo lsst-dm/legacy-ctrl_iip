@@ -21,40 +21,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef FORMATTER_H
-#define FORMATTER_H
+#include <algorithm>
+#include <vector>
+#include "core/Exceptions.h"
+#include "core/SimpleLogger.h"
+#include "forwarder/ReadoutPattern.h"
 
-#include <fitsio.h>
-#include <boost/filesystem.hpp>
+const std::string SENSORS = "SENSORS";
 
-class Formatter { 
-    public:
-        void write_pix_file(int32_t**, int32_t&, long*, const boost::filesystem::path&);
-};
+ReadoutPattern::ReadoutPattern(const YAML::Node& n) { 
+    _root = n;
+}
 
-class FitsFormatter : public Formatter { 
-    public:
-        void write_header(const std::vector<std::string>& pattern,
-                          const boost::filesystem::path& pix_path, 
-                          const boost::filesystem::path& header_path);
-        bool contains_excluded_key(const char*);
-        int get_segment_num(const std::vector<std::string>& pattern, 
-                            fitsfile* header); 
-};
-
-class FitsOpener { 
-    public:
-        FitsOpener(const boost::filesystem::path&, int);
-        ~FitsOpener();
-        fitsfile* get();
-        int num_hdus();
-    private:
-        fitsfile* _fptr;
-        int _status; 
-};
-
-enum FILE_MODE { 
-    WRITE_ONLY = -1
-};
-
-#endif
+std::vector<std::string> ReadoutPattern::pattern(const std::string& sensor) { 
+    try { 
+        std::vector<std::string> boards = _root[sensor].as<std::vector<std::string>>();
+        return boards;
+    }
+    catch (YAML::TypedBadConversion<std::vector<std::string>>& e) { 
+        std::string err = "YAML Key \"" + sensor + 
+            "\" does not exist in configuration file";
+        LOG_CRT << err;
+        throw L1::InvalidReadoutPattern(err);
+    }
+}

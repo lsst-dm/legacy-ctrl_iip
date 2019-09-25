@@ -1,5 +1,3 @@
-#define BOOST_LOG_DYN_LINK 1
-
 #include "core/SimpleLogger.h"
 #include "core/Exceptions.h"
 #include "core/RedisResponse.h"

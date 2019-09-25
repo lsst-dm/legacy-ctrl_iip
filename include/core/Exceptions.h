@@ -162,6 +162,11 @@ namespace L1 {
         public: 
             RedisError(const std::string& msg) : L1Exception(msg) {} 
     }; 
+
+    class InvalidReadoutPattern: public L1Exception { 
+        public: 
+            InvalidReadoutPattern(const std::string& msg) : L1Exception(msg) {}
+    }; 
 };
 
 #endif

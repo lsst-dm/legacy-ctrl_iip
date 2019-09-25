@@ -21,40 +21,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef FORMATTER_H
-#define FORMATTER_H
+#ifndef READOUT_PATTERN_H
+#define READOUT_PATTERN_H
 
-#include <fitsio.h>
-#include <boost/filesystem.hpp>
+#include <iostream>
+#include <yaml-cpp/yaml.h>
 
-class Formatter { 
+class ReadoutPattern { 
     public:
-        void write_pix_file(int32_t**, int32_t&, long*, const boost::filesystem::path&);
-};
+        ReadoutPattern(const YAML::Node& n);
+        std::vector<std::string> pattern(const std::string& sensor); 
 
-class FitsFormatter : public Formatter { 
-    public:
-        void write_header(const std::vector<std::string>& pattern,
-                          const boost::filesystem::path& pix_path, 
-                          const boost::filesystem::path& header_path);
-        bool contains_excluded_key(const char*);
-        int get_segment_num(const std::vector<std::string>& pattern, 
-                            fitsfile* header); 
-};
-
-class FitsOpener { 
-    public:
-        FitsOpener(const boost::filesystem::path&, int);
-        ~FitsOpener();
-        fitsfile* get();
-        int num_hdus();
     private:
-        fitsfile* _fptr;
-        int _status; 
-};
-
-enum FILE_MODE { 
-    WRITE_ONLY = -1
+        YAML::Node _root;
 };
 
 #endif

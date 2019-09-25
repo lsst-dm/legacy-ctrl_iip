@@ -29,7 +29,10 @@
 
 namespace fs = boost::filesystem;
 
-void Formatter::write_pix_file(int32_t** ccd, int32_t& len, long* naxes, const fs::path& filepath) { 
+void Formatter::write_pix_file(int32_t** ccd, 
+                               int32_t& len, 
+                               long* naxes, 
+                               const fs::path& filepath) { 
     try { 
         int status = 0;
         int bitpix = LONG_IMG;

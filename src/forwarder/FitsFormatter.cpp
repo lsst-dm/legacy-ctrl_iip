@@ -40,7 +40,9 @@ std::vector<std::string> excluded_keywords {
 };
 
 
-void FitsFormatter::write_header(const fs::path& pix_path, const fs::path& header_path) { 
+void FitsFormatter::write_header(const std::vector<std::string>& pattern,
+                                 const fs::path& pix_path, 
+                                 const fs::path& header_path) { 
     try { 
         int status = 0;
         FitsOpener pix_file(pix_path, READWRITE);
@@ -56,14 +58,20 @@ void FitsFormatter::write_header(const fs::path& pix_path, const fs::path& heade
         }
 
         for (int i = 1; i <= pix_file.num_hdus(); i++) { 
-            fits_movabs_hdu(pix, i, IMAGE_HDU, &status);
             fits_movabs_hdu(header, i, IMAGE_HDU, &status);
-            
+            int segment_num = i;
+
+            // escape primary hdu
+            if (i != 1) { 
+                segment_num = get_segment_num(pattern, header); 
+            }
+            fits_movabs_hdu(pix, segment_num, IMAGE_HDU, &status);
+          
             int header_keys = 0;
             fits_get_hdrspace(header, &header_keys, NULL, &status); 
-
             for (int j = 1; j <= header_keys; j++) { 
-                char keyname[FLEN_KEYWORD], value[FLEN_VALUE], comment[FLEN_COMMENT], card[FLEN_CARD];
+                char keyname[FLEN_KEYWORD], value[FLEN_VALUE], 
+                     comment[FLEN_COMMENT], card[FLEN_CARD];
                 fits_read_keyn(header, j, keyname, value, comment, &status); 
 
                 if (!contains_excluded_key(keyname)) { 
@@ -93,4 +101,35 @@ bool FitsFormatter::contains_excluded_key(const char* key) {
         return true; 
     }
     return false;
+}
+
+int FitsFormatter::get_segment_num(const std::vector<std::string>& pattern, 
+                                   fitsfile* header) { 
+    int status = 0;
+    char segment_value[FLEN_VALUE], segment_comment[FLEN_COMMENT];
+    fits_read_key(header, TSTRING, "EXTNAME", segment_value, 
+            segment_comment, &status);
+
+    std::string segment = std::string(segment_value);
+    std::string segment_idx = segment.substr(segment.length() - 2);
+    auto idx_it = std::find(pattern.begin(), pattern.end(), segment_idx);
+
+    if (idx_it == pattern.end()) { 
+        std::string err = "Segment " + segment_idx + 
+            " is not defined in Readout Pattern."; 
+        LOG_CRT << err;
+        throw L1::CannotFormatFitsfile(err);
+    }
+    int idx = std::distance(pattern.begin(), idx_it);
+
+    // +2 because fitsfile indexing is 1 based, instead of 0 based and +1 for 
+    // escaping primary hdu
+    int segment_num = idx + 2;
+    if (status) { 
+        char err[FLEN_ERRMSG];
+        fits_read_errmsg(err);
+        LOG_CRT << err;
+        throw L1::CannotFormatFitsfile(std::string(err));
+    }
+    return segment_num;
 }

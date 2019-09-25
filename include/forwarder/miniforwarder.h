@@ -38,6 +38,7 @@
 #include "forwarder/DAQFetcher.h"
 #include "forwarder/Formatter.h"
 #include "forwarder/FileSender.h"
+#include "forwarder/ReadoutPattern.h"
 
 class miniforwarder : public IIPBase {
     public:
@@ -67,13 +68,14 @@ class miniforwarder : public IIPBase {
 
         std::map<const std::string, std::function<void (const YAML::Node&)> > _actions;
 
-        SimplePublisher* _pub;
+        std::unique_ptr<SimplePublisher> _pub;
         MessageBuilder _builder;
         HeaderFetcher _hdr;
         DAQFetcher _daq;
         FitsFormatter _fmt;
         std::unique_ptr<Scoreboard> _db;
         FileSender _sender;
+        ReadoutPattern _readoutpattern;
 };
 
 #endif

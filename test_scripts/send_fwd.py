@@ -14,9 +14,9 @@ def main():
     url = f'amqp://%s:%s@%s' % (user, passwd, vhost)
     sp = SimplePublisher(url, "YAML")
 
-    image_id = "hk_test"
+    image_id = "AT_O_20190917_1"
 
-    for i in range(0, 3):
+    for i in range(0, 1):
         msg = {}
         msg["MSG_TYPE"] = "AT_FWDR_HEALTH_CHECK"
         msg["REPLY_QUEUE"] = "at_foreman_ack_publish"

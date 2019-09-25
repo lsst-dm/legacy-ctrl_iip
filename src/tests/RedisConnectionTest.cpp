@@ -1,5 +1,3 @@
-#define BOOST_TEST_DYN_LINK 1
-
 #include <boost/test/unit_test.hpp>
 #include <vector>
 
@@ -19,7 +17,7 @@ struct RedisConnectionFixture {
 
     ~RedisConnectionFixture() { 
         BOOST_TEST_MESSAGE("TearDown RedisConnectionTest fixture");
-        _redis.flushdb();
+        // _redis.flushdb();
     }
 
     RedisConnection _redis;
@@ -34,6 +32,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
     BOOST_CHECK_THROW(RedisConnection r("host1", 637), L1::RedisError);
 }
 
+/**
 BOOST_AUTO_TEST_CASE(select) { 
     BOOST_CHECK_NO_THROW(_redis.select(10)); 
     BOOST_CHECK_THROW(_redis.select(20), L1::RedisError); 
@@ -90,5 +89,6 @@ BOOST_AUTO_TEST_CASE(get) {
     _redis.lpush("key", v1);
     BOOST_CHECK_THROW(_redis.get("key"), L1::RedisError);
 }
+*/
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -23,9 +23,9 @@
 
 #include <algorithm>
 #include "core/Exceptions.h"
-#include "core/Scoreboard.h"
 #include "core/SimpleLogger.h"
 #include "core/RedisConnection.h"
+#include "forwarder/Scoreboard.h"
 
 int NUM_EVENTS = 2;
 
@@ -64,7 +64,9 @@ void Scoreboard::add(const std::string& image_id, const std::string& event) {
 void Scoreboard::remove(const std::string& image_id) {
     auto itr = _db.find(image_id); 
     if (itr == _db.end()) {
-        throw L1::KeyNotFound("Cannot remove " + image_id + " because key not found");
+        std::string err = "Cannot remove " + image_id + " because key not found";
+        LOG_CRT << err;
+        throw L1::KeyNotFound(err);
     }
     _db.erase(image_id);
 }
@@ -76,8 +78,10 @@ void Scoreboard::add_xfer(const std::string& image_id, const xfer_info& xfer) {
 xfer_info Scoreboard::get_xfer(const std::string& image_id) { 
     auto itr = _db.find(image_id); 
     if (itr == _db.end()) {
-        throw L1::KeyNotFound("Cannot get transfer parameters for " + image_id +
-                " because key not found");
+        std::string err = "Cannot get transfer parameters for " + image_id +
+                " because key not found";
+        LOG_CRT << err;
+        throw L1::KeyNotFound(err);
     }
     return _xfer[image_id];
 }
