@@ -71,6 +71,9 @@ ROOT:
     ARCHIVE_AR_XFER_ROOT: /data/export
     CHECKSUM_ENABLED: no  
     CHECKSUM_TYPE: MD5   # Current available options: MD5, CRC-32 
+    ATFORWARDER_STAGING: /data/staging/atforwarder
+    OODS_STAGING: /data/staging/oods
+    DBB_STAGING: /data/staging/dbb
   EFD:
     EFD_NAME: LFA
     EFD_LOGIN: felipe
