@@ -14,6 +14,7 @@ ROOT:
     DAQ_ADDR: LOCAL
     BASE_BROKER_ADDR: 141.142.238.10:5672/%2fbunny_at
     CONSUME_QUEUE: f99_consume
+    ARCHIVE_QUEUE: archive_ctrl_consume
 
     HEADER_PATH: /tmp/header
     FITS_PATH: /tmp/source

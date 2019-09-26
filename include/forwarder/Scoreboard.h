@@ -35,6 +35,8 @@
  */
 struct xfer_info { 
     std::string target;
+    std::string session_id;
+    std::string job_num;
 };
 
 /**

@@ -30,6 +30,8 @@ def main():
         msg["IMAGE_ID"] = image_id
         msg["ACK_ID"] = "ack_100"
         msg["TARGET_LOCATION"] = "ARC@141.142.238.15:/data/export"
+        msg["SESSION_ID"] = "Session_100"
+        msg["JOB_NUM"] = "job_100"
         sp.publish_message("f99_consume", msg)
         time.sleep(1)
 
