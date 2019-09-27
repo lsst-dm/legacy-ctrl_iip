@@ -42,7 +42,8 @@ const std::string MessageBuilder::build_ack(const std::string& msg_type,
 
 const std::string MessageBuilder::build_xfer_complete(const std::string& filename,
                                                       const std::string& session_id,
-                                                      const std::string& job_num) { 
+                                                      const std::string& job_num,
+                                                      const std::string& reply_q) { 
 
     YAML::Emitter msg; 
     msg << YAML::DoubleQuoted;
@@ -52,6 +53,7 @@ const std::string MessageBuilder::build_xfer_complete(const std::string& filenam
     msg << YAML::Key << "FILENAME" << YAML::Value << filename; 
     msg << YAML::Key << "SESSION_ID" << YAML::Value << session_id; 
     msg << YAML::Key << "JOB_NUM" << YAML::Value << job_num; 
+    msg << YAML::Key << "REPLY_QUEUE" << YAML::Value << reply_q; 
     msg << YAML::EndMap; 
     return std::string(msg.c_str());
 }

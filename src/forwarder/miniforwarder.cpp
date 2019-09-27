@@ -197,7 +197,7 @@ void miniforwarder::publish_xfer_complete(const std::string& to,
     try { 
         const std::string filename = to.substr(to.find(":") + 1);
         const std::string msg = _builder.build_xfer_complete(filename, 
-                session_id, job_num);
+                session_id, job_num, _consume_q);
         _pub->publish_message(_archive_q, msg);
     }
     catch (L1::PublisherError& e) { }
