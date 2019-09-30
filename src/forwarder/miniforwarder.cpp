@@ -21,7 +21,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <signal.h>
 #include <iostream>
 #include <cstdio>
 #include <unistd.h> // gethostname
@@ -123,6 +122,10 @@ void miniforwarder::xfer_params(const YAML::Node& n) {
         xfer.session_id = n["SESSION_ID"].as<std::string>();
         xfer.job_num = n["JOB_NUM"].as<std::string>();
 
+        const YAML::Node params = n["XFER_PARAMS"];
+        xfer.raft = params["RAFT_LIST"].as<std::string>();
+        xfer.ccds = params["RAFT_CCD_LIST"].as<std::vector<std::string>>();
+
         _db->add_xfer(image_id, xfer);
         publish_ack(n);
     }
@@ -153,14 +156,21 @@ void miniforwarder::header_ready(const YAML::Node& n) {
 void miniforwarder::end_readout(const YAML::Node& n) {
     try { 
         const std::string image_id = n["IMAGE_ID"].as<std::string>();
+        const xfer_info xfer = _db->get_xfer(image_id);
+        const std::string raft = xfer.raft;
+        const std::vector<std::string> ccds = xfer.ccds;
 
-        fs::path filepath = _fits_path / fs::path(image_id + ".fits");
-        _daq.fetch(image_id, "00", "00", "WaveFront", filepath);
+        for (auto& ccd : ccds) { 
+            const std::string filename = image_id + "--R" + raft + "S" + ccd + ".fits";
+            const fs::path filepath = _fits_path / fs::path(filename);
+            _daq.fetch(image_id, raft, ccd, "WaveFront", filepath);
+        }
 
         _db->add(image_id, "end_readout");
         assemble(image_id);
         publish_ack(n);
     }
+    catch (L1::KeyNotFound& e) { }
     catch (L1::CannotFetchPixel& e) { }
     catch (std::exception& e) { 
         LOG_CRT << e.what();
@@ -182,7 +192,8 @@ void miniforwarder::publish_ack(const YAML::Node& n) {
         const std::string msg_type = n["MSG_TYPE"].as<std::string>();
         const std::string ack_id = n["ACK_ID"].as<std::string>();
         const std::string reply_q = n["REPLY_QUEUE"].as<std::string>();
-        const std::string msg = _builder.build_ack(msg_type, _name, ack_id, "True");
+        const std::string msg = _builder.build_ack(msg_type, _name, 
+                ack_id, "True");
         _pub->publish_message(reply_q, msg);
     }
     catch (L1::PublisherError& e) { }
@@ -207,35 +218,42 @@ void miniforwarder::publish_xfer_complete(const std::string& to,
 }
 
 void miniforwarder::assemble(const std::string& image_id) { 
-    if (_db->is_ready(image_id)) { 
-        const xfer_info xfer = _db->get_xfer(image_id);
-        const std::string session_id = xfer.session_id;
-        const std::string job_num = xfer.job_num;
+    try { 
+        if (_db->is_ready(image_id)) { 
+            const xfer_info xfer = _db->get_xfer(image_id);
+            const std::string raft = xfer.raft;
+            const std::vector<std::string> ccds = xfer.ccds;
+            const std::string session_id = xfer.session_id;
+            const std::string job_num = xfer.job_num;
+            const fs::path header = _header_path / fs::path(image_id);
 
-        fs::path pix = _fits_path / fs::path(image_id + ".fits");
-        fs::path header = _header_path / fs::path(image_id);
-        fs::path to = fs::path(xfer.target) / fs::path(image_id + ".fits");
+            for (auto& ccd : ccds) { 
+                const std::string filename = image_id + "--R" + raft + "S" + ccd + ".fits";
+                const fs::path pix = _fits_path / fs::path(filename);
+                const fs::path to = fs::path(xfer.target) / fs::path(filename);
 
-        try { 
-            std::vector<std::string> pattern = _readoutpattern.pattern("WFS");
-            _fmt.write_header(pattern, pix, header);
-            _sender.send(pix, to);
-            publish_xfer_complete(to.string(), session_id, job_num);
-            
-            LOG_INF << "********* READOUT COMPLETE for " << image_id;
+                std::vector<std::string> pattern = _readoutpattern.pattern("WFS");
+                _fmt.write_header(pattern, pix, header);
+                _sender.send(pix, to);
+                publish_xfer_complete(to.string(), session_id, job_num);
+                
+                LOG_INF << "********* READOUT COMPLETE for " << image_id;
 
-            // clean up
-            _db->remove(image_id);
-            remove(pix.c_str());
-            remove(header.c_str());
-        } 
-        catch (L1::InvalidReadoutPattern& e) { }
-        catch (L1::CannotFormatFitsfile& e) { }
-        catch (L1::CannotCopyFile& e) { } 
-        catch (std::exception& e) { 
-            std::string err = "Cannot assemble fitsfile because " + std::string(e.what());
-            LOG_CRT << err; 
+                _db->remove(image_id);
+                std::remove(pix.c_str());
+            }
+
+            std::remove(header.c_str());
         }
+    }
+    catch (L1::KeyNotFound& e) { }
+    catch (L1::InvalidReadoutPattern& e) { }
+    catch (L1::CannotFormatFitsfile& e) { }
+    catch (L1::CannotCopyFile& e) { } 
+    catch (std::exception& e) { 
+        std::string err = "Cannot assemble fitsfile because " + 
+            std::string(e.what());
+        LOG_CRT << err; 
     }
 }
 
@@ -288,16 +306,4 @@ void miniforwarder::register_fwd() {
     out << YAML::Key << "consume_queue" << YAML::Value << _consume_q;
     out << YAML::EndMap;
     _db->set_fwd("forwarder_list", out.c_str());
-}
-
-void signal_handler(int signum) { 
-    LOG_CRT << "Received CTRL-C";
-    exit(-1);
-}
-
-int main() { 
-    signal(SIGINT, signal_handler);
-    miniforwarder fwd;
-    fwd.run();
-    return 0;
 }
