@@ -82,8 +82,8 @@ ROOT:
     EFD_XFER_ROOT: /mnt/lfa/
     CHECKSUM_ENABLED: no
   ATS:
-    WFS_RAFT: ats
-    WFS_CCD: wfs_ccd
+    WFS_RAFT: "00"
+    WFS_CCD: [ "00" ]
   OCS: 
     OCS_PUBLISH: ocs_dmcs_consume
     OCS_CONSUME: dmcs_ocs_publish

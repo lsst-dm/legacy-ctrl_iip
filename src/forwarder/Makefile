@@ -1,79 +1,48 @@
-#LSST_PATH       = /opt/lsst
-#RELEASE		= /srv/nfs/lsst-daq/daq-sdk/current
-#INCLUDE         = -I../../include/core -I../../include/forwarder -I$(LSST_PATH)/include
-#DAQ_INCLUDE     = -I$(RELEASE)/include 
-#LIBPATH         = -L$(LSST_PATH)/lib -Wl,-rpath,$(LSST_PATH)/lib \
-#		  -L$(LSST_PATH)/lib64 -Wl,-rpath,$(LSST_PATH)/lib64
-#DAQ_LIBPATH     = -L$(RELEASE)/x86/lib -Wl,-rpath,$(RELEASE)/x86/lib  
-#LIB             = -lSimpleAmqpClient -lyaml-cpp -lpthread -lcfitsio -lm -lcurl
-#DAQ_LIB         = -ldaq_daq -ldaq_ims -ldaq_dsi -ldaq_osa -ldaq_dss -ldaq_net -lcrypto
-#LOG_LIB         = -lboost_log -lboost_system -lboost_filesystem -lboost_thread
-#OBJ_RULES       = IIPBase.o SimpleLogger.o SimplePublisher.o Toolsmod.o Consumer.o Credentials.o
-#OBJ		= $(addprefix ../obj/,$(OBJ_RULES))
-#BIN_DIR         = ../../bin
-#
-#all: DAQForwarder
-#
-#.PHONY: all dependency
-#
-#dependency:
-#	$(MAKE) -C ../core $(OBJ)
-#
-#DAQForwarder: DAQForwarder.cpp dependency
-#	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(DAQ_INCLUDE) $(INCLUDE) $(DAQ_LIBPATH) $(LIBPATH) $(OBJ) -ggdb -o $(BIN_DIR)/$@ $< $(LIB) $(DAQ_LIB) $(LOG_LIB)
-#
-#clean: 
-#	rm $(BIN_DIR)/DAQForwarder
-#
-
 INCLUDE		= -I$(EXPORT_ROOT)/include -I/opt/lsst/include \
 		  -I../../include
-LIBPATH		= -L$(EXPORT_ROOT)/x86/lib -L/opt/lsst/lib -L/usr/lib64
-LIB		= -ldaq_ims -ldaq_daq -ldaq_dsi -lcfitsio -lboost_log \
-		  -lboost_system -lboost_filesystem -lboost_thread -lpthread \
-		  -lcurl -lSimpleAmqpClient -lyaml-cpp -lhiredis
+LDPATH		= -L$(EXPORT_ROOT)/x86/lib -L/opt/lsst/lib -L/opt/lsst/lib64 -L../lib
+BIN_DIR		= ../../bin
+LIB_DIR		= ../lib
+OBJ_DIR		= ../obj
 OBJ		= $(addprefix ../obj/, \
-			FileSender.o \
-			Scoreboard.o \
-			FitsOpener.o \
-			PixelArray.o \
-			StripeArray.o \
-			Formatter.o \
-			FitsFormatter.o \
-			HeaderFetcher.o \
 			CURLHandle.o \
 			DAQFetcher.o \
+			FileSender.o \
+			FitsOpener.o \
+			FitsFormatter.o \
+			Formatter.o \
+			HeaderFetcher.o \
 			MessageBuilder.o \
-			ReadoutPattern.o)
-CORE_OBJ       	= $(addprefix ../obj/, \
-			RabbitConnection.o \
-			RedisConnection.o \
-			RedisResponse.o \
-			IIPBase.o \
-			SimpleLogger.o \
-			SimplePublisher.o \
-			FileOpener.o \
-			Consumer.o \
-			Credentials.o)
+			miniforwarder.o \
+			PixelArray.o \
+			ReadoutPattern.o \
+			Scoreboard.o \
+			StripeArray.o)
+LIB		= -llsst_l1_forwarder -llsst_l1_core -ldaq_ims -ldaq_daq -ldaq_dsi \
+		  -lcfitsio -lyaml-cpp -lboost_log -lboost_system -lboost_filesystem \
+		  -lboost_thread -lpthread -lcurl -lSimpleAmqpClient -lhiredis
 
-.PHONY: core mkdir clean
+.PHONY: core clean
 
-all: ../../bin/fwd
+all: release
 
 mkdir:
-	mkdir -p ../obj
+	mkdir -p $(OBJ_DIR) $(LIB_DIR)
 
-core:
-	$(MAKE) -C ../core $(CORE_OBJ)
+$(OBJ_DIR)/%.o: %.cpp
+	g++ -std=c++11 -fPIC -DBOOST_LOG_DYN_LINK -c $(INCLUDE) $< -o $@
 
-../obj/%.o: %.cpp
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -c $(INCLUDE) $< -o $@
+$(LIB_DIR)/liblsst_l1_core.so:
+	$(MAKE) -C ../core $@
 
-../../bin/fwd: miniforwarder.cpp mkdir core $(OBJ)
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)
+$(LIB_DIR)/liblsst_l1_forwarder.so: $(OBJ)
+	gcc -shared $(OBJ) -o $@
 
-debug: miniforwarder.cpp mkdir core $(OBJ)
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LIBPATH) $(OBJ) $(CORE_OBJ) $< -o $@ $(LIB)
+debug: main.cpp mkdir $(LIB_DIR)/liblsst_l1_core.so $(LIB_DIR)/liblsst_l1_forwarder.so
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -pg -g $(INCLUDE) $(LDPATH) $< -o $(BIN_DIR)/Forwarder $(LIB)
+
+release: main.cpp mkdir $(LIB_DIR)/liblsst_l1_core.so $(LIB_DIR)/liblsst_l1_forwarder.so
+	g++ -std=c++11 -DBOOST_LOG_DYN_LINK $(INCLUDE) $(LDPATH) $< -o $(BIN_DIR)/Forwarder $(LIB)
 
 clean:
-	rm $(OBJ) $(CORE_OBJ)
+	rm $(OBJ) $(LIB_DIR)/liblsst_l1_forwarder.so

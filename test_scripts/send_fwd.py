@@ -24,6 +24,11 @@ def main():
         sp.publish_message("f99_consume", msg)
         time.sleep(1)
 
+        xfer = {}
+        xfer["RAFT_LIST"] = "00"
+        xfer["RAFT_CCD_LIST"] = [ "00" ]
+        xfer["AT_FWDR"] = "f99"
+
         msg = {}
         msg["MSG_TYPE"] = "AT_FWDR_XFER_PARAMS"
         msg["REPLY_QUEUE"] = "at_foreman_ack_publish"
@@ -32,6 +37,7 @@ def main():
         msg["TARGET_LOCATION"] = "ARC@141.142.238.15:/data/export"
         msg["SESSION_ID"] = "Session_100"
         msg["JOB_NUM"] = "job_100"
+        msg["XFER_PARAMS"] = xfer
         sp.publish_message("f99_consume", msg)
         time.sleep(1)
 

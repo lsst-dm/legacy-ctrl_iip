@@ -1,0 +1,6 @@
+IMAGE_ID: hk_test
+JOB_NUM: job_100
+SESSION_ID: session_100
+RAFT_LIST: 00
+RAFT_CCD_LIST: [ "00" ]
+TARGET_LOCATION: "ARC@141.142.238.15:/data/export"

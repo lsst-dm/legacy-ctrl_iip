@@ -3,24 +3,26 @@ LDPATH		= -L/opt/lsst/lib
 LOG_LIB         = -lboost_log -lboost_filesystem -lboost_system -lboost_thread
 LIBS		= -lyaml-cpp -lpthread
 OBJ		= $(addprefix ../obj/, \
-		      RabbitConnection.o \
-		      RedisConnection.o \
-		      RedisResponse.o \
-		      SimplePublisher.o \
-		      Consumer.o \
-		      SimpleLogger.o \
-		      IIPBase.o \
-		      Credentials.o)
+			Consumer.o \
+			Credentials.o \
+			FileOpener.o \
+			IIPBase.o \
+			RabbitConnection.o \
+			RedisConnection.o \
+			RedisResponse.o \
+			SimpleLogger.o \
+			SimplePublisher.o )
+LIB_DIR		= ../lib
 
-.PHONY: clean mkdir
+.PHONY: clean
 
-all: $(OBJ)
-
-mkdir:
-	mkdir -p $(OBJ_DIR)
+all: $(LIB_DIR)/liblsst_l1_core.so
 
 ../obj/%.o: %.cpp
-	g++ -std=c++11 -DBOOST_LOG_DYN_LINK -c $(INCLUDE) $< -o $@
+	g++ -std=c++11 -fPIC -DBOOST_LOG_DYN_LINK -c $(INCLUDE) $< -o $@
+
+$(LIB_DIR)/liblsst_l1_core.so: $(OBJ)
+	gcc -shared $(OBJ) -o $@
 
 clean:
-	rm $(OBJ)
+	rm $(OBJ) $(LIB_DIR)/liblsst_l1_core.so

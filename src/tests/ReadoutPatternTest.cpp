@@ -1,6 +1,7 @@
 #include <memory>
 #include <yaml-cpp/yaml.h>
 #include <boost/test/unit_test.hpp>
+
 #include "core/Exceptions.h"
 #include "forwarder/ReadoutPattern.h"
 

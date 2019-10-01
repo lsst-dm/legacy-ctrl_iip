@@ -32,11 +32,17 @@
  * Information used for readout transfer of fits file
  *
  * @param target location where fits file should go
+ * @param session_id Current session ID
+ * @param job_num Current running job
+ * @param raft Raft number of the form "00"
+ * @param ccds Name of ccds inside the raft to pull
  */
 struct xfer_info { 
     std::string target;
     std::string session_id;
     std::string job_num;
+    std::string raft;
+    std::vector<std::string> ccds;
 };
 
 /**
