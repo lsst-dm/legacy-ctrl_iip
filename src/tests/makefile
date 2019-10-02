@@ -27,4 +27,4 @@ runner: Runner.cpp lib $(TEST_OBJ)
 
 test: runner
 	./runner
-	rm runner
+	rm runner *.log.0

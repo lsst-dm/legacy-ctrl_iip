@@ -62,7 +62,6 @@ struct miniforwarderFixture {
 
     ~miniforwarderFixture() { 
         BOOST_TEST_MESSAGE("TearDown miniforwarder fixture");
-        std::remove("Forwarder.log.0");
     }
 };
 
@@ -74,7 +73,13 @@ BOOST_AUTO_TEST_CASE(end_readout) {
     std::vector<std::string> ccds = _d["RAFT_CCD_LIST"].as<std::vector<std::string>>();
     std::string fitspath = _root["FITS_PATH"].as<std::string>();
 
-    /*
+    /**
+     * end readout without start integration
+     */
+    YAML::Node er_without_xfer = build_end_readout(image_id);
+    BOOST_CHECK_NO_THROW(_fwd->end_readout(er_without_xfer));
+
+    /**
      * non-existing image_id
      */
     std::string bad_img = "aaa";
