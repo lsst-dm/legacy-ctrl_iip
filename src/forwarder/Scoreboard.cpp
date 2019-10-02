@@ -78,7 +78,7 @@ void Scoreboard::add_xfer(const std::string& image_id, const xfer_info& xfer) {
 xfer_info Scoreboard::get_xfer(const std::string& image_id) { 
     auto itr = _xfer.find(image_id); 
     if (itr == _xfer.end()) {
-        std::string err = "Cannot get transfer parameters for " + image_id +
+        std::string err = "Cannot get transfer parameters for Image ID " + image_id +
                 " because key not found";
         LOG_CRT << err;
         throw L1::KeyNotFound(err);

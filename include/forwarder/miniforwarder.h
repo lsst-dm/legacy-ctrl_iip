@@ -42,7 +42,8 @@
 
 class miniforwarder : public IIPBase {
     public:
-        miniforwarder();
+        miniforwarder(const std::string& config, 
+                      const std::string& log);
         ~miniforwarder();
 
         void on_message(const std::string&);
@@ -60,6 +61,7 @@ class miniforwarder : public IIPBase {
                                    const std::string& session_id,
                                    const std::string& job_num);
         boost::filesystem::path create_dir(const std::string&);
+        bool check_valid_board(const std::string& raft, const std::string& ccd);
         void register_fwd();
 
     private:
@@ -67,18 +69,21 @@ class miniforwarder : public IIPBase {
         std::string _consume_q;
         std::string _archive_q;
         std::string _amqp_url;
+        std::string _partition;
 
         boost::filesystem::path _header_path;
         boost::filesystem::path _fits_path;
 
         std::map<const std::string, std::function<void (const YAML::Node&)> > _actions;
+        std::vector<std::string> _daq_locations;
 
         std::unique_ptr<SimplePublisher> _pub;
+        std::unique_ptr<Scoreboard> _db;
+        std::unique_ptr<DAQFetcher> _daq;
+
         MessageBuilder _builder;
         HeaderFetcher _hdr;
-        DAQFetcher _daq;
         FitsFormatter _fmt;
-        std::unique_ptr<Scoreboard> _db;
         FileSender _sender;
         ReadoutPattern _readoutpattern;
 };

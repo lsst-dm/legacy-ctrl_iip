@@ -92,6 +92,8 @@ int32_t* DAQFetcher::fetch_ccd(const std::string& image_id,
         IMS::Image image(image_id.c_str(), _store); 
         
         std::string bay_board = raft + "/" + ccd[0];
+
+        // Should throw exception from DAQ api, instead of SIGABRT
         DAQ::Location location(bay_board.c_str());
         IMS::Source source(location, image);
         T slice(source);

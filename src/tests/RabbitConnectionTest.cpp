@@ -28,7 +28,7 @@
 #include "core/Exceptions.h"
 
 struct Fixture : IIPBase {
-    Fixture() : IIPBase("ForwarderCfg.yaml", "./RabbitConnectionTest") {
+    Fixture() : IIPBase("ForwarderCfgTest.yaml", "RabbitConnectionTest") {
         BOOST_TEST_MESSAGE("Setup fixture");
         _usr = _credentials->get_user("service_user");
         _pwd = _credentials->get_passwd("service_passwd"); 

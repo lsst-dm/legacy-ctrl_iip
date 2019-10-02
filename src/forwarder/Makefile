@@ -22,7 +22,7 @@ LIB		= -llsst_l1_forwarder -llsst_l1_core -ldaq_ims -ldaq_daq -ldaq_dsi \
 		  -lcfitsio -lyaml-cpp -lboost_log -lboost_system -lboost_filesystem \
 		  -lboost_thread -lpthread -lcurl -lSimpleAmqpClient -lhiredis
 
-.PHONY: core clean
+.PHONY: core clean $(LIB_DIR)/liblsst_l1_core.so
 
 all: release
 
