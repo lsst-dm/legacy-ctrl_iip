@@ -12,7 +12,7 @@ TEST_OBJ	= $(addprefix $(OBJ_DIR)/, \
 			miniforwarderTest.o)
 FWD_OBJ 	= ../obj/miniforwarder.o
 
-.PHONY: all
+.PHONY: all lib
 
 all: runner
 

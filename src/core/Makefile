@@ -13,15 +13,19 @@ OBJ		= $(addprefix ../obj/, \
 			SimpleLogger.o \
 			SimplePublisher.o )
 LIB_DIR		= ../lib
+OBJ_DIR		= ../obj
 
-.PHONY: clean
+.PHONY: clean mkdir all
 
 all: $(LIB_DIR)/liblsst_l1_core.so
 
-../obj/%.o: %.cpp
+mkdir:
+	mkdir -p $(OBJ_DIR) $(LIB_DIR)
+
+$(OBJ_DIR)/%.o: %.cpp
 	g++ -std=c++11 -fPIC -DBOOST_LOG_DYN_LINK -c $(INCLUDE) $< -o $@
 
-$(LIB_DIR)/liblsst_l1_core.so: $(OBJ)
+$(LIB_DIR)/liblsst_l1_core.so: mkdir $(OBJ)
 	gcc -shared $(OBJ) -o $@
 
 clean:

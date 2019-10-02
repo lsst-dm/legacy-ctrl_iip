@@ -54,7 +54,7 @@ void Formatter::write_pix_file(int32_t** ccd,
             LOG_CRT << std::string(err);
             throw L1::CannotFormatFitsfile(err);
         }
-        LOG_INF << "Finished writing pixel fits file.";
+        LOG_INF << "Finished writing pixel fits file at " << filepath.string();
     } 
     catch (L1::CfitsioError& e) { 
         throw L1::CannotFormatFitsfile(e.what());

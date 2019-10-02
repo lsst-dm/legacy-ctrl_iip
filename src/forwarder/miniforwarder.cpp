@@ -35,26 +35,35 @@
 
 namespace fs = boost::filesystem;
 
-miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
+miniforwarder::miniforwarder(const std::string& config, 
+                             const std::string& log) : IIPBase(config, log)
                                  , _hdr()
-                                 , _daq("ats")
                                  , _fmt()
                                  , _readoutpattern(_config_root)
                                  , _sender() { 
     try { 
+        // rabbitmq configuration
         const std::string user = _credentials->get_user("service_user");
         const std::string passwd = _credentials->get_user("service_passwd");
         const std::string ip_host = _config_root["BASE_BROKER_ADDR"].as<std::string>();
+        _consume_q = _config_root["CONSUME_QUEUE"].as<std::string>();
+        _archive_q = _config_root["ARCHIVE_QUEUE"].as<std::string>();
+
+        // cfitsio configuration
         const std::string header_dir = _config_root["HEADER_PATH"].as<std::string>();
         const std::string fits_dir = _config_root["FITS_PATH"].as<std::string>();
+
+        // redis configuration
         const std::string redis_host = _config_root["REDIS_HOST"].as<std::string>();
         const int redis_port = _config_root["REDIS_PORT"].as<int>();
         const int redis_db = _config_root["REDIS_DB"].as<int>();
         const std::string redis_pwd = "meh"; // should come from credentials
 
+        // daq configuration
+        _partition = _config_root["PARTITION"].as<std::string>();
+        _daq_locations = _config_root[_partition].as<std::vector<std::string>>();
+
         _name = _config_root["NAME"].as<std::string>();
-        _consume_q = _config_root["CONSUME_QUEUE"].as<std::string>();
-        _archive_q = _config_root["ARCHIVE_QUEUE"].as<std::string>();
         _amqp_url = "amqp://" + user + ":" + passwd + "@" + ip_host;
 
         _actions = {
@@ -68,6 +77,7 @@ miniforwarder::miniforwarder() : IIPBase("ForwarderCfg.yaml", "Forwarder")
         _pub = std::unique_ptr<SimplePublisher>(new SimplePublisher(_amqp_url));
         _db = std::unique_ptr<Scoreboard>(
                 new Scoreboard(redis_host, redis_port, redis_db, redis_pwd));
+        _daq = std::unique_ptr<DAQFetcher>(new DAQFetcher(_partition.c_str()));
 
         _header_path = create_dir(header_dir);
         _fits_path = create_dir(fits_dir);
@@ -163,7 +173,13 @@ void miniforwarder::end_readout(const YAML::Node& n) {
         for (auto& ccd : ccds) { 
             const std::string filename = image_id + "--R" + raft + "S" + ccd + ".fits";
             const fs::path filepath = _fits_path / fs::path(filename);
-            _daq.fetch(image_id, raft, ccd, "WaveFront", filepath);
+            if (!check_valid_board(raft, ccd)) { 
+                std::string err = "Raft/ccd " + raft + "/" + ccd + 
+                    " does not exist in partition " + _partition;
+                LOG_CRT << err;
+                throw L1::CannotFetchPixel(err);
+            }
+            _daq->fetch(image_id, raft, ccd, "WaveFront", filepath);
         }
 
         _db->add(image_id, "end_readout");
@@ -306,4 +322,14 @@ void miniforwarder::register_fwd() {
     out << YAML::Key << "consume_queue" << YAML::Value << _consume_q;
     out << YAML::EndMap;
     _db->set_fwd("forwarder_list", out.c_str());
+}
+
+bool miniforwarder::check_valid_board(const std::string& raft, 
+                                      const std::string& ccd) {
+    const std::string bay_board = raft + "/" + ccd[0]; 
+    auto found = std::find(_daq_locations.begin(), _daq_locations.end(), bay_board);
+    if (found == _daq_locations.end()) { 
+        return false;
+    }
+    return true;
 }

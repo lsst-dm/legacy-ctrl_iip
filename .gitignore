@@ -20,3 +20,4 @@ ospl-info.log
 nohup.out
 core.*
 gmon.out
+lib/

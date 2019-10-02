@@ -36,12 +36,26 @@ class DAQFetcher {
         DAQFetcher(const char*);
         ~DAQFetcher();
 
-        void fetch(const std::string&, const std::string&, const std::string&, const std::string&, const boost::filesystem::path&);
+        void fetch(const std::string&, 
+                   const std::string&, 
+                   const std::string&, 
+                   const std::string&, 
+                   const boost::filesystem::path&);
         template<typename T, typename U>
-        int32_t* fetch_ccd(const std::string&, const std::string&, const std::string&, const boost::filesystem::path&, std::function<U>);
+        int32_t* fetch_ccd(const std::string&, 
+                           const std::string&, 
+                           const std::string&, 
+                           const boost::filesystem::path&, 
+                           std::function<U>);
         
-        void decode_science(IMS::Science&, int32_t**, const char&, const int32_t&);
-        void decode_wavefront(IMS::WaveFront&, int32_t**, const char&, const int32_t&);
+        void decode_science(IMS::Science&, 
+                            int32_t**, 
+                            const char&, 
+                            const int32_t&);
+        void decode_wavefront(IMS::WaveFront&, 
+                              int32_t**, 
+                              const char&, 
+                              const int32_t&);
 
         void get_naxes(const IMS::Source&, long*);
         bool has_image(const std::string&);
