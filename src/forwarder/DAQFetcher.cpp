@@ -98,8 +98,11 @@ int32_t* DAQFetcher::fetch_ccd(const std::string& image_id,
         IMS::Source source(location, image);
         T slice(source);
 
-        long naxes[2];
-        get_naxes(source, naxes);
+        // Can't rely on NAXES values from DAQ hardware. For ATS, this value
+        // is hard-coded here and might change with upcoming DAQ 4.0.
+        long naxes[2]{ 576, 2048 };
+
+        // get_naxes(source, naxes);
 
         long len = naxes[0] * naxes[1]; 
 

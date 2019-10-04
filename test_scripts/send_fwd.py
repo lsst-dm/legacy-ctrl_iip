@@ -14,7 +14,9 @@ def main():
     url = f'amqp://%s:%s@%s' % (user, passwd, vhost)
     sp = SimplePublisher(url, "YAML")
 
-    image_id = "AT_O_20190917_1"
+    image_id = "AT_O_20191002_000001"
+    debug = False
+    timeout = 1
 
     for i in range(0, 1):
         msg = {}
@@ -22,7 +24,8 @@ def main():
         msg["REPLY_QUEUE"] = "at_foreman_ack_publish"
         msg["ACK_ID"] = "ack_100"
         sp.publish_message("f99_consume", msg)
-        time.sleep(1)
+        if debug:
+            time.sleep(timeout)
 
         xfer = {}
         xfer["RAFT_LIST"] = "00"
@@ -39,7 +42,8 @@ def main():
         msg["JOB_NUM"] = "job_100"
         msg["XFER_PARAMS"] = xfer
         sp.publish_message("f99_consume", msg)
-        time.sleep(1)
+        if debug:
+            time.sleep(timeout)
 
         msg = {}
         msg["MSG_TYPE"] = "AT_FWDR_HEADER_READY"
@@ -48,7 +52,8 @@ def main():
         msg["IMAGE_ID"] = image_id
         msg["FILENAME"] = "http://localhost:8000/ats.header"
         sp.publish_message("f99_consume", msg)
-        time.sleep(1)
+        if debug:
+            time.sleep(timeout)
 
         msg = {}
         msg["MSG_TYPE"] = "AT_FWDR_END_READOUT"
@@ -56,7 +61,8 @@ def main():
         msg["IMAGE_ID"] = image_id
         msg["ACK_ID"] = "ack_100"
         sp.publish_message("f99_consume", msg)
-        time.sleep(1)
+        if debug:
+            time.sleep(timeout)
 
 if __name__ == "__main__":
     main()
