@@ -3,20 +3,20 @@
 #include <boost/test/unit_test.hpp>
 
 #include "core/Exceptions.h"
+#include "core/IIPBase.h"
 #include "forwarder/ReadoutPattern.h"
 
-const std::string TEST_CONFIG = "./config/ForwarderCfgTest.yaml";
+struct ReadoutPatternFixture : IIPBase { 
 
-struct ReadoutPatternFixture { 
-
-    ReadoutPatternFixture() { 
-        YAML::Node node = YAML::LoadFile(TEST_CONFIG); 
-        YAML::Node root = node["ROOT"];
-        _p = std::unique_ptr<ReadoutPattern>(new ReadoutPattern(root));
+    ReadoutPatternFixture() : IIPBase("ForwarderCfg.yaml", "test") { 
+        BOOST_TEST_MESSAGE("Setup ReadoutPattern fixture");
+        _p = std::unique_ptr<ReadoutPattern>(new ReadoutPattern(_config_root));
     }
 
     ~ReadoutPatternFixture() { 
-
+        BOOST_TEST_MESSAGE("TearDown ReadoutPattern fixture");
+        std::string logfile = get_log_filepath() + "/test.log.0";
+        std::remove(logfile.c_str());
     }
 
     std::unique_ptr<ReadoutPattern> _p;

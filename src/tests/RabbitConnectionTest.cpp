@@ -27,23 +27,24 @@
 #include "core/IIPBase.h"
 #include "core/Exceptions.h"
 
-struct Fixture : IIPBase {
-    Fixture() : IIPBase("ForwarderCfgTest.yaml", "RabbitConnectionTest") {
-        BOOST_TEST_MESSAGE("Setup fixture");
+struct RabbitConnectionFixture : IIPBase {
+    RabbitConnectionFixture() : IIPBase("ForwarderCfg.yaml", "test") {
+        BOOST_TEST_MESSAGE("Setup RabbitConnection fixture");
         _usr = _credentials->get_user("service_user");
         _pwd = _credentials->get_passwd("service_passwd"); 
         _addr = _config_root["BASE_BROKER_ADDR"].as<std::string>();
     }
 
-    ~Fixture() { 
-        BOOST_TEST_MESSAGE("TearDown fixture");
-        std::remove("./RabbitConnectionTest.log.0");
+    ~RabbitConnectionFixture() { 
+        BOOST_TEST_MESSAGE("TearDown RabbitConnection fixture");
+        std::string logfile = get_log_filepath() + "/test.log.0";
+        std::remove(logfile.c_str());
     }
 
     std::string _usr, _pwd, _addr;
 };
 
-BOOST_FIXTURE_TEST_SUITE(RabbitConnectionTest, Fixture);
+BOOST_FIXTURE_TEST_SUITE(RabbitConnectionTest, RabbitConnectionFixture);
 
 BOOST_AUTO_TEST_CASE(constructor) {
     // good url

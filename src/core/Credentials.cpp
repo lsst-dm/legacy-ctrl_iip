@@ -38,6 +38,7 @@ YAML::Node Credentials::load_secure_file(const std::string& filename) {
 
     if (!fs::exists(filepath)) { 
         std::ostringstream message;
+        std::cout << filepath.string() << std::endl;
         message << "Secure file " << filename << " doesn't exist.";
         std::cout << message.str() << std::endl;
         LOG_CRT << message.str();

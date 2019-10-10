@@ -1,3 +1,4 @@
+#include <iostream>
 #include <thread>
 #include <chrono>
 #include <memory>
@@ -7,23 +8,24 @@
 #include <yaml-cpp/yaml.h>
 
 #include "core/Exceptions.h"
+#include "core/IIPBase.h"
 #include "forwarder/miniforwarder.h"
 
 namespace fs = boost::filesystem;
 
-struct miniforwarderFixture {
+struct miniforwarderFixture : IIPBase {
     std::unique_ptr<miniforwarder> _fwd;
     YAML::Node _d;
-    YAML::Node _root;
 
-    miniforwarderFixture() { 
+    miniforwarderFixture() : IIPBase("ForwarderCfg.yaml", "test") { 
         BOOST_TEST_MESSAGE("Setup miniforwarder fixture");
         _fwd = std::unique_ptr<miniforwarder>(
-                new miniforwarder("ForwarderCfgTest.yaml", "Forwarder"));
+                new miniforwarder("ForwarderCfg.yaml", "test"));
 
-        YAML::Node cfg = YAML::LoadFile("./config/ForwarderCfgTest.yaml");
-        _root = cfg["ROOT"];
-        _d = YAML::LoadFile("./data/test_data.yaml");
+        std::string iip_config_dir = std::string(getenv("IIP_CONFIG_DIR"));
+        std::string test_data = iip_config_dir + "/../../src/tests/data/test_data.yaml";
+        std::cout << test_data << std::endl;
+        _d = YAML::LoadFile(test_data);
     }
 
     YAML::Node build_xfer_params(std::string& image_id, 
@@ -62,6 +64,8 @@ struct miniforwarderFixture {
 
     ~miniforwarderFixture() { 
         BOOST_TEST_MESSAGE("TearDown miniforwarder fixture");
+        std::string logfile = get_log_filepath() + "/test.log.0";
+        std::remove(logfile.c_str());
     }
 };
 
@@ -71,7 +75,7 @@ BOOST_AUTO_TEST_CASE(end_readout) {
     std::string image_id = _d["IMAGE_ID"].as<std::string>();
     std::string raft = _d["RAFT_LIST"].as<std::string>();
     std::vector<std::string> ccds = _d["RAFT_CCD_LIST"].as<std::vector<std::string>>();
-    std::string fitspath = _root["FITS_PATH"].as<std::string>();
+    std::string fitspath = _config_root["FITS_PATH"].as<std::string>();
 
     /**
      * end readout without start integration
