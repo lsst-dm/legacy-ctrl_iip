@@ -57,18 +57,24 @@ void DAQFetcher::fetch(const std::string& image_id,
                        const std::string& board_type, 
                        const fs::path& filepath) { 
     if (board_type == "Science") { 
-        auto decoder = bind(&DAQFetcher::decode_science, 
+        auto decoder = std::bind(&DAQFetcher::decode_science, 
                             this, 
                             std::placeholders::_1, 
                             std::placeholders::_2, 
                             std::placeholders::_3, 
                             std::placeholders::_4);
-        fetch_ccd<IMS::Science, decode_science_func>(image_id, raft, ccd, filepath, decoder);
+        fetch_ccd<IMS::Science, decode_science_func>(image_id, raft, ccd, 
+                filepath, decoder);
     }
     else if (board_type == "WaveFront") { 
-        auto decoder = bind(&DAQFetcher::decode_wavefront, this, 
-                std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-        fetch_ccd<IMS::WaveFront, decode_wavefront_func>(image_id, raft, ccd, filepath, decoder);
+        auto decoder = std::bind(&DAQFetcher::decode_wavefront, 
+                            this, 
+                            std::placeholders::_1, 
+                            std::placeholders::_2, 
+                            std::placeholders::_3, 
+                            std::placeholders::_4);
+        fetch_ccd<IMS::WaveFront, decode_wavefront_func>(image_id, raft, ccd, 
+                filepath, decoder);
     }
     else { 
         std::string err = "Board type is not in Science or WaveFront.";
@@ -85,7 +91,8 @@ int32_t* DAQFetcher::fetch_ccd(const std::string& image_id,
                                std::function<U> decode) { 
     try { 
         if (!has_image(image_id)) { 
-            std::string err = "Image " + image_id + " does not exist in the catalog.";
+            std::string err = "Image " + image_id + 
+                " does not exist in the catalog.";
             LOG_CRT << err;
             throw L1::CannotFetchPixel(err); 
         }

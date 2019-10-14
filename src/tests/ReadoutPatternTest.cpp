@@ -1,25 +1,50 @@
+/*
+ * This file is part of ctrl_iip
+ *
+ * Developed for the LSST Data Management System.
+ * This product includes software developed by the LSST Project
+ * (https://www.lsst.org).
+ * See the COPYRIGHT file at the top-level directory of this distribution
+ * for details of code ownership.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <memory>
 #include <yaml-cpp/yaml.h>
 #include <boost/test/unit_test.hpp>
 
+#include "core/IIPBase.h"
 #include "core/Exceptions.h"
 #include "forwarder/ReadoutPattern.h"
 
-const std::string TEST_CONFIG = "./config/ForwarderCfgTest.yaml";
+struct ReadoutPatternFixture : IIPBase { 
 
-struct ReadoutPatternFixture { 
+    std::unique_ptr<ReadoutPattern> _p;
+    std::string _log_dir; 
 
-    ReadoutPatternFixture() { 
-        YAML::Node node = YAML::LoadFile(TEST_CONFIG); 
-        YAML::Node root = node["ROOT"];
-        _p = std::unique_ptr<ReadoutPattern>(new ReadoutPattern(root));
+    ReadoutPatternFixture() : IIPBase("ForwarderCfg.yaml", "test") { 
+        BOOST_TEST_MESSAGE("Setup ReadoutPattern fixture");
+        _log_dir = _config_root["LOGGING_DIR"].as<std::string>();
+        _p = std::unique_ptr<ReadoutPattern>(new ReadoutPattern(_config_root));
     }
 
     ~ReadoutPatternFixture() { 
-
+        BOOST_TEST_MESSAGE("TearDown ReadoutPattern fixture");
+        std::string log = _log_dir + "/test.log.0";
+        std::remove(log.c_str());
     }
-
-    std::unique_ptr<ReadoutPattern> _p;
 };
 
 BOOST_FIXTURE_TEST_SUITE(ReadoutPatternTest, ReadoutPatternFixture); 

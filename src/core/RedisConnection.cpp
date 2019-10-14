@@ -27,7 +27,9 @@
 #include "core/SimpleLogger.h"
 #include "core/Exceptions.h"
 
-RedisConnection::RedisConnection(const std::string& host, const int& port) : _host(host) { 
+RedisConnection::RedisConnection(const std::string& host, 
+                                 const int& port,
+                                 const int& db) : _host(host) { 
     // Timeout of 2 seconds for connection handshake
     const struct timeval tv{2, 0};
 
@@ -36,6 +38,8 @@ RedisConnection::RedisConnection(const std::string& host, const int& port) : _ho
         LOG_CRT << _context->errstr;
         throw L1::RedisError(_context->errstr);
     }
+
+    select(db);
 }
 
 RedisConnection::~RedisConnection() { 
@@ -56,4 +60,19 @@ void RedisConnection::lpush(const char* key, const std::string& value) {
     fmt << "lpush " << key << " %b";
     RedisResponse r(_context, fmt.str().c_str(), value.c_str(), 
             (size_t)value.size());
+}
+
+void RedisConnection::setex(const std::string& key, 
+                            const int& timeout, 
+                            const std::string& value) { 
+    std::ostringstream f;
+    f << "setex " << key << " " << timeout << " " << value;
+    RedisResponse r(_context, f.str().c_str());
+}
+
+bool RedisConnection::exists(const std::string& key) { 
+    std::ostringstream f;  
+    f << "exists " << key;
+    RedisResponse r(_context, f.str().c_str());
+    return r.get_int();
 }

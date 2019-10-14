@@ -12,6 +12,7 @@ class RedisResponse {
                       const char* fmt, 
                       const char* value,
                       size_t size);
+        RedisResponse(redisContext* c, const char* cmd); 
         ~RedisResponse();
 
         bool is_err();

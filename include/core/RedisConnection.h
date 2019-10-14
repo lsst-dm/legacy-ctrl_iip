@@ -21,11 +21,17 @@
  */
 class RedisConnection {
     public:
-        RedisConnection(const std::string& host, const int& port);
+        RedisConnection(const std::string& host, 
+                        const int& port,
+                        const int& db);
         ~RedisConnection();
 
         void select(int db);
         void lpush(const char* key, const std::string& v);
+        void setex(const std::string& key,
+                   const int& timeout,
+                   const std::string& value);
+        bool exists(const std::string& key);
 
     private:
         std::string _host;

@@ -31,6 +31,7 @@
 
 #include "core/IIPBase.h"
 #include "core/SimplePublisher.h"
+#include "core/HeartBeat.h"
 
 #include "forwarder/Scoreboard.h"
 #include "forwarder/MessageBuilder.h"
@@ -54,6 +55,7 @@ class miniforwarder : public IIPBase {
         void header_ready(const YAML::Node&);
         void end_readout(const YAML::Node&);
         void process_ack(const YAML::Node&);
+        void associated(const YAML::Node&);
 
         void assemble(const std::string&);
         void publish_ack(const YAML::Node&);
@@ -70,16 +72,24 @@ class miniforwarder : public IIPBase {
         std::string _archive_q;
         std::string _amqp_url;
         std::string _partition;
+        std::string _association_key;
+        std::string _forwarder_list;
+        int _set_timeout; 
+        int _check_timeout;
+        heartbeat_params _hb_params;
 
         boost::filesystem::path _header_path;
         boost::filesystem::path _fits_path;
 
-        std::map<const std::string, std::function<void (const YAML::Node&)> > _actions;
+        std::map<const std::string, 
+            std::function<void (const YAML::Node&)> > _actions;
         std::vector<std::string> _daq_locations;
 
         std::unique_ptr<SimplePublisher> _pub;
         std::unique_ptr<Scoreboard> _db;
         std::unique_ptr<DAQFetcher> _daq;
+        std::unique_ptr<Watcher> _watcher;
+        std::unique_ptr<Beacon> _beacon;
 
         MessageBuilder _builder;
         HeaderFetcher _hdr;

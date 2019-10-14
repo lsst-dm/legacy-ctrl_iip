@@ -1,3 +1,27 @@
+/*
+ * This file is part of ctrl_iip
+ *
+ * Developed for the LSST Data Management System.
+ * This product includes software developed by the LSST Project
+ * (https://www.lsst.org).
+ * See the COPYRIGHT file at the top-level directory of this distribution
+ * for details of code ownership.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <stdlib.h> // setenv
 #include <thread>
 #include <chrono>
 #include <memory>
@@ -6,23 +30,25 @@
 #include <boost/test/unit_test.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include "core/IIPBase.h"
 #include "core/Exceptions.h"
 #include "forwarder/miniforwarder.h"
 
 namespace fs = boost::filesystem;
 
-struct miniforwarderFixture {
+struct miniforwarderFixture : IIPBase {
+
     std::unique_ptr<miniforwarder> _fwd;
     YAML::Node _d;
-    YAML::Node _root;
+    std::string _log_dir; 
 
-    miniforwarderFixture() { 
+    miniforwarderFixture() : IIPBase("ForwarderCfg.yaml", "test"){ 
         BOOST_TEST_MESSAGE("Setup miniforwarder fixture");
-        _fwd = std::unique_ptr<miniforwarder>(
-                new miniforwarder("ForwarderCfgTest.yaml", "Forwarder"));
+        _log_dir = _config_root["LOGGING_DIR"].as<std::string>();
 
-        YAML::Node cfg = YAML::LoadFile("./config/ForwarderCfgTest.yaml");
-        _root = cfg["ROOT"];
+        _fwd = std::unique_ptr<miniforwarder>(
+                new miniforwarder("ForwarderCfg.yaml", "test"));
+
         _d = YAML::LoadFile("./data/test_data.yaml");
     }
 
@@ -62,6 +88,8 @@ struct miniforwarderFixture {
 
     ~miniforwarderFixture() { 
         BOOST_TEST_MESSAGE("TearDown miniforwarder fixture");
+        std::string log = _log_dir + "/test.log.0";
+        std::remove(log.c_str());
     }
 };
 
@@ -71,7 +99,7 @@ BOOST_AUTO_TEST_CASE(end_readout) {
     std::string image_id = _d["IMAGE_ID"].as<std::string>();
     std::string raft = _d["RAFT_LIST"].as<std::string>();
     std::vector<std::string> ccds = _d["RAFT_CCD_LIST"].as<std::vector<std::string>>();
-    std::string fitspath = _root["FITS_PATH"].as<std::string>();
+    std::string fitspath = _config_root["FITS_PATH"].as<std::string>();
 
     /**
      * end readout without start integration

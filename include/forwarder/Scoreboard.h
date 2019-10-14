@@ -27,6 +27,8 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <memory>
+#include "core/RedisConnection.h"
 
 /**
  * Information used for readout transfer of fits file
@@ -113,18 +115,10 @@ class Scoreboard {
         xfer_info get_xfer(const std::string&); 
 
         void set_fwd(const std::string& key, const std::string& body); 
+
     private:
-        // redis server host name
-        std::string _host;
-
-        // redis server port number
-        int _port;
-
-        // redis server database number
-        int _db_num;
-
-        // redis server password
-        std::string _password;
+        // RedisConnection
+        std::unique_ptr<RedisConnection> _con;
 
         // map to store image id against events
         std::map<std::string, std::set<std::string>> _db;

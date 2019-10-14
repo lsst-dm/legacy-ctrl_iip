@@ -21,20 +21,48 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
+#ifndef HEARTBEAT_H
+#define HEARTBEAT_H
 
-class MessageBuilder { 
-    public:
-        const std::string build_ack(const std::string& msg_type, 
-                                    const std::string& component, 
-                                    const std::string& ack_id, 
-                                    const std::string& ack_bool);
-        const std::string build_xfer_complete(const std::string& filename,
-                                              const std::string& session_id,
-                                              const std::string& job_num,
-                                              const std::string& reply_q);
-        const std::string build_associated_ack(const std::string& key);
-        const std::string build_fwd_info(const std::string& hostname,
-                                         const std::string& ip_addr,
-                                         const std::string& consume_q);
+#include <atomic>
+#include <functional>
+#include <mutex>
+#include <condition_variable>
+
+struct heartbeat_params { 
+    std::string redis_host;
+    int redis_port;
+    int redis_db;
+
+    std::string key;
+    int timeout;
+    std::function<void ()> action;
 };
+
+class Watcher { 
+    public:
+        void start(const heartbeat_params params); 
+        void clear();
+
+    private:
+        std::atomic<bool> _stop;
+        std::condition_variable _cond;
+        std::mutex _mutex;
+
+        void check(const heartbeat_params params);
+};
+
+class Beacon { 
+    public:
+        Beacon(const heartbeat_params params);
+        void clear();
+
+    private:
+        std::atomic<bool> _stop;
+        std::condition_variable _cond;
+        std::mutex _mutex;
+
+        void ping(const heartbeat_params& params);
+};
+
+#endif

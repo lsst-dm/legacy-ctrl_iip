@@ -26,10 +26,18 @@
 #include "core/IIPBase.h"
 
 IIPBase::IIPBase(const std::string& configfilename, const std::string& logfilename) {
-    _config_root = load_config_file(configfilename);
-    init_log(get_log_filepath(), logfilename);
+    std::string cfg;
+    try { 
+        cfg = load_config_file(configfilename);
+        _config_root = YAML::LoadFile(cfg)["ROOT"]; 
+        init_log(get_log_filepath(), logfilename);
 
-    _credentials = std::unique_ptr<Credentials>(new Credentials("iip_cred.yaml"));
+        _credentials = std::unique_ptr<Credentials>(new Credentials("iip_cred.yaml"));
+    }
+    catch (YAML::BadFile& e) { 
+        std::cout << "Cannot read configuration file " << cfg << std::endl;
+        exit(-1); 
+    }  
 }
 
 IIPBase::~IIPBase() { 
@@ -54,7 +62,7 @@ std::string IIPBase::get_log_filepath() {
     return path;
 }
 
-YAML::Node IIPBase::load_config_file(const std::string& config_filename) { 
+std::string IIPBase::load_config_file(const std::string& config_filename) { 
     char* iip_config_dir = getenv("IIP_CONFIG_DIR");
     char* ctrl_iip_dir = getenv("CTRL_IIP_DIR");
 
@@ -77,14 +85,7 @@ YAML::Node IIPBase::load_config_file(const std::string& config_filename) {
 	exit(-1); 
     }
     std::cout << "Loaded configuration from " << config_file << std::endl;
-       
-    try { 
-        return YAML::LoadFile(config_file)["ROOT"];
-    }
-    catch (YAML::BadFile& e) { 
-        std::cout << "Cannot read configuration file " << config_filename << std::endl;
-        exit(-1); 
-    }  
+    return config_file; 
 }
 
 std::string IIPBase::get_amqp_url(const std::string& username, 
