@@ -33,10 +33,8 @@ Scoreboard::Scoreboard(const std::string& host,
                        const int& port,
                        const int& db_num,
                        const std::string& password) { 
-    _host = host;
-    _port = port;
-    _db_num = db_num;
-    _password = password;
+    _con = std::unique_ptr<RedisConnection>(
+            new RedisConnection(host, port, db_num));
 }
 
 Scoreboard::~Scoreboard() { 
@@ -87,7 +85,5 @@ xfer_info Scoreboard::get_xfer(const std::string& image_id) {
 }
 
 void Scoreboard::set_fwd(const std::string& key, const std::string& body) { 
-    RedisConnection redis(_host, _port);
-    redis.select(_db_num);
-    redis.lpush(key.c_str(), body);
+    _con->lpush(key.c_str(), body);
 }

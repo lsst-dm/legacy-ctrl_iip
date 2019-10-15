@@ -25,8 +25,6 @@
 #include <cstdio>
 #include <unistd.h> // gethostname
 #include <netdb.h>
-//#include <sys/types.h>
-//#include <sys/socket.h>
 
 #include "core/Exceptions.h"
 #include "core/Consumer.h"
@@ -59,6 +57,10 @@ miniforwarder::miniforwarder(const std::string& config,
         const int redis_db = _config_root["REDIS_DB"].as<int>();
         const std::string redis_pwd = "meh"; // should come from credentials
 
+        // heartbeat configuration
+        _set_timeout = _config_root["SET_TIMEOUT"].as<int>();
+        _check_timeout = _config_root["CHECK_TIMEOUT"].as<int>();
+
         // daq configuration
         _partition = _config_root["PARTITION"].as<std::string>();
         _daq_locations = _config_root[_partition].as<std::vector<std::string>>();
@@ -67,11 +69,12 @@ miniforwarder::miniforwarder(const std::string& config,
         _amqp_url = "amqp://" + user + ":" + passwd + "@" + ip_host;
 
         _actions = {
-            { "AT_FWDR_HEALTH_CHECK", bind(&miniforwarder::health_check, this, _1) },
-            { "AT_FWDR_XFER_PARAMS", bind(&miniforwarder::xfer_params, this, _1) },
-            { "AT_FWDR_HEADER_READY", bind(&miniforwarder::header_ready, this, _1) },
-            { "AT_FWDR_END_READOUT", bind(&miniforwarder::end_readout, this, _1) },
-            { "FILE_TRANSFER_COMPLETED_ACK", bind(&miniforwarder::process_ack, this, _1) }
+            { "AT_FWDR_HEALTH_CHECK", std::bind(&miniforwarder::health_check, this, std::placeholders::_1) },
+            { "AT_FWDR_XFER_PARAMS", std::bind(&miniforwarder::xfer_params, this, std::placeholders::_1) },
+            { "AT_FWDR_HEADER_READY", std::bind(&miniforwarder::header_ready, this, std::placeholders::_1) },
+            { "AT_FWDR_END_READOUT", std::bind(&miniforwarder::end_readout, this, std::placeholders::_1) },
+            { "FILE_TRANSFER_COMPLETED_ACK", std::bind(&miniforwarder::process_ack, this, std::placeholders::_1) },
+            { "ASSOCIATED", std::bind(&miniforwarder::associated, this, std::placeholders::_1) }
         };
 
         _pub = std::unique_ptr<SimplePublisher>(new SimplePublisher(_amqp_url));
@@ -82,7 +85,21 @@ miniforwarder::miniforwarder(const std::string& config,
         _header_path = create_dir(header_dir);
         _fits_path = create_dir(fits_dir);
 
+        _forwarder_list = "forwarder_list";
+        _association_key = "f99_association";
+        
+        auto bound_register_fwd = std::bind(&miniforwarder::register_fwd, this); 
+        _hb_params.timeout = _set_timeout;
+        _hb_params.key = _association_key;
+        _hb_params.redis_host = redis_host;
+        _hb_params.redis_port = redis_port;
+        _hb_params.redis_db = redis_db;
+        _hb_params.action = bound_register_fwd;
+
         register_fwd();
+
+        _beacon = std::unique_ptr<Beacon>(new Beacon(_hb_params));
+        _watcher = std::unique_ptr<Watcher>(new Watcher());
     }
     catch (L1::PublisherError& e) { exit(-1); }
     catch (L1::CannotCreateDir& e) { exit(-1); }
@@ -110,7 +127,8 @@ void miniforwarder::on_message(const std::string& message) {
 void miniforwarder::run() { 
     try { 
         Consumer consumer(_amqp_url, _consume_q);
-        auto on_msg = bind(&miniforwarder::on_message, this, std::placeholders::_1);
+        auto on_msg = bind(&miniforwarder::on_message, this, 
+                std::placeholders::_1);
         consumer.run(on_msg);
     } 
     catch (L1::ConsumerError& e) { exit(-1); }
@@ -196,9 +214,27 @@ void miniforwarder::end_readout(const YAML::Node& n) {
 void miniforwarder::process_ack(const YAML::Node& n) { 
     try { 
         const std::string msg_type = n["MSG_TYPE"].as<std::string>();
-        LOG_INF << "Get ack for message type " << msg_type;
+        LOG_INF << "Got ack for message type " << msg_type;
     }
     catch (std::exception& e) { 
+        LOG_CRT << e.what();
+    }
+}
+
+void miniforwarder::associated(const YAML::Node& n) {
+    try { 
+        const std::string key = n["ASSOCIATION_KEY"].as<std::string>();
+        const std::string reply_q = n["REPLY_QUEUE"].as<std::string>();
+        const std::string msg = _builder.build_associated_ack(_association_key);
+
+        _pub->publish_message(reply_q, msg);
+
+        heartbeat_params params = _hb_params;
+        params.timeout = _check_timeout;
+        params.key = key;
+        _watcher->start(params);
+    }
+    catch(std::exception& e) { 
         LOG_CRT << e.what();
     }
 }
@@ -313,21 +349,16 @@ void miniforwarder::register_fwd() {
     }
     freeaddrinfo(infoptr);
 
-    YAML::Emitter out;
-    out << YAML::DoubleQuoted;
-    out << YAML::Flow;
-    out << YAML::BeginMap;
-    out << YAML::Key << "hostname" << YAML::Value << hostname;
-    out << YAML::Key << "ip_address" << YAML::Value << ip_addr;
-    out << YAML::Key << "consume_queue" << YAML::Value << _consume_q;
-    out << YAML::EndMap;
-    _db->set_fwd("forwarder_list", out.c_str());
+    const std::string msg = _builder.build_fwd_info(hostname, ip_addr, _consume_q);
+    _db->set_fwd(_forwarder_list, msg);
+    LOG_INF << "Set forwarder in redis list";
 }
 
 bool miniforwarder::check_valid_board(const std::string& raft, 
                                       const std::string& ccd) {
     const std::string bay_board = raft + "/" + ccd[0]; 
-    auto found = std::find(_daq_locations.begin(), _daq_locations.end(), bay_board);
+    auto found = std::find(_daq_locations.begin(), _daq_locations.end(), 
+            bay_board);
     if (found == _daq_locations.end()) { 
         return false;
     }

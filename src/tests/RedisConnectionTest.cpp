@@ -1,94 +1,94 @@
+/*
+ * This file is part of ctrl_iip
+ *
+ * Developed for the LSST Data Management System.
+ * This product includes software developed by the LSST Project
+ * (https://www.lsst.org).
+ * See the COPYRIGHT file at the top-level directory of this distribution
+ * for details of code ownership.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <boost/test/unit_test.hpp>
 #include <vector>
+#include <memory>
+#include <thread>
+#include <chrono>
 
+#include "core/IIPBase.h"
 #include "core/RedisConnection.h"
 #include "core/Exceptions.h"
 
-const int db = 10;
+struct RedisConnectionFixture : IIPBase {
 
-struct RedisConnectionFixture {
-    /**
-     * TODO: Read host name and db from cfg.yaml
-     */
-    RedisConnectionFixture() : _redis("141.142.238.15", 6379) { 
+    std::string _log_dir; 
+
+    RedisConnectionFixture() : IIPBase("ForwarderCfg.yaml", "test"){ 
         BOOST_TEST_MESSAGE("Setup RedisConnectionTest fixture");
-        _redis.select(db);
+        _log_dir = _config_root["LOGGING_DIR"].as<std::string>();
+
+        _host = _config_root["REDIS_HOST"].as<std::string>();
+        _port = _config_root["REDIS_PORT"].as<int>();
+        _db = _config_root["REDIS_DB"].as<int>();
+
+        _redis = std::unique_ptr<RedisConnection>(new RedisConnection(
+                    _host, _port, _db));
     }
 
     ~RedisConnectionFixture() { 
         BOOST_TEST_MESSAGE("TearDown RedisConnectionTest fixture");
-        // _redis.flushdb();
+        std::string log = _log_dir + "/test.log.0";
+        std::remove(log.c_str());
     }
 
-    RedisConnection _redis;
+    std::string _host;
+    int _port, _db;
+    std::unique_ptr<RedisConnection> _redis;
 };
 
-BOOST_FIXTURE_TEST_SUITE(s, RedisConnectionFixture);
+BOOST_FIXTURE_TEST_SUITE(RedisConnectionSuite, RedisConnectionFixture);
 
 BOOST_AUTO_TEST_CASE(constructor) {
-    BOOST_CHECK_NO_THROW(_redis);
-    BOOST_CHECK_THROW(RedisConnection r("141.142.238.10", 6379), L1::RedisError);
-    BOOST_CHECK_THROW(RedisConnection r("host1", 6379), L1::RedisError);
-    BOOST_CHECK_THROW(RedisConnection r("host1", 637), L1::RedisError);
+    // good
+    BOOST_CHECK_NO_THROW(RedisConnection r(_host, _port, _db));
+
+    // bad host
+    BOOST_CHECK_THROW(RedisConnection r("host1", _port, _db), L1::RedisError);
+
+    // bad port
+    BOOST_CHECK_THROW(RedisConnection r(_host, 637, _db), L1::RedisError);
+
+    // bad database
+    BOOST_CHECK_THROW(RedisConnection r(_host, _port, 25), L1::RedisError);
 }
 
-/**
-BOOST_AUTO_TEST_CASE(select) { 
-    BOOST_CHECK_NO_THROW(_redis.select(10)); 
-    BOOST_CHECK_THROW(_redis.select(20), L1::RedisError); 
-    BOOST_CHECK_THROW(_redis.select(-1), L1::RedisError); 
+BOOST_AUTO_TEST_CASE(setex) {
+    _redis->setex("ping", 3, "pong");
+
+    // true because just set the value
+    BOOST_CHECK_EQUAL(_redis->exists("ping"), true); 
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    // false because timer expired and value should be gone
+    BOOST_CHECK_EQUAL(_redis->exists("ping"), false); 
 }
 
-BOOST_AUTO_TEST_CASE(lpush) { 
-    std::vector<std::string> v1{"hello", "world"};
-    _redis.lpush("key", v1);
-    std::vector<std::string> v2 = _redis.lrange("key", 0, -1);
-    BOOST_CHECK_EQUAL(v1.size(), v2.size());
-
-    // empty string is valid
-    std::vector<std::string> v3{"", ""};
-    _redis.lpush("val", v3);
-    std::vector<std::string> v4 = _redis.lrange("val", 0, -1);
-    BOOST_CHECK_EQUAL(v3.size(), v4.size());
-
-    // cannot push empty vector
-    std::vector<std::string> v5;
-    BOOST_CHECK_THROW(_redis.lpush("foo", v5), L1::RedisError);
+BOOST_AUTO_TEST_CASE(exists) {
+    _redis->setex("ping", 3, "pong");
+    BOOST_CHECK_EQUAL(_redis->exists("ping"), true);
+    BOOST_CHECK_EQUAL(_redis->exists("iip"), false);
 }
-
-BOOST_AUTO_TEST_CASE(del) { 
-    _redis.set("foo", "bar");  
-    _redis.del("foo");
-    BOOST_CHECK_EQUAL(_redis.exists("foo"), false);
-    BOOST_CHECK_THROW(_redis.del("foo"), L1::RedisError);
-}
-
-BOOST_AUTO_TEST_CASE(flushdb) { 
-    _redis.set("foo", "bar");  
-    _redis.flushdb();
-    BOOST_CHECK_EQUAL(_redis.exists("foo"), false);
-}
-
-BOOST_AUTO_TEST_CASE(set) { 
-    _redis.set("foo", "bar");
-    BOOST_CHECK_EQUAL(_redis.exists("foo"), true);
-    BOOST_CHECK_EQUAL(_redis.exists("for"), false);
-}
-
-BOOST_AUTO_TEST_CASE(get) { 
-    _redis.set("foo", "bar");
-    std::string bar = _redis.get("foo");
-
-    BOOST_CHECK_EQUAL("bar", bar);
-
-    // key not exist
-    BOOST_CHECK_THROW(_redis.get("for"), L1::RedisError);
-
-    // wrong type of key
-    std::vector<std::string> v1{"hello", "world"};
-    _redis.lpush("key", v1);
-    BOOST_CHECK_THROW(_redis.get("key"), L1::RedisError);
-}
-*/
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -83,7 +83,7 @@ class IIPBase {
          * @throws No exception thrown but application will `exit` if 
          *      requirements are not met
          */
-        YAML::Node load_config_file(const std::string& config_filename);
+        std::string load_config_file(const std::string& config_filename);
 
         /**
          * Construct AMQP URL to RabbitMQ Server

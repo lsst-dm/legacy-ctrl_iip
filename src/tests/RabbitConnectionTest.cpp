@@ -27,23 +27,28 @@
 #include "core/IIPBase.h"
 #include "core/Exceptions.h"
 
-struct Fixture : IIPBase {
-    Fixture() : IIPBase("ForwarderCfgTest.yaml", "RabbitConnectionTest") {
-        BOOST_TEST_MESSAGE("Setup fixture");
+struct RabbitConnectionFixture : IIPBase {
+
+    std::string _usr, _pwd, _addr;
+    std::string _log_dir; 
+
+    RabbitConnectionFixture() : IIPBase("ForwarderCfg.yaml", "test") {
+        BOOST_TEST_MESSAGE("Setup RabbitConnection fixture");
+        _log_dir = _config_root["LOGGING_DIR"].as<std::string>();
+
         _usr = _credentials->get_user("service_user");
         _pwd = _credentials->get_passwd("service_passwd"); 
         _addr = _config_root["BASE_BROKER_ADDR"].as<std::string>();
     }
 
-    ~Fixture() { 
-        BOOST_TEST_MESSAGE("TearDown fixture");
-        std::remove("./RabbitConnectionTest.log.0");
+    ~RabbitConnectionFixture() { 
+        BOOST_TEST_MESSAGE("TearDown RabbitConnection fixture");
+        std::string log = _log_dir + "/test.log.0";
+        std::remove(log.c_str());
     }
-
-    std::string _usr, _pwd, _addr;
 };
 
-BOOST_FIXTURE_TEST_SUITE(RabbitConnectionTest, Fixture);
+BOOST_FIXTURE_TEST_SUITE(RabbitConnectionSuite, RabbitConnectionFixture);
 
 BOOST_AUTO_TEST_CASE(constructor) {
     // good url
@@ -55,7 +60,8 @@ BOOST_AUTO_TEST_CASE(constructor) {
     BOOST_CHECK_THROW(RabbitConnection r(bad_url), L1::RabbitConnectionError);
 
     // bad ip
-    std::string bad_ip = "amqp://" + _usr + ":" + _pwd + "@141.142.238.9:5672/%2fhello";
+    std::string bad_ip = "amqp://" + _usr + ":" + _pwd 
+        + "@141.142.238.9:5672/%2fhello";
     BOOST_CHECK_THROW(RabbitConnection r(bad_url), L1::RabbitConnectionError);
 
     // bad hostname
@@ -64,7 +70,8 @@ BOOST_AUTO_TEST_CASE(constructor) {
     BOOST_CHECK_THROW(RabbitConnection r(bad_host), L1::RabbitConnectionError);
 
     // random string
-    BOOST_CHECK_THROW(RabbitConnection r("helloworld"), L1::RabbitConnectionError);
+    BOOST_CHECK_THROW(RabbitConnection r("helloworld"), 
+            L1::RabbitConnectionError);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

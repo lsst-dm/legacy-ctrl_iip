@@ -15,6 +15,16 @@ RedisResponse::RedisResponse(redisContext* c,
     }
 }
 
+RedisResponse::RedisResponse(redisContext* c, const char* cmd) { 
+    _reply = static_cast<redisReply*>(redisCommand(c, cmd)); 
+    if (is_err()) {
+        std::string err = "Cannot execute command because " + 
+            std::string(_reply->str);
+        LOG_CRT << err;
+        throw L1::RedisError(err);
+    }
+}
+
 RedisResponse::~RedisResponse() { 
     freeReplyObject(_reply);
 }
