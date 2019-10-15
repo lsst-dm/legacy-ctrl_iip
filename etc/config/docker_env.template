@@ -1,3 +1,0 @@
-VHOST=yes
-RABBITMQ_USER=hello
-RABBITMQ_PASSWD=world
