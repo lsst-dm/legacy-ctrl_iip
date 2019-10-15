@@ -1,9 +1,0 @@
-In order to run the test files, you must have pytest installed and you must be in the iip/ directory (for now, until the testing files are moved)
-
-Downloading and Installing pytest:
-1. Download pytest  (ie. pip install -U pytest )
-2. Run py.test --version to see if it works
-3. You will need to edit the functions in the JobScoreboard.py to return True or False. Look the attached file for information regarding that.
-4. In the iip/ directory run "py.test -v tests/name_of_file"  
-(ie). "py.test -v tests/test_ack_sb.py" or "py.test -v" (to run all test files)
-5. v is for verbose and -s shows stdout messages 

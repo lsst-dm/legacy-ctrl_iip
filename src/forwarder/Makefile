@@ -27,7 +27,7 @@ LIB		= -llsst_l1_forwarder -llsst_l1_core -ldaq_ims -ldaq_daq -ldaq_dsi \
 all: release
 
 mkdir:
-	mkdir -p $(OBJ_DIR) $(LIB_DIR)
+	mkdir -p $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR)
 
 $(OBJ_DIR)/%.o: %.cpp
 	g++ -std=c++11 -fPIC -DBOOST_LOG_DYN_LINK -g -c $(INCLUDE) $< -o $@
