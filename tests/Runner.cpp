@@ -1,5 +1,5 @@
 /*
- * This file is part of ctrl_iip
+ * This file is part of dm_forwarder
  *
  * Developed for the LSST Data Management System.
  * This product includes software developed by the LSST Project
@@ -21,5 +21,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define BOOST_TEST_MODULE "C++ tests for LSST ctrl_iip"
+#define BOOST_TEST_MODULE "C++ tests for LSST dm_forwarder"
 #include <boost/test/unit_test.hpp>
