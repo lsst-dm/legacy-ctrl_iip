@@ -3,7 +3,7 @@ lxml==4.6.3
 more-itertools==4.1.0
 pika==1.0.1
 pluggy==0.6.0
-py==1.5.3
+py==1.10.0
 pytest==3.5.0
 PyYAML==5.4
 redis==3.2.1
